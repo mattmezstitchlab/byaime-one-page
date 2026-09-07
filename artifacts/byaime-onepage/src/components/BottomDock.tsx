@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, FileText, Map, Folder, MessageSquare, User, WalletCards } from 'lucide-react';
+import { X, Search, FileText, Map, Folder, MessageSquare, User, WalletCards, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProject } from '@/store/project-store';
+
+import { PlanningPanel } from './panels/PlanningPanel';
+import { GuestPanel } from './panels/GuestPanel';
+import { ProviderPanel } from './panels/ProviderPanel';
+import { DayOfPanel } from './panels/DayOfPanel';
 
 export function BottomDock() {
   const [activePanel, setActivePanel] = useState<string | null>(null);
@@ -13,11 +18,10 @@ export function BottomDock() {
   };
 
   const navItems = [
-    { id: 'search', icon: Search, label: "Recherche" },
-    { id: 'documents', icon: FileText, label: "Documents" },
-    { id: 'budget', icon: WalletCards, label: "Budget" },
-    { id: 'chat', icon: MessageSquare, label: "Échanges" },
-    { id: 'profile', icon: User, label: "Profil" },
+    { id: 'planning', icon: Folder, label: "Planning" },
+    { id: 'guests', icon: User, label: "Invités" },
+    { id: 'providers', icon: Store, label: "Prestataires" },
+    { id: 'dayof', icon: Map, label: "Le Jour J" },
   ];
 
   if (!project) return null;
@@ -48,69 +52,10 @@ export function BottomDock() {
               </h3>
               
               {/* Contextual Panel Content based on ID */}
-              {activePanel === 'budget' && (
-                <div className="max-w-2xl mx-auto space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
-                      <div className="text-xs text-white/50 uppercase tracking-wider mb-2">Total Engagé</div>
-                      <div className="text-2xl md:text-3xl font-mono">
-                        {(project.payments.reduce((a, p) => a + p.amountCents, 0) / 100).toLocaleString('fr-FR')} €
-                      </div>
-                    </div>
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl text-emerald-400">
-                      <div className="text-xs uppercase tracking-wider mb-2">Déjà Payé</div>
-                      <div className="text-2xl md:text-3xl font-mono">
-                        {(project.payments.filter(p => p.state === 'paye').reduce((a, p) => a + p.amountCents, 0) / 100).toLocaleString('fr-FR')} €
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3 mt-8">
-                    <h4 className="text-sm font-medium mb-4">Paiements</h4>
-                    {project.payments.map(p => (
-                      <div key={p.id} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5">
-                        <div>
-                          <div className="font-medium text-sm">{p.label}</div>
-                          <div className="text-white/40 text-xs mt-1">
-                            {new Date(p.at).toLocaleDateString('fr-FR')}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-mono text-sm">{(p.amountCents / 100).toLocaleString('fr-FR')} €</div>
-                          <div className={cn(
-                            "text-[10px] uppercase tracking-wider mt-1",
-                            p.state === 'paye' ? "text-emerald-400" : "text-amber-400"
-                          )}>
-                            {p.state === 'paye' ? 'Réglé' : 'Dû'}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {project.payments.length === 0 && (
-                      <div className="text-center py-10 text-white/40 text-sm">Aucun paiement enregistré</div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activePanel === 'documents' && (
-                <div className="max-w-2xl mx-auto space-y-3">
-                  {project.documents.map(d => (
-                    <div key={d.id} className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
-                      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                        <FileText className="w-4 h-4 opacity-50" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">{d.title}</div>
-                        <div className="text-white/40 text-xs mt-1 uppercase tracking-wider">{d.kind}</div>
-                      </div>
-                    </div>
-                  ))}
-                  {project.documents.length === 0 && (
-                    <div className="text-center py-10 text-white/40 text-sm">Aucun document</div>
-                  )}
-                </div>
-              )}
+              {activePanel === 'planning' && <PlanningPanel />}
+              {activePanel === 'guests' && <GuestPanel />}
+              {activePanel === 'providers' && <ProviderPanel />}
+              {activePanel === 'dayof' && <DayOfPanel />}
               
             </div>
           </motion.div>

@@ -17,13 +17,12 @@ export function ProjectStage() {
   const [phase, setPhase] = useState<"tout" | "avant" | "pendant" | "apres">("tout");
   const [playMode, setPlayMode] = useState(false);
   const [layers, setLayers] = useState<string[]>([]);
-  
-  if (!project) return null;
 
-  const pivotDate = project.pivot.value;
+  const pivotDate = project?.pivot.value ?? Date.now();
   const daysToPivot = Math.max(0, Math.ceil((pivotDate - Date.now()) / 86400000));
   
   const visibleEvents = useMemo(() => {
+    if (!project) return [];
     return project.timeline.filter(e => {
       // Phase filtering
       if (phase === 'avant' && e.time >= pivotDate) return false;
@@ -35,15 +34,18 @@ export function ProjectStage() {
       
       return true;
     });
-  }, [project.timeline, phase, layers, pivotDate]);
+  }, [project, phase, layers, pivotDate]);
 
   const stats = useMemo(() => {
-    const booked = project.providers.filter(p => p.status === 'choisi' || p.status === 'reserve').length;
-    const open = project.providers.filter(p => p.status === 'a_rechercher' || p.status === 'suggestion').length;
+    if (!project) return { booked: 0, open: 0, engaged: 0 };
+    const booked = project.providers.filter(p => p.status === 'reserve').length;
+    const open = project.providers.filter(p => p.status === 'recherche').length;
     const engaged = project.payments.reduce((acc, p) => acc + p.amountCents, 0) / 100;
     
     return { booked, open, engaged };
-  }, [project.providers, project.payments]);
+  }, [project]);
+
+  if (!project) return null;
 
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
@@ -98,9 +100,9 @@ export function ProjectStage() {
                 {project.city.value}
               </span>
             )}
-            {project.guests.value && (
+            {project.guestsCount.value && (
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
-                {project.guests.value} invités
+                {project.guestsCount.value} invités
               </span>
             )}
           </motion.div>
@@ -127,7 +129,34 @@ export function ProjectStage() {
             <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
               {daysToPivot > 0 ? `J-${daysToPivot}` : 'Date passée'}
             </span>
+            
+            {project.tasks.length > 0 && (
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 px-3 py-1 text-xs font-medium ml-auto">
+                {Math.round((project.tasks.filter(t => t.status === 'termine').length / project.tasks.length) * 100)}% complété
+              </span>
+            )}
           </motion.div>
+          
+          {/* Prochaine étape */}
+          {project.tasks.find(t => t.status === 'a_faire') && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mt-6 pt-6 border-t border-white/10"
+            >
+              <div className="text-[10px] uppercase tracking-widest text-white/50 mb-2">Prochaine étape</div>
+              <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4 w-fit pr-8">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white">{project.tasks.find(t => t.status === 'a_faire')?.title}</div>
+                  <div className="text-xs text-white/40 mt-0.5">Priorité {project.tasks.find(t => t.status === 'a_faire')?.priority}</div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </header>
 

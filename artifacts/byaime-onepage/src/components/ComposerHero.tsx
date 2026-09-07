@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export function ComposerHero() {
-  const { intentionText, setIntentionText, draft, commitDraft } = useProject();
+  const { intentionText, setIntentionText, draft, commitDraft, createWeddingDemo } = useProject();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && intentionText.length > 10) {
@@ -68,9 +68,9 @@ export function ComposerHero() {
                           {format(draft.pivot.value, 'MMM yyyy', { locale: fr })}
                         </span>
                       )}
-                      {draft.guests?.confidence === "confirme" && (
+                      {draft.guestsCount?.confidence === "confirme" && (
                         <span className="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          {draft.guests.value} invités
+                          {draft.guestsCount.value} invités
                         </span>
                       )}
                       {draft.budget?.confidence === "confirme" && (
@@ -92,6 +92,13 @@ export function ComposerHero() {
               </div>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={createWeddingDemo}
+            className="mt-5 text-[11px] uppercase tracking-[0.18em] text-white/55 underline decoration-white/25 underline-offset-8 transition-colors hover:text-white"
+          >
+            Explorer un mariage complet
+          </button>
         </motion.div>
       </div>
       

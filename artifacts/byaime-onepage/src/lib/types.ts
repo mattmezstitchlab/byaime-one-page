@@ -9,6 +9,91 @@ export function fact<T>(value: T, confidence: Confidence = "confirme"): Fact<T> 
   return { value, confidence };
 }
 
+export type TaskStatus = "a_faire" | "en_cours" | "termine";
+export type TaskPhase = "12m+" | "6-12m" | "3-6m" | "1-3m" | "jour-j" | "apres";
+export type TaskPriority = "basse" | "normale" | "haute";
+
+export type Task = {
+  id: string;
+  title: string;
+  phase: TaskPhase;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate?: number;
+  owner?: string;
+  dependencies?: string[];
+};
+
+export type GuestRSVP = "en_attente" | "confirme" | "decline";
+export type GuestRole = "marie" | "temoin" | "famille" | "invite" | "enfant";
+
+export type Guest = {
+  id: string;
+  name: string;
+  householdId?: string;
+  role: GuestRole;
+  rsvp: GuestRSVP;
+  dietary?: string;
+  tableId?: string;
+  attendance: { ceremony: boolean; cocktail: boolean; dinner: boolean; brunch: boolean; };
+  contact?: string;
+  notes?: string;
+};
+
+export type Table = {
+  id: string;
+  name: string;
+  capacity: number;
+};
+
+export type ProviderCategory = "lieu" | "traiteur" | "photo" | "video" | "fleuriste" | "musique" | "officiant" | "tenue" | "beaute" | "papeterie" | "transport" | "hebergement" | "autre";
+
+export type Provider = {
+  id: string;
+  category: ProviderCategory;
+  role: string;
+  name?: string;
+  contact?: string;
+  status: "recherche" | "contacte" | "rencontre" | "devis" | "reserve";
+  amountCents?: number;
+  depositCents?: number;
+  paidCents?: number;
+  nextAction?: string;
+};
+
+export type Payment = {
+  id: string;
+  label: string;
+  amountCents: number;
+  at: number;
+  state: "paye" | "du";
+  providerId?: string;
+};
+
+export type Document = {
+  id: string;
+  title: string;
+  kind: "devis" | "contrat" | "facture" | "autre";
+  providerId?: string;
+  at: number;
+  url?: string;
+};
+
+export type CommunicationStatus = "brouillon" | "envoye";
+export type Communication = {
+  id: string;
+  subject: string;
+  type: "invitation" | "rappel" | "remerciement" | "info";
+  status: CommunicationStatus;
+  sentAt?: number;
+  audience: string;
+};
+
+export type Logistics = {
+  accommodations: { id: string; name: string; capacity: number; booked: number; address: string; }[];
+  shuttles: { id: string; route: string; departure: string; capacity: number; }[];
+};
+
 export type TimelineStatus = "prepare" | "execute" | "en_attente" | "a_valider" | "bloque" | "echoue";
 
 export type TimelineEvent = {
@@ -23,62 +108,7 @@ export type TimelineEvent = {
   confidence: Confidence;
   phase: "avant" | "pendant" | "apres";
   universe: string;
-};
-
-export type ProviderStatus = "choisi" | "reserve" | "contacte" | "suggestion" | "a_rechercher";
-
-export type Provider = {
-  id: string;
-  role: string;
-  name?: string;
-  city?: string;
-  status: ProviderStatus;
-  amountCents?: number;
-  depositCents?: number;
-  confidence: Confidence;
-};
-
-export type ParticipantStatus = "confirme" | "invite" | "decline";
-
-export type Participant = {
-  id: string;
-  name: string;
-  role?: string;
-  status: ParticipantStatus;
-  confidence: Confidence;
-};
-
-export type Document = {
-  id: string;
-  title: string;
-  kind: "devis" | "contrat" | "facture" | "document";
-  amountCents?: number;
-  at: number;
-};
-
-export type Payment = {
-  id: string;
-  label: string;
-  amountCents: number;
-  at: number;
-  state: "paye" | "du";
-  providerId?: string;
-};
-
-export type Media = {
-  id: string;
-  kind: "photo" | "video";
-  url: string;
-  title: string;
-  at: number;
-};
-
-export type Message = {
-  id: string;
-  from: string;
-  text: string;
-  at: number;
-  mine: boolean;
+  ownerId?: string;
 };
 
 export type WorldProject = {
@@ -89,16 +119,18 @@ export type WorldProject = {
   pivot: Fact<number>;
   city: Fact<string | null>;
   venue: Fact<string | null>;
-  guests: Fact<number | null>;
+  guestsCount: Fact<number | null>;
   budget: Fact<number | null>;
   
   timeline: TimelineEvent[];
+  tasks: Task[];
+  guests: Guest[];
+  tables: Table[];
   providers: Provider[];
-  participants: Participant[];
-  documents: Document[];
   payments: Payment[];
-  media: Media[];
-  messages: Message[];
+  documents: Document[];
+  communications: Communication[];
+  logistics: Logistics;
   
   missing: string[];
 };

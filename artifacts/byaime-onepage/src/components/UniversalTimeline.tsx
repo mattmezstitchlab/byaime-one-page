@@ -42,7 +42,7 @@ const STATUS_LABELS = {
 };
 
 export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
-  const { removeTimelineEvent } = useProject();
+  const { removeEntity } = useProject();
 
   if (events.length === 0) {
     return (
@@ -145,7 +145,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
 
                     {/* Delete Action (Hover) */}
                     <button 
-                      onClick={() => removeTimelineEvent(event.id)}
+                      onClick={() => removeEntity('timeline', event.id)}
                       className="absolute top-4 right-4 opacity-0 group-hover/card:opacity-100 p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
                     >
                       <X className="w-4 h-4" />

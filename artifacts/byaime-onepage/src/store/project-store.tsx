@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { WorldProject, TimelineEvent, Provider, Participant, Payment, Document, Media } from '../lib/types';
+import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
 
 type ProjectStore = {
@@ -10,28 +10,44 @@ type ProjectStore = {
   
   setIntentionText: (text: string) => void;
   commitDraft: () => void;
+  createWeddingDemo: () => void;
   clearProject: () => void;
   
   updateProject: (updates: Partial<WorldProject>) => void;
-  
-  // Timeline Actions
-  addTimelineEvent: (event: Omit<TimelineEvent, 'id'>) => void;
-  updateTimelineEvent: (id: string, updates: Partial<TimelineEvent>) => void;
-  removeTimelineEvent: (id: string) => void;
-  
-  // Generic entity actions
-  addProvider: (provider: Omit<Provider, 'id'>) => void;
-  addParticipant: (participant: Omit<Participant, 'id'>) => void;
-  addPayment: (payment: Omit<Payment, 'id'>) => void;
+  updateEntity: <K extends keyof WorldProject>(collection: K, id: string, updates: any) => void;
+  addEntity: <K extends keyof WorldProject>(collection: K, item: any) => void;
+  removeEntity: <K extends keyof WorldProject>(collection: K, id: string) => void;
 };
 
 const ProjectContext = createContext<ProjectStore | null>(null);
+
+function normalizeStoredProject(value: WorldProject): WorldProject {
+  return {
+    ...value,
+    timeline: Array.isArray(value.timeline) ? value.timeline : [],
+    tasks: Array.isArray(value.tasks) ? value.tasks : [],
+    guests: Array.isArray(value.guests) ? value.guests : [],
+    tables: Array.isArray(value.tables) ? value.tables : [],
+    providers: Array.isArray(value.providers) ? value.providers : [],
+    payments: Array.isArray(value.payments) ? value.payments : [],
+    documents: Array.isArray(value.documents) ? value.documents : [],
+    communications: Array.isArray(value.communications) ? value.communications : [],
+    media: Array.isArray(value.media) ? value.media : [],
+    messages: Array.isArray(value.messages) ? value.messages : [],
+    guestsCount: value.guestsCount ?? { value: null, confidence: 'manquant' },
+    budget: value.budget ?? { value: null, confidence: 'manquant' },
+    city: value.city ?? { value: null, confidence: 'manquant' },
+    venue: value.venue ?? { value: null, confidence: 'manquant' },
+    logistics: value.logistics ?? { accommodations: [], shuttles: [] },
+    missing: Array.isArray(value.missing) ? value.missing : [],
+  };
+}
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<WorldProject | null>(() => {
     try {
       const saved = localStorage.getItem('aime-project');
-      return saved ? JSON.parse(saved) : null;
+      return saved ? normalizeStoredProject(JSON.parse(saved) as WorldProject) : null;
     } catch {
       return null;
     }
@@ -66,6 +82,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
   }, [draft, intentionText]);
 
+  const createWeddingDemo = useCallback(() => {
+    const example = "On se marie le 14 août 2027 près de Lille, 120 invités, ambiance champêtre avec un budget de 20 000€";
+    const exampleDraft = parseIntention(example);
+    setProject(createInitialProject(exampleDraft, example));
+    setDraft(null);
+    setIntentionTextState('');
+  }, []);
+
   const clearProject = useCallback(() => {
     setProject(null);
     setDraft(null);
@@ -76,46 +100,41 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProject(prev => prev ? { ...prev, ...updates } : null);
   }, []);
 
-  const addTimelineEvent = useCallback((event: Omit<TimelineEvent, 'id'>) => {
-    setProject(prev => prev ? {
-      ...prev,
-      timeline: [...prev.timeline, { ...event, id: Math.random().toString(36).substring(2) }].sort((a, b) => a.time - b.time)
-    } : null);
+  const updateEntity = useCallback(<K extends keyof WorldProject>(collection: K, id: string, updates: any) => {
+    setProject(prev => {
+      if (!prev) return null;
+      const list = prev[collection] as any[];
+      if (!Array.isArray(list)) return prev;
+      return {
+        ...prev,
+        [collection]: list.map(item => item.id === id ? { ...item, ...updates } : item)
+      };
+    });
   }, []);
 
-  const updateTimelineEvent = useCallback((id: string, updates: Partial<TimelineEvent>) => {
-    setProject(prev => prev ? {
-      ...prev,
-      timeline: prev.timeline.map(e => e.id === id ? { ...e, ...updates } : e).sort((a, b) => a.time - b.time)
-    } : null);
+  const addEntity = useCallback(<K extends keyof WorldProject>(collection: K, item: any) => {
+    setProject(prev => {
+      if (!prev) return null;
+      const list = prev[collection] as any[];
+      if (!Array.isArray(list)) return prev;
+      const newItem = { ...item, id: Math.random().toString(36).substring(2) };
+      return {
+        ...prev,
+        [collection]: [...list, newItem]
+      };
+    });
   }, []);
 
-  const removeTimelineEvent = useCallback((id: string) => {
-    setProject(prev => prev ? {
-      ...prev,
-      timeline: prev.timeline.filter(e => e.id !== id)
-    } : null);
-  }, []);
-
-  const addProvider = useCallback((provider: Omit<Provider, 'id'>) => {
-    setProject(prev => prev ? {
-      ...prev,
-      providers: [...prev.providers, { ...provider, id: Math.random().toString(36).substring(2) }]
-    } : null);
-  }, []);
-
-  const addParticipant = useCallback((participant: Omit<Participant, 'id'>) => {
-    setProject(prev => prev ? {
-      ...prev,
-      participants: [...prev.participants, { ...participant, id: Math.random().toString(36).substring(2) }]
-    } : null);
-  }, []);
-
-  const addPayment = useCallback((payment: Omit<Payment, 'id'>) => {
-    setProject(prev => prev ? {
-      ...prev,
-      payments: [...prev.payments, { ...payment, id: Math.random().toString(36).substring(2) }]
-    } : null);
+  const removeEntity = useCallback(<K extends keyof WorldProject>(collection: K, id: string) => {
+    setProject(prev => {
+      if (!prev) return null;
+      const list = prev[collection] as any[];
+      if (!Array.isArray(list)) return prev;
+      return {
+        ...prev,
+        [collection]: list.filter(item => item.id !== id)
+      };
+    });
   }, []);
 
   return (
@@ -126,14 +145,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       hasProject: project !== null,
       setIntentionText,
       commitDraft,
+      createWeddingDemo,
       clearProject,
       updateProject,
-      addTimelineEvent,
-      updateTimelineEvent,
-      removeTimelineEvent,
-      addProvider,
-      addParticipant,
-      addPayment
+      updateEntity,
+      addEntity,
+      removeEntity
     }}>
       {children}
     </ProjectContext.Provider>
