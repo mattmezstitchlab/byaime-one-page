@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
-import type { Provider } from '@/lib/types';
+import type { Guest, Provider } from '@/lib/types';
 
 const providerImages: Partial<Record<Provider['category'], string>> = {
   lieu: 'images/visual-venue-kJsZKZPp.jpg',
@@ -37,6 +37,22 @@ function ProviderPortrait({ provider, index = 0 }: { provider: Provider; index?:
       title={provider.name || provider.role}
     >
       <img src={getAssetUrl(image)} alt="" className="h-full w-full object-cover" />
+    </span>
+  );
+}
+
+function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; index?: number; large?: boolean }) {
+  const initials = guest.name.split(/\s+/).map(part => part[0]).slice(0, 2).join("");
+  return (
+    <span
+      className={cn(
+        "relative grid shrink-0 place-items-center overflow-hidden rounded-full border-[3px] border-black bg-gradient-to-br from-zinc-500 to-zinc-900 font-display text-white shadow-xl",
+        large ? "h-20 w-20 text-xl sm:h-24 sm:w-24 sm:text-2xl" : "h-14 w-14 text-sm"
+      )}
+      style={{ zIndex: 20 - index }}
+      title={guest.name}
+    >
+      {initials}
     </span>
   );
 }
@@ -298,9 +314,9 @@ export function ProjectStage() {
               className="group flex items-center gap-2 py-1 pr-2 text-xs text-white/80 transition hover:text-white"
                aria-label={`Ouvrir le Registre, ${project.guests.length + project.providers.length} personnes et professionnels`}
             >
-              <span className="flex -space-x-2">
-                {project.providers.slice(0, 4).map((provider, index) => <ProviderPortrait key={provider.id} provider={provider} index={index} />)}
-                {project.providers.length === 0 && <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-black bg-white/10 text-[10px]">0</span>}
+              <span className="flex -space-x-4 py-1">
+                {project.guests.slice(0, 5).map((guest, index) => <GuestPortrait key={guest.id} guest={guest} index={index} />)}
+                {project.guests.length === 0 && <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-black bg-white/10 text-[10px]">0</span>}
               </span>
                <span>{project.guests.length + project.providers.length} dans le Registre</span>
             </button>
@@ -387,7 +403,7 @@ export function ProjectStage() {
       <nav aria-label="Vues du Monde" className="border-y border-white/8 bg-[#050505]">
         <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 py-4 hide-scrollbar">
           {([
-            ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
+            ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["day-of", "Jour J"], ["person", "Invités"], ["provider", "Professionnels"],
             ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
           ] as Array<[TimelineView, string]>).map(([id, label]) => (
             <button
@@ -415,6 +431,39 @@ export function ProjectStage() {
 
       {/* Main Content Area */}
       <main className="w-full">
+        {view === "person" && (
+          <section className="overflow-hidden border-b border-white/8 bg-[#080808] px-6 py-20">
+            <div className="mx-auto max-w-5xl">
+              <div className="max-w-2xl">
+                <p className="text-[10px] uppercase tracking-[.24em] text-white/32">Les personnes de ce Monde</p>
+                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-white sm:text-6xl">Celles et ceux qui en font partie.</h2>
+                <p className="mt-5 max-w-xl text-sm font-light leading-relaxed text-white/42">Invités pour un mariage, artistes pour un spectacle, membres pour une association ou collaborateurs pour une entreprise : le Kit adapte les rôles, pas les personnes.</p>
+              </div>
+              {project.guests.length ? (
+                <div className="mt-14 flex flex-wrap items-end gap-x-2 gap-y-8 sm:gap-x-4">
+                  {project.guests.map((guest, index) => (
+                    <button
+                      key={guest.id}
+                      type="button"
+                      onClick={() => {
+                        setRegistryFilter(guest.role === "famille" ? "family" : "guests");
+                        setRegistryOpen(true);
+                      }}
+                      className={cn("group flex flex-col items-center", index % 3 === 1 && "sm:translate-y-8")}
+                      aria-label={`Ouvrir ${guest.name} dans le Registre`}
+                    >
+                      <span className="transition duration-300 group-hover:-translate-y-2 group-hover:scale-105"><GuestPortrait guest={guest} index={index} large /></span>
+                      <span className="mt-3 max-w-24 truncate text-[10px] text-white/58 transition group-hover:text-white">{guest.name}</span>
+                      <span className="mt-1 text-[8px] uppercase tracking-[.14em] text-white/24">{guest.role}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <button type="button" onClick={() => setRegistryOpen(true)} className="mt-12 rounded-3xl border border-dashed border-white/15 px-8 py-12 text-sm text-white/38">Le Registre accueillera ici les personnes reliées à ce Monde.</button>
+              )}
+            </div>
+          </section>
+        )}
         <UniversalTimeline events={visibleEvents} />
         <div className="max-w-5xl mx-auto px-6 pt-12 pb-32">
           <TimelineAudit />

@@ -50,3 +50,9 @@ Ne jamais présenter la projection publique d’un Monde comme un « mini-site �
 **Why:** AIME ne doit pas reproduire les mini-sites spécialisés des concurrents ; sa différence est qu’une même page vivante organise, partage et relie les informations sans duplication.
 
 **How to apply:** Nommer la vue « Informations pratiques » et proposer dans la navigation des actions contextuelles comme participer et cagnotte. La cagnotte sert aux projets, dons associatifs et paiements vers un Profil, avec un bénéficiaire et des conditions explicites.
+
+La composition humaine doit rester une primitive universelle du Monde : le mariage peut l’appeler « Invités », tandis qu’un Kit spectacle, groupe, association ou entreprise adapte ce libellé et les rôles sans changer les Profils.
+
+**Why:** La même représentation visuelle doit pouvoir montrer des invités, artistes, membres, intervenants ou collaborateurs sans dupliquer le produit par secteur.
+
+**How to apply:** Afficher de grands portraits comme composition éditoriale et ouvrir le Registre au clic ; laisser le Kit définir les libellés et facettes relationnelles, jamais l’identité durable de la personne.
