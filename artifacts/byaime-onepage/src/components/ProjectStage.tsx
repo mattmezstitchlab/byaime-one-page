@@ -107,16 +107,17 @@ export function ProjectStage() {
   const nextDayEvent = dayEvents.find(event => event.time > now);
   const featuredDayEvent = liveEvent || nextDayEvent;
   const memoryCount = project.memories.length + project.media.length;
-  const heroCopy = {
+  const isMiniSite = view === "mini-site";
+  const phaseHeroCopy = {
     tout: {
       eyebrow: project.universe,
       title: project.title,
       description: project.subtitle && !subtitleIsRedundant ? project.subtitle : undefined,
     },
     avant: {
-      eyebrow: "Avant · Le site",
+      eyebrow: "Avant · Préparation",
       title: project.title,
-      description: "Le rendez-vous, les informations essentielles et tout ce qui se prépare avant le grand jour.",
+      description: "Les décisions, les étapes, les personnes et tout ce qu’il reste à préparer avant le grand jour.",
     },
     pendant: {
       eyebrow: liveEvent ? "Le Jour J · En direct" : "Le Jour J · Programme",
@@ -133,6 +134,15 @@ export function ProjectStage() {
         : "Les souvenirs, remerciements et médias des invités trouveront ici leur place.",
     },
   }[phase];
+  const heroCopy = isMiniSite
+    ? {
+        eyebrow: "Mini-site · Aperçu invités",
+        title: project.title,
+        description: project.subtitle && !subtitleIsRedundant
+          ? project.subtitle
+          : "Toutes les informations choisies pour accueillir les invités dans ce Monde.",
+      }
+    : phaseHeroCopy;
 
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
@@ -148,7 +158,10 @@ export function ProjectStage() {
             ].map(item => (
               <button
                 key={item.id}
-                onClick={() => setPhase(item.id as typeof phase)}
+                onClick={() => {
+                  setPhase(item.id as typeof phase);
+                  if (view === "mini-site") setView("chronological");
+                }}
                 className={cn(
                   "whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors",
                   phase === item.id ? "bg-white text-black" : "text-white/60 hover:bg-white/5 hover:text-white"
@@ -166,9 +179,9 @@ export function ProjectStage() {
         </div>
         <div className="mx-auto flex max-w-5xl flex-wrap justify-center gap-2 px-6 pb-3">
           {([
-            ["chronological", "Dans l’ordre"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
+            ["chronological", "Dans l’ordre"], ["mini-site", "Mini-site"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
             ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
-          ] as Array<[TimelineView, string]>).map(([id, label]) => <button key={id} onClick={() => setView(id)} className={cn("whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em]", view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:text-white")}>{label}</button>)}
+          ] as Array<[TimelineView, string]>).map(([id, label]) => <button key={id} onClick={() => { setView(id); if (id === "mini-site") setPhase("tout"); }} className={cn("whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em]", view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:text-white")}>{label}</button>)}
         </div>
       </div>
 
@@ -210,7 +223,7 @@ export function ProjectStage() {
             </motion.p>
           )}
 
-          {phase !== "apres" && <motion.div
+          {(isMiniSite || phase !== "apres") && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -231,7 +244,7 @@ export function ProjectStage() {
             )}
           </motion.div>}
 
-          {phase !== "apres" && <motion.div
+          {!isMiniSite && phase !== "apres" && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -270,7 +283,7 @@ export function ProjectStage() {
             </button>
           </motion.div>}
 
-          {(phase === "tout" || phase === "avant") && <motion.div
+          {(isMiniSite || phase === "tout" || phase === "avant") && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
@@ -295,7 +308,7 @@ export function ProjectStage() {
               <p className="mt-3 font-display text-4xl font-light">Le jour est arrivé</p>
             )}
           </motion.div>}
-          {phase === "pendant" && (
+          {!isMiniSite && phase === "pendant" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-white/10 pt-7">
               <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? "En ce moment" : "Prochain Moment"}</p>
               {featuredDayEvent ? (
@@ -306,7 +319,7 @@ export function ProjectStage() {
               ) : <p className="mt-4 text-sm text-white/45">Ajoutez les Moments du Jour J pour activer le direct.</p>}
             </motion.div>
           )}
-          {phase === "apres" && (
+          {!isMiniSite && phase === "apres" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-white/10 pt-7">
               <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Souvenirs</p></div>
               <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Médias</p></div>
