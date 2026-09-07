@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { executeCommand, parseFrenchCommand, proposeCommand, type CommandProposal } from "@/lib/command-agent";
 
@@ -30,14 +30,10 @@ export function CommandBar({ setPhase, setLayers }: { setPhase: (phase: "tout"|"
       onClick={() => setOpen(true)}
       aria-label="Demander à AIME"
       title="Demander à AIME"
-      className="group fixed bottom-24 right-6 z-40 h-16 w-16 rounded-full bg-[conic-gradient(from_180deg,#ff5b79,#ffb44a,#f6f06a,#50e3a4,#4cc9ff,#8b7cff,#e26cff,#ff5b79)] p-[2px] shadow-[0_0_30px_rgba(139,124,255,.32)] transition-transform duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-black"
+      className="group fixed bottom-24 right-6 z-40 h-16 w-16 rounded-full bg-[conic-gradient(from_180deg,#ff5b79,#ffb44a,#f6f06a,#50e3a4,#4cc9ff,#8b7cff,#e26cff,#ff5b79)] p-[2px] transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-black"
     >
-      <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[#0b0b0d]/90 backdrop-blur">
-        <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,.22),transparent_38%)]" />
-        <span className="absolute left-[17px] top-[15px] h-1 w-1 bg-cyan-200 shadow-[0_0_7px_2px_rgba(165,243,252,.9)]" />
-        <span className="absolute bottom-[16px] right-[15px] h-1.5 w-1.5 bg-fuchsia-300 shadow-[0_0_8px_2px_rgba(240,171,252,.85)]" />
-        <span className="absolute right-[18px] top-[18px] h-1 w-1 bg-amber-200 shadow-[0_0_6px_2px_rgba(253,230,138,.85)]" />
-        <Sparkles className="relative h-6 w-6 text-white transition-transform duration-300 group-hover:rotate-12" />
+      <span className="flex h-full w-full items-center justify-center rounded-full bg-black">
+        <Plus className="h-7 w-7 stroke-[1.5] text-white" />
       </span>
       <span className="pointer-events-none absolute right-[72px] top-1/2 hidden -translate-y-1/2 whitespace-nowrap rounded-full border border-white/10 bg-black/80 px-3 py-2 text-xs font-medium text-white shadow-xl backdrop-blur group-hover:block">Demander à AIME</span>
     </button>
