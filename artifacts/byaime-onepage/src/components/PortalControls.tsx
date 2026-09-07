@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
-import { Download, Settings2, Upload, Globe } from 'lucide-react';
+import { Download, PenLine, Upload, Globe } from 'lucide-react';
 import { useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Link } from 'wouter';
@@ -12,7 +12,7 @@ export function PortalControls() {
   const { signOut } = useClerk();
   const { user } = useUser();
   const { project, projects, selectProject, syncStatus, syncError, currentRole, updateProject, importBackup, clearProject } = useProject();
-  const [panel, setPanel] = useState<'settings' | 'invite' | 'message' | 'delete-file' | 'delete-project' | null>(null);
+  const [panel, setPanel] = useState<'settings' | 'editor' | 'sync' | 'invite' | 'message' | 'delete-file' | 'delete-project' | null>(null);
   const [notice, setNotice] = useState('');
   const [files, setFiles] = useState<{ id: string; name: string; contentType: string; size: number }[]>([]);
   const [selectedFile, setSelectedFile] = useState<{ id: string; name: string } | null>(null);
@@ -89,9 +89,44 @@ export function PortalControls() {
        <Link href="/network" className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Carte des lieux et des personnes">
          <Globe className="h-4 w-4" />
        </Link>
-        <span data-testid="sync-status" title={syncError} className={`rounded-full border bg-black/60 px-3 py-1.5 text-[11px] text-white backdrop-blur ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-white/30' : 'border-white/15 text-white/65'}`}>{labels[syncStatus]}</span>
-        <button data-testid="settings-open" onClick={() => setPanel('settings')} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Ouvrir les réglages"><Settings2 className="h-4 w-4" /></button>
+         <button data-testid="sync-status" title={syncError || "Voir l’état de synchronisation"} onClick={() => setPanel('sync')} className={`rounded-full border bg-black/60 px-3 py-1.5 text-[11px] text-white backdrop-blur transition hover:bg-white/10 ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-white/30' : 'border-white/15 text-white/65'}`}>{labels[syncStatus]}</button>
+         <button data-testid="settings-open" onClick={() => setPanel('editor')} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Éditer le Monde" title="Éditer le Monde"><PenLine className="h-4 w-4" /></button>
     </div>
+      {panel === 'sync' && <CenteredBlock eyebrow="Synchronisation" title={syncStatus === 'conflict' ? "Des changements sont à vérifier" : labels[syncStatus]} description={syncStatus === 'conflict' ? "Une version plus récente du Monde existe. AIME bloque l’écrasement automatique pour protéger les modifications de chacun." : "Voici l’état de conservation de ce Monde."} onClose={() => setPanel(null)}>
+        <div className="rounded-2xl border border-white/10 bg-white/[.035] p-5">
+          <p className="text-xs uppercase tracking-[.16em] text-white/40">État actuel</p>
+          <p className="mt-2 text-lg text-white/85">{labels[syncStatus]}</p>
+          {syncError && <p className="mt-3 text-sm font-light leading-relaxed text-white/48">{syncError}</p>}
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button onClick={() => setPanel('settings')} className="rounded-full bg-white px-4 py-2 text-xs font-medium text-black">Ouvrir ME</button>
+          <button onClick={() => setPanel(null)} className="rounded-full border border-white/15 px-4 py-2 text-xs text-white/65">Fermer</button>
+        </div>
+      </CenteredBlock>}
+      {panel === 'editor' && <CenteredBlock eyebrow="Éditeur du Monde" title="Modifier l’ouverture" description="Ces informations composent le hero privé et la base du mini-site." onClose={() => setPanel(null)} size="lg">
+        <form className="space-y-5" onSubmit={event => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          const date = String(form.get('date') || '');
+          updateProject({
+            title: String(form.get('title') || '').trim() || project.title,
+            subtitle: String(form.get('subtitle') || '').trim(),
+            city: { ...project.city, value: String(form.get('city') || '').trim() || null },
+            venue: { ...project.venue, value: String(form.get('venue') || '').trim() || null },
+            pivot: { ...project.pivot, value: date ? new Date(`${date}T12:00:00`).getTime() : project.pivot.value },
+          });
+          setPanel(null);
+        }}>
+          <Field label="Titre"><input name="title" required defaultValue={project.title} className="field" /></Field>
+          <Field label="Sous-titre"><input name="subtitle" defaultValue={project.subtitle || ''} className="field" /></Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Ville"><input name="city" defaultValue={project.city.value || ''} className="field" /></Field>
+            <Field label="Lieu"><input name="venue" defaultValue={project.venue.value || ''} className="field" /></Field>
+          </div>
+          <Field label="Date"><input name="date" type="date" defaultValue={new Date(project.pivot.value - new Date(project.pivot.value).getTimezoneOffset() * 60000).toISOString().slice(0, 10)} className="field" /></Field>
+          <button className="w-full rounded-full bg-white px-5 py-3 text-sm font-medium text-black">Enregistrer l’ouverture</button>
+        </form>
+      </CenteredBlock>}
       {panel === 'settings' && <CenteredBlock eyebrow="ME" title="Votre espace" description={user?.primaryEmailAddress?.emailAddress} onClose={() => setPanel(null)} size="lg" testId="settings-panel">
         <label className="block text-xs uppercase tracking-widest text-white/45 mb-2">Projet actif</label>
         <select value={project.id} onChange={e => void selectProject(e.target.value)} className="w-full rounded-xl border border-white/15 bg-white/5 p-3 mb-6">

@@ -8,7 +8,7 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { Images, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -171,17 +171,6 @@ export function ProjectStage() {
               </button>
             ))}
           </div>
-          <div className="absolute right-6 hidden items-center sm:flex">
-            <button onClick={() => setPlayMode(true)} className="flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-medium transition-colors hover:bg-white hover:text-black">
-              <Images className="h-3 w-3" /> Play
-            </button>
-          </div>
-        </div>
-        <div className="mx-auto flex max-w-5xl flex-wrap justify-center gap-2 px-6 pb-3">
-          {([
-            ["chronological", "Dans l’ordre"], ["mini-site", "Mini-site"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
-            ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
-          ] as Array<[TimelineView, string]>).map(([id, label]) => <button key={id} onClick={() => { setView(id); if (id === "mini-site") setPhase("tout"); }} className={cn("whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em]", view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:text-white")}>{label}</button>)}
         </div>
       </div>
 
@@ -335,6 +324,29 @@ export function ProjectStage() {
         </div>
       </header>
 
+      <nav aria-label="Vues du Monde" className="border-y border-white/8 bg-[#050505]">
+        <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 py-4 hide-scrollbar">
+          {([
+            ["chronological", "Dans l’ordre"], ["mini-site", "Mini-site"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
+            ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
+          ] as Array<[TimelineView, string]>).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => {
+                setView(id);
+                if (id === "mini-site") setPhase("tout");
+              }}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors",
+                view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:border-white/25 hover:text-white"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
       {/* Main Content Area */}
       <main className="w-full">
         <UniversalTimeline events={visibleEvents} />
@@ -344,7 +356,10 @@ export function ProjectStage() {
       </main>
 
       <CommandBar setPhase={setPhase} setLayers={setLayers} />
-      <BottomDock />
+      <BottomDock phase={phase} view={view} onPhaseChange={nextPhase => {
+        setPhase(nextPhase);
+        if (view === "mini-site") setView("chronological");
+      }} onPlay={() => setPlayMode(true)} />
 
       {playMode && <PlayMode events={visibleEvents} onClose={() => setPlayMode(false)} />}
       {providersOpen && (

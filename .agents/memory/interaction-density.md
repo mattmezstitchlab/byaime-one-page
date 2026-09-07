@@ -13,8 +13,8 @@ La signature d’action validée est un centre de commande réduit à « AI + ME
 
 Le format du bloc central a été explicitement confirmé comme grammaire commune à toutes les profondeurs, y compris la conversation avec AIME : même en-tête, même rythme, même fermeture et même comportement responsive.
 
-Les en-têtes de Monde évitent toute répétition entre nature, titre, sous-titre et date. La progression se lit dans un anneau coloré gradué, tandis que les personnes liées apparaissent en portraits superposés ouvrant un trombinoscope dans le bloc central. Les filtres de phase et de lecture forment deux rangées centrées, sobres et en majuscules, réutilisables quel que soit le Monde.
+Les en-têtes de Monde évitent toute répétition entre nature, titre, sous-titre et date. La progression se lit dans un anneau coloré gradué, tandis que les personnes liées apparaissent en portraits superposés ouvrant un trombinoscope dans le bloc central. La capsule temporelle reste seule au-dessus du hero ; les vues détaillées sont placées sous le hero pour éviter une double navigation compacte.
 
 **Why:** Le résumé d’un Monde doit être compris d’un regard et conduire directement aux personnes ou informations concernées, sans accumulation de badges textuels.
 
-**How to apply:** Réserver la couleur à la progression réelle, transformer les compteurs de personnes en accès contextuels et conserver la même hiérarchie centrée pour les capsules temporelles et leurs couches.
+**How to apply:** Réserver la couleur à la progression réelle, transformer les compteurs de personnes en accès contextuels et conserver la même hiérarchie centrée pour les capsules temporelles et leurs couches. Le centre AI + ME peut devenir une commande contextuelle : les flèches parcourent Avant, Jour J et Après, tandis que + conserve la création universelle et accueille la lecture de la Timeline ou de la musique.
