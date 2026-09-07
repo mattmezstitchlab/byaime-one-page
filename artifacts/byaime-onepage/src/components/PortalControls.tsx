@@ -6,7 +6,7 @@ import { trackEvent } from '@/lib/analytics';
 import { Link } from 'wouter';
 import { CenteredBlock } from './CenteredBlock';
 
-const labels = { local: 'Local', loading: 'Chargement…', saving: 'Enregistrement…', saved: 'Enregistré', error: 'Hors connexion', conflict: 'Conflit' };
+const labels = { local: 'Local', loading: 'Chargement…', saving: 'Enregistrement…', saved: 'Enregistré', error: 'Hors connexion', conflict: 'À vérifier' };
 
 export function PortalControls() {
   const { signOut } = useClerk();
@@ -89,7 +89,7 @@ export function PortalControls() {
        <Link href="/network" className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Carte des lieux et des personnes">
          <Globe className="h-4 w-4" />
        </Link>
-       <span data-testid="sync-status" title={syncError} className={`rounded-full border px-3 py-1.5 text-[11px] backdrop-blur ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-amber-400/40 bg-amber-950/70 text-amber-200' : 'border-white/15 bg-black/60 text-white/65'}`}>{labels[syncStatus]}</span>
+        <span data-testid="sync-status" title={syncError} className={`rounded-full border bg-black/60 px-3 py-1.5 text-[11px] text-white backdrop-blur ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-white/30' : 'border-white/15 text-white/65'}`}>{labels[syncStatus]}</span>
         <button data-testid="settings-open" onClick={() => setPanel('settings')} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Ouvrir les réglages"><Settings2 className="h-4 w-4" /></button>
     </div>
       {panel === 'settings' && <CenteredBlock eyebrow="ME" title="Votre espace" description={user?.primaryEmailAddress?.emailAddress} onClose={() => setPanel(null)} size="lg" testId="settings-panel">
