@@ -1,0 +1,863 @@
+MISSION — CRÉER LA PAGE « LE CŒUR BATTANT DU MONDE »
+
+Je souhaite créer dans AIME une nouvelle expérience majeure : une page mondiale immersive qui permet d’observer, comprendre et ressentir l’activité de la planète en temps réel.
+
+Cette page ne doit surtout pas ressembler à un simple dashboard de statistiques, ni à un site de data visualisation classique.
+
+Le concept est beaucoup plus ambitieux :
+
+Le monde entier devient une Partition Vivante.
+
+Chaque événement, chaque naissance, chaque mariage, chaque transaction, chaque déplacement, chaque dépense publique, chaque variation financière, chaque émission invisible ou chaque mouvement humain devient potentiellement un événement inscrit dans le temps.
+
+La Timeline AIME devient ainsi une forme de chronologie universelle.
+
+Nom de travail de cette expérience :
+
+AIME — LE CŒUR BATTANT DU MONDE
+
+Sous-titre possible :
+
+Observer le monde comme une partition vivante.
+
+⸻
+
+1. VISION GÉNÉRALE
+
+Je veux créer une page immersive basée sur une carte mondiale interactive en arrière-plan.
+
+Cette carte représente la Terre comme un organisme vivant.
+
+Par-dessus cette carte circulent différentes couches d’informations.
+
+Le visiteur peut observer simultanément :
+
+* ce qui se passe maintenant ;
+* ce qui vient de se produire ;
+* les rythmes du monde ;
+* les synchronisations ;
+* les flux financiers ;
+* les flux humains ;
+* les flux environnementaux ;
+* les flux sociaux ;
+* les événements de vie ;
+* les événements institutionnels ;
+* les événements invisibles.
+
+L’expérience doit donner la sensation que :
+
+La planète possède son propre rythme cardiaque.
+
+⸻
+
+2. LA MAP MONDIALE COMME FOND PRINCIPAL
+
+Créer une grande carte mondiale immersive occupant pratiquement tout l’écran.
+
+La carte ne doit pas être traitée comme un simple fond statique.
+
+Elle doit devenir le véritable espace de navigation.
+
+Elle doit pouvoir accueillir :
+
+* des points ;
+* des pulsations ;
+* des flux ;
+* des lignes ;
+* des trajectoires ;
+* des zones de densité ;
+* des halos ;
+* des particules ;
+* des événements temporels.
+
+L’utilisateur doit pouvoir :
+
+* zoomer ;
+* dézoomer ;
+* déplacer la carte ;
+* sélectionner un pays ;
+* sélectionner une ville ;
+* sélectionner une zone ;
+* cliquer sur un événement ;
+* isoler un flux de données ;
+* remonter ou avancer dans le temps.
+
+La carte doit fonctionner comme un organisme visuel dynamique.
+
+⸻
+
+3. LA TIMELINE UNIVERSELLE
+
+Toute la page doit être directement connectée à la logique de Timeline existante dans AIME.
+
+La Timeline ne représente plus uniquement :
+
+* un mariage ;
+* un projet ;
+* une vie ;
+* un événement.
+
+Elle devient capable de représenter plusieurs échelles simultanément :
+
+Échelle 1 — L’instant
+
+Ce qui se produit maintenant.
+
+Exemples :
+
+* naissance ;
+* mariage ;
+* décès ;
+* décollage d’avion ;
+* transaction ;
+* variation boursière ;
+* séisme ;
+* événement climatique ;
+* dépense ;
+* déplacement ;
+* émission mesurée.
+
+⸻
+
+Échelle 2 — La journée
+
+Ce qui se produit aujourd’hui dans le monde.
+
+Exemples :
+
+* nombre de naissances ;
+* nombre de mariages ;
+* nombre de vols ;
+* dépenses publiques ;
+* consommation énergétique ;
+* pollution ;
+* transactions financières.
+
+⸻
+
+Échelle 3 — L’année
+
+Ce qui permet d’observer :
+
+* évolution démographique ;
+* budget d’un État ;
+* dette ;
+* dépenses ;
+* croissance ;
+* émissions ;
+* évolution de la précarité.
+
+⸻
+
+Échelle 4 — L’histoire
+
+La Timeline doit pouvoir remonter très loin.
+
+Par exemple :
+
+* année de naissance des populations ;
+* évolution démographique ;
+* événements historiques ;
+* évolution des marchés ;
+* évolution des États ;
+* évolution environnementale.
+
+⸻
+
+4. LE CONCEPT DES SYNCHRONISATIONS
+
+C’est un élément extrêmement important.
+
+Comme tous les événements sont inscrits dans une logique temporelle commune, AIME doit pouvoir détecter et mettre en scène des synchronisations.
+
+Par exemple :
+
+Combien de personnes sont nées exactement le même jour ?
+
+Puis :
+
+Combien sont nées à la même heure ?
+
+Puis éventuellement :
+
+Combien d’événements similaires ont eu lieu simultanément ailleurs dans le monde ?
+
+Créer un module :
+
+SYNCHRONISATIONS
+
+Il doit pouvoir détecter visuellement des phénomènes comme :
+
+* naissances simultanées ;
+* mariages simultanés ;
+* événements historiques à la même date ;
+* pics d’activité simultanés ;
+* synchronisation entre marchés ;
+* phénomènes météorologiques simultanés ;
+* événements humains à la même heure.
+
+Visuellement, les synchronisations peuvent apparaître sous forme de :
+
+* lignes lumineuses reliant plusieurs points ;
+* cercles concentriques ;
+* pulsations simultanées ;
+* regroupements temporels ;
+* constellations.
+
+⸻
+
+5. LES GRANDES DIMENSIONS DU MONDE
+
+Créer un système de couches de données.
+
+L’utilisateur peut activer ou désactiver différentes dimensions.
+
+A. HUMANITÉ
+
+Afficher progressivement :
+
+* population mondiale ;
+* population par pays ;
+* naissances ;
+* décès ;
+* mariages ;
+* évolution démographique ;
+* répartition des générations ;
+* âges ;
+* densité humaine.
+
+Exemple de visualisation :
+
+Une naissance déclenche une pulsation discrète sur une zone géographique lorsque des données réelles agrégées sont disponibles.
+
+Ne jamais afficher ou exposer des données personnelles sensibles.
+
+⸻
+
+B. ÉCONOMIE ET FINANCE
+
+Créer une dimension financière extrêmement riche.
+
+Elle doit permettre d’observer :
+
+* marchés financiers ;
+* indices ;
+* variations ;
+* devises ;
+* matières premières ;
+* entreprises ;
+* secteurs ;
+* PIB ;
+* croissance ;
+* dette ;
+* inflation.
+
+Mais également :
+
+* dépenses publiques ;
+* budgets nationaux ;
+* dépenses gouvernementales ;
+* investissements ;
+* aides ;
+* subventions.
+
+Créer une interface inspirée à la fois :
+
+* d’une salle de marché ;
+* d’un tableau de bord financier ;
+* d’une partition musicale.
+
+Les mouvements financiers doivent donner l’impression de générer leur propre rythme.
+
+⸻
+
+6. LE BUREAU FINANCIER MONDIAL
+
+Je souhaite réutiliser et étendre la logique du Bureau Financier déjà présent dans AIME.
+
+Créer une vision mondiale.
+
+Par exemple :
+
+FINANCES DU MONDE
+
+L’utilisateur sélectionne :
+
+* Monde ;
+* continent ;
+* pays ;
+* région.
+
+Il peut observer :
+
+* revenus ;
+* dépenses ;
+* dette ;
+* budget ;
+* investissements ;
+* taxes ;
+* aides ;
+* dépenses publiques.
+
+Pour chaque pays, prévoir une fiche détaillée structurée.
+
+⸻
+
+7. LES TAXES DU MONDE
+
+Créer une couche :
+
+FISCALITÉ
+
+L’objectif est de pouvoir comprendre comment fonctionne la fiscalité à travers les différents États.
+
+Prévoir une architecture permettant d’afficher :
+
+* TVA / taxes à la consommation ;
+* impôt sur le revenu ;
+* impôt sur les sociétés ;
+* taxes spécifiques ;
+* prélèvements ;
+* grandes catégories fiscales.
+
+Important :
+
+Les informations doivent être structurées comme des données temporelles.
+
+Une taxe possède :
+
+* un pays ;
+* une date d’entrée en vigueur ;
+* une date de modification ;
+* une évolution ;
+* une période.
+
+Ainsi, la Timeline permet de visualiser l’évolution de la fiscalité mondiale dans le temps.
+
+⸻
+
+8. POLITIQUE ET DÉPENSES PUBLIQUES
+
+Créer une dimension :
+
+ARGENT PUBLIC
+
+Permettre d’observer, lorsque les données sont disponibles :
+
+* budgets des États ;
+* dépenses gouvernementales ;
+* dépenses ministérielles ;
+* investissements publics ;
+* aides internationales ;
+* dépenses militaires lorsque des sources fiables existent ;
+* dépenses sociales ;
+* dépenses de santé ;
+* dépenses d’éducation ;
+* infrastructures.
+
+L’objectif n’est pas de créer une page politique partisane.
+
+L’objectif est :
+
+Rendre visible le mouvement de l’argent collectif.
+
+Chaque donnée doit afficher clairement :
+
+* sa source ;
+* sa date ;
+* son niveau de fiabilité ;
+* son périmètre ;
+* sa dernière mise à jour.
+
+⸻
+
+9. LA PRÉCARITÉ DU MONDE
+
+Créer une dimension sociale majeure :
+
+PRÉCARITÉ
+
+Cette couche doit permettre de visualiser, selon les données disponibles :
+
+* pauvreté ;
+* extrême pauvreté ;
+* chômage ;
+* accès au logement ;
+* sans-abrisme ;
+* accès à l’eau ;
+* accès à l’énergie ;
+* accès à l’alimentation.
+
+La représentation ne doit jamais être sensationnaliste.
+
+L’objectif est de créer une véritable cartographie de la réalité humaine.
+
+La précarité doit pouvoir être observée :
+
+* géographiquement ;
+* temporellement ;
+* proportionnellement à la population ;
+* dans son évolution.
+
+⸻
+
+10. MOBILITÉ MONDIALE
+
+Créer une couche :
+
+MOUVEMENTS
+
+Afficher les grands flux humains et matériels.
+
+Prévoir :
+
+* avions en circulation ;
+* principaux trajets ;
+* trafic aérien ;
+* mouvements maritimes ;
+* grands flux internationaux.
+
+Sur la carte, les mouvements peuvent apparaître sous forme de trajectoires.
+
+Un avion devient une petite particule animée.
+
+Les trajectoires doivent créer une sensation de :
+
+circulation du sang dans le système mondial.
+
+⸻
+
+11. ENVIRONNEMENT ET POLLUTION
+
+Créer une dimension :
+
+RESPIRATION DE LA TERRE
+
+Cette dimension doit rendre visible ce qui est souvent invisible.
+
+Prévoir une architecture pour intégrer :
+
+* qualité de l’air ;
+* particules fines ;
+* pollution ;
+* CO₂ ;
+* émissions ;
+* consommation énergétique ;
+* production énergétique ;
+* événements climatiques.
+
+La visualisation doit pouvoir montrer :
+
+* des nappes ;
+* des concentrations ;
+* des particules ;
+* des flux ;
+* des zones de densité.
+
+Le but est de donner une représentation sensible de :
+
+Ce que nous ne voyons normalement pas.
+
+⸻
+
+12. LES ÉVÉNEMENTS EN DIRECT
+
+Créer une couche :
+
+MAINTENANT
+
+Cette couche représente le temps réel.
+
+Elle peut contenir différents flux :
+
+* marchés ;
+* avions ;
+* événements naturels ;
+* données environnementales ;
+* indicateurs démographiques ;
+* événements mondiaux.
+
+Créer un bandeau discret :
+
+EN CE MOMENT
+
+Exemple :
+
+* Naissances estimées aujourd’hui : …
+* Vols actuellement observés : …
+* Variation des marchés : …
+* Indicateur environnemental : …
+
+Ne pas inventer de données réelles.
+
+Pendant la phase de développement, utiliser clairement :
+
+* des données de démonstration ;
+* des simulateurs ;
+* des données mockées.
+
+L’architecture doit cependant être prête à recevoir de vraies sources.
+
+⸻
+
+13. LE CONCEPT DE « PARTITION VIVANTE »
+
+Toute l’expérience doit être pensée comme une partition.
+
+Chaque catégorie possède un rythme.
+
+Par exemple :
+
+* les marchés = rythme rapide ;
+* les avions = mouvements continus ;
+* les naissances = pulsations humaines ;
+* les mariages = événements ponctuels ;
+* les budgets = rythmes mensuels ou annuels ;
+* la pollution = nappes et respirations ;
+* les événements historiques = couches profondes.
+
+Créer éventuellement une vue alternative :
+
+PARTITION
+
+Au lieu de la carte, les données sont représentées sur une grande Timeline horizontale.
+
+Chaque dimension devient une piste.
+
+Exemple :
+
+HUMANITÉ
+━━━━━━━━━━━━━━━━━━
+
+ÉCONOMIE
+━━━━━━━━━━━━━━━━━━
+
+ENVIRONNEMENT
+━━━━━━━━━━━━━━━━━━
+
+MOBILITÉ
+━━━━━━━━━━━━━━━━━━
+
+SOCIÉTÉ
+━━━━━━━━━━━━━━━━━━
+
+Le temps circule à travers toutes les pistes.
+
+⸻
+
+14. LE SYSTÈME DE FILTRES
+
+Créer un système de navigation clair.
+
+Le visiteur peut choisir :
+
+Où ?
+
+* Monde
+* Continent
+* Pays
+* Région
+* Ville
+
+Quand ?
+
+* Maintenant
+* Aujourd’hui
+* Cette semaine
+* Cette année
+* Année spécifique
+* Période personnalisée
+
+Quoi ?
+
+* Humanité
+* Finance
+* Économie
+* Fiscalité
+* Politique publique
+* Précarité
+* Mobilité
+* Environnement
+
+Le système doit permettre de combiner plusieurs dimensions.
+
+Exemple :
+
+France + 2025 + dépenses publiques + pollution + trafic aérien.
+
+⸻
+
+15. DESIGN
+
+Le design doit rester cohérent avec l’univers AIME.
+
+Éviter :
+
+* le dashboard financier classique ;
+* les dizaines de cartes rectangulaires ;
+* les interfaces de trading agressives ;
+* la surcharge graphique.
+
+Je veux une expérience :
+
+* élégante ;
+* immersive ;
+* presque scientifique ;
+* poétique ;
+* précise ;
+* futuriste ;
+* calme malgré la quantité de données.
+
+La donnée doit sembler vivante.
+
+⸻
+
+16. STRUCTURE D’INTERFACE
+
+Créer la page selon cette structure.
+
+HEADER MINIMAL
+
+À gauche :
+
+AIME
+
+Au centre :
+
+LE CŒUR BATTANT DU MONDE
+
+À droite :
+
+* recherche ;
+* date ;
+* paramètres.
+
+⸻
+
+ZONE PRINCIPALE
+
+La carte mondiale immersive.
+
+⸻
+
+BARRE LATÉRALE GAUCHE
+
+Les grandes dimensions :
+
+◉ Humanité
+◉ Finance
+◉ Économie
+◉ Fiscalité
+◉ Argent public
+◉ Précarité
+◉ Mobilité
+◉ Environnement
+
+Chaque catégorie peut être activée ou désactivée.
+
+⸻
+
+PANNEAU D’INSPECTION
+
+Lorsqu’un utilisateur sélectionne :
+
+* un pays ;
+* une ville ;
+* une zone ;
+* un événement.
+
+Ouvrir un panneau détaillé.
+
+Ce panneau doit pouvoir afficher :
+
+* données principales ;
+* évolution temporelle ;
+* événements associés ;
+* relations avec d’autres données ;
+* sources.
+
+⸻
+
+TIMELINE INFÉRIEURE
+
+Une Timeline mondiale persistante.
+
+Elle doit rester visible.
+
+L’utilisateur peut :
+
+* se déplacer dans le temps ;
+* zoomer ;
+* sélectionner une période ;
+* revenir à NOW.
+
+Bouton central :
+
+⦿ MAINTENANT
+
+⸻
+
+17. ARCHITECTURE TECHNIQUE À PRÉPARER
+
+Ne pas tenter de connecter immédiatement toutes les sources mondiales.
+
+Créer plutôt une architecture de providers.
+
+Exemple conceptuel :
+
+DataProvider
+
+Puis :
+
+* FinanceProvider
+* PopulationProvider
+* BirthProvider
+* MarriageProvider
+* PublicFinanceProvider
+* TaxProvider
+* PovertyProvider
+* FlightProvider
+* MobilityProvider
+* AirQualityProvider
+* PollutionProvider
+* EnergyProvider
+
+Chaque provider doit respecter un format de données commun.
+
+Créer notamment une structure universelle :
+
+WorldEvent
+
+Avec par exemple :
+
+* id
+* type
+* category
+* timestamp
+* startDate
+* endDate
+* location
+* country
+* coordinates
+* value
+* unit
+* source
+* sourceUrl
+* reliability
+* updatedAt
+
+Cette structure doit permettre de faire entrer différents types d’événements dans le même moteur temporel.
+
+⸻
+
+18. RELATION AVEC LE WORLD MODEL AIME
+
+Cette page doit être connectée conceptuellement au World Model existant.
+
+Les événements mondiaux doivent pouvoir être représentés comme des entités et relations.
+
+Par exemple :
+
+Un événement peut être relié à :
+
+* un pays ;
+* une population ;
+* une entreprise ;
+* une organisation ;
+* une période ;
+* un autre événement.
+
+L’objectif est que la carte mondiale ne soit pas un écran isolé.
+
+Elle doit devenir une surface de visualisation du World Model à l’échelle planétaire.
+
+⸻
+
+19. MODE DÉMONSTRATION
+
+Dans un premier temps, créer un mode de démonstration spectaculaire.
+
+Utiliser des données simulées clairement identifiées comme telles.
+
+Le mode démo doit permettre de montrer simultanément :
+
+* mouvements financiers ;
+* variations ;
+* naissances estimées ;
+* mariages simulés ;
+* vols ;
+* zones de pollution ;
+* dépenses publiques fictives ou datasets de démonstration ;
+* événements temporels.
+
+L’objectif est que l’expérience soit immédiatement impressionnante visuellement.
+
+Ensuite seulement, chaque provider pourra être progressivement remplacé par une source réelle.
+
+⸻
+
+20. OBJECTIF FINAL
+
+Je ne veux pas simplement :
+
+« une carte avec des statistiques ».
+
+Je veux créer une nouvelle surface d’AIME :
+
+LA PARTITION VIVANTE DU MONDE
+
+Un endroit où l’on peut observer :
+
+* le temps ;
+* les êtres humains ;
+* l’argent ;
+* les déplacements ;
+* les ressources ;
+* la précarité ;
+* les décisions collectives ;
+* l’environnement.
+
+Et comprendre progressivement que toutes ces dimensions ne sont pas séparées.
+
+Elles évoluent sur :
+
+LA MÊME TIMELINE.
+
+La Terre devient une immense partition.
+
+Chaque individu, chaque pays, chaque événement et chaque flux constitue une note.
+
+AIME permet alors d’observer non seulement les données, mais aussi :
+
+* les rythmes ;
+* les répétitions ;
+* les synchronisations ;
+* les relations ;
+* les conséquences.
+
+⸻
+
+CONSIGNE FINALE POUR LE DÉVELOPPEMENT
+
+Commence par analyser l’architecture actuelle d’AIME et identifier précisément :
+
+1. où intégrer cette nouvelle page ;
+2. quels composants existants peuvent être réutilisés ;
+3. comment connecter cette page à la Timeline ;
+4. comment connecter les événements au World Model ;
+5. comment structurer les Data Providers.
+
+Ensuite :
+
+* développe une première version immersive fonctionnelle ;
+* crée un système de données mockées ;
+* prépare l’architecture pour les futures APIs ;
+* ne casse aucun élément existant ;
+* conserve les composants et systèmes déjà développés ;
+* privilégie une architecture modulaire.
+
+Je veux pouvoir ensuite ajouter progressivement de nouvelles sources mondiales sans devoir reconstruire toute l’expérience.
+
+Le résultat final doit donner l’impression que :
+
+AIME observe le monde respirer.

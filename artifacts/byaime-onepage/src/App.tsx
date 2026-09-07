@@ -10,6 +10,7 @@ import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
 import { NetworkPage } from '@/pages/Network';
 import { PublicProfilePage } from '@/pages/PublicProfile';
+import { LeMondeAimePage } from '@/pages/LeMondeAime';
 import { CommandBar } from '@/components/CommandBar';
 import { PortalControls } from '@/components/PortalControls';
 import { ProjectProvider } from '@/store/project-store';
@@ -275,6 +276,7 @@ function Routes() {
     <Route path="/invite/:token" component={InvitePage} />
     <Route path="/rsvp/:token" component={RsvpPage} />
     <Route path="/profil/:projectId">{() => <PublicProfilePage />}</Route>
+    <Route path="/le-monde-aime" component={LeMondeAimePage} />
     <Route component={NotFound} />
   </Switch></RoutedErrorBoundary>;
 }

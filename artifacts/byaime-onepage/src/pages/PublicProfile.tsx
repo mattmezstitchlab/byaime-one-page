@@ -290,6 +290,13 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
   return (
     <main data-testid="public-profile-page" className="min-h-[100dvh] bg-[#020202] text-white pb-40 overflow-x-hidden">
+      {isPrivatePreview && (
+        <div className="absolute top-20 right-6 z-40 pointer-events-auto">
+          <Link href="/le-monde-aime" className="flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-black/40 backdrop-blur-md text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all group shadow-xl" title="Le Cœur Battant du Monde">
+            <Globe2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          </Link>
+        </div>
+      )}
       <div className="fixed inset-0 z-0 bg-[#020202] pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] to-[#020202] opacity-80" />
         <div
@@ -300,6 +307,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
       {isEditMode ? (
         <div className="relative z-10 pt-24 px-6 max-w-[1200px] mx-auto pb-40">
+
            <div className="mb-8 flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
                 <h2 className="text-3xl font-display font-light text-white mb-2">Architecture du Profil</h2>
