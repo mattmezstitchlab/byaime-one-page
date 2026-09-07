@@ -1,4 +1,5 @@
 import { WorldProject, fact } from './types';
+import { normalizeProject } from './project-migration';
 
 export function parseIntention(text: string): Partial<WorldProject> {
   const lower = text.toLowerCase();
@@ -64,6 +65,7 @@ export function parseIntention(text: string): Partial<WorldProject> {
   }
 
   return {
+    schemaVersion: 2,
     title,
     universe,
     pivot: fact(pivotDate.getTime(), pivotConfidence),
@@ -77,7 +79,8 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
   const pivotTime = draft.pivot?.value || Date.now() + 31536000000;
   const isWedding = draft.universe === "Mariage";
   
-  return {
+  return normalizeProject({
+    schemaVersion: 2,
     id: Math.random().toString(36).substring(2, 9),
     title: draft.title || "Projet",
     subtitle: intentionText,
@@ -90,16 +93,17 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
     
     // Day-of Timeline + Milestones
     timeline: [
-      { id: "t1", time: Date.now() - 86400000, kind: "intention" as const, title: "L'intention posée", detail: intentionText, status: "execute" as const, confidence: "confirme" as const, phase: "avant" as const, universe: draft.universe || "Général" },
-      { id: "t2", time: pivotTime - 90*86400000, kind: "jalon" as const, title: "Envoi des invitations", status: "prepare" as const, confidence: "deduit" as const, phase: "avant" as const, universe: draft.universe || "Général" },
-      { id: "t3", time: pivotTime, kind: "jalon" as const, title: "Le Jour J", status: "prepare" as const, confidence: "deduit" as const, phase: "pendant" as const, universe: draft.universe || "Général" },
+      { id: "t1", time: Date.now() - 86400000, kind: "intention" as const, title: "L'intention posée", detail: intentionText, status: "execute" as const, confidence: "confirme" as const, phase: "avant" as const, universe: draft.universe || "Général", provenance: "real" as const, visibility: "equipe" as const, relations: [], dependencyIds: [], resources: [], propagation: { state: "none" as const } },
+      { id: "t2", time: pivotTime - 90*86400000, kind: "jalon" as const, title: "Envoi des invitations", status: "prepare" as const, confidence: "deduit" as const, phase: "avant" as const, universe: draft.universe || "Général", durationMinutes: 60, provenance: "suggested" as const, visibility: "equipe" as const, relations: [{ kind: "task" as const, id: "tk9" }, { kind: "message" as const, id: "ml1" }], dependencyIds: [], resources: [], propagation: { state: "none" as const } },
+      { id: "t3", time: pivotTime, kind: "jalon" as const, title: "Le Jour J", status: "prepare" as const, confidence: "deduit" as const, phase: "pendant" as const, universe: draft.universe || "Général", provenance: "suggested" as const, visibility: "equipe" as const, relations: [{ kind: "provider" as const, id: "p1" }], dependencyIds: ["t2"], resources: [], propagation: { state: "none" as const } },
       ...(isWedding ? [
-        { id: "dj1", time: pivotTime + 10*3600000, kind: "evenement" as const, title: "Préparatifs", detail: "Coiffure et maquillage", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage" },
+        { id: "dj1", time: pivotTime + 10*3600000, durationMinutes: 180, kind: "evenement" as const, title: "Préparatifs", detail: "Coiffure et maquillage", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage", relations: [{ kind: "team" as const, id: "tm2" }], resources: ["Suite préparatifs"] },
         { id: "dj2", time: pivotTime + 14.5*3600000, kind: "evenement" as const, title: "First Look", detail: "Découverte des tenues", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage" },
-        { id: "dj3", time: pivotTime + 16*3600000, kind: "evenement" as const, title: "Cérémonie", location: "Mairie / Domaine", detail: "Échange des vœux", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage" },
+        { id: "dj3", time: pivotTime + 16*3600000, durationMinutes: 90, kind: "evenement" as const, title: "Cérémonie", location: "Mairie / Domaine", detail: "Échange des vœux", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage", relations: [{ kind: "guest" as const, id: "g1", role: "lecture" }, { kind: "provider" as const, id: "p3" }, { kind: "music" as const, id: "m2" }], resources: ["Espace cérémonie"], dependencyIds: ["dj1"] },
         { id: "dj4", time: pivotTime + 18*3600000, kind: "evenement" as const, title: "Cocktail", detail: "Musique live et photos de groupe", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage" },
-        { id: "dj5", time: pivotTime + 20.5*3600000, kind: "evenement" as const, title: "Dîner", detail: "Entrée en salle", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage" },
-        { id: "dj6", time: pivotTime + 23*3600000, kind: "evenement" as const, title: "Ouverture du bal", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage" },
+        { id: "dj5", time: pivotTime + 20.5*3600000, durationMinutes: 120, kind: "evenement" as const, title: "Dîner", detail: "Entrée en salle", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage", relations: [{ kind: "provider" as const, id: "p2" }, { kind: "table" as const, id: "tb1" }, { kind: "guest" as const, id: "g1" }], resources: ["Salle de réception"] },
+        { id: "dj6", time: pivotTime + 23*3600000, durationMinutes: 30, kind: "evenement" as const, title: "Ouverture du bal", status: "prepare" as const, confidence: "suggere" as const, phase: "pendant" as const, universe: "Mariage", relations: [{ kind: "provider" as const, id: "p4" }, { kind: "music" as const, id: "m3" }], resources: ["Piste de danse"] },
+        { id: "after1", time: pivotTime + 2*86400000, durationMinutes: 30, kind: "message" as const, title: "Remerciements", status: "prepare" as const, confidence: "suggere" as const, phase: "apres" as const, universe: "Mariage", relations: [{ kind: "message" as const, id: "mt3" }, { kind: "memory" as const, id: "mm3" }], provenance: "suggested" as const },
       ] : [])
     ].sort((a, b) => a.time - b.time),
 
@@ -190,10 +194,10 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
       firstDance: "À choisir"
     } : { structure: [], notes: "", readings: [], vows: [], traditions: [], menu: "", drinks: "", cake: "", firstDance: "" },
     music: isWedding ? [
-      { id: "m1", moment: "Entrée des mariés", title: "À choisir", artist: "", status: "a_choisir" },
-      { id: "m2", moment: "Cérémonie · sortie", title: "Home", artist: "Edward Sharpe & The Magnetic Zeros", status: "valide" },
-      { id: "m3", moment: "Ouverture du bal", title: "À choisir", artist: "", status: "a_choisir" },
-      { id: "m4", moment: "Fin de soirée", title: "Playlist libre", artist: "", status: "valide", notes: "Prévoir un set dansant, sans obligation de décennie." }
+      { id: "m1", moment: "Entrée des mariés", title: "À choisir", artist: "", status: "a_choisir", provenance: "demo", timelineEventIds: [] },
+      { id: "m2", moment: "Cérémonie · sortie", title: "Home", artist: "Edward Sharpe & The Magnetic Zeros", status: "valide", provenance: "demo", timelineEventIds: ["dj3"] },
+      { id: "m3", moment: "Ouverture du bal", title: "À choisir", artist: "", status: "a_choisir", provenance: "demo", timelineEventIds: ["dj6"] },
+      { id: "m4", moment: "Fin de soirée", title: "Playlist libre", artist: "", status: "valide", notes: "Prévoir un set dansant, sans obligation de décennie.", provenance: "demo", timelineEventIds: [] }
     ] : [],
     team: isWedding ? [
       { id: "tm1", name: "Élise & Paul", role: "Couple", contact: "", responsibilities: ["Décisions finales", "Vœux", "Invités"] },
@@ -217,5 +221,5 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
     media: [],
     messages: [],
     missing: isWedding ? ["Adresse définitive du lieu", "Choix de la musique d'entrée", "Texte des vœux"] : []
-  };
+  });
 }

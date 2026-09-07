@@ -85,5 +85,5 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
 }
 
 function CollectionPanel({ title, addLabel, onAdd, children }: { title: string; addLabel: string; onAdd: () => void; children: ReactNode }) {
-  return <div className="max-w-3xl mx-auto space-y-5"><div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{title}</h4><p className="text-xs text-white/40 mt-1">Un espace simple, pensé pour avancer.</p></div><AddBar label={addLabel} onAdd={onAdd} /></div><div className="space-y-3">{children}</div></div>;
+  return <div className="max-w-3xl mx-auto space-y-5">{title === "Bande-son du mariage" && <div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-xs text-amber-100/70">Planification manuelle : les morceaux démo n’ont pas de métadonnées externes vérifiées. Recherche et extrait nécessitent un connecteur autorisé ; aucun audio fictif n’est proposé.</div>}<div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{title}</h4><p className="text-xs text-white/40 mt-1">Un espace simple, pensé pour avancer.</p></div><AddBar label={addLabel} onAdd={onAdd} /></div><div className="space-y-3">{children}</div></div>;
 }

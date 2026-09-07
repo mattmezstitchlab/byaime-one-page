@@ -125,6 +125,9 @@ export type MusicTrack = {
   artist: string;
   status: "a_choisir" | "valide";
   notes?: string;
+  timelineEventIds?: string[];
+  provenance?: TimelineProvenance;
+  external?: { provider: string; externalId: string; verifiedAt: number };
 };
 
 export type TeamRole = {
@@ -161,10 +164,22 @@ export type MessageLog = {
 };
 
 export type TimelineStatus = "prepare" | "execute" | "en_attente" | "a_valider" | "bloque" | "echoue";
+export type TimelinePhase = "avant" | "pendant" | "apres";
+export type TimelineProvenance = "real" | "demo" | "suggested" | "integration";
+export type TimelineVisibility = "prive" | "equipe" | "audience";
+export type TimelineEntityKind = "guest" | "table" | "provider" | "task" | "payment" | "document" | "music" | "team" | "message" | "logistics" | "memory";
+export type TimelineRelation = { kind: TimelineEntityKind; id: string; role?: string };
+export type PropagationState = {
+  state: "none" | "proposed" | "applied";
+  lastAppliedAt?: number;
+  sourceEventId?: string;
+};
 
 export type TimelineEvent = {
   id: string;
   time: number;
+  endTime?: number;
+  durationMinutes?: number;
   kind: "jalon" | "tache" | "intention" | "souvenir" | "document" | "devis" | "facture" | "paiement" | "evenement" | "message";
   title: string;
   detail?: string;
@@ -176,12 +191,20 @@ export type TimelineEvent = {
   delayMinutes?: number;
   status: TimelineStatus;
   confidence: Confidence;
-  phase: "avant" | "pendant" | "apres";
+  phase: TimelinePhase;
   universe: string;
   ownerId?: string;
+  relations?: TimelineRelation[];
+  dependencyIds?: string[];
+  resources?: string[];
+  provenance?: TimelineProvenance;
+  visibility?: TimelineVisibility;
+  audience?: string[];
+  propagation?: PropagationState;
 };
 
 export type WorldProject = {
+  schemaVersion: 2;
   id: string;
   title: string;
   subtitle?: string;

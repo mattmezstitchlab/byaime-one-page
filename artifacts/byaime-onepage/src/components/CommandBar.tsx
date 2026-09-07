@@ -1,112 +1,44 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Command } from 'cmdk';
-import { Sparkles, CalendarDays, Users, WalletCards, Images, Search } from 'lucide-react';
-import { useProject } from '@/store/project-store';
+import { useEffect, useState } from "react";
+import { Sparkles, X } from "lucide-react";
+import { useProject } from "@/store/project-store";
+import { executeCommand, parseFrenchCommand, proposeCommand, type CommandProposal } from "@/lib/command-agent";
 
-export function CommandBar({ 
-  setPhase, 
-  setLayers 
-}: { 
-  setPhase: (phase: "tout"|"avant"|"pendant"|"apres") => void;
-  setLayers: (layers: string[]) => void;
-}) {
+export function CommandBar({ setPhase, setLayers }: { setPhase: (phase: "tout"|"avant"|"pendant"|"apres") => void; setLayers: (layers: string[]) => void }) {
   const [open, setOpen] = useState(false);
-  const { project } = useProject();
-
+  const [input, setInput] = useState("");
+  const [proposal, setProposal] = useState<CommandProposal>();
+  const [error, setError] = useState("");
+  const [result, setResult] = useState("");
+  const { project, updateProject, canEdit } = useProject();
   useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen((open) => !open);
-      }
-    };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    const listener = (event: KeyboardEvent) => { if (event.key === "k" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); setOpen(value => !value); } };
+    document.addEventListener("keydown", listener); return () => document.removeEventListener("keydown", listener);
   }, []);
-
   if (!project) return null;
-
-  return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-6 md:right-12 z-40 bg-white text-black px-4 py-3 rounded-full flex items-center gap-3 shadow-2xl hover:scale-105 transition-transform"
-      >
-        <Sparkles className="w-4 h-4" />
-        <span className="text-sm font-medium">Demander à AIME</span>
-        <kbd className="hidden sm:inline-flex items-center gap-1 font-sans text-[10px] bg-black/10 px-1.5 py-0.5 rounded ml-2">
-          <span className="text-xs">⌘</span>K
-        </kbd>
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
-            />
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -20 }}
-              className="relative w-full max-w-xl bg-[#111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
-            >
-              <Command className="w-full" label="Command Menu" loop>
-                <div className="flex items-center px-4 py-4 border-b border-white/10">
-                  <Sparkles className="w-5 h-5 text-white/40 mr-3 shrink-0" />
-                  <Command.Input 
-                    autoFocus
-                    placeholder="Que souhaitez-vous voir ou faire ?" 
-                    className="flex-1 bg-transparent border-none outline-none text-white text-base placeholder:text-white/30"
-                  />
-                </div>
-
-                <Command.List className="max-h-[300px] overflow-y-auto p-2 scrollbar-none">
-                  <Command.Empty className="py-6 text-center text-sm text-white/40">
-                    Aucune action trouvée.
-                  </Command.Empty>
-
-                  <Command.Group heading="Filtrer la ligne de temps" className="text-xs text-white/40 px-2 py-2">
-                    <Command.Item 
-                      onSelect={() => { setPhase("avant"); setLayers([]); setOpen(false); }}
-                      className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 cursor-pointer text-white/80 text-sm mt-1"
-                    >
-                      <CalendarDays className="w-4 h-4" /> Les préparatifs
-                    </Command.Item>
-                    <Command.Item 
-                      onSelect={() => { setPhase("pendant"); setLayers(["evenement", "jalon", "tache"]); setOpen(false); }}
-                      className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 cursor-pointer text-white/80 text-sm"
-                    >
-                      <CalendarDays className="w-4 h-4" /> Le Jour J heure par heure
-                    </Command.Item>
-                    <Command.Item 
-                      onSelect={() => { setPhase("tout"); setLayers(["devis", "facture", "paiement"]); setOpen(false); }}
-                      className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 cursor-pointer text-white/80 text-sm"
-                    >
-                      <WalletCards className="w-4 h-4" /> L'argent et les devis
-                    </Command.Item>
-                  </Command.Group>
-
-                  <Command.Group heading="Analyse" className="text-xs text-white/40 px-2 py-2 border-t border-white/5 mt-2">
-                    <Command.Item 
-                      onSelect={() => setOpen(false)}
-                      className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/10 cursor-pointer text-white/80 text-sm mt-1"
-                    >
-                      <Search className="w-4 h-4" /> Voir les informations manquantes
-                    </Command.Item>
-                  </Command.Group>
-                </Command.List>
-              </Command>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </>
-  );
+  const inspect = () => {
+    setError(""); setResult(""); setProposal(undefined);
+    const command = parseFrenchCommand(input);
+    if (!command) { setError("Commande non prise en charge. Rien n’a été exécuté."); return; }
+    try { setProposal(proposeCommand(project, command)); } catch (reason) { setError(reason instanceof Error ? reason.message : "Analyse impossible"); }
+  };
+  const execute = () => {
+    if (!proposal || (proposal.mutation && !canEdit)) return;
+    try { const output = executeCommand(project, proposal, true); updateProject(output.project); setResult(output.message); setProposal(undefined); } catch (reason) { setError(reason instanceof Error ? reason.message : "Exécution impossible"); }
+  };
+  return <>
+    <button onClick={() => setOpen(true)} className="fixed bottom-24 right-6 z-40 flex items-center gap-2 rounded-full bg-white px-4 py-3 text-sm font-medium text-black shadow-2xl"><Sparkles className="h-4 w-4" />Demander à AIME</button>
+    {open && <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 px-4 pt-[12vh]" onClick={() => setOpen(false)}>
+      <div onClick={event => event.stopPropagation()} className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#101010] p-5 shadow-2xl">
+        <div className="flex items-center justify-between"><div><h3 className="font-medium">Agent d’actions borné</h3><p className="mt-1 text-xs text-white/40">Analyse déterministe locale · aucune IA externe</p></div><button onClick={() => setOpen(false)}><X className="h-4 w-4" /></button></div>
+        <form onSubmit={event => { event.preventDefault(); inspect(); }} className="mt-5 flex gap-2"><input autoFocus value={input} onChange={event => setInput(event.target.value)} placeholder="Décale cérémonie de 15 minutes…" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none" /><button className="rounded-xl bg-white px-4 text-sm text-black">Analyser</button></form>
+        <div className="mt-3 flex flex-wrap gap-2">{["Liste les tâches restantes", "Trouve les conflits timeline", "Analyse les besoins alimentaires", "Prépare le planning prestataire", "Ajoute 2 invités"].map(example => <button key={example} onClick={() => setInput(example)} className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-white/45">{example}</button>)}</div>
+        {error && <p className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/5 p-3 text-sm text-rose-300">{error}</p>}
+        {result && <p className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-400/5 p-3 text-sm text-emerald-300">{result}</p>}
+        {proposal && <div className="mt-4 rounded-xl border border-white/10 bg-white/[.035] p-4"><p className="font-medium">{proposal.title}</p><ul className="mt-3 space-y-1 text-xs text-white/55">{proposal.impact.length ? proposal.impact.map((line, index) => <li key={index}>• {line}</li>) : <li>Aucun élément concerné.</li>}</ul>
+          {proposal.mutation ? <div className="mt-4"><p className="mb-2 text-xs text-amber-300">Cette mutation exige votre confirmation explicite.</p><button disabled={!canEdit} onClick={execute} className="rounded-full bg-white px-4 py-2 text-xs text-black disabled:opacity-40">{canEdit ? "Confirmer et exécuter" : "Rôle en lecture seule"}</button></div> : <p className="mt-4 text-xs text-white/35">Analyse uniquement : aucune donnée modifiée.</p>}
+        </div>}
+        <div className="mt-4 flex gap-2 border-t border-white/5 pt-3"><button onClick={() => { setPhase("pendant"); setLayers([]); setOpen(false); }} className="text-xs text-white/50">Voir le Jour J</button><button onClick={() => { setPhase("tout"); setLayers([]); setOpen(false); }} className="text-xs text-white/50">Voir toute la timeline</button></div>
+      </div>
+    </div>}
+  </>;
 }

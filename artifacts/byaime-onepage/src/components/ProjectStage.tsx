@@ -10,20 +10,22 @@ import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
 import { Pencil, Link2, CalendarDays, Clock3, Images, Users, WalletCards, Music2, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TimelineEvent } from '@/lib/types';
+import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
+import { TimelineAudit } from './TimelineAudit';
 
 export function ProjectStage() {
   const { project, updateProject } = useProject();
   const [phase, setPhase] = useState<"tout" | "avant" | "pendant" | "apres">("tout");
   const [playMode, setPlayMode] = useState(false);
   const [layers, setLayers] = useState<string[]>([]);
+  const [view, setView] = useState<TimelineView>("chronological");
 
   const pivotDate = project?.pivot.value ?? Date.now();
   const daysToPivot = Math.max(0, Math.ceil((pivotDate - Date.now()) / 86400000));
   
   const visibleEvents = useMemo(() => {
     if (!project) return [];
-    return project.timeline.filter(e => {
+    return filterTimeline(project, view).filter(e => {
       // Phase filtering
       if (phase === 'avant' && e.time >= pivotDate) return false;
       if (phase === 'pendant' && (e.time < pivotDate || e.time >= pivotDate + 86400000)) return false;
@@ -34,7 +36,7 @@ export function ProjectStage() {
       
       return true;
     });
-  }, [project, phase, layers, pivotDate]);
+  }, [project, phase, layers, pivotDate, view]);
 
   const stats = useMemo(() => {
     if (!project) return { booked: 0, open: 0, engaged: 0 };
@@ -210,11 +212,18 @@ export function ProjectStage() {
             </button>
           </div>
         </div>
+        <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 pb-3 hide-scrollbar">
+          {([
+            ["chronological", "Chronologique"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Prestataires"],
+            ["music", "Musique"], ["logistics", "Logistique"], ["collaborative", "Collaboratif"], ["memories", "Souvenirs"],
+          ] as Array<[TimelineView, string]>).map(([id, label]) => <button key={id} onClick={() => setView(id)} className={cn("whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px]", view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:text-white")}>{label}</button>)}
+        </div>
       </div>
 
       {/* Main Content Area */}
       <main className="max-w-5xl mx-auto px-6 py-12">
         <UniversalTimeline events={visibleEvents} />
+        <TimelineAudit />
       </main>
 
       <CommandBar setPhase={setPhase} setLayers={setLayers} />
