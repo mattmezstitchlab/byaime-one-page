@@ -1,4 +1,4 @@
-- [Cartographie dans l’artifact web](web-map-runtime.md) — privilégier le raster Leaflet tant qu’un moteur WebGL n’est pas validé dans l’aperçu et le déploiement.
+- [Cartographie dans l’artifact web](web-map-runtime.md) — utiliser MapLibre avec worker local, style CARTO sans clé et uniquement des localisations vérifiées.
 - [Langage intergénérationnel](inclusive-language.md) — écrire toute l’interface AIME pour être comprise simplement par les enfants comme par les seniors.
 - [Interaction AIME sans rupture](interaction-density.md) — garder actions, couches et contexte à portée immédiate, sans obliger à quitter l’écran courant.
 - [Ripple UI et mémoire contextuelle](ripple-ui.md) — AIME comprend l’écran courant, anticipe les effets futurs et propage chaque information validée dans toutes les vues.

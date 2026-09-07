@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useProject } from '@/store/project-store';
-import * as L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import {
   evaluateCapability,
   mapLegacyProjectRole,
@@ -15,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useReducedMotion } from 'framer-motion';
 import { buildMapSubjects, mapSubjectKey } from '@/lib/universal/map-subjects';
 import { CenteredBlock } from '@/components/CenteredBlock';
+import { UniversalMap } from '@/components/UniversalMap';
 
 function toWorldRole(role: string): WorldAccessRole {
   const legacyRoles: LegacyProjectRole[] = ['owner', 'planner', 'family', 'viewer'];
@@ -38,11 +37,8 @@ export function NetworkPage() {
     [project],
   );
 
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<L.Map | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState(false);
-  const markersRef = useRef<Record<string, L.Marker>>({});
-  const hasPositionedMap = useRef(false);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -54,106 +50,6 @@ export function NetworkPage() {
 
   const activeSubject = subjects.find(s => mapSubjectKey(s) === activeId);
   const worldRole = toWorldRole(currentRole);
-
-  useEffect(() => {
-    if (!mapContainer.current) return;
-    let m: L.Map | undefined;
-    try {
-      m = L.map(mapContainer.current, {
-        center: [48.8566, 2.3522],
-        zoom: 5,
-        attributionControl: false,
-      });
-      L.control.attribution({ position: 'bottomright', prefix: false }).addTo(m);
-      const tiles = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        {
-          subdomains: 'abcd',
-          maxZoom: 20,
-          attribution: '&copy; OpenStreetMap &copy; CARTO',
-        },
-      );
-      tiles.on('tileerror', () => setMapError(true));
-      tiles.addTo(m);
-      setMap(m);
-    } catch (e) {
-      setMapError(true);
-    }
-    return () => { m?.remove(); };
-  }, []);
-
-  useEffect(() => {
-    if (!map) return;
-    if (!hasPositionedMap.current && mappedSubjects[0]) {
-      map.setView(
-        [mappedSubjects[0].latitude!, mappedSubjects[0].longitude!],
-        9,
-        { animate: false },
-      );
-      hasPositionedMap.current = true;
-    }
-    
-    mappedSubjects.forEach(subject => {
-      const id = mapSubjectKey(subject);
-      let m = markersRef.current[id];
-      if (!m) {
-        const el = document.createElement('div');
-        el.className = 'group relative w-6 h-6 rounded-full flex items-center justify-center cursor-pointer';
-        el.setAttribute('aria-hidden', 'true');
-
-        const dot = document.createElement('div');
-        el.appendChild(dot);
-
-        m = L.marker(
-          [subject.latitude!, subject.longitude!],
-          {
-            icon: L.divIcon({
-              html: el,
-              className: 'aime-map-marker',
-              iconSize: [24, 24],
-              iconAnchor: [12, 12],
-            }),
-          },
-        ).addTo(map);
-
-        m.on('mouseover', () => setHoverId(id));
-        m.on('mouseout', () => setHoverId(null));
-        m.on('click', () => {
-          setActiveId(id);
-          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            map.setView([subject.latitude!, subject.longitude!], 9, { animate: false });
-          } else {
-            map.flyTo([subject.latitude!, subject.longitude!], 9, { duration: 1.2 });
-          }
-          setMobileView('map');
-        });
-        
-        markersRef.current[id] = m;
-      }
-      
-      const el = m.getElement();
-      const dot = el?.querySelector('div > div') as HTMLDivElement | null;
-      if (!el || !dot) return;
-      if (id === activeId) {
-        dot.className = 'w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.8)] border-[3px] border-black';
-        el.style.zIndex = '50';
-      } else if (id === hoverId) {
-        dot.className = 'w-3 h-3 rounded-full bg-white/80 transition-all duration-300 scale-125 shadow-[0_0_10px_rgba(255,255,255,0.4)]';
-        el.style.zIndex = '40';
-      } else {
-        dot.className = 'w-2.5 h-2.5 rounded-full bg-white/60 transition-all duration-300 group-hover:bg-white/80 shadow-[0_0_5px_rgba(255,255,255,0.2)]';
-        el.style.zIndex = '10';
-      }
-    });
-
-    const currentIds = new Set(mappedSubjects.map(mapSubjectKey));
-    Object.keys(markersRef.current).forEach(id => {
-      if (!currentIds.has(id)) {
-        markersRef.current[id].removeFrom(map);
-        delete markersRef.current[id];
-      }
-    });
-  }, [map, mappedSubjects, activeId, hoverId]);
 
   if (!isHydrated || !project) {
     return (
@@ -175,8 +71,16 @@ export function NetworkPage() {
       {/* Noise overlay */}
       <div className="pointer-events-none fixed inset-0 z-[100] opacity-[0.03] mix-blend-screen" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
-      <div className="absolute inset-0 z-0 bg-[#0a0a0a]" ref={mapContainer} />
-      {!map && !mapError && (
+      <UniversalMap
+        subjects={mappedSubjects}
+        activeId={activeId}
+        focusId={activeId}
+        reduceMotion={shouldReduceMotion}
+        onReady={() => { setMapReady(true); setMapError(false); }}
+        onError={() => setMapError(true)}
+        onSelect={id => { setActiveId(id); setMobileView('map'); }}
+      />
+      {!mapReady && !mapError && (
         <div className="absolute inset-0 z-[1] grid place-items-center bg-[#050505] text-white/50" role="status">
           <div className="text-center">
             <MapIcon className="mx-auto mb-3 h-8 w-8 opacity-20" />
@@ -237,12 +141,7 @@ export function NetworkPage() {
                       onHover={setHoverId}
                       onClick={() => {
                          setActiveId(mapSubjectKey(subject));
-                         if (subject.longitude !== undefined && subject.latitude !== undefined && map) {
-                           if (shouldReduceMotion) {
-                             map.setView([subject.latitude, subject.longitude], 9, { animate: false });
-                           } else {
-                             map.flyTo([subject.latitude, subject.longitude], 9, { duration: 1.2 });
-                           }
+                          if (subject.longitude !== undefined && subject.latitude !== undefined) {
                           setMobileView('map');
                         }
                       }}
