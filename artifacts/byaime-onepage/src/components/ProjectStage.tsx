@@ -102,10 +102,78 @@ export function ProjectStage() {
 
   if (!project) return null;
 
+  const dayEvents = project.timeline.filter(event => event.phase === "pendant").sort((a, b) => a.time - b.time);
+  const liveEvent = dayEvents.find(event => event.time <= now && (event.endTime ?? event.time + (event.durationMinutes || 60) * 60000) > now);
+  const nextDayEvent = dayEvents.find(event => event.time > now);
+  const featuredDayEvent = liveEvent || nextDayEvent;
+  const memoryCount = project.memories.length + project.media.length;
+  const heroCopy = {
+    tout: {
+      eyebrow: project.universe,
+      title: project.title,
+      description: project.subtitle && !subtitleIsRedundant ? project.subtitle : undefined,
+    },
+    avant: {
+      eyebrow: "Avant · Le site",
+      title: project.title,
+      description: "Le rendez-vous, les informations essentielles et tout ce qui se prépare avant le grand jour.",
+    },
+    pendant: {
+      eyebrow: liveEvent ? "Le Jour J · En direct" : "Le Jour J · Programme",
+      title: featuredDayEvent?.title || "Le mariage en direct",
+      description: featuredDayEvent
+        ? `${liveEvent ? "Maintenant" : "À venir"}${featuredDayEvent.location ? ` · ${featuredDayEvent.location}` : ""}${featuredDayEvent.responsible ? ` · ${featuredDayEvent.responsible}` : ""}`
+        : "Le programme en direct apparaîtra ici dès que les Moments du Jour J seront reliés.",
+    },
+    apres: {
+      eyebrow: "Après · Mémoire",
+      title: "Notre histoire continue",
+      description: memoryCount
+        ? `${memoryCount} souvenir${memoryCount > 1 ? "s" : ""}, les messages et les images de celles et ceux qui ont partagé ce Moment.`
+        : "Les souvenirs, remerciements et médias des invités trouveront ici leur place.",
+    },
+  }[phase];
+
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
+      {/* The temporal capsule changes the whole World, not only the Timeline. */}
+      <div className="sticky top-0 z-50 border-b border-white/10 bg-black/88 backdrop-blur-xl">
+        <div className="relative mx-auto flex max-w-5xl items-center justify-center px-6 py-3">
+          <div className="flex max-w-full overflow-x-auto rounded-full bg-white/10 p-1 hide-scrollbar">
+            {[
+              { id: 'tout', label: 'Tout' },
+              { id: 'avant', label: 'Avant' },
+              { id: 'pendant', label: 'Le Jour J' },
+              { id: 'apres', label: 'Après' }
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => setPhase(item.id as typeof phase)}
+                className={cn(
+                  "whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors",
+                  phase === item.id ? "bg-white text-black" : "text-white/60 hover:bg-white/5 hover:text-white"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className="absolute right-6 hidden items-center sm:flex">
+            <button onClick={() => setPlayMode(true)} className="flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-medium transition-colors hover:bg-white hover:text-black">
+              <Images className="h-3 w-3" /> Play
+            </button>
+          </div>
+        </div>
+        <div className="mx-auto flex max-w-5xl flex-wrap justify-center gap-2 px-6 pb-3">
+          {([
+            ["chronological", "Dans l’ordre"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
+            ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
+          ] as Array<[TimelineView, string]>).map(([id, label]) => <button key={id} onClick={() => setView(id)} className={cn("whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em]", view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:text-white")}>{label}</button>)}
+        </div>
+      </div>
+
       {/* Cinematic Header */}
-      <header className="relative isolate min-h-[75vh] w-full overflow-hidden flex flex-col justify-end pb-32 pt-28 px-6 md:px-12">
+      <header key={phase} className="relative isolate flex min-h-[75vh] w-full flex-col justify-end overflow-hidden px-6 pb-24 pt-28 md:px-12">
         <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
@@ -119,7 +187,7 @@ export function ProjectStage() {
             animate={{ opacity: 1, y: 0 }}
             className="w-fit rounded-full border border-white/20 bg-black/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md"
           >
-            {project.universe}
+            {heroCopy.eyebrow}
           </motion.div>
 
           <motion.h1
@@ -128,21 +196,21 @@ export function ProjectStage() {
             transition={{ delay: 0.1 }}
             className="text-4xl sm:text-6xl md:text-7xl font-display font-medium tracking-tight"
           >
-            {project.title}
+            {heroCopy.title}
           </motion.h1>
 
-          {project.subtitle && !subtitleIsRedundant && (
+          {heroCopy.description && (
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="max-w-2xl text-[15px] md:text-base leading-relaxed text-white/70 font-light"
             >
-              {project.subtitle}
+              {heroCopy.description}
             </motion.p>
           )}
 
-          <motion.div
+          {phase !== "apres" && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -161,9 +229,9 @@ export function ProjectStage() {
                 {project.guestsCount.value} invités
               </span>
             )}
-          </motion.div>
+          </motion.div>}
 
-          <motion.div
+          {phase !== "apres" && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -200,9 +268,9 @@ export function ProjectStage() {
             >
               <span className="grid h-full w-full place-items-center rounded-full bg-black/90 text-[11px] font-medium tabular-nums text-white">{completion}%</span>
             </button>
-          </motion.div>
+          </motion.div>}
 
-          <motion.div
+          {(phase === "tout" || phase === "avant") && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
@@ -226,7 +294,25 @@ export function ProjectStage() {
             ) : (
               <p className="mt-3 font-display text-4xl font-light">Le jour est arrivé</p>
             )}
-          </motion.div>
+          </motion.div>}
+          {phase === "pendant" && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-white/10 pt-7">
+              <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? "En ce moment" : "Prochain Moment"}</p>
+              {featuredDayEvent ? (
+                <div className="mt-4 flex flex-wrap items-center gap-5">
+                  <span className="font-display text-4xl font-light tabular-nums sm:text-5xl">{format(featuredDayEvent.time, "HH:mm")}</span>
+                  <div><p className="text-base text-white/85">{featuredDayEvent.title}</p><p className="mt-1 text-xs text-white/40">{featuredDayEvent.location || "Lieu à préciser"}</p></div>
+                </div>
+              ) : <p className="mt-4 text-sm text-white/45">Ajoutez les Moments du Jour J pour activer le direct.</p>}
+            </motion.div>
+          )}
+          {phase === "apres" && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-white/10 pt-7">
+              <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Souvenirs</p></div>
+              <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Médias</p></div>
+              <div><p className="font-display text-3xl font-light">{project.messages.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Messages</p></div>
+            </motion.div>
+          )}
           {project.missing.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-white/55">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
@@ -235,47 +321,6 @@ export function ProjectStage() {
           )}
         </div>
       </header>
-
-      {/* Control Bar (sticky) */}
-      <div className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur-xl">
-        <div className="relative mx-auto flex max-w-5xl items-center justify-center px-6 py-3">
-          <div className="flex max-w-full overflow-x-auto bg-white/10 p-1 rounded-full hide-scrollbar">
-            {[
-              { id: 'tout', label: 'Tout' },
-              { id: 'avant', label: 'Avant' },
-              { id: 'pendant', label: 'Le Jour J' },
-              { id: 'apres', label: 'Après' }
-            ].map(p => (
-              <button
-                key={p.id}
-                onClick={() => setPhase(p.id as any)}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-[10px] font-medium uppercase tracking-[.14em] transition-colors whitespace-nowrap",
-                  phase === p.id ? "bg-white text-black" : "text-white/60 hover:text-white hover:bg-white/5"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="absolute right-6 hidden items-center gap-2 sm:flex">
-            <button
-              onClick={() => setPlayMode(true)}
-              className="px-4 py-2 rounded-full border border-white/20 text-xs font-medium hover:bg-white hover:text-black transition-colors flex items-center gap-2"
-            >
-              <Images className="w-3 h-3" />
-              Play
-            </button>
-          </div>
-        </div>
-        <div className="mx-auto flex max-w-5xl flex-wrap justify-center gap-2 px-6 pb-3">
-          {([
-            ["chronological", "Dans l’ordre"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
-            ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
-          ] as Array<[TimelineView, string]>).map(([id, label]) => <button key={id} onClick={() => setView(id)} className={cn("whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em]", view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:text-white")}>{label}</button>)}
-        </div>
-      </div>
 
       {/* Main Content Area */}
       <main className="w-full">

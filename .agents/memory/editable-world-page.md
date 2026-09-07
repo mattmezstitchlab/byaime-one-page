@@ -32,3 +32,9 @@ Une playlist est un objet canonique relié à un Monde, un Profil et des Moments
 **Why:** La même sélection musicale doit pouvoir être enrichie dans un Monde privé, consultée sur le Profil lié et publiée en lecture seule sans duplication.
 
 **How to apply:** Rechercher par artiste ou titre via un fournisseur autorisé, normaliser les résultats, ajouter et ordonner les morceaux, conserver les ajouts manuels et fichiers comme solutions de repli, puis projeter uniquement les éléments publics.
+
+La capsule temporelle est le sélecteur d’état global du Monde, placé en haut et restant visible. Elle ne filtre pas seulement la Timeline : elle transforme tout le récit et les actions de la page.
+
+**Why:** Un mariage n’a pas les mêmes besoins avant, pendant et après. Le même Monde doit devenir successivement mini-site de préparation, régie live du Jour J et mémoire collective.
+
+**How to apply:** AVANT met en avant informations pratiques et préparation ; LE JOUR J montre le Moment en cours, le prochain, les responsables et alertes ; APRÈS ouvre souvenirs, remerciements et médias ; TOUT relie ces états.
