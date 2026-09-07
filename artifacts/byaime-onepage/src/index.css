@@ -1,9 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap');
+@layer theme, base, clerk, components, utilities;
 @import 'tailwindcss';
+@import '@clerk/themes/shadcn.css';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
+
+@layer components {
+  .action { display: flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem; border: 1px solid rgb(255 255 255 / .14); border-radius: .75rem; padding: .7rem; font-size: .75rem; text-align: center; transition: background .2s; }
+  .action:hover { background: rgb(255 255 255 / .08); }
+}
+
+@media print {
+  .fixed, button, header { display: none !important; }
+  body, main { background: white !important; color: black !important; }
+  main { max-width: none !important; padding: 0 !important; }
+}
 
 @theme inline {
   --color-background: hsl(var(--background));

@@ -24,7 +24,124 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      responses:
+        "200":
+          description: Accessible projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Project" }
+    post:
+      operationId: createProject
+      tags: [projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectInput" }
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+  /projects/{id}:
+    put:
+      operationId: updateProject
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "409":
+          description: Version conflict
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeleteConfirmation" }
+      responses:
+        "204": { description: Deleted }
+  /projects/{id}/invitations:
+    post:
+      operationId: inviteProjectMember
+      tags: [members]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InvitationInput" }
+      responses:
+        "201":
+          description: Invitation sent
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadInput" }
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadTicket" }
+  /rsvp/{token}:
+    get:
+      operationId: getPublicRsvp
+      tags: [rsvp]
+      parameters:
+        - { $ref: "#/components/parameters/Token" }
+      responses:
+        "200": { description: RSVP invitation }
+    put:
+      operationId: submitPublicRsvp
+      tags: [rsvp]
+      parameters:
+        - { $ref: "#/components/parameters/Token" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RsvpInput" }
+      responses:
+        "200": { description: Response recorded }
 components:
+  parameters:
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Token:
+      name: token
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +150,67 @@ components:
           type: string
       required:
         - status
+    Project:
+      type: object
+      required: [id, title, data, role, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        data: { type: object, additionalProperties: true }
+        role: { type: string, enum: [owner, planner, family, viewer] }
+        updatedAt: { type: string, format: date-time }
+    ProjectInput:
+      type: object
+      required: [title, data]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 160 }
+        data: { type: object, additionalProperties: true }
+    ProjectUpdate:
+      allOf:
+        - { $ref: "#/components/schemas/ProjectInput" }
+        - type: object
+          required: [updatedAt]
+          properties:
+            updatedAt: { type: string, format: date-time }
+    DeleteConfirmation:
+      type: object
+      required: [confirmation]
+      properties:
+        confirmation: { type: string, const: SUPPRIMER }
+    InvitationInput:
+      type: object
+      required: [email, role]
+      properties:
+        email: { type: string, format: email }
+        role: { type: string, enum: [planner, family, viewer] }
+    UploadInput:
+      type: object
+      required: [projectId, name, contentType, size]
+      properties:
+        projectId: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 240 }
+        contentType: { type: string }
+        size: { type: integer, minimum: 1, maximum: 26214400 }
+    UploadTicket:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+    RsvpInput:
+      type: object
+      required: [status, attendance, plusOne]
+      properties:
+        status: { type: string, enum: [confirmed, declined] }
+        attendance:
+          type: object
+          required: [ceremony, cocktail, dinner, brunch]
+          properties:
+            ceremony: { type: boolean }
+            cocktail: { type: boolean }
+            dinner: { type: boolean }
+            brunch: { type: boolean }
+        dietary: { type: string, maxLength: 1000 }
+        plusOne: { type: boolean }
+        notes: { type: string, maxLength: 2000 }
 

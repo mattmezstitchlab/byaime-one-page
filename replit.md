@@ -22,17 +22,24 @@ Une interface one-page qui transforme une intention libre en projet, puis rassem
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` is the API contract; regenerate clients after changes.
+- `lib/db/src/schema/aime.ts` owns projects, memberships, invitations, private-file metadata, delivery logs and RSVP tokens.
+- `artifacts/api-server/src/routes/aime.ts` enforces project roles and integrates Clerk, App Storage and Resend.
+- `artifacts/byaime-onepage/src/store/project-store.tsx` owns local-first project hydration and optimistic-version synchronization.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Browser authentication is Clerk cookie-based; browser API calls never attach bearer tokens.
+- Project content is stored as versioned JSONB so the existing rich one-page domain can evolve without destructive relational migrations; collaboration and security-sensitive records are relational.
+- `updatedAt` is the optimistic concurrency token. A stale write returns HTTP 409 and is never silently overwritten.
+- Private object bytes live in App Storage; PostgreSQL stores metadata and project ownership. Every serve/delete request re-checks membership.
+- Public RSVP links are random, independently revocable bearer tokens and expose only the wedding title and that guest's response.
 
 ## Product
 
 - Composition d'une intention en langage naturel et extraction locale des faits utiles.
 - Ligne de temps universelle avec phases, couches, actions, participants, budget, documents, messages, musique et souvenirs.
-- Fonctionnement local sans services externes, avec persistance dans le navigateur.
+- Mode local hors connexion avec synchronisation PostgreSQL dès que la session et le réseau sont disponibles.
 
 ## User preferences
 
@@ -41,7 +48,9 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Change OpenAPI first, run codegen, then typecheck.
+- Schema changes use `pnpm --filter @workspace/db run push` in development only; production startup never runs DDL.
+- Resend calls must use the Replit connector proxy and must persist/report provider failures.
 
 ## Pointers
 

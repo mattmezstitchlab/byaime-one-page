@@ -5,7 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProjectInput } from './projectInput';
 
-export interface HealthStatus {
-  status: string;
-}
+export type ProjectUpdate = ProjectInput & {
+  updatedAt: Date;
+};

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import { useAuth } from '@clerk/react';
 import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
 
@@ -7,11 +8,16 @@ type ProjectStore = {
   draft: Partial<WorldProject> | null;
   intentionText: string;
   hasProject: boolean;
+  projects: { id: string; title: string; role: string }[];
+  syncStatus: 'local' | 'loading' | 'saving' | 'saved' | 'error' | 'conflict';
+  syncError?: string;
   
   setIntentionText: (text: string) => void;
   commitDraft: () => void;
   createWeddingDemo: () => void;
   clearProject: () => void;
+  selectProject: (id: string) => Promise<void>;
+  importBackup: (value: unknown) => void;
   
   updateProject: (updates: Partial<WorldProject>) => void;
   updateEntity: <K extends keyof WorldProject>(collection: K, id: string, updates: any) => void;
@@ -52,6 +58,7 @@ function normalizeStoredProject(value: WorldProject): WorldProject {
 }
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const [project, setProject] = useState<WorldProject | null>(() => {
     try {
       const saved = localStorage.getItem('aime-project');
@@ -63,14 +70,121 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const [intentionText, setIntentionTextState] = useState('');
   const [draft, setDraft] = useState<Partial<WorldProject> | null>(null);
+  const [projects, setProjects] = useState<{ id: string; title: string; role: string }[]>([]);
+  const [syncStatus, setSyncStatus] = useState<ProjectStore['syncStatus']>('local');
+  const [syncError, setSyncError] = useState<string>();
+  const versionRef = useRef<string | undefined>(undefined);
+  const hydratedRef = useRef(false);
+  const previousUserRef = useRef<string | null | undefined>(undefined);
+
+  const request = useCallback(async (path: string, init?: RequestInit) => {
+    const response = await fetch(`/api${path}`, {
+      ...init,
+      headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers },
+    });
+    const body = response.status === 204 ? undefined : await response.json().catch(() => ({}));
+    if (!response.ok) throw Object.assign(new Error(body?.error || `Erreur ${response.status}`), { status: response.status, body });
+    return body;
+  }, []);
+
+  const selectProject = useCallback(async (id: string) => {
+    setSyncStatus('loading');
+    try {
+      const list = await request('/projects');
+      const row = list.find((item: any) => item.id === id);
+      if (!row) throw new Error('Projet introuvable');
+      setProject(normalizeStoredProject({ ...(row.data as WorldProject), id: row.id, title: row.title }));
+      versionRef.current = row.updatedAt;
+      hydratedRef.current = true;
+      localStorage.setItem(`aime-project:${userId}`, JSON.stringify(row.data));
+      setSyncStatus('saved');
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : 'Chargement impossible');
+      setSyncStatus('error');
+    }
+  }, [request, userId]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (previousUserRef.current !== undefined && previousUserRef.current !== (userId ?? null)) {
+      setProject(null);
+      setProjects([]);
+      versionRef.current = undefined;
+      hydratedRef.current = false;
+    }
+    previousUserRef.current = userId ?? null;
+    if (!isSignedIn || !userId) { setSyncStatus('local'); return; }
+    let cancelled = false;
+    setSyncStatus('loading');
+    void request('/projects').then(async (rows: any[]) => {
+      if (cancelled) return;
+      let available = rows;
+      const legacy = localStorage.getItem('aime-project');
+      if (available.length === 0 && legacy) {
+        const data = normalizeStoredProject(JSON.parse(legacy));
+        const created = await request('/projects', { method: 'POST', body: JSON.stringify({ title: data.title, data }) });
+        available = [created];
+        localStorage.removeItem('aime-project');
+      }
+      if (cancelled) return;
+      setProjects(available.map(row => ({ id: row.id, title: row.title, role: row.role })));
+      if (available[0]) {
+        const row = available[0];
+        setProject(normalizeStoredProject({ ...(row.data as WorldProject), id: row.id, title: row.title }));
+        versionRef.current = row.updatedAt;
+        localStorage.setItem(`aime-project:${userId}`, JSON.stringify(row.data));
+      } else {
+        const cached = localStorage.getItem(`aime-project:${userId}`);
+        setProject(cached ? normalizeStoredProject(JSON.parse(cached)) : null);
+      }
+      hydratedRef.current = true;
+      setSyncStatus('saved');
+    }).catch((error) => {
+      if (cancelled) return;
+      const cached = localStorage.getItem(`aime-project:${userId}`);
+      if (cached) setProject(normalizeStoredProject(JSON.parse(cached)));
+      hydratedRef.current = true;
+      setSyncError(error instanceof Error ? error.message : 'Mode hors connexion');
+      setSyncStatus('error');
+    });
+    return () => { cancelled = true; };
+  }, [isLoaded, isSignedIn, userId, request]);
 
   useEffect(() => {
     if (project) {
-      localStorage.setItem('aime-project', JSON.stringify(project));
+      localStorage.setItem(userId ? `aime-project:${userId}` : 'aime-project', JSON.stringify(project));
     } else {
       localStorage.removeItem('aime-project');
     }
-  }, [project]);
+  }, [project, userId]);
+
+  useEffect(() => {
+    if (!project || !isSignedIn || !hydratedRef.current) return;
+    const timer = window.setTimeout(async () => {
+      setSyncStatus('saving');
+      try {
+        if (!versionRef.current || !projects.some(item => item.id === project.id)) {
+          const created = await request('/projects', { method: 'POST', body: JSON.stringify({ title: project.title, data: project }) });
+          versionRef.current = created.updatedAt;
+          setProject(prev => prev ? { ...prev, id: created.id } : prev);
+          setProjects(prev => [...prev, { id: created.id, title: created.title, role: 'owner' }]);
+        } else {
+          const updated = await request(`/projects/${project.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ title: project.title, data: project, updatedAt: versionRef.current }),
+          });
+          versionRef.current = updated.updatedAt;
+        }
+        setSyncError(undefined);
+        setSyncStatus('saved');
+      } catch (error: any) {
+        if (error?.status === 409) setSyncStatus('conflict');
+        else setSyncStatus('error');
+        setSyncError(error instanceof Error ? error.message : 'Sauvegarde impossible');
+      }
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [project, isSignedIn, projects, request]);
 
   const setIntentionText = useCallback((text: string) => {
     setIntentionTextState(text);
@@ -102,6 +216,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProject(null);
     setDraft(null);
     setIntentionTextState('');
+  }, []);
+
+  const importBackup = useCallback((value: unknown) => {
+    const candidate = (value as any)?.format === 'aime-backup' ? (value as any).project?.data : value;
+    if (!candidate || typeof candidate !== 'object' || typeof (candidate as any).title !== 'string') {
+      throw new Error('Sauvegarde AIME invalide');
+    }
+    versionRef.current = undefined;
+    setProject(normalizeStoredProject(candidate as WorldProject));
   }, []);
 
   const updateProject = useCallback((updates: Partial<WorldProject>) => {
@@ -151,10 +274,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       draft,
       intentionText,
       hasProject: project !== null,
+      projects,
+      syncStatus,
+      syncError,
       setIntentionText,
       commitDraft,
       createWeddingDemo,
       clearProject,
+      selectProject,
+      importBackup,
       updateProject,
       updateEntity,
       addEntity,
