@@ -17,7 +17,7 @@ export function ComposerHero() {
   };
 
   return (
-    <section className="relative w-full h-[100dvh] flex flex-col items-center justify-center overflow-hidden">
+    <section data-testid="project-composer" className="relative w-full h-[100dvh] flex flex-col items-center justify-center overflow-hidden">
       {/* Background */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40 scale-105"
@@ -43,6 +43,7 @@ export function ComposerHero() {
             <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition duration-500 blur-md" />
             <div className="relative bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-2 sm:p-3 transition-all focus-within:border-white/30 focus-within:bg-black/60 shadow-2xl">
               <textarea
+                data-testid="project-intention"
                 value={intentionText}
                 onChange={(e) => setIntentionText(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -82,7 +83,8 @@ export function ComposerHero() {
                   )}
                 </div>
                 
-                <button
+                  <button
+                    data-testid="create-project"
                   onClick={commitDraft}
                   disabled={intentionText.length < 10}
                   className="flex-shrink-0 ml-4 h-12 w-12 rounded-full bg-white text-black flex items-center justify-center disabled:opacity-30 disabled:bg-white/10 disabled:text-white transition-all hover:scale-105 active:scale-95"
@@ -93,6 +95,7 @@ export function ComposerHero() {
             </div>
           </div>
           <button
+            data-testid="demo-project"
             type="button"
             onClick={createWeddingDemo}
             className="mt-5 text-[11px] uppercase tracking-[0.18em] text-white/55 underline decoration-white/25 underline-offset-8 transition-colors hover:text-white"

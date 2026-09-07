@@ -92,6 +92,33 @@ export const InviteProjectMemberBody = zod.object({
 export const InviteProjectMemberResponse = zod.void()
 
 
+export const ListProjectMessagesParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const ListProjectMessagesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "kind": zod.string(),
+  "recipients": zod.array(zod.string().email()),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "status": zod.enum(['pending', 'sent', 'failed']),
+  "providerError": zod.string().nullish(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListProjectMessagesResponse = zod.array(ListProjectMessagesResponseItem)
+
+
+export const RevokeRsvpLinkParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "guestId": zod.coerce.string()
+})
+
+export const RevokeRsvpLinkResponse = zod.void()
+
+
 export const requestUploadUrlBodyNameMax = 240;
 
 export const requestUploadUrlBodySizeMax = 26214400;
@@ -141,4 +168,4 @@ export const SubmitPublicRsvpBody = zod.object({
   "notes": zod.string().max(submitPublicRsvpBodyNotesMax).optional()
 })
 
-export const SubmitPublicRsvpResponse = zod.unknown()
+ export const SubmitPublicRsvpResponse = zod.unknown()

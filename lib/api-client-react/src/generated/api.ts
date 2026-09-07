@@ -23,6 +23,7 @@ import type {
   DeleteConfirmation,
   HealthStatus,
   InvitationInput,
+  Message,
   Project,
   ProjectInput,
   ProjectUpdate,
@@ -64,8 +65,7 @@ export const getHealthCheckUrl = () => {
 
 
   return `/api/healthz`
-}
-
+     }
 /**
  * Returns server health status
  * @summary Health check
@@ -470,6 +470,144 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getInviteProjectMemberMutationOptions(options));
     }
 
+export const getListProjectMessagesUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/messages`
+}
+
+export const listProjectMessages = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<Message[]> => {
+
+  return customFetch<Message[]>(getListProjectMessagesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProjectMessagesQueryKey = (id: string,) => {
+    return [
+    `/api/projects/${id}/messages`
+    ] as const;
+    }
+
+
+export const getListProjectMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listProjectMessages>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProjectMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListProjectMessagesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectMessages>>> = ({ signal }) => listProjectMessages(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListProjectMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectMessages>>>
+export type ListProjectMessagesQueryError = ErrorType<unknown>
+
+
+
+export function useListProjectMessages<TData = Awaited<ReturnType<typeof listProjectMessages>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProjectMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListProjectMessagesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRevokeRsvpLinkUrl = (id: string,
+    guestId: string,) => {
+
+
+
+
+  return `/api/projects/${id}/rsvp-links/${guestId}`
+}
+
+export const revokeRsvpLink = async (id: string,
+    guestId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRevokeRsvpLinkUrl(id,guestId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeRsvpLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeRsvpLink>>, TError,{id: string;guestId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeRsvpLink>>, TError,{id: string;guestId: string}, TContext> => {
+
+const mutationKey = ['revokeRsvpLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeRsvpLink>>, {id: string;guestId: string}> = (props) => {
+          const {id,guestId} = props ?? {};
+
+          return  revokeRsvpLink(id,guestId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeRsvpLinkMutationResult = NonNullable<Awaited<ReturnType<typeof revokeRsvpLink>>>
+
+    export type RevokeRsvpLinkMutationError = ErrorType<unknown>
+
+    export const useRevokeRsvpLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeRsvpLink>>, TError,{id: string;guestId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeRsvpLink>>,
+        TError,
+        {id: string;guestId: string},
+        TContext
+      > => {
+      return useMutation(getRevokeRsvpLinkMutationOptions(options));
+    }
+
 export const getRequestUploadUrlUrl = () => {
 
 
@@ -671,3 +809,4 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getSubmitPublicRsvpMutationOptions(options));
     }
+

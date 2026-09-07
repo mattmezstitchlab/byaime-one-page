@@ -7,7 +7,7 @@ function AppContent() {
   const { hasProject } = useProject();
 
   return (
-    <div className="min-h-screen w-full bg-black text-white font-sans antialiased selection:bg-white/20 selection:text-white">
+    <div data-testid="portal" className="min-h-screen w-full bg-black text-white font-sans antialiased selection:bg-white/20 selection:text-white">
       <PortalControls />
       {!hasProject ? (
         <ComposerHero />

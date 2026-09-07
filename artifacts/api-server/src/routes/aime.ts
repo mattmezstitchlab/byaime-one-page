@@ -26,6 +26,12 @@ const managedRoles = new Set(["owner", "planner"]);
 const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "video/mp4"]);
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
+function shouldSimulateProviderFailure(req: AuthedRequest): boolean {
+  return process.env.NODE_ENV !== "production"
+    && process.env.AIME_E2E_RUN === "1"
+    && req.get("x-aime-e2e-provider") === "failure";
+}
+
 const projectInput = z.object({
   title: z.string().trim().min(1).max(160),
   data: z.record(z.string(), z.unknown()),
@@ -274,6 +280,7 @@ router.post("/projects/:id/messages", auth, async (req: AuthedRequest, res): Pro
   if (!managedRoles.has(member?.role ?? "")) { res.status(403).json({ error: "Permission d'envoi refusée" }); return; }
   const [message] = await db.insert(messagesTable).values({ ...input, projectId, createdBy: req.userId!, status: "pending" }).returning();
   try {
+    if (shouldSimulateProviderFailure(req)) throw new Error("Échec fournisseur simulé pour le scénario E2E");
     await connectors.proxy("resend", "/emails", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -284,12 +291,22 @@ router.post("/projects/:id/messages", auth, async (req: AuthedRequest, res): Pro
       }),
     });
     const [sent] = await db.update(messagesTable).set({ status: "sent", sentAt: new Date() }).where(eq(messagesTable.id, message.id)).returning();
+    req.log.info({ messageId: message.id, projectId, status: sent.status }, "Email delivery recorded");
     res.status(201).json(sent);
   } catch (error) {
     const providerError = error instanceof Error ? error.message : "Erreur Resend";
     const [failed] = await db.update(messagesTable).set({ status: "failed", providerError }).where(eq(messagesTable.id, message.id)).returning();
+    req.log.warn({ messageId: message.id, projectId, status: failed.status, providerError }, "Email provider failure recorded");
     res.status(502).json(failed);
   }
+});
+
+router.get("/projects/:id/messages", auth, async (req: AuthedRequest, res): Promise<void> => {
+  const projectId = String(req.params.id);
+  const member = await membership(projectId, req.userId!);
+  if (!member) { res.status(404).json({ error: "Projet introuvable" }); return; }
+  if (!managedRoles.has(member.role)) { res.status(403).json({ error: "Permission refusée" }); return; }
+  res.json(await db.select().from(messagesTable).where(eq(messagesTable.projectId, projectId)));
 });
 
 router.post("/projects/:id/rsvp-links/:guestId", auth, async (req: AuthedRequest, res): Promise<void> => {
@@ -298,6 +315,21 @@ router.post("/projects/:id/rsvp-links/:guestId", auth, async (req: AuthedRequest
   const [link] = await db.insert(rsvpsTable).values({ projectId, guestId: String(req.params.guestId) })
     .onConflictDoUpdate({ target: [rsvpsTable.projectId, rsvpsTable.guestId], set: { revoked: false, response: null, respondedAt: null } }).returning();
   res.status(201).json(link);
+});
+
+router.delete("/projects/:id/rsvp-links/:guestId", auth, async (req: AuthedRequest, res): Promise<void> => {
+  const projectId = String(req.params.id);
+  if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+    res.status(403).json({ error: "Permission refusée" });
+    return;
+  }
+  const [updated] = await db.update(rsvpsTable).set({ revoked: true })
+    .where(and(eq(rsvpsTable.projectId, projectId), eq(rsvpsTable.guestId, String(req.params.guestId)))).returning();
+  if (!updated) {
+    res.status(404).json({ error: "Lien RSVP introuvable" });
+    return;
+  }
+  res.sendStatus(204);
 });
 
 router.get("/rsvp/:token", async (req, res): Promise<void> => {

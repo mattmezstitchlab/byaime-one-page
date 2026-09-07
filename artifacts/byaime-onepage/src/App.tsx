@@ -62,14 +62,14 @@ function CacheInvalidator() {
 
 function Landing() {
   return (
-    <main className="min-h-[100dvh] bg-black text-white flex items-center justify-center px-6">
+    <main data-testid="landing" className="min-h-[100dvh] bg-black text-white flex items-center justify-center px-6">
       <div className="max-w-3xl text-center">
         <p className="text-xs tracking-[.35em] uppercase text-white/50 mb-8">The art of connection</p>
         <h1 className="font-display text-6xl md:text-8xl tracking-[.12em] mb-8">AIME</h1>
         <p className="text-lg md:text-2xl text-white/65 font-light leading-relaxed mb-10">Votre mariage, orchestré avec élégance. Invités, budget, prestataires et jour J réunis dans un espace privé.</p>
         <div className="flex flex-wrap justify-center gap-3">
-          <a href={`${basePath}/sign-up`} className="rounded-full bg-white text-black px-7 py-3 text-sm font-semibold">Créer mon espace</a>
-          <a href={`${basePath}/sign-in`} className="rounded-full border border-white/25 px-7 py-3 text-sm">Se connecter</a>
+           <a data-testid="landing-sign-up" href={`${basePath}/sign-up`} className="rounded-full bg-white text-black px-7 py-3 text-sm font-semibold">Créer mon espace</a>
+           <a data-testid="landing-sign-in" href={`${basePath}/sign-in`} className="rounded-full border border-white/25 px-7 py-3 text-sm">Se connecter</a>
         </div>
       </div>
     </main>
@@ -83,41 +83,82 @@ function Portal() {
   return <><Show when="signed-in"><Home /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }
 function AuthPage({ signup = false }: { signup?: boolean }) {
-  return <div className="min-h-[100dvh] bg-black flex items-center justify-center px-4">{signup
+  return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="min-h-[100dvh] bg-black flex items-center justify-center px-4">{signup
     ? <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
     : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />}</div>;
 }
 function InvitePage({ params }: { params: { token: string } }) {
   const [, navigate] = useLocation();
-  return <div className="min-h-screen bg-black text-white flex items-center justify-center"><button className="rounded-full bg-white text-black px-6 py-3" onClick={async () => {
-    const response = await fetch(`/api/invitations/${params.token}/accept`, { method: 'POST' });
-    if (!response.ok) throw new Error((await response.json()).error);
-    navigate('/user-portal');
-  }}>Accepter l'invitation</button></div>;
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  return <div className="min-h-screen bg-black text-white flex items-center justify-center p-6"><div className="text-center">
+    <button data-testid="invite-accept" disabled={pending} className="rounded-full bg-white text-black px-6 py-3 disabled:opacity-50" onClick={async () => {
+      setPending(true); setError('');
+      try {
+        const response = await fetch(`/api/invitations/${params.token}/accept`, { method: 'POST' });
+        if (!response.ok) throw new Error((await response.json()).error);
+        navigate('/user-portal');
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Invitation impossible à accepter');
+      } finally {
+        setPending(false);
+      }
+    }}>{pending ? 'Acceptation…' : "Accepter l'invitation"}</button>
+    {error && <p data-testid="invite-error" className="mt-4 text-sm text-red-300">{error}</p>}
+  </div></div>;
 }
 function RsvpPage({ params }: { params: { token: string } }) {
   const [state, setState] = useState({ status: 'confirmed', ceremony: true, cocktail: true, dinner: true, brunch: false, plusOne: false, dietary: '', notes: '' });
   const [projectTitle, setProjectTitle] = useState('Votre invitation');
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { void fetch(`/api/rsvp/${params.token}`).then(async response => {
-    const body = await response.json(); if (!response.ok) throw new Error(body.error); setProjectTitle(body.projectTitle);
-  }).catch(err => setError(err.message)); }, [params.token]);
-  if (done) return <main className="min-h-screen bg-black text-white grid place-items-center p-6 text-center"><div><h1 className="text-4xl mb-3">Merci</h1><p className="text-white/60">Votre réponse a bien été enregistrée.</p></div></main>;
-  return <main className="min-h-screen bg-black text-white grid place-items-center p-5"><form className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/5 p-7 space-y-5" onSubmit={async event => {
-    event.preventDefault(); setError('');
-    const response = await fetch(`/api/rsvp/${params.token}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      status: state.status, attendance: { ceremony: state.ceremony, cocktail: state.cocktail, dinner: state.dinner, brunch: state.brunch },
-      dietary: state.dietary, plusOne: state.plusOne, notes: state.notes,
-    }) }); const body = await response.json(); if (!response.ok) { setError(body.error); return; } setDone(true);
-  }}>
-    <p className="text-xs tracking-[.3em] text-white/45">AIME · RSVP</p><h1 className="text-3xl">{projectTitle}</h1>
-    <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => setState(s => ({ ...s, status: 'confirmed' }))} className={`rounded-xl p-3 border ${state.status === 'confirmed' ? 'bg-white text-black' : 'border-white/20'}`}>Je serai présent·e</button><button type="button" onClick={() => setState(s => ({ ...s, status: 'declined' }))} className={`rounded-xl p-3 border ${state.status === 'declined' ? 'bg-white text-black' : 'border-white/20'}`}>Je décline</button></div>
-    {state.status === 'confirmed' && <div className="grid grid-cols-2 gap-3 text-sm">{(['ceremony', 'cocktail', 'dinner', 'brunch'] as const).map(key => <label key={key} className="flex gap-2 capitalize"><input type="checkbox" checked={state[key]} onChange={e => setState(s => ({ ...s, [key]: e.target.checked }))} />{key}</label>)}<label className="flex gap-2 col-span-2"><input type="checkbox" checked={state.plusOne} onChange={e => setState(s => ({ ...s, plusOne: e.target.checked }))} />Je viens accompagné·e</label></div>}
-    <input className="w-full rounded-xl border border-white/15 bg-black/30 p-3" placeholder="Allergies ou régime alimentaire" value={state.dietary} onChange={e => setState(s => ({ ...s, dietary: e.target.value }))} />
-    <textarea className="w-full rounded-xl border border-white/15 bg-black/30 p-3" placeholder="Une note pour les mariés" value={state.notes} onChange={e => setState(s => ({ ...s, notes: e.target.value }))} />
-    {error && <p className="text-red-300 text-sm">{error}</p>}<button className="w-full rounded-full bg-white text-black p-3 font-semibold">Confirmer ma réponse</button>
-  </form></main>;
+  const [status, setStatus] = useState<'loading' | 'ready' | 'submitting' | 'error'>('loading');
+  useEffect(() => {
+    let active = true;
+    setStatus('loading'); setError('');
+    void fetch(`/api/rsvp/${params.token}`).then(async response => {
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || 'Lien RSVP indisponible');
+      if (!active) return;
+      setProjectTitle(body.projectTitle);
+      const saved = body.response;
+      if (saved) setState(current => ({
+        ...current, ...saved,
+        ...(saved.attendance ?? {}),
+        dietary: saved.dietary ?? '', notes: saved.notes ?? '',
+      }));
+      setStatus('ready');
+    }).catch(reason => {
+      if (!active) return;
+      setError(reason instanceof Error ? reason.message : 'Lien RSVP indisponible');
+      setStatus('error');
+    });
+    return () => { active = false; };
+  }, [params.token]);
+  if (done) return <main data-testid="rsvp-success" className="min-h-screen bg-black text-white grid place-items-center p-6 text-center"><div><h1 className="text-4xl mb-3">Merci</h1><p className="text-white/60">Votre réponse a bien été enregistrée.</p></div></main>;
+  if (status === 'error') return <main data-testid="rsvp-page" data-rsvp-state="error" className="min-h-screen bg-black text-white grid place-items-center p-6 text-center"><div className="max-w-sm"><p data-testid="rsvp-error" className="text-red-300">{error}</p><button type="button" className="mt-5 rounded-full border border-white/20 px-5 py-3" onClick={() => window.location.reload()}>Réessayer</button></div></main>;
+  return <main data-testid="rsvp-page" data-rsvp-state={status} className="min-h-screen bg-black text-white grid place-items-center p-5"><form data-testid="rsvp-form" className="w-full max-w-lg rounded-3xl border border-white/10 bg-white/5 p-7 space-y-5" onSubmit={async event => {
+     event.preventDefault(); if (status !== 'ready') return;
+     setError(''); setStatus('submitting');
+     try {
+       const response = await fetch(`/api/rsvp/${params.token}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+         status: state.status, attendance: { ceremony: state.ceremony, cocktail: state.cocktail, dinner: state.dinner, brunch: state.brunch },
+         dietary: state.dietary || undefined, plusOne: state.plusOne, notes: state.notes || undefined,
+       }) }); const body = await response.json().catch(() => ({}));
+       if (!response.ok) throw new Error(body.error || 'Réponse impossible à enregistrer');
+       setDone(true);
+     } catch (reason) {
+       setError(reason instanceof Error ? reason.message : 'Réponse impossible à enregistrer');
+       setStatus('error');
+     }
+   }}>
+     <p className="text-xs tracking-[.3em] text-white/45">AIME · RSVP</p><h1 data-testid="rsvp-title" className="text-3xl">{projectTitle}</h1>
+     <div className="grid grid-cols-2 gap-2"><button data-testid="rsvp-confirmed" type="button" disabled={status !== 'ready'} onClick={() => setState(s => ({ ...s, status: 'confirmed' }))} className={`rounded-xl p-3 border ${state.status === 'confirmed' ? 'bg-white text-black' : 'border-white/20'}`}>Je serai présent·e</button><button data-testid="rsvp-declined" type="button" disabled={status !== 'ready'} onClick={() => setState(s => ({ ...s, status: 'declined' }))} className={`rounded-xl p-3 border ${state.status === 'declined' ? 'bg-white text-black' : 'border-white/20'}`}>Je décline</button></div>
+     {state.status === 'confirmed' && <div className="grid grid-cols-2 gap-3 text-sm">{(['ceremony', 'cocktail', 'dinner', 'brunch'] as const).map(key => <label key={key} className="flex gap-2 capitalize"><input aria-label={key} name={`rsvp-${key}`} type="checkbox" checked={state[key]} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, [key]: e.target.checked }))} />{key}</label>)}<label className="flex gap-2 col-span-2"><input aria-label="plus-one" name="rsvp-plus-one" type="checkbox" checked={state.plusOne} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, plusOne: e.target.checked }))} />Je viens accompagné·e</label></div>}
+     <input aria-label="dietary" name="rsvp-dietary" className="w-full rounded-xl border border-white/15 bg-black/30 p-3" placeholder="Allergies ou régime alimentaire" value={state.dietary} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, dietary: e.target.value }))} />
+     <textarea aria-label="notes" name="rsvp-notes" className="w-full rounded-xl border border-white/15 bg-black/30 p-3" placeholder="Une note pour les mariés" value={state.notes} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, notes: e.target.value }))} />
+     {error && <p data-testid="rsvp-error" className="text-red-300 text-sm">{error}</p>}<button data-testid="rsvp-submit" type="submit" disabled={status !== 'ready'} className="w-full rounded-full bg-white text-black p-3 font-semibold disabled:opacity-50">{status === 'submitting' ? 'Enregistrement…' : 'Confirmer ma réponse'}</button>
+   </form></main>;
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {

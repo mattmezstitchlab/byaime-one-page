@@ -95,6 +95,29 @@ paths:
       responses:
         "201":
           description: Invitation sent
+  /projects/{id}/messages:
+    get:
+      operationId: listProjectMessages
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "200":
+          description: Email delivery journal
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+  /projects/{id}/rsvp-links/{guestId}:
+    delete:
+      operationId: revokeRsvpLink
+      tags: [rsvp]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+        - { name: guestId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: RSVP link revoked }
   /storage/uploads/request-url:
     post:
       operationId: requestUploadUrl
@@ -197,6 +220,22 @@ components:
       properties:
         uploadURL: { type: string, format: uri }
         objectPath: { type: string }
+    Message:
+      type: object
+      required: [id, projectId, kind, recipients, subject, body, status, createdBy, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        kind: { type: string }
+        recipients:
+          type: array
+          items: { type: string, format: email }
+        subject: { type: string }
+        body: { type: string }
+        status: { type: string, enum: [pending, sent, failed] }
+        providerError: { type: string, nullable: true }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
     RsvpInput:
       type: object
       required: [status, attendance, plusOne]

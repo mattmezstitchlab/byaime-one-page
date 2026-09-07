@@ -34,14 +34,7 @@ const normalizeStoredProject = normalizeProject;
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, userId } = useAuth();
-  const [project, setProject] = useState<WorldProject | null>(() => {
-    try {
-      const saved = localStorage.getItem('aime-project');
-      return saved ? normalizeStoredProject(JSON.parse(saved) as WorldProject) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [project, setProject] = useState<WorldProject | null>(null);
 
   const [intentionText, setIntentionTextState] = useState('');
   const [draft, setDraft] = useState<Partial<WorldProject> | null>(null);
@@ -51,6 +44,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const versionRef = useRef<string | undefined>(undefined);
   const hydratedRef = useRef(false);
   const previousUserRef = useRef<string | null | undefined>(undefined);
+  const saveChainRef = useRef(Promise.resolve());
 
   const request = useCallback(async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, {
@@ -82,6 +76,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return;
     if (previousUserRef.current !== undefined && previousUserRef.current !== (userId ?? null)) {
+      if (previousUserRef.current) localStorage.removeItem(`aime-project:${previousUserRef.current}`);
       setProject(null);
       setProjects([]);
       versionRef.current = undefined;
@@ -95,7 +90,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       let available = rows;
       const legacy = localStorage.getItem('aime-project');
-      if (available.length === 0 && legacy) {
+       if (available.length === 0 && legacy) {
         const data = normalizeStoredProject(JSON.parse(legacy));
         const created = await request('/projects', { method: 'POST', body: JSON.stringify({ title: data.title, data }) });
         available = [created];
@@ -130,12 +125,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(userId ? `aime-project:${userId}` : 'aime-project', JSON.stringify(project));
     } else {
       localStorage.removeItem('aime-project');
+      if (userId) localStorage.removeItem(`aime-project:${userId}`);
     }
   }, [project, userId]);
 
   useEffect(() => {
     if (!project || !isSignedIn || !hydratedRef.current) return;
-    const timer = window.setTimeout(async () => {
+    const userAtSchedule = userId;
+    const timer = window.setTimeout(() => {
+      saveChainRef.current = saveChainRef.current.catch(() => undefined).then(async () => {
+        if (userId !== userAtSchedule || !isSignedIn) return;
       setSyncStatus('saving');
       try {
         if (!versionRef.current || !projects.some(item => item.id === project.id)) {
@@ -157,9 +156,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         else setSyncStatus('error');
         setSyncError(error instanceof Error ? error.message : 'Sauvegarde impossible');
       }
+      });
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [project, isSignedIn, projects, request]);
+  }, [project, isSignedIn, projects, request, userId]);
 
   const setIntentionText = useCallback((text: string) => {
     setIntentionTextState(text);

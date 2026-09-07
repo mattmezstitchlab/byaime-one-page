@@ -10,6 +10,8 @@ export * from './deleteConfirmation';
 export * from './healthStatus';
 export * from './invitationInput';
 export * from './invitationInputRole';
+export * from './message';
+export * from './messageStatus';
 export * from './project';
 export * from './projectData';
 export * from './projectInput';

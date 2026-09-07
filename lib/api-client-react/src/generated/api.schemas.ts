@@ -7,8 +7,7 @@
  */
 export interface HealthStatus {
   status: string;
-}
-
+ }
 export type ProjectData = { [key: string]: unknown };
 
 export type ProjectRole = typeof ProjectRole[keyof typeof ProjectRole];
@@ -83,6 +82,28 @@ export interface UploadTicket {
   objectPath: string;
 }
 
+export type MessageStatus = typeof MessageStatus[keyof typeof MessageStatus];
+
+
+export const MessageStatus = {
+  pending: 'pending',
+  sent: 'sent',
+  failed: 'failed',
+} as const;
+
+export interface Message {
+  id: string;
+  projectId: string;
+  kind: string;
+  recipients: string[];
+  subject: string;
+  body: string;
+  status: MessageStatus;
+  providerError?: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
 export type RsvpInputStatus = typeof RsvpInputStatus[keyof typeof RsvpInputStatus];
 
 
@@ -107,3 +128,4 @@ export interface RsvpInput {
   /** @maxLength 2000 */
   notes?: string;
 }
+

@@ -61,12 +61,12 @@ export function PortalControls() {
   };
 
   return <>
-    <div className="fixed top-4 right-4 z-[60] flex items-center gap-2">
-      <span title={syncError} className={`rounded-full border px-3 py-1.5 text-[11px] backdrop-blur ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-amber-400/40 bg-amber-950/70 text-amber-200' : 'border-white/15 bg-black/60 text-white/65'}`}>{labels[syncStatus]}</span>
-      <button onClick={() => setOpen(true)} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur" aria-label="Ouvrir les réglages"><Settings2 className="h-4 w-4" /></button>
+     <div data-testid="portal-controls" className="fixed top-4 right-4 z-[60] flex items-center gap-2">
+       <span data-testid="sync-status" title={syncError} className={`rounded-full border px-3 py-1.5 text-[11px] backdrop-blur ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-amber-400/40 bg-amber-950/70 text-amber-200' : 'border-white/15 bg-black/60 text-white/65'}`}>{labels[syncStatus]}</span>
+       <button data-testid="settings-open" onClick={() => setOpen(true)} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur" aria-label="Ouvrir les réglages"><Settings2 className="h-4 w-4" /></button>
     </div>
     {open && <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex justify-end" onClick={() => setOpen(false)}>
-      <aside className="h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-[#0d0d0d] p-6 text-white" onClick={e => e.stopPropagation()}>
+       <aside data-testid="settings-panel" className="h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-[#0d0d0d] p-6 text-white" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-8"><div><p className="text-xs text-white/45">Compte</p><p className="font-medium">{user?.primaryEmailAddress?.emailAddress}</p></div><button onClick={() => setOpen(false)}><X /></button></div>
         <label className="block text-xs uppercase tracking-widest text-white/45 mb-2">Projet actif</label>
         <select value={project.id} onChange={e => void selectProject(e.target.value)} className="w-full rounded-xl border border-white/15 bg-white/5 p-3 mb-6">
@@ -98,7 +98,7 @@ export function PortalControls() {
           </select>
         </div>
         <div className="mt-8 space-y-2">
-          <button className="w-full rounded-xl border border-white/15 p-3 text-sm" onClick={() => void signOut({ redirectUrl: basePath() })}>Se déconnecter</button>
+           <button data-testid="sign-out" className="w-full rounded-xl border border-white/15 p-3 text-sm" onClick={() => void signOut({ redirectUrl: basePath() })}>Se déconnecter</button>
           <button className="w-full rounded-xl border border-red-500/30 p-3 text-sm text-red-300" onClick={async () => {
             if (prompt('Tapez SUPPRIMER pour supprimer définitivement ce projet') !== 'SUPPRIMER') return;
             await api(`/projects/${project.id}`, { method: 'DELETE', body: JSON.stringify({ confirmation: 'SUPPRIMER' }) });
