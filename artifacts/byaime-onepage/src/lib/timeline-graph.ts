@@ -74,26 +74,51 @@ export type PropagationPlan = {
   eventId: string;
   patch: Partial<TimelineEvent>;
   affectedEventIds: string[];
+  timeDeltaMs: number;
+  dependentChanges: Array<{ eventId: string; title: string; currentTime: number; nextTime: number }>;
   warnings: string[];
   requiresConfirmation: true;
 };
 export function planEventPropagation(project: WorldProject, eventId: string, patch: Partial<TimelineEvent>): PropagationPlan {
   const impact = analyzeEventImpact(project, eventId, patch);
+  const timeDeltaMs = patch.time === undefined ? 0 : patch.time - impact.event.time;
+  const dependentChanges = timeDeltaMs === 0 ? [] : impact.dependents.map(event => ({
+    eventId: event.id,
+    title: event.title,
+    currentTime: event.time,
+    nextTime: event.time + timeDeltaMs,
+  }));
   return {
     eventId, patch, affectedEventIds: [eventId, ...impact.dependents.map(item => item.id)],
-    warnings: [...impact.conflicts.map(item => item.message), ...(impact.dependents.length ? [`${impact.dependents.length} dépendance(s) ne seront pas déplacées automatiquement`] : [])],
+    timeDeltaMs,
+    dependentChanges,
+    warnings: [...impact.conflicts.map(item => item.message)],
     requiresConfirmation: true,
   };
 }
 
-export function applyPropagationPlan(project: WorldProject, plan: PropagationPlan, confirmed: boolean): WorldProject {
+export function applyPropagationPlan(project: WorldProject, plan: PropagationPlan, confirmed: boolean, selectedDependentIds: string[] = []): WorldProject {
   if (!confirmed) throw new Error("Confirmation explicite requise");
-  if (!project.timeline.some(event => event.id === plan.eventId)) throw new Error("Événement introuvable");
+  const source = project.timeline.find(event => event.id === plan.eventId);
+  if (!source) throw new Error("Événement introuvable");
+  const selected = new Set(selectedDependentIds);
+  const sourcePatch = plan.patch.time !== undefined && source.endTime !== undefined && plan.patch.endTime === undefined
+    ? { ...plan.patch, endTime: source.endTime + plan.timeDeltaMs }
+    : plan.patch;
   return {
     ...project,
-    timeline: project.timeline.map(event => event.id === plan.eventId
-      ? { ...event, ...plan.patch, propagation: { state: "applied", lastAppliedAt: Date.now(), sourceEventId: event.id } }
-      : event),
+    timeline: project.timeline.map(event => {
+      if (event.id === plan.eventId) {
+        return { ...event, ...sourcePatch, propagation: { state: "applied" as const, lastAppliedAt: Date.now(), sourceEventId: event.id } };
+      }
+      if (!selected.has(event.id) || !plan.dependentChanges.some(change => change.eventId === event.id)) return event;
+      return {
+        ...event,
+        time: event.time + plan.timeDeltaMs,
+        ...(event.endTime === undefined ? {} : { endTime: event.endTime + plan.timeDeltaMs }),
+        propagation: { state: "applied" as const, lastAppliedAt: Date.now(), sourceEventId: plan.eventId },
+      };
+    }),
   };
 }
 

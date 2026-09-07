@@ -1,13 +1,14 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Link2, MapPin, Plus, X, Clock3, CalendarDays } from "lucide-react";
+import { Link2, MapPin, Plus, X, Clock3, CalendarDays, Undo2, Waves } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
 import { useProject } from "@/store/project-store";
-import { analyzeEventImpact } from "@/lib/timeline-graph";
+import { analyzeEventImpact, applyPropagationPlan, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
 import { cn } from "@/lib/utils";
 import { getAssetUrl } from "@/lib/assets";
+import { ContextPanel } from "@/components/ContextPanel";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
 
@@ -185,8 +186,9 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
 }
 
 export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
-  const { project, addEntity, updateEntity, removeEntity, canEdit } = useProject();
+  const { project, addEntity, updateEntity, updateProject, removeEntity, canEdit } = useProject();
   const [selected, setSelected] = useState<string>();
+  const [undoTimeline, setUndoTimeline] = useState<TimelineEvent[]>();
 
   if (!project) return null;
   const event = project.timeline.find(item => item.id === selected);
@@ -242,36 +244,40 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
           project={project}
           onClose={() => setSelected(undefined)}
           onEdit={updates => updateEntity("timeline", event.id, updates)}
+          onApplyRipple={(plan, dependentIds) => {
+            setUndoTimeline(project.timeline);
+            updateProject({ timeline: applyPropagationPlan(project, plan, true, dependentIds).timeline });
+          }}
           onDelete={() => { removeEntity("timeline", event.id); setSelected(undefined); }}
           canEdit={canEdit}
         />
+      )}
+      {undoTimeline && (
+        <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-3 rounded-full border border-white/10 bg-black/90 py-2 pl-4 pr-2 text-xs text-white shadow-xl backdrop-blur sm:left-6">
+          <span>Changement appliqué</span>
+          <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 font-medium text-black">
+            <Undo2 className="h-3.5 w-3.5" /> Annuler
+          </button>
+        </div>
       )}
     </div>
   );
 }
 
-function EventDrawer({ event, project, onClose, onEdit, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onDelete: () => void; canEdit: boolean }) {
+function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onApplyRipple: (plan: PropagationPlan, dependentIds: string[]) => void; onDelete: () => void; canEdit: boolean }) {
   const impact = analyzeEventImpact(project, event.id, {});
+  const [pendingTime, setPendingTime] = useState(event.time);
+  const [selectedDependents, setSelectedDependents] = useState<string[]>([]);
+  useEffect(() => {
+    setPendingTime(event.time);
+    setSelectedDependents([]);
+  }, [event.id, event.time]);
+  const ripplePlan = useMemo(() => pendingTime === event.time ? undefined : planEventPropagation(project, event.id, { time: pendingTime }), [event.id, event.time, pendingTime, project]);
   const input = "w-full rounded-none border-b border-white/20 bg-transparent py-2 text-sm text-white outline-none focus:border-white disabled:opacity-50 transition-colors placeholder:text-white/30";
   const select = "w-full rounded-none border-b border-white/20 bg-[#0b0b0b] py-2 text-sm text-white outline-none focus:border-white disabled:opacity-50 transition-colors appearance-none";
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-sm" onClick={onClose}>
-      <motion.aside
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        onClick={e => e.stopPropagation()}
-        className="h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-[#080808] p-8 shadow-2xl hide-scrollbar"
-      >
-        <div className="flex items-center justify-between mb-12">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/40">L'Instant</p>
-          <button onClick={onClose} className="p-2 -mr-2 text-white/50 hover:text-white transition-colors focus:outline-none">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
+    <ContextPanel eyebrow="Votre contexte" title="Moment du calendrier" onClose={onClose}>
         <div className="space-y-8">
           <div>
             <input disabled={!canEdit} className={cn(input, "text-2xl font-display font-medium")} value={event.title} onChange={e => onEdit({ title: e.target.value })} placeholder="Titre de l'événement" />
@@ -280,13 +286,56 @@ function EventDrawer({ event, project, onClose, onEdit, onDelete, canEdit }: { e
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Heure</label>
-              <input disabled={!canEdit} type="datetime-local" className={input} value={new Date(event.time - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => onEdit({ time: new Date(e.target.value).getTime() })} />
+              <input disabled={!canEdit} type="datetime-local" className={input} value={new Date(pendingTime - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setPendingTime(new Date(e.target.value).getTime())} />
             </div>
             <div>
               <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Durée (min)</label>
               <input disabled={!canEdit} type="number" min="0" className={input} value={event.durationMinutes || 0} onChange={e => onEdit({ durationMinutes: Number(e.target.value) })} />
             </div>
           </div>
+
+          {ripplePlan && (
+            <section className="overflow-hidden rounded-2xl border border-violet-300/20 bg-[linear-gradient(145deg,rgba(124,58,237,.14),rgba(14,165,233,.06))]">
+              <div className="flex items-start gap-3 border-b border-white/10 p-4">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-violet-200/25 bg-black/30">
+                  <Waves className="h-4 w-4 text-violet-200" />
+                </span>
+                <div>
+                  <p className="text-sm font-medium">Onde de changement</p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/50">AIME a regardé ce que ce nouvel horaire peut modifier.</p>
+                </div>
+              </div>
+              <div className="space-y-3 p-4">
+                <div className="rounded-xl bg-black/25 p-3 text-xs">
+                  <p className="text-white/40">Ce moment</p>
+                  <p className="mt-1 text-white/80">{format(event.time, "HH:mm", { locale: fr })} → {format(pendingTime, "HH:mm", { locale: fr })}</p>
+                </div>
+                {impact.relations.length > 0 && <p className="text-xs text-white/55">{impact.relations.length} personne{impact.relations.length > 1 ? "s ou élément sont liés" : " ou élément est lié"} à ce moment.</p>}
+                {ripplePlan.dependentChanges.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-[10px] uppercase tracking-[.16em] text-white/35">Peut aussi être décalé</p>
+                    <div className="space-y-2">
+                      {ripplePlan.dependentChanges.map(change => {
+                        const checked = selectedDependents.includes(change.eventId);
+                        return <label key={change.eventId} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                          <input type="checkbox" checked={checked} onChange={() => setSelectedDependents(value => checked ? value.filter(id => id !== change.eventId) : [...value, change.eventId])} className="mt-0.5 accent-white" />
+                          <span className="min-w-0">
+                            <span className="block text-xs text-white/80">{change.title}</span>
+                            <span className="mt-1 block text-[10px] text-white/40">{format(change.currentTime, "HH:mm", { locale: fr })} → {format(change.nextTime, "HH:mm", { locale: fr })}</span>
+                          </span>
+                        </label>;
+                      })}
+                    </div>
+                  </div>
+                )}
+                {ripplePlan.warnings.map(warning => <p key={warning} className="rounded-xl border border-amber-300/15 bg-amber-300/5 p-3 text-xs text-amber-100/75">{warning}</p>)}
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-white/15 px-3 py-2.5 text-xs text-white/60 hover:text-white">Garder l’ancien horaire</button>
+                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-white px-3 py-2.5 text-xs font-medium text-black">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
+                </div>
+              </div>
+            </section>
+          )}
 
           <div>
             <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Lieu</label>
@@ -367,7 +416,6 @@ function EventDrawer({ event, project, onClose, onEdit, onDelete, canEdit }: { e
             </div>
           )}
         </div>
-      </motion.aside>
-    </div>
+    </ContextPanel>
   );
 }
