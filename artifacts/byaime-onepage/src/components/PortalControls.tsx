@@ -79,8 +79,8 @@ export function PortalControls() {
        <span data-testid="sync-status" title={syncError} className={`rounded-full border px-3 py-1.5 text-[11px] backdrop-blur ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-amber-400/40 bg-amber-950/70 text-amber-200' : 'border-white/15 bg-black/60 text-white/65'}`}>{labels[syncStatus]}</span>
        <button data-testid="settings-open" onClick={() => setOpen(true)} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Ouvrir les réglages"><Settings2 className="h-4 w-4" /></button>
     </div>
-    {open && <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex justify-end" onClick={() => setOpen(false)}>
-       <aside data-testid="settings-panel" className="h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-[#0d0d0d] p-6 text-white" onClick={e => e.stopPropagation()}>
+     {open && <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm" onClick={() => setOpen(false)}>
+        <aside data-testid="settings-panel" className="max-h-full w-full max-w-lg overflow-y-auto rounded-3xl border border-white/10 bg-[#0d0d0d] p-6 text-white shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-8"><div><p className="text-xs text-white/45">Compte</p><p className="font-medium">{user?.primaryEmailAddress?.emailAddress}</p></div><button onClick={() => setOpen(false)}><X /></button></div>
         <label className="block text-xs uppercase tracking-widest text-white/45 mb-2">Projet actif</label>
         <select value={project.id} onChange={e => void selectProject(e.target.value)} className="w-full rounded-xl border border-white/15 bg-white/5 p-3 mb-6">
