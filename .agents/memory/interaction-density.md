@@ -18,3 +18,9 @@ Les en-têtes de Monde évitent toute répétition entre nature, titre, sous-tit
 **Why:** Le résumé d’un Monde doit être compris d’un regard et conduire directement aux personnes ou informations concernées, sans accumulation de badges textuels.
 
 **How to apply:** Réserver la couleur à la progression réelle, transformer les compteurs de personnes en accès contextuels et conserver la même hiérarchie centrée pour les capsules temporelles et leurs couches. Le centre AI + ME peut devenir une commande contextuelle : les flèches parcourent Avant, Jour J et Après, tandis que + conserve la création universelle et accueille la lecture de la Timeline ou de la musique.
+
+Les indicateurs temporels, de complétude et de sauvegarde ont des rôles strictement séparés. Le compte à rebours ouvre toutes les échéances futures ; l’anneau ouvre étapes et informations manquantes ; la synchronisation signale seulement l’état de conservation.
+
+**Why:** Un même signe visuel ne doit pas mélanger ce qui approche, ce qui manque et ce qui risque de ne pas être sauvegardé.
+
+**How to apply:** Utiliser plusieurs comptes à rebours ordonnés pour Moments, tâches et date pivot ; garder la progression indépendante ; représenter les conflits par un pictogramme discret mais explicable au clic.

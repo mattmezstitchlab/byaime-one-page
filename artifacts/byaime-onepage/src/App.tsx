@@ -105,7 +105,7 @@ function ConceptLanding() {
         </div>
       </section>
 
-      <section className="border-t border-white/8 px-6 py-28 md:px-10 md:py-40">
+      <section id="guides" className="scroll-mt-8 border-t border-white/8 px-6 py-28 md:px-10 md:py-40">
         <div className="mx-auto max-w-6xl">
           <p className="text-[10px] uppercase tracking-[.28em] text-white/35">Un seul système, plusieurs réalités</p>
           <h2 className="mt-6 max-w-4xl font-display text-4xl font-light leading-tight md:text-7xl">Votre vie n’est pas une succession de tableaux de bord.</h2>

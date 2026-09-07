@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
-import { Download, PenLine, Upload, Globe } from 'lucide-react';
+import { CloudAlert, CloudCheck, CloudOff, Download, Globe, LoaderCircle, PenLine, Upload } from 'lucide-react';
 import { useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Link } from 'wouter';
@@ -83,14 +83,15 @@ export function PortalControls() {
     trackEvent('file_added');
     setNotice(`${file.name} ajouté à l'espace privé`);
   };
+  const SyncIcon = syncStatus === 'conflict' ? CloudAlert : syncStatus === 'error' ? CloudOff : syncStatus === 'loading' || syncStatus === 'saving' ? LoaderCircle : CloudCheck;
 
   return <>
      <div data-testid="portal-controls" className="fixed top-4 right-4 z-[60] flex items-center gap-2">
-       <Link href="/network" className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Carte des lieux et des personnes">
+       <Link href="/network" className="p-2.5 text-white/70 transition-colors hover:text-white" aria-label="Carte des lieux et des personnes">
          <Globe className="h-4 w-4" />
        </Link>
-         <button data-testid="sync-status" title={syncError || "Voir l’état de synchronisation"} onClick={() => setPanel('sync')} className={`rounded-full border bg-black/60 px-3 py-1.5 text-[11px] text-white backdrop-blur transition hover:bg-white/10 ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-white/30' : 'border-white/15 text-white/65'}`}>{labels[syncStatus]}</button>
-         <button data-testid="settings-open" onClick={() => setPanel('editor')} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Éditer le Monde" title="Éditer le Monde"><PenLine className="h-4 w-4" /></button>
+         <button data-testid="sync-status" title={syncError || labels[syncStatus]} onClick={() => setPanel('sync')} className={`p-2.5 transition-colors hover:text-white ${syncStatus === 'error' || syncStatus === 'conflict' ? 'text-amber-200' : 'text-white/60'}`} aria-label={`Synchronisation : ${labels[syncStatus]}`}><SyncIcon className={`h-4 w-4 ${syncStatus === 'loading' || syncStatus === 'saving' ? 'animate-spin' : ''}`} /></button>
+         <button data-testid="settings-open" onClick={() => setPanel('editor')} className="p-2.5 text-white/70 transition-colors hover:text-white" aria-label="Éditer le Monde" title="Éditer le Monde"><PenLine className="h-4 w-4" /></button>
     </div>
       {panel === 'sync' && <CenteredBlock eyebrow="Synchronisation" title={syncStatus === 'conflict' ? "Des changements sont à vérifier" : labels[syncStatus]} description={syncStatus === 'conflict' ? "Une version plus récente du Monde existe. AIME bloque l’écrasement automatique pour protéger les modifications de chacun." : "Voici l’état de conservation de ce Monde."} onClose={() => setPanel(null)}>
         <div className="rounded-2xl border border-white/10 bg-white/[.035] p-5">

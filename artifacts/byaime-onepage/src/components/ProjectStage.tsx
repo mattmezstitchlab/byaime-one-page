@@ -9,7 +9,7 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { ArrowUpRight, CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -51,16 +51,13 @@ export function ProjectStage() {
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
+  const [aimeMenuOpen, setAimeMenuOpen] = useState(false);
+  const [countdownsOpen, setCountdownsOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [now, setNow] = useState(() => Date.now());
 
   const pivotDate = project?.pivot.value ?? Date.now();
-  const distanceToPivot = Math.max(0, pivotDate - now);
-  const daysToPivot = Math.floor(distanceToPivot / 86400000);
-  const hoursToPivot = Math.floor((distanceToPivot % 86400000) / 3600000);
-  const minutesToPivot = Math.floor((distanceToPivot % 3600000) / 60000);
-  const secondsToPivot = Math.floor((distanceToPivot % 60000) / 1000);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -88,6 +85,20 @@ export function ProjectStage() {
       return true;
     });
   }, [project, phase, layers, view]);
+
+  const countdownTargets = useMemo(() => {
+    if (!project) return [];
+    const targets = [
+      ...(project.pivot.value > now ? [{ id: 'pivot', time: project.pivot.value, title: 'Le Jour J', kind: 'Date pivot' }] : []),
+      ...project.tasks
+        .filter(task => task.status !== 'termine' && task.dueDate && task.dueDate > now)
+        .map(task => ({ id: `task-${task.id}`, time: task.dueDate as number, title: task.title, kind: 'Échéance' })),
+      ...project.timeline
+        .filter(event => event.time > now)
+        .map(event => ({ id: `moment-${event.id}`, time: event.time, title: event.title, kind: 'Moment' })),
+    ];
+    return targets.sort((a, b) => a.time - b.time);
+  }, [now, project]);
 
   const stats = useMemo(() => {
     if (!project) return { booked: 0, open: 0, engaged: 0 };
@@ -160,13 +171,26 @@ export function ProjectStage() {
     end: endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }),
   });
   const selectedDayEvents = project.timeline.filter(event => isSameDay(event.time, selectedDate));
+  const nextCountdown = countdownTargets[0] || { id: 'pivot', time: pivotDate, title: 'Le Jour J', kind: 'Date pivot' };
+  const distanceToNext = Math.max(0, nextCountdown.time - now);
+  const nextDays = Math.floor(distanceToNext / 86400000);
+  const nextHours = Math.floor((distanceToNext % 86400000) / 3600000);
+  const nextMinutes = Math.floor((distanceToNext % 3600000) / 60000);
+  const nextSeconds = Math.floor((distanceToNext % 60000) / 1000);
+  const formatRemaining = (time: number) => {
+    const distance = Math.max(0, time - now);
+    const days = Math.floor(distance / 86400000);
+    const hours = Math.floor((distance % 86400000) / 3600000);
+    const minutes = Math.floor((distance % 3600000) / 60000);
+    return days > 0 ? `${days} j · ${hours} h` : hours > 0 ? `${hours} h · ${minutes} min` : `${minutes} min`;
+  };
 
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
       {/* The temporal capsule changes the whole World, not only the Timeline. */}
       <div className="sticky top-0 z-50 border-b border-white/10 bg-black/88 backdrop-blur-xl">
         <div className="relative mx-auto flex max-w-5xl items-center justify-center px-6 py-3">
-          <Link href="/concept" className="absolute left-6 text-xs font-medium tracking-[.32em] text-white/80 transition hover:text-white" aria-label="Découvrir AIME">AIME</Link>
+          <button type="button" onClick={() => setAimeMenuOpen(true)} className="absolute left-6 text-xs font-medium tracking-[.32em] text-white/80 transition hover:text-white" aria-label="Ouvrir le menu AIME">AIME</button>
           <div className="flex max-w-full overflow-x-auto rounded-full bg-white/10 p-1 hide-scrollbar">
             {[
               { id: 'tout', label: 'Tout' },
@@ -298,20 +322,27 @@ export function ProjectStage() {
             </button>
           </motion.div>}
 
-          {(isMiniSite || phase === "tout" || phase === "avant") && <motion.div
+          {(isMiniSite || phase === "tout" || phase === "avant") && <motion.button
+            type="button"
+            onClick={() => setCountdownsOpen(true)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-6 border-t border-white/10 pt-7"
+            className="mt-6 block w-full border-t border-white/10 pt-7 text-left transition hover:border-white/25"
+            aria-label="Voir tous les comptes à rebours"
           >
-            <p className="text-[10px] uppercase tracking-[.24em] text-white/42">Jusqu’au moment</p>
-            {distanceToPivot > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[10px] uppercase tracking-[.24em] text-white/42">Prochain compte à rebours · {nextCountdown.kind}</p>
+              <p className="text-[10px] uppercase tracking-[.18em] text-white/28">Voir les {countdownTargets.length || 1} à venir</p>
+            </div>
+            <p className="mt-3 text-sm text-white/65">{nextCountdown.title}</p>
+            {distanceToNext > 0 ? (
               <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2 font-display font-light tabular-nums text-white">
                 {[
-                  [daysToPivot, "jours"],
-                  [hoursToPivot, "heures"],
-                  [minutesToPivot, "minutes"],
-                  [secondsToPivot, "secondes"],
+                  [nextDays, "jours"],
+                  [nextHours, "heures"],
+                  [nextMinutes, "minutes"],
+                  [nextSeconds, "secondes"],
                 ].map(([value, label]) => (
                   <span key={label} className="inline-flex items-baseline gap-1.5">
                     <span className="text-3xl sm:text-4xl md:text-5xl">{String(value).padStart(2, "0")}</span>
@@ -320,9 +351,9 @@ export function ProjectStage() {
                 ))}
               </div>
             ) : (
-              <p className="mt-3 font-display text-4xl font-light">Le jour est arrivé</p>
+              <p className="mt-3 font-display text-4xl font-light">Le Moment est arrivé</p>
             )}
-          </motion.div>}
+          </motion.button>}
           {!isMiniSite && phase === "pendant" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-white/10 pt-7">
               <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? "En ce moment" : "Prochain Moment"}</p>
@@ -541,6 +572,46 @@ export function ProjectStage() {
             >
               {isSameDay(selectedDate, project.pivot.value) ? "Date actuelle" : "Choisir comme date pivot"}
             </button>
+          </div>
+        </CenteredBlock>
+      )}
+      {countdownsOpen && (
+        <CenteredBlock eyebrow="Temps du Monde" title="Tous les comptes à rebours" description="Les prochains rendez-vous, échéances, Moments et la date pivot, réunis sans les confondre avec la progression du Monde." onClose={() => setCountdownsOpen(false)} size="lg">
+          {countdownTargets.length ? (
+            <div className="divide-y divide-white/8">
+              {countdownTargets.map((target, index) => (
+                <article key={target.id} className="grid gap-3 py-5 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+                  <span className={cn("grid h-9 w-9 place-items-center rounded-full text-xs tabular-nums", index === 0 ? "bg-white text-black" : "bg-white/[.05] text-white/40")}>{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <p className="text-sm text-white/82">{target.title}</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/30">{target.kind} · {format(target.time, "d MMMM yyyy · HH:mm", { locale: fr })}</p>
+                  </div>
+                  <p className="font-display text-xl font-light tabular-nums text-white/60">{formatRemaining(target.time)}</p>
+                </article>
+              ))}
+            </div>
+          ) : <p className="py-10 text-center text-sm text-white/35">Aucun rendez-vous, Moment ou délai à venir.</p>}
+        </CenteredBlock>
+      )}
+      {aimeMenuOpen && (
+        <CenteredBlock eyebrow="AIME" title="Le point d’entrée" description="Comprendre le concept, apprendre à utiliser AIME, obtenir de l’aide ou retrouver les réglages globaux." onClose={() => setAimeMenuOpen(false)}>
+          <div className="divide-y divide-white/8">
+            <Link href="/concept" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
+              <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/80">Découvrir AIME</span><span className="mt-1 block text-xs font-light text-white/35">Profil, Monde, Kit et AI · + · ME.</span></span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            </Link>
+            <Link href="/concept#guides" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
+              <BookOpen className="h-4 w-4 text-white/35" /><span className="flex-1 text-[11px] uppercase tracking-[.18em] text-white/70">Guides</span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            </Link>
+            <button type="button" onClick={() => { setAimeMenuOpen(false); window.dispatchEvent(new Event("aime:open-ai")); }} className="group flex w-full items-center gap-4 py-5 text-left">
+              <Bug className="h-4 w-4 text-white/35" /><span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/70">Remonter un problème</span><span className="mt-1 block text-xs font-light text-white/35">Décrire le problème à AIME sans quitter le Monde.</span></span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            </button>
+            <button type="button" onClick={() => { setAimeMenuOpen(false); window.dispatchEvent(new Event("aime:open-me")); }} className="group flex w-full items-center gap-4 py-5 text-left">
+              <Settings className="h-4 w-4 text-white/35" /><span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/70">Paramètres</span><span className="mt-1 block text-xs font-light text-white/35">Identité, confidentialité et préférences.</span></span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            </button>
+          </div>
+          <div className="mt-6 border-t border-white/8 pt-5">
+            <p className="text-[10px] uppercase tracking-[.16em] text-white/28">À structurer dans Paramètres</p>
+            <p className="mt-2 text-xs font-light leading-relaxed text-white/38">Accessibilité conforme aux exigences européennes et choix de langue global. La traduction devra couvrir toute l’interface et les contenus générés, pas seulement changer une étiquette.</p>
           </div>
         </CenteredBlock>
       )}
