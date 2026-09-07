@@ -20,3 +20,15 @@ La finance du mariage doit évoluer comme un domaine protégé : budget, engagem
 **Why:** La comptabilité et l’emploi dépassent un simple total de budget et exigent permissions, traçabilité, rapprochement et conformité.
 
 **How to apply:** Introduire d’abord des droits financiers fins et un historique immuable, puis un grand livre interne, avant tout export comptable ou calcul lié à l’emploi.
+
+Le produit vendable est un couple indissociable « Monde + Profil ». Le Monde organise un projet ou une communauté ; le Profil représente durablement son créateur et peut partager avec ses Mondes des Moments, médias, relations et playlists.
+
+**Why:** Le mariage sert de premier kit complet et démontre une architecture réutilisable ; les futurs kits doivent changer le contenu et les règles métier sans recréer le cœur du produit.
+
+**How to apply:** Faire d’AI + ME le noyau commun, proposer des kits configurables et conserver des objets canoniques pouvant être projetés dans plusieurs pages avec des droits différents.
+
+Une playlist est un objet canonique relié à un Monde, un Profil et des Moments, plutôt qu’un tableau local propre à une seule page.
+
+**Why:** La même sélection musicale doit pouvoir être enrichie dans un Monde privé, consultée sur le Profil lié et publiée en lecture seule sans duplication.
+
+**How to apply:** Rechercher par artiste ou titre via un fournisseur autorisé, normaliser les résultats, ajouter et ordonner les morceaux, conserver les ajouts manuels et fichiers comme solutions de repli, puis projeter uniquement les éléments publics.
