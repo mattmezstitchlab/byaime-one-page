@@ -1,6 +1,6 @@
-# [Project name]
+# AIME — The Art of Connection
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Une interface one-page qui transforme une intention libre en projet, puis rassemble sa ligne de temps, ses personnes, son budget, ses documents et ses souvenirs.
 
 ## Run & Operate
 
@@ -30,11 +30,14 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Composition d'une intention en langage naturel et extraction locale des faits utiles.
+- Ligne de temps universelle avec phases, couches, actions, participants, budget, documents, messages, musique et souvenirs.
+- Fonctionnement local sans services externes, avec persistance dans le navigateur.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Conserver la sobriété visuelle premium du site AIME, même lors de l'ajout de nombreuses fonctionnalités.
+- Regrouper les fonctions dans une seule interface plutôt que multiplier les pages.
 
 ## Gotchas
 

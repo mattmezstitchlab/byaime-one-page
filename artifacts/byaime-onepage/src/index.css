@@ -46,74 +46,45 @@
 }
 
 :root {
-  --background: 40 10% 98%;
-  --foreground: 0 0% 4%;
-  
-  --card: 40 10% 96%;
-  --card-foreground: 0 0% 4%;
-  --card-border: 0 0% 90%;
-  
-  --popover: 40 10% 98%;
-  --popover-foreground: 0 0% 4%;
-  --popover-border: 0 0% 90%;
-  
-  --primary: 0 0% 4%;
-  --primary-foreground: 0 0% 98%;
-  
-  --secondary: 40 10% 92%;
-  --secondary-foreground: 0 0% 4%;
-  
-  --muted: 40 5% 90%;
-  --muted-foreground: 0 0% 40%;
-  
-  --accent: 40 10% 92%;
-  --accent-foreground: 0 0% 4%;
-  
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
-
-  --border: 0 0% 88%;
-  --input: 0 0% 88%;
-  --ring: 0 0% 4%;
-
-  --app-font-sans: 'Inter', sans-serif;
-  --app-font-display: 'Plus Jakarta Sans', sans-serif;
-}
-
-.dark {
-  --background: 0 0% 4%;
+  /* Default to dark, cinematic mode for AIME */
+  --background: 0 0% 2%;
   --foreground: 40 10% 98%;
   
-  --card: 0 0% 6%;
+  --card: 0 0% 5%;
   --card-foreground: 40 10% 98%;
-  --card-border: 0 0% 12%;
+  --card-border: 0 0% 10%;
   
-  --popover: 0 0% 6%;
+  --popover: 0 0% 5%;
   --popover-foreground: 40 10% 98%;
-  --popover-border: 0 0% 12%;
+  --popover-border: 0 0% 10%;
   
   --primary: 40 10% 98%;
   --primary-foreground: 0 0% 4%;
   
-  --secondary: 0 0% 12%;
+  --secondary: 0 0% 10%;
   --secondary-foreground: 40 10% 98%;
   
-  --muted: 0 0% 12%;
+  --muted: 0 0% 10%;
   --muted-foreground: 0 0% 60%;
   
-  --accent: 0 0% 12%;
+  --accent: 0 0% 10%;
   --accent-foreground: 40 10% 98%;
   
   --destructive: 0 62% 30%;
   --destructive-foreground: 40 10% 98%;
 
-  --border: 0 0% 16%;
-  --input: 0 0% 16%;
+  --border: 0 0% 12%;
+  --input: 0 0% 12%;
   --ring: 0 0% 80%;
+
+  --app-font-sans: 'Inter', sans-serif;
+  --app-font-display: 'Plus Jakarta Sans', sans-serif;
 }
 
 html {
   scroll-behavior: smooth;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 @layer base {
@@ -127,20 +98,6 @@ html {
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
   }
-}
-
-.glass-panel {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.glass-panel-dark {
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .hide-scrollbar::-webkit-scrollbar {
