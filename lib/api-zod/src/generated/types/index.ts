@@ -18,6 +18,8 @@ export * from './projectInput';
 export * from './projectInputData';
 export * from './projectRole';
 export * from './projectUpdate';
+export * from './publicProfile';
+export * from './publicTimelineEvent';
 export * from './rsvpInput';
 export * from './rsvpInputAttendance';
 export * from './rsvpInputStatus';

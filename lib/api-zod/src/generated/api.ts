@@ -168,4 +168,37 @@ export const SubmitPublicRsvpBody = zod.object({
   "notes": zod.string().max(submitPublicRsvpBodyNotesMax).optional()
 })
 
- export const SubmitPublicRsvpResponse = zod.unknown()
+export const SubmitPublicRsvpResponse = zod.unknown()
+
+
+/**
+ * @summary Read a published public profile timeline
+ */
+export const GetPublicProfileParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetPublicProfileResponse = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "subtitle": zod.string().optional(),
+  "universe": zod.string().optional(),
+  "city": zod.string().optional(),
+  "pivot": zod.number().optional(),
+  "timeline": zod.array(zod.object({
+  "id": zod.string(),
+  "time": zod.number(),
+  "endTime": zod.number().optional(),
+  "durationMinutes": zod.number().optional(),
+  "kind": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string().optional(),
+  "location": zod.string().optional(),
+  "status": zod.string(),
+  "confidence": zod.string(),
+  "phase": zod.string(),
+  "universe": zod.string(),
+  "provenance": zod.string().optional(),
+  "visibility": zod.literal("audience")
+}))
+})

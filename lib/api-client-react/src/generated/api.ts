@@ -27,6 +27,7 @@ import type {
   Project,
   ProjectInput,
   ProjectUpdate,
+  PublicProfile,
   RsvpInput,
   UploadInput,
   UploadTicket
@@ -65,7 +66,8 @@ export const getHealthCheckUrl = () => {
 
 
   return `/api/healthz`
-     }
+}
+
 /**
  * Returns server health status
  * @summary Health check
@@ -810,3 +812,73 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getSubmitPublicRsvpMutationOptions(options));
     }
 
+export const getGetPublicProfileUrl = (id: string,) => {
+
+
+
+
+  return `/api/public/profiles/${id}`
+}
+
+/**
+ * @summary Read a published public profile timeline
+ */
+export const getPublicProfile = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<PublicProfile> => {
+
+  return customFetch<PublicProfile>(getGetPublicProfileUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicProfileQueryKey = (id: string,) => {
+    return [
+    `/api/public/profiles/${id}`
+    ] as const;
+    }
+
+
+export const getGetPublicProfileQueryOptions = <TData = Awaited<ReturnType<typeof getPublicProfile>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicProfileQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicProfile>>> = ({ signal }) => getPublicProfile(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicProfile>>>
+export type GetPublicProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read a published public profile timeline
+ */
+
+export function useGetPublicProfile<TData = Awaited<ReturnType<typeof getPublicProfile>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicProfileQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}

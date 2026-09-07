@@ -153,6 +153,21 @@ paths:
             schema: { $ref: "#/components/schemas/RsvpInput" }
       responses:
         "200": { description: Response recorded }
+  /public/profiles/{id}:
+    get:
+      operationId: getPublicProfile
+      tags: [profiles]
+      summary: Read a published public profile timeline
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "200":
+          description: Sanitized public profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicProfile" }
+        "404":
+          description: Unknown or unpublished profile
 components:
   parameters:
     ProjectId:
@@ -252,4 +267,35 @@ components:
         dietary: { type: string, maxLength: 1000 }
         plusOne: { type: boolean }
         notes: { type: string, maxLength: 2000 }
+    PublicTimelineEvent:
+      type: object
+      required: [id, time, kind, title, status, confidence, phase, universe, visibility]
+      properties:
+        id: { type: string }
+        time: { type: number }
+        endTime: { type: number }
+        durationMinutes: { type: number }
+        kind: { type: string }
+        title: { type: string }
+        detail: { type: string }
+        location: { type: string }
+        status: { type: string }
+        confidence: { type: string }
+        phase: { type: string }
+        universe: { type: string }
+        provenance: { type: string }
+        visibility: { type: string, const: audience }
+    PublicProfile:
+      type: object
+      required: [id, title, timeline]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        subtitle: { type: string }
+        universe: { type: string }
+        city: { type: string }
+        pivot: { type: number }
+        timeline:
+          type: array
+          items: { $ref: "#/components/schemas/PublicTimelineEvent" }
 

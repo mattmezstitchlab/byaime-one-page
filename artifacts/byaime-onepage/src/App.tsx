@@ -9,6 +9,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
 import { NetworkPage } from '@/pages/Network';
+import { PublicProfilePage } from '@/pages/PublicProfile';
 import { ProjectProvider } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
@@ -193,6 +194,7 @@ function Routes() {
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />
     <Route path="/rsvp/:token" component={RsvpPage} />
+    <Route path="/profil/:projectId" component={PublicProfilePage} />
     <Route component={NotFound} />
   </Switch></RoutedErrorBoundary>;
 }

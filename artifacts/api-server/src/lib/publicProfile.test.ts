@@ -1,0 +1,54 @@
+import { describe, expect, it } from "vitest";
+import { projectToPublicProfile } from "./publicProfile";
+
+const event = (id: string, visibility: "prive" | "equipe" | "audience", time: number) => ({
+  id,
+  visibility,
+  time,
+  kind: "souvenir",
+  title: id,
+  detail: "Un souvenir",
+  status: "execute",
+  confidence: "confirme",
+  phase: "avant",
+  universe: "vie",
+  relations: [{ kind: "guest", id: "private-person" }],
+  notes: "information privée",
+});
+
+describe("public profile projection", () => {
+  it("returns nothing until the owner publishes the profile", () => {
+    expect(projectToPublicProfile({
+      id: "project",
+      title: "Camille",
+      data: { publicProfile: { published: false }, timeline: [event("public", "audience", 2)] },
+    })).toBeNull();
+  });
+
+  it("only exposes allow-listed fields from public moments", () => {
+    const profile = projectToPublicProfile({
+      id: "project",
+      title: "Camille",
+      data: {
+        subtitle: "Une vie en mouvement",
+        universe: "vie",
+        city: { value: "Lille" },
+        pivot: { value: 20 },
+        publicProfile: { published: true },
+        timeline: [
+          event("private", "prive", 1),
+          event("future", "audience", 30),
+          event("past", "audience", 10),
+        ],
+        guests: [{ name: "Ne doit jamais sortir" }],
+        documents: [{ name: "Privé.pdf" }],
+      },
+    });
+
+    expect(profile?.timeline.map((item) => item.id)).toEqual(["past", "future"]);
+    expect(profile?.timeline[0]).not.toHaveProperty("relations");
+    expect(profile?.timeline[0]).not.toHaveProperty("notes");
+    expect(profile).not.toHaveProperty("guests");
+    expect(profile).not.toHaveProperty("documents");
+  });
+});

@@ -15,6 +15,7 @@ import {
 import { z } from "zod";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { authenticatedUserId } from "../lib/permissions";
+import { projectToPublicProfile } from "../lib/publicProfile";
 
 type AuthedRequest = Parameters<RequestHandler>[0] & { userId?: string };
 const router: IRouter = Router();
@@ -86,6 +87,25 @@ async function membership(projectId: string, userId: string) {
     .where(and(eq(membershipsTable.projectId, projectId), eq(membershipsTable.userId, userId)));
   return member;
 }
+
+router.get("/public/profiles/:id", async (req, res): Promise<void> => {
+  const projectId = z.string().uuid().safeParse(String(req.params.id));
+  if (!projectId.success) {
+    res.status(404).json({ error: "Profil public introuvable" });
+    return;
+  }
+  const [project] = await db.select({
+    id: projectsTable.id,
+    title: projectsTable.title,
+    data: projectsTable.data,
+  }).from(projectsTable).where(eq(projectsTable.id, projectId.data));
+  const profile = project ? projectToPublicProfile(project) : null;
+  if (!profile) {
+    res.status(404).json({ error: "Profil public introuvable" });
+    return;
+  }
+  res.json(profile);
+});
 
 function parseBody<T>(schema: z.ZodType<T>, req: AuthedRequest, res: Parameters<RequestHandler>[1]): T | undefined {
   const result = schema.safeParse(req.body);

@@ -209,6 +209,9 @@ export type WorldProject = {
   id: string;
   title: string;
   subtitle?: string;
+  publicProfile?: {
+    published: boolean;
+  };
   universe: string;
   pivot: Fact<number>;
   city: Fact<string | null>;

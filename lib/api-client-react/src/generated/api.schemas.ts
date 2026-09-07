@@ -7,7 +7,8 @@
  */
 export interface HealthStatus {
   status: string;
- }
+}
+
 export type ProjectData = { [key: string]: unknown };
 
 export type ProjectRole = typeof ProjectRole[keyof typeof ProjectRole];
@@ -127,5 +128,32 @@ export interface RsvpInput {
   plusOne: boolean;
   /** @maxLength 2000 */
   notes?: string;
+}
+
+export interface PublicTimelineEvent {
+  id: string;
+  time: number;
+  endTime?: number;
+  durationMinutes?: number;
+  kind: string;
+  title: string;
+  detail?: string;
+  location?: string;
+  status: string;
+  confidence: string;
+  phase: string;
+  universe: string;
+  provenance?: string;
+  visibility: 'audience';
+}
+
+export interface PublicProfile {
+  id: string;
+  title: string;
+  subtitle?: string;
+  universe?: string;
+  city?: string;
+  pivot?: number;
+  timeline: PublicTimelineEvent[];
 }
 

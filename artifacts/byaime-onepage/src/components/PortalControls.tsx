@@ -11,7 +11,7 @@ const labels = { local: 'Local', loading: 'Chargement…', saving: 'Enregistreme
 export function PortalControls() {
   const { signOut } = useClerk();
   const { user } = useUser();
-  const { project, projects, selectProject, syncStatus, syncError, importBackup, clearProject } = useProject();
+  const { project, projects, selectProject, syncStatus, syncError, currentRole, updateProject, importBackup, clearProject } = useProject();
   const [panel, setPanel] = useState<'settings' | 'invite' | 'message' | 'delete-file' | 'delete-project' | null>(null);
   const [notice, setNotice] = useState('');
   const [files, setFiles] = useState<{ id: string; name: string; contentType: string; size: number }[]>([]);
@@ -121,6 +121,22 @@ export function PortalControls() {
           <select defaultValue="365" onChange={e => void api(`/projects/${project.id}/privacy`, { method: 'PATCH', body: JSON.stringify({ retentionDays: Number(e.target.value) }) }).then(() => setNotice('Préférence enregistrée')).catch(err => setNotice(err.message))} className="w-full rounded-xl border border-white/15 bg-white/5 p-3">
             <option className="bg-black" value="180">6 mois</option><option className="bg-black" value="365">1 an</option><option className="bg-black" value="1095">3 ans</option>
           </select>
+          {currentRole === 'owner' && <div className="mt-6 border-t border-white/10 pt-6">
+            <label className="flex items-start justify-between gap-5">
+              <span><span className="block text-sm">Profil public</span><span className="mt-1 block text-xs font-light leading-relaxed text-white/45">Seuls les Moments marqués « Public » seront visibles. Les invités, messages, documents et informations d’organisation restent privés.</span></span>
+              <input data-testid="toggle-public-profile" type="checkbox" checked={project.publicProfile?.published === true} onChange={event => {
+                updateProject({ publicProfile: { published: event.target.checked } });
+                setNotice(event.target.checked ? 'Profil public activé' : 'Profil public désactivé');
+              }} className="mt-1 h-4 w-4 accent-white" />
+            </label>
+            {project.publicProfile?.published && <div className="mt-4 flex gap-2">
+              <Link data-testid="link-public-profile" href={`/profil/${project.id}`} className="flex-1 rounded-full border border-white/15 px-4 py-2.5 text-center text-xs transition hover:bg-white/10">Voir le profil</Link>
+              <button data-testid="button-copy-public-profile" type="button" onClick={() => {
+                const root = basePath() === '/' ? '' : basePath();
+                void navigator.clipboard.writeText(`${window.location.origin}${root}/profil/${project.id}`).then(() => setNotice('Lien du profil copié'));
+              }} className="flex-1 rounded-full bg-white px-4 py-2.5 text-xs font-medium text-black">Copier le lien</button>
+            </div>}
+          </div>}
         </div>
         <div className="mt-8 space-y-2">
            <button data-testid="sign-out" className="w-full rounded-xl border border-white/15 p-3 text-sm" onClick={() => void signOut({ redirectUrl: basePath() })}>Se déconnecter</button>
