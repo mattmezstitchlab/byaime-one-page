@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "1Pllr8qqsiABfUMBDOFrq"
+uri = "file://docs/audit-aime-mariage-2026.md"
+type = "text"
+title = "Audit stratégique AIME · Monde Mariage"
+description = "Position concurrentielle mondiale, innovations, maturité du produit et feuille de route vers le grand public — 8 septembre 2026."
+logical_id = "2577f0e9-f550-4f68-afba-e0de57f19874"
+content_hash = "sha256:3139e0d6dbf71618e3a23dda9bf59795be0c4777682bdf3e5616a46b7476116b"
+size = 35017
+mtime_ms = 1788823155645
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:8f4454b7-0c88-4db5-80bf-a605d8648db6/2577f0e9-f550-4f68-afba-e0de57f19874/2545cab5-4e00-4385-86ce-0967958a8957"
+storage_version_token = "1788823182969467"
+content_type = "text/markdown"
