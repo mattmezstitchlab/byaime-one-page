@@ -1,0 +1,1 @@
+- [Cartographie dans l’artifact web](web-map-runtime.md) — privilégier le raster Leaflet tant qu’un moteur WebGL n’est pas validé dans l’aperçu et le déploiement.

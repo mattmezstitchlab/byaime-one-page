@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useProject } from '@/store/project-store';
-import * as maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import * as L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   evaluateCapability,
   mapLegacyProjectRole,
@@ -38,9 +38,9 @@ export function NetworkPage() {
   );
 
   const mapContainer = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<maplibregl.Map | null>(null);
+  const [map, setMap] = useState<L.Map | null>(null);
   const [mapError, setMapError] = useState(false);
-  const markersRef = useRef<Record<string, maplibregl.Marker>>({});
+  const markersRef = useRef<Record<string, L.Marker>>({});
   const hasPositionedMap = useRef(false);
 
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -56,18 +56,25 @@ export function NetworkPage() {
 
   useEffect(() => {
     if (!mapContainer.current) return;
-    let m: maplibregl.Map;
+    let m: L.Map | undefined;
     try {
-      m = new maplibregl.Map({
-        container: mapContainer.current,
-        style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-        center: [2.3522, 48.8566],
+      m = L.map(mapContainer.current, {
+        center: [48.8566, 2.3522],
         zoom: 5,
         attributionControl: false,
       });
-      m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-      m.on('load', () => setMap(m));
-      m.on('error', () => setMapError(true));
+      L.control.attribution({ position: 'bottomright', prefix: false }).addTo(m);
+      const tiles = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        {
+          subdomains: 'abcd',
+          maxZoom: 20,
+          attribution: '&copy; OpenStreetMap &copy; CARTO',
+        },
+      );
+      tiles.on('tileerror', () => setMapError(true));
+      tiles.addTo(m);
+      setMap(m);
     } catch (e) {
       setMapError(true);
     }
@@ -77,10 +84,11 @@ export function NetworkPage() {
   useEffect(() => {
     if (!map) return;
     if (!hasPositionedMap.current && mappedSubjects[0]) {
-      map.jumpTo({
-        center: [mappedSubjects[0].longitude!, mappedSubjects[0].latitude!],
-        zoom: 9,
-      });
+      map.setView(
+        [mappedSubjects[0].latitude!, mappedSubjects[0].longitude!],
+        9,
+        { animate: false },
+      );
       hasPositionedMap.current = true;
     }
     
@@ -91,23 +99,30 @@ export function NetworkPage() {
         const el = document.createElement('div');
         el.className = 'group relative w-6 h-6 rounded-full flex items-center justify-center cursor-pointer';
         el.setAttribute('aria-hidden', 'true');
-        
+
         const dot = document.createElement('div');
         el.appendChild(dot);
 
-        m = new maplibregl.Marker({ element: el })
-          .setLngLat([subject.longitude!, subject.latitude!])
-          .addTo(map);
-          
-        el.addEventListener('mouseenter', () => setHoverId(id));
-        el.addEventListener('mouseleave', () => setHoverId(null));
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
+        m = L.marker(
+          [subject.latitude!, subject.longitude!],
+          {
+            icon: L.divIcon({
+              html: el,
+              className: 'aime-map-marker',
+              iconSize: [24, 24],
+              iconAnchor: [12, 12],
+            }),
+          },
+        ).addTo(map);
+
+        m.on('mouseover', () => setHoverId(id));
+        m.on('mouseout', () => setHoverId(null));
+        m.on('click', () => {
           setActiveId(id);
           if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            map.jumpTo({ center: [subject.longitude!, subject.latitude!], zoom: 9 });
+            map.setView([subject.latitude!, subject.longitude!], 9, { animate: false });
           } else {
-            map.flyTo({ center: [subject.longitude!, subject.latitude!], zoom: 9, speed: 1.2 });
+            map.flyTo([subject.latitude!, subject.longitude!], 9, { duration: 1.2 });
           }
           setMobileView('map');
         });
@@ -116,7 +131,8 @@ export function NetworkPage() {
       }
       
       const el = m.getElement();
-      const dot = el.firstElementChild as HTMLDivElement;
+      const dot = el?.querySelector('div > div') as HTMLDivElement | null;
+      if (!el || !dot) return;
       if (id === activeId) {
         dot.className = 'w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.8)] border-[3px] border-black';
         el.style.zIndex = '50';
@@ -132,7 +148,7 @@ export function NetworkPage() {
     const currentIds = new Set(mappedSubjects.map(mapSubjectKey));
     Object.keys(markersRef.current).forEach(id => {
       if (!currentIds.has(id)) {
-        markersRef.current[id].remove();
+        markersRef.current[id].removeFrom(map);
         delete markersRef.current[id];
       }
     });
@@ -221,9 +237,9 @@ export function NetworkPage() {
                          setActiveId(mapSubjectKey(subject));
                          if (subject.longitude !== undefined && subject.latitude !== undefined && map) {
                            if (shouldReduceMotion) {
-                             map.jumpTo({ center: [subject.longitude, subject.latitude], zoom: 9 });
+                             map.setView([subject.latitude, subject.longitude], 9, { animate: false });
                            } else {
-                             map.flyTo({ center: [subject.longitude, subject.latitude], zoom: 9, speed: 1.2 });
+                             map.flyTo([subject.latitude, subject.longitude], 9, { duration: 1.2 });
                            }
                           setMobileView('map');
                         }
