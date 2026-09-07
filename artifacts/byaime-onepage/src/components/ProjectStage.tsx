@@ -30,6 +30,15 @@ const providerImages: Partial<Record<Provider['category'], string>> = {
   transport: 'images/source/visual-transport.jpg',
 };
 
+const guestPortraitImages = [
+  'images/visual-people-Dc5ifsnr.jpg',
+  'images/source/home-ensemble.jpg',
+  'images/source/home-reseau.jpg',
+  'images/visual-event-D_L9Q-iW.jpg',
+  'images/visual-scene-CMVk_6wW.jpg',
+  'images/visual-photo-C-yKtlRN.jpg',
+];
+
 function ProviderPortrait({ provider, index = 0 }: { provider: Provider; index?: number }) {
   const image = providerImages[provider.category] || 'images/visual-service-DXmeWatY.jpg';
   return (
@@ -44,17 +53,22 @@ function ProviderPortrait({ provider, index = 0 }: { provider: Provider; index?:
 }
 
 function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; index?: number; large?: boolean }) {
-  const initials = guest.name.split(/\s+/).map(part => part[0]).slice(0, 2).join("");
+  const image = guestPortraitImages[index % guestPortraitImages.length];
   return (
     <span
       className={cn(
-        "relative grid shrink-0 place-items-center overflow-hidden rounded-full border-[3px] border-black bg-gradient-to-br from-zinc-500 to-zinc-900 font-display text-white shadow-xl",
-        large ? "h-20 w-20 text-xl sm:h-24 sm:w-24 sm:text-2xl" : "h-14 w-14 text-sm"
+        "relative block shrink-0 overflow-hidden rounded-full border-[3px] border-black bg-zinc-900 shadow-xl",
+        large ? "h-20 w-20 sm:h-24 sm:w-24" : "h-14 w-14"
       )}
       style={{ zIndex: 20 - index }}
       title={guest.name}
     >
-      {initials}
+      <img
+        src={getAssetUrl(image)}
+        alt={`Portrait de ${guest.name}`}
+        className="h-full w-full scale-125 object-cover transition duration-500 hover:scale-[1.35]"
+        style={{ objectPosition: `${30 + (index % 3) * 20}% center` }}
+      />
     </span>
   );
 }
@@ -178,14 +192,14 @@ export function ProjectStage() {
     },
     pendant: {
       eyebrow: liveEvent ? "Le Jour J · En direct" : "Le Jour J · Programme",
-      title: featuredDayEvent?.title || "Le mariage en direct",
+      title: project.title,
       description: featuredDayEvent
         ? `${liveEvent ? "Maintenant" : "À venir"}${featuredDayEvent.location ? ` · ${featuredDayEvent.location}` : ""}${featuredDayEvent.responsible ? ` · ${featuredDayEvent.responsible}` : ""}`
         : "Le programme en direct apparaîtra ici dès que les Moments du Jour J seront reliés.",
     },
     apres: {
       eyebrow: "Après · Mémoire",
-      title: "Notre histoire continue",
+      title: project.title,
       description: memoryCount
         ? `${memoryCount} souvenir${memoryCount > 1 ? "s" : ""}, les messages et les images de celles et ceux qui ont partagé ce Moment.`
         : "Les souvenirs, remerciements et médias des invités trouveront ici leur place.",
@@ -262,14 +276,14 @@ export function ProjectStage() {
       </div>
 
       {/* Cinematic Header */}
-      <header key={phase} className="relative isolate flex min-h-[75vh] w-full flex-col justify-end overflow-hidden px-6 pb-24 pt-28 md:px-12">
+      <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
         <div
           data-preserve-color
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
         />
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/60 to-[#050505]" />
-        <div className="relative z-20 w-full max-w-5xl mx-auto space-y-6">
+        <div className="relative z-20 mx-auto w-full max-w-5xl space-y-6">
           <motion.button
             type="button"
             onClick={() => setWorldMenuOpen(true)}
@@ -291,22 +305,20 @@ export function ProjectStage() {
             {heroCopy.title}
           </motion.h1>
 
-          {heroCopy.description && (
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="max-w-2xl text-[15px] md:text-base leading-relaxed text-white/70 font-light"
-            >
-              {heroCopy.description}
-            </motion.p>
-          )}
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className={cn("min-h-12 max-w-2xl text-[15px] font-light leading-relaxed text-white/70 md:text-base", !heroCopy.description && "invisible")}
+          >
+            {heroCopy.description || "Le Monde reste à la même place."}
+          </motion.p>
 
           {(isPublicInfo || phase !== "apres") && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="flex flex-wrap gap-2 text-[13px]"
+            className="flex min-h-12 flex-wrap content-start gap-2 text-[13px]"
           >
             <button
               type="button"
@@ -556,9 +568,9 @@ export function ProjectStage() {
             <div className="mb-7">
               <p className="mb-3 text-[9px] uppercase tracking-[.18em] text-white/30">Invités et proches</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                {project.guests.filter(guest => registryFilter !== "family" || guest.role === "famille").map(guest => (
+                {project.guests.filter(guest => registryFilter !== "family" || guest.role === "famille").map((guest, index) => (
                   <article key={guest.id} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-xs text-white/70">{guest.name.split(/\s+/).map(part => part[0]).slice(0, 2).join("")}</span>
+                    <GuestPortrait guest={guest} index={index} />
                     <div className="min-w-0 flex-1"><p className="truncate text-sm text-white">{guest.name}</p><p className="mt-1 text-[10px] uppercase tracking-[.16em] text-white/40">{guest.role} · {guest.rsvp === "confirme" ? "Participe" : guest.rsvp === "decline" ? "Ne participe pas" : "Réponse attendue"}</p></div>
                   </article>
                 ))}

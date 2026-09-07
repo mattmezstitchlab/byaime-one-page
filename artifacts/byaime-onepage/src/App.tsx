@@ -10,6 +10,8 @@ import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
 import { NetworkPage } from '@/pages/Network';
 import { PublicProfilePage } from '@/pages/PublicProfile';
+import { CommandBar } from '@/components/CommandBar';
+import { PortalControls } from '@/components/PortalControls';
 import { ProjectProvider } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
@@ -160,7 +162,11 @@ function NetworkRoute() {
   return <><Show when="signed-in"><NetworkPage /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }
 function PrivateProfileRoute() {
-  return <><Show when="signed-in"><PublicProfilePage privatePreview /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
+  return <><Show when="signed-in">
+    <PublicProfilePage privatePreview />
+    <CommandBar setPhase={() => undefined} setLayers={() => undefined} />
+    <PortalControls />
+  </Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }
 function SignUpPage() {
   const { isLoaded, isSignedIn } = useAuth();

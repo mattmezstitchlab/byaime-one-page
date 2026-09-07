@@ -13,6 +13,8 @@ La signature d’action validée est un centre de commande réduit à « AI + ME
 
 Le format du bloc central a été explicitement confirmé comme grammaire commune à toutes les profondeurs, y compris la conversation avec AIME : même en-tête, même rythme, même fermeture et même comportement responsive.
 
+Tous les blocs centraux partagent aussi la même emprise extérieure : même largeur, même hauteur maximale et défilement intérieur. Le contenu change, jamais la géométrie du dialogue.
+
 Les en-têtes de Monde évitent toute répétition entre nature, titre, sous-titre et date. La progression se lit dans un anneau coloré gradué, tandis que les personnes liées apparaissent en portraits superposés ouvrant un trombinoscope dans le bloc central. La capsule temporelle reste seule au-dessus du hero ; les vues détaillées sont placées sous le hero pour éviter une double navigation compacte.
 
 **Why:** Le résumé d’un Monde doit être compris d’un regard et conduire directement aux personnes ou informations concernées, sans accumulation de badges textuels.
@@ -24,3 +26,9 @@ Les indicateurs temporels, de complétude et de sauvegarde ont des rôles strict
 **Why:** Un même signe visuel ne doit pas mélanger ce qui approche, ce qui manque et ce qui risque de ne pas être sauvegardé.
 
 **How to apply:** Utiliser plusieurs comptes à rebours ordonnés pour Moments, tâches et date pivot ; garder la progression indépendante ; représenter les conflits par un pictogramme discret mais explicable au clic.
+
+Les changements Avant, Jour J et Après gardent le titre du Monde et ses ancrages à la même position. Seuls le contexte, les informations et les actions projetées changent.
+
+**Why:** Si le titre et les blocs se déplacent à chaque couche temporelle, la page ressemble à plusieurs interfaces successives plutôt qu’à un même Monde traversé dans le temps.
+
+**How to apply:** Réserver des zones stables dans le hero et ancrer la composition indépendamment de la quantité de contenu propre à chaque phase.

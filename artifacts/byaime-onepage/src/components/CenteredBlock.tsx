@@ -14,12 +14,6 @@ type CenteredBlockProps = {
   testId?: string;
 };
 
-const widths = {
-  md: "max-w-lg",
-  lg: "max-w-2xl",
-  xl: "max-w-5xl",
-};
-
 export function CenteredBlock({ eyebrow, title, description, onClose, children, leading, size = "md", testId }: CenteredBlockProps) {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -47,7 +41,8 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
         exit={{ opacity: 0, scale: .97, y: 10 }}
         transition={{ duration: .22, ease: [0.16, 1, 0.3, 1] }}
         onClick={event => event.stopPropagation()}
-        className={cn("flex max-h-[calc(100dvh-2.5rem)] w-full flex-col overflow-hidden rounded-[2rem] bg-[#0a0a0a]/97 text-white shadow-2xl sm:max-h-[calc(100dvh-4rem)]", widths[size])}
+        data-size={size}
+        className={cn("flex h-[min(760px,calc(100dvh-2.5rem))] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-[#0a0a0a]/97 text-white shadow-2xl sm:h-[min(760px,calc(100dvh-4rem))]")}
       >
         <header className="flex shrink-0 items-start gap-4 px-7 pb-5 pt-7 sm:px-10 sm:pt-9">
           {leading}

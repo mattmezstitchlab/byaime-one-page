@@ -20,3 +20,9 @@ Profil et Monde partagent une seule grammaire de « Page AIME ». Le hero repré
 **Why:** Groupe, théâtre, artiste, agence ou mariage ont besoin de la même superposition identité-mémoire-projet ; multiplier les types de pages casserait la continuité et dupliquerait l’interface.
 
 **How to apply:** Sur une page Profil, le premier état de la capsule peut s’appeler « Profil » au lieu de « Tout ». Lorsqu’un Monde est activé depuis un Moment, ses couches Avant, Jour J et Après se projettent dans la même structure, avec seulement le vocabulaire et les modules adaptés par configuration.
+
+Le Profil privé s’ouvre sur l’identité personnelle réelle, puis une règle temporelle horizontale zoomable précède quatre Repères stables : Identité, Histoire, Archives et Réseau. Documents et finances des Mondes autorisés peuvent rejoindre cette lecture sans devenir des faits personnels.
+
+**Why:** Le Profil doit être la racine qui interconnecte les personnes, les Mondes et leurs preuves ; une simple liste verticale de Moments ne montre ni les changements d’échelle ni les relations entre ces dimensions.
+
+**How to apply:** Garder le portrait et le nom au centre, agréger seulement des projections autorisées, ouvrir chaque pictogramme dans le bloc central et ne jamais présenter la date pivot d’un Monde comme une naissance ou un anniversaire.
