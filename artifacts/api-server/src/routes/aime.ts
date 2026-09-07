@@ -142,6 +142,12 @@ router.put("/projects/:id", auth, async (req: AuthedRequest, res): Promise<void>
   if (!editableRoles.has(member.role)) { res.status(403).json({ error: "Permission de modification refusée" }); return; }
   const [current] = await db.select().from(projectsTable).where(eq(projectsTable.id, String(req.params.id)));
   if (!current) { res.status(404).json({ error: "Projet introuvable" }); return; }
+  const currentPublished = Boolean((current.data as Record<string, any> | null)?.publicProfile?.published);
+  const nextPublished = Boolean(input.data.publicProfile && (input.data.publicProfile as Record<string, unknown>).published);
+  if (member.role !== "owner" && currentPublished !== nextPublished) {
+    res.status(403).json({ error: "Seul le propriétaire peut modifier la publication" });
+    return;
+  }
   if (current.updatedAt.toISOString() !== input.updatedAt) {
     res.status(409).json({ error: "Le projet a été modifié ailleurs", project: current });
     return;

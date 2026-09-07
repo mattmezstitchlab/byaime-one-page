@@ -6,3 +6,5 @@
 - [Timeline des profils publics](public-profile-timeline.md) — structurer une vie autour d’aujourd’hui et ne publier que des Moments projetés par le serveur.
 - [Monde éditable et publiable](editable-world-page.md) — faire du Monde privé une page composable, puis un site public projeté et contrôlé.
 - [Apparence inclusive](accessible-appearance.md) — proposer Sombre et Clair comme préférence transversale, mémorisée et indépendante des Kits.
+- [Profil système nerveux](profile-nervous-system.md) — le mode Éditer révèle l’architecture vivante d’AIME et ouvre chaque nœud dans le bloc central.
+- [Contrôle universel](universal-review-control.md) — « À vérifier » agrège partout sauvegarde, liens incomplets et décisions humaines dans une commande blanche.

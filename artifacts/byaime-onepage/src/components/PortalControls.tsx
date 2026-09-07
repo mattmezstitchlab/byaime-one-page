@@ -5,13 +5,14 @@ import { useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Link } from 'wouter';
 import { CenteredBlock } from './CenteredBlock';
+import { auditTimelineConnections, buildTimelineIndex } from '@/lib/timeline-graph';
 
 const labels = { local: 'Local', loading: 'Chargement…', saving: 'Enregistrement…', saved: 'Enregistré', error: 'Hors connexion', conflict: 'À vérifier' };
 
 export function PortalControls() {
   const { signOut } = useClerk();
   const { user } = useUser();
-  const { project, projects, selectProject, syncStatus, syncError, currentRole, updateProject, importBackup, clearProject } = useProject();
+  const { project, projects, selectProject, syncStatus, syncError, currentRole, canEdit, updateProject, importBackup, clearProject } = useProject();
   const [panel, setPanel] = useState<'settings' | 'editor' | 'sync' | 'invite' | 'message' | 'delete-file' | 'delete-project' | null>(null);
   const [notice, setNotice] = useState('');
   const [files, setFiles] = useState<{ id: string; name: string; contentType: string; size: number }[]>([]);
@@ -84,19 +85,37 @@ export function PortalControls() {
     setNotice(`${file.name} ajouté à l'espace privé`);
   };
   const SyncIcon = syncStatus === 'conflict' ? CloudAlert : syncStatus === 'error' ? CloudOff : syncStatus === 'loading' || syncStatus === 'saving' ? LoaderCircle : CloudCheck;
+  const audit = auditTimelineConnections(project);
+  const timelineIndex = buildTimelineIndex(project);
+  const reviewCount = audit.isolated.length + audit.dangling.length + audit.manualMusic.length + (syncStatus === 'conflict' || syncStatus === 'error' ? 1 : 0);
+  const isProfileRoute = window.location.pathname.endsWith('/profile');
 
   return <>
      <div data-testid="portal-controls" className="fixed top-4 right-4 z-[60] flex items-center gap-2">
-          <button data-testid="sync-status" title={syncError || labels[syncStatus]} onClick={() => setPanel('sync')} className={`p-2.5 transition-colors hover:text-white ${syncStatus === 'error' || syncStatus === 'conflict' ? 'text-amber-200' : 'text-white/60'}`} aria-label={`Synchronisation : ${labels[syncStatus]}`}><SyncIcon className={`h-4 w-4 ${syncStatus === 'loading' || syncStatus === 'saving' ? 'animate-spin' : ''}`} /></button>
-         <button data-testid="settings-open" onClick={() => setPanel('editor')} className="p-2.5 text-white/70 transition-colors hover:text-white" aria-label="Éditer le Monde" title="Éditer le Monde"><PenLine className="h-4 w-4" /></button>
+          <button data-testid="sync-status" title={syncError || `${reviewCount} élément${reviewCount === 1 ? '' : 's'} à vérifier`} onClick={() => setPanel('sync')} className="group flex h-11 items-center gap-2.5 rounded-full bg-white px-4 text-black shadow-[0_8px_30px_rgba(255,255,255,.14)] transition hover:scale-[1.02] hover:shadow-[0_10px_38px_rgba(255,255,255,.22)]" aria-label={`${reviewCount} élément${reviewCount === 1 ? '' : 's'} à vérifier`}>
+            <span className="relative grid h-5 w-5 place-items-center">
+              {reviewCount > 0 && <span className="absolute inset-0 animate-ping rounded-full bg-black/12" />}
+              <SyncIcon className={`relative h-3.5 w-3.5 ${syncStatus === 'loading' || syncStatus === 'saving' ? 'animate-spin' : ''}`} />
+            </span>
+            <span className="text-[9px] font-semibold uppercase tracking-[.18em]">À vérifier</span>
+            <span className="grid h-5 min-w-5 place-items-center rounded-full bg-black px-1.5 text-[9px] font-semibold text-white">{reviewCount}</span>
+          </button>
+         {canEdit && <button data-testid="settings-open" onClick={() => isProfileRoute ? window.dispatchEvent(new Event('aime:toggle-profile-editor')) : setPanel('editor')} className="flex h-11 items-center gap-2 rounded-full border border-white/12 bg-black/70 px-4 text-white/60 backdrop-blur-xl transition hover:border-white/25 hover:text-white" aria-label={isProfileRoute ? 'Éditer le Profil' : 'Éditer le Monde'} title={isProfileRoute ? 'Éditer le Profil' : 'Éditer le Monde'}><PenLine className="h-3.5 w-3.5" /><span className="text-[9px] uppercase tracking-[.18em]">Éditer</span></button>}
     </div>
-      {panel === 'sync' && <CenteredBlock eyebrow="Synchronisation" title={syncStatus === 'conflict' ? "Des changements sont à vérifier" : labels[syncStatus]} description={syncStatus === 'conflict' ? "Une version plus récente du Monde existe. AIME bloque l’écrasement automatique pour protéger les modifications de chacun." : "Voici l’état de conservation de ce Monde."} onClose={() => setPanel(null)}>
-        <div className="rounded-2xl border border-white/10 bg-white/[.035] p-5">
-          <p className="text-xs uppercase tracking-[.16em] text-white/40">État actuel</p>
-          <p className="mt-2 text-lg text-white/85">{labels[syncStatus]}</p>
-          {syncError && <p className="mt-3 text-sm font-light leading-relaxed text-white/48">{syncError}</p>}
+      {panel === 'sync' && <CenteredBlock eyebrow="Contrôle universel" title="Des changements sont à vérifier" description="AIME réunit ici la sauvegarde, les liens incomplets et les éléments qui demandent une décision humaine, quel que soit l’écran courant." onClose={() => setPanel(null)} size="lg">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <ReviewCard label="Conservation" value={syncStatus === 'conflict' || syncStatus === 'error' ? 1 : 0} detail={labels[syncStatus]} alert={syncStatus === 'conflict' || syncStatus === 'error'} />
+          <ReviewCard label="Éléments sans lien" value={audit.isolated.length} detail="À relier à un Moment" />
+          <ReviewCard label="Liens incomplets" value={audit.dangling.length} detail="Références à réparer" alert={audit.dangling.length > 0} />
+          <ReviewCard label="Musiques manuelles" value={audit.manualMusic.length} detail="À reconnaître ou conserver" />
         </div>
-        <div className="mt-5 flex flex-wrap gap-2">
+        {syncError && <p className="mt-5 border-l border-white/20 py-1 pl-4 text-sm font-light leading-relaxed text-white/48">{syncError}</p>}
+        {(audit.isolated.length > 0 || audit.dangling.length > 0 || audit.manualMusic.length > 0) && <div className="mt-6 space-y-1 border-t border-white/10 pt-5">
+          {audit.isolated.slice(0, 4).map(entity => <ReviewLine key={`isolated:${entity.kind}:${entity.id}`} label={entity.label} meta={`${entity.kind} · sans Moment`} />)}
+          {audit.dangling.slice(0, 4).map(({ eventId, relation }) => <ReviewLine key={`dangling:${eventId}:${relation.kind}:${relation.id}`} label={timelineIndex.events.get(eventId)?.title || 'Moment introuvable'} meta={`${relation.kind} · référence absente`} />)}
+          {audit.manualMusic.slice(0, 4).map(track => <ReviewLine key={`music:${track.id}`} label={track.title} meta={`${track.artist} · ajouté à la main`} />)}
+        </div>}
+        <div className="mt-6 flex flex-wrap gap-2">
           <button onClick={() => setPanel('settings')} className="rounded-full bg-white px-4 py-2 text-xs font-medium text-black">Ouvrir ME</button>
           <button onClick={() => setPanel(null)} className="rounded-full border border-white/15 px-4 py-2 text-xs text-white/65">Fermer</button>
         </div>
@@ -207,6 +226,23 @@ export function PortalControls() {
         </div>
       </CenteredBlock>}
   </>;
+}
+
+function ReviewCard({ label, value, detail, alert = false }: { label: string; value: number; detail: string; alert?: boolean }) {
+  return <div className={`rounded-2xl border p-5 ${alert ? 'border-white/25 bg-white/[.075]' : 'border-white/10 bg-white/[.035]'}`}>
+    <div className="flex items-start justify-between gap-4">
+      <p className="text-[10px] uppercase tracking-[.16em] text-white/42">{label}</p>
+      <span className="text-2xl font-light text-white">{value}</span>
+    </div>
+    <p className="mt-3 text-xs text-white/48">{detail}</p>
+  </div>;
+}
+
+function ReviewLine({ label, meta }: { label: string; meta: string }) {
+  return <div className="flex items-center justify-between gap-5 rounded-xl px-3 py-3 transition hover:bg-white/[.04]">
+    <span className="min-w-0 truncate text-sm text-white/78">{label}</span>
+    <span className="shrink-0 text-[9px] uppercase tracking-[.14em] text-white/32">{meta}</span>
+  </div>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

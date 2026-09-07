@@ -4,12 +4,13 @@ import { fr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin, Clock3, CalendarDays, User, Plus, FileText, Folder, Wallet, Plane,
-  Calendar, Users, Image as ImageIcon, ZoomIn, ZoomOut, Network, BookOpen, Fingerprint
+  Calendar, Users, Image as ImageIcon, ZoomIn, ZoomOut, Network, BookOpen, Fingerprint, Pencil, Globe2
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useParams, Link } from "wouter";
 import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicProfile, type PublicTimelineEvent } from "@workspace/api-client-react";
 import { CenteredBlock } from "@/components/CenteredBlock";
+import { ProfileNervousSystem } from "@/components/ProfileNervousSystem";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/store/project-store";
 
@@ -69,7 +70,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const params = useParams<{ projectId: string }>();
   const { user } = useUser();
   const { openUserProfile } = useClerk();
-  const { project, isHydrated } = useProject();
+  const { project, isHydrated, canEdit, addEntity } = useProject();
   const profileId = forcePrivatePreview ? project?.id || "" : params.projectId || "";
   const { data: publishedProfile, isLoading, error } = useGetPublicProfile(profileId, {
     query: { queryKey: getGetPublicProfileQueryKey(profileId), retry: false, enabled: !forcePrivatePreview && Boolean(profileId) },
@@ -113,6 +114,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const [createOpen, setCreateOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -151,6 +153,13 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       if (meta && previousDescription !== undefined) meta.content = previousDescription;
     };
   }, [profile]);
+
+  useEffect(() => {
+    if (!isPrivatePreview) return;
+    const toggleEditor = () => setIsEditMode(current => !current);
+    window.addEventListener("aime:toggle-profile-editor", toggleEditor);
+    return () => window.removeEventListener("aime:toggle-profile-editor", toggleEditor);
+  }, [isPrivatePreview]);
 
   const sortedEvents = useMemo(() => {
      const events = [...(profile?.timeline || [])];
@@ -247,6 +256,37 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const displayCity = isPrivatePreview ? undefined : profile.city;
   const profileImage = isPrivatePreview ? user?.imageUrl : undefined;
   const requestIdentityEdit = () => openUserProfile();
+  const createProfileItem = (category: string) => {
+    if (!project || !canEdit) return;
+    const now = Date.now();
+    if (category === "documents") {
+      addEntity("documents", { title: "Nouveau document", kind: "autre", at: now });
+    } else if (category === "finances") {
+      addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: now, state: "du" });
+    } else if (category === "personnes") {
+      addEntity("guests", { name: "Nouvelle personne", role: "invite", rsvp: "en_attente", attendance: { ceremony: false, cocktail: false, dinner: false, brunch: false } });
+    } else if (category === "medias") {
+      addEntity("memories", { kind: "media", title: "Nouveau média", status: "a_faire" });
+    } else {
+      const title = category === "voyages" ? "Nouveau voyage" : category === "dossiers" ? "Nouveau dossier" : "Nouveau Moment";
+      addEntity("timeline", {
+        time: now,
+        kind: category === "dossiers" ? "intention" : "evenement",
+        title,
+        status: "prepare",
+        confidence: "confirme",
+        phase: now < project.pivot.value ? "avant" : "apres",
+        universe: project.universe,
+        provenance: "real",
+        visibility: "prive",
+        relations: [],
+        dependencyIds: [],
+        resources: [],
+      });
+    }
+    setCreateOpen(false);
+    setIsEditMode(true);
+  };
 
   return (
     <main data-testid="public-profile-page" className="min-h-[100dvh] bg-[#020202] text-white pb-40 overflow-x-hidden">
@@ -258,18 +298,28 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         />
       </div>
 
-      {isPrivatePreview && (
-        <div className="fixed right-4 top-4 z-50 rounded-full border border-white/12 bg-black/75 px-4 py-2 text-[9px] uppercase tracking-[.18em] text-white/55 backdrop-blur-xl">
-          Prévisualisation privée
+      {isEditMode ? (
+        <div className="relative z-10 pt-24 px-6 max-w-[1200px] mx-auto pb-40">
+           <div className="mb-8 flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
+              <div>
+                <h2 className="text-3xl font-display font-light text-white mb-2">Architecture du Profil</h2>
+                <p className="text-sm font-light text-white/40">Gérez les connexions, les contenus et leur visibilité depuis une même carte vivante.</p>
+              </div>
+              <button type="button" onClick={() => setIsEditMode(false)} className="flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-[9px] uppercase tracking-[.2em] text-white/70 transition hover:border-white/35 hover:bg-white/[.06] hover:text-white">
+                <Pencil className="h-3 w-3" /> Terminer
+              </button>
+           </div>
+           <ProfileNervousSystem />
         </div>
-      )}
-
-      {/* Hero Section */}
-      <div className="relative z-10 pt-24 pb-12 flex flex-col items-center px-6 text-center">
+      ) : (
+        <>
+          {/* Hero Section */}
+          <div className="relative z-10 pt-24 pb-12 flex flex-col items-center px-6 text-center">
+        {!isPrivatePreview && <p className="mb-7 text-[9px] uppercase tracking-[.32em] text-white/35">Monde public</p>}
         <div className="relative group w-32 h-32 rounded-full border border-white/10 bg-white/5 flex items-center justify-center overflow-hidden mb-8 shadow-2xl">
           {profileImage
             ? <img data-preserve-color src={profileImage} alt={`Portrait de ${displayName}`} className="h-full w-full object-cover" />
-            : <User className="w-10 h-10 text-white/20" />}
+            : isPrivatePreview ? <User className="w-10 h-10 text-white/20" /> : <Globe2 className="w-10 h-10 text-white/20" />}
           {isPrivatePreview && <button type="button" onClick={requestIdentityEdit} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <span className="text-[9px] uppercase tracking-widest text-white">{profileImage ? "Gérer mon identité" : "Ajouter une photo"}</span>
           </button>}
@@ -288,7 +338,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
           {displayCity ? (
             <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/40 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-              <MapPin className="w-3.5 h-3.5" /> {displayCity}
+              <MapPin className="w-3.5 h-3.5" /> Carte du Monde · {displayCity}
             </span>
           ) : isPrivatePreview ? <MissingDataHint icon={MapPin} label="Ville à relier" /> : null}
 
@@ -296,7 +346,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
           {!isPrivatePreview && profile.pivot ? (
             <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/40 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-              <CalendarDays className="w-3.5 h-3.5" /> Repère · {profile.pivot > 10000 ? format(profile.pivot, "d MMM yyyy", { locale: fr }) : profile.pivot}
+              <CalendarDays className="w-3.5 h-3.5" /> Date du Monde · {profile.pivot > 10000 ? format(profile.pivot, "d MMM yyyy", { locale: fr }) : profile.pivot}
             </span>
           ) : isPrivatePreview ? <MissingDataHint icon={CalendarDays} label="Anniversaire à relier" /> : null}
 
@@ -418,11 +468,12 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
           </div>
         </div>
       </div>
+      </>)}
 
       {isPrivatePreview && <nav aria-label="Centre AI plus ME" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 text-white">
         <div className="flex h-[72px] w-[320px] shrink-0 items-center justify-between rounded-full border border-white/8 bg-black/80 p-2 shadow-2xl backdrop-blur-xl sm:w-[360px]">
           <button onClick={() => window.dispatchEvent(new Event("aime:open-ai"))} className="h-14 flex-1 rounded-full text-[11px] font-medium tracking-[0.2em] text-white/50 hover:bg-white/10 hover:text-white transition-colors" aria-label="Demander à AIME">AI</button>
-          <button type="button" onClick={() => setCreateOpen(true)} className="h-[56px] w-[56px] shrink-0 rounded-full bg-[conic-gradient(from_180deg,#ff5b79,#ffb44a,#f6f06a,#50e3a4,#4cc9ff,#8b7cff,#e26cff,#ff5b79)] p-[2px] transition-transform hover:scale-105" aria-label="Ajouter">
+          <button type="button" disabled={!canEdit} onClick={() => setCreateOpen(true)} className="h-[56px] w-[56px] shrink-0 rounded-full bg-[conic-gradient(from_180deg,#ff5b79,#ffb44a,#f6f06a,#50e3a4,#4cc9ff,#8b7cff,#e26cff,#ff5b79)] p-[2px] transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-35" aria-label={canEdit ? "Ajouter" : "Consultation uniquement"}>
             <span className="flex h-full w-full items-center justify-center rounded-full bg-black"><Plus className="h-6 w-6 stroke-[1.5]" /></span>
           </button>
           <button onClick={() => window.dispatchEvent(new Event("aime:open-me"))} className="h-14 flex-1 rounded-full text-[11px] font-medium tracking-[0.2em] text-white/50 hover:bg-white/10 hover:text-white transition-colors" aria-label="Ouvrir mon espace">ME</button>
@@ -444,7 +495,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         {createOpen && (
           <CenteredBlock eyebrow="Ajouter au Profil" title="Que voulez-vous relier ?" description="Chaque ajout rejoint la Timeline, le bon Repère et les Mondes autorisés après votre confirmation." onClose={() => setCreateOpen(false)}>
             <div className="grid gap-3 sm:grid-cols-2">
-              {CATEGORIES.map(item => <button key={item.id} type="button" onClick={() => { setCreateOpen(false); setActiveCategory(item.id); }} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-5 text-left transition hover:border-white/25 hover:bg-white/[.06]"><item.icon className="h-5 w-5 text-white/45" /><span className="text-xs uppercase tracking-[.16em] text-white/75">{item.label}</span></button>)}
+              {CATEGORIES.map(item => <button key={item.id} type="button" onClick={() => createProfileItem(item.id)} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-5 text-left transition hover:border-white/25 hover:bg-white/[.06]"><item.icon className="h-5 w-5 text-white/45" /><span className="text-xs uppercase tracking-[.16em] text-white/75">{item.label}</span></button>)}
             </div>
           </CenteredBlock>
         )}

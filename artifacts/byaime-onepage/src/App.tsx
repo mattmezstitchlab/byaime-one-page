@@ -159,7 +159,7 @@ function Portal() {
   return <><Show when="signed-in"><Home /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }
 function NetworkRoute() {
-  return <><Show when="signed-in"><NetworkPage /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
+  return <><Show when="signed-in"><NetworkPage /><PortalControls /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }
 function PrivateProfileRoute() {
   return <><Show when="signed-in">
