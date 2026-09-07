@@ -1,2 +1,3 @@
 - [Cartographie dans l’artifact web](web-map-runtime.md) — privilégier le raster Leaflet tant qu’un moteur WebGL n’est pas validé dans l’aperçu et le déploiement.
 - [Langage intergénérationnel](inclusive-language.md) — écrire toute l’interface AIME pour être comprise simplement par les enfants comme par les seniors.
+- [Interaction AIME sans rupture](interaction-density.md) — garder actions, couches et contexte à portée immédiate, sans obliger à quitter l’écran courant.
