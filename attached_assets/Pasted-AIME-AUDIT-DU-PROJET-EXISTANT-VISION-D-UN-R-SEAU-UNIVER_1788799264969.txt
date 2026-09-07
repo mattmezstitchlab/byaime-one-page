@@ -1,0 +1,560 @@
+AIME — AUDIT DU PROJET EXISTANT & VISION D’UN RÉSEAU UNIVERSEL
+
+Je te joins le projet complet AIME sous forme de ZIP.
+
+Avant toute modification importante, je voudrais que tu prennes le temps de l’analyser en profondeur.
+
+Ce projet a énormément évolué. Il a été construit progressivement, avec beaucoup d’expérimentations, de prototypes, de fonctionnalités et de directions différentes. Il ressemble donc parfois davantage à un laboratoire d’innovation qu’à une application parfaitement structurée.
+
+J’ai récemment tenté de le rendre plus cohérent et plus structuré, mais le ZIP contient probablement encore :
+
+* des idées en cours d’expérimentation ;
+* des interfaces anciennes et nouvelles ;
+* des composants qui pourraient être fusionnés ;
+* plusieurs façons d’aborder une même fonctionnalité ;
+* des éléments très avancés qui ne sont pas encore reliés entre eux ;
+* des prototypes qui révèlent néanmoins des intentions importantes.
+
+1. Première mission : comprendre avant de reconstruire
+
+Je ne souhaite surtout pas que tu partes immédiatement dans une réécriture aveugle.
+
+Je veux d’abord un véritable audit architectural, fonctionnel, UX et conceptuel.
+
+Analyse le projet afin d’identifier :
+
+Ce qui existe réellement
+
+* les pages ;
+* les modules ;
+* les composants ;
+* les modèles de données ;
+* les systèmes de navigation ;
+* les fonctionnalités déjà opérationnelles ;
+* les prototypes ;
+* les éléments simplement décoratifs ou mockés.
+
+Ce qui est réutilisable
+
+Identifie les éléments qui constituent déjà une bonne fondation pour le futur produit.
+
+Ce qui est redondant ou fragmenté
+
+Certaines fonctionnalités ont probablement été imaginées plusieurs fois sous différentes formes. Je veux comprendre comment les simplifier sans perdre les idées intéressantes.
+
+Les intentions cachées derrière le projet
+
+Le code actuel est important, mais je veux également que tu comprennes l’intention produit derrière les différentes expérimentations.
+
+AIME ne doit pas être analysé comme une succession de pages indépendantes.
+
+L’idée fondamentale est beaucoup plus vaste.
+
+⸻
+
+2. La vision : AIME comme réseau universel
+
+Je voudrais maintenant imaginer l’évolution d’AIME vers une sorte de réseau social universel centré sur les projets, les personnes, les lieux et les connexions.
+
+On peut imaginer certaines références aux réseaux sociaux existants, mais l’objectif n’est surtout pas de refaire Facebook.
+
+Je cherche quelque chose de beaucoup plus simple dans son principe fondamental :
+
+Le monde devient l’interface.
+
+Le réseau pourrait être organisé autour d’une carte interactive centrale.
+
+Cette carte deviendrait progressivement un espace où les personnes, projets, événements, organisations, ressources et opportunités peuvent apparaître et se connecter.
+
+⸻
+
+3. La carte comme interface principale
+
+Je voudrais explorer une expérience où une grande partie des interactions peut se dérouler directement sur une carte.
+
+La carte pourrait afficher différents types de pins.
+
+Par exemple :
+
+* personnes ;
+* projets ;
+* événements ;
+* mariages ;
+* associations ;
+* entreprises ;
+* artistes ;
+* lieux ;
+* missions ;
+* besoins ;
+* services ;
+* ressources ;
+* communautés.
+
+Chaque élément pourrait apparaître sous la forme d’un pin ou d’une représentation visuelle adaptée.
+
+Au survol ou au clic :
+
+* apparition d’une carte contextuelle ;
+* résumé de l’élément ;
+* image ou média ;
+* informations essentielles ;
+* personnes impliquées ;
+* statut ;
+* actions disponibles.
+
+Les actions doivent dépendre du contexte.
+
+Par exemple :
+
+* rejoindre ;
+* contacter ;
+* collaborer ;
+* proposer une aide ;
+* participer ;
+* suivre ;
+* inviter ;
+* financer ;
+* réserver ;
+* modifier ;
+* administrer.
+
+⸻
+
+4. Une interface qui change selon le rôle
+
+Un principe très important serait que la même carte ou le même objet puisse proposer des actions différentes selon la personne connectée.
+
+Par exemple :
+
+Le propriétaire
+
+Peut :
+
+* modifier ;
+* organiser ;
+* inviter ;
+* connecter des personnes ;
+* gérer les rôles ;
+* ouvrir ou fermer des accès ;
+* ajouter des ressources ;
+* créer des actions.
+
+Un membre
+
+Peut :
+
+* participer ;
+* contribuer ;
+* commenter ;
+* proposer ;
+* accéder aux outils autorisés.
+
+Un visiteur
+
+Peut :
+
+* découvrir ;
+* suivre ;
+* demander un accès ;
+* contacter selon les permissions.
+
+Je voudrais que tu réfléchisses à une architecture permettant de gérer ce système proprement.
+
+L’objectif est d’éviter de créer une application différente pour chaque usage.
+
+Il faudrait plutôt avoir :
+
+un même système universel + des droits + des rôles + des modules activés selon le contexte.
+
+⸻
+
+5. Le concept de “Projet / Monde”
+
+Le projet Mariage actuellement présent dans AIME doit être considéré comme un exemple.
+
+Je ne veux pas créer uniquement une application de mariage.
+
+Je voudrais imaginer qu’un utilisateur puisse créer différents types de projets ou “mondes”.
+
+Par exemple :
+
+* un mariage ;
+* un anniversaire ;
+* un festival ;
+* une entreprise ;
+* une association ;
+* une tournée musicale ;
+* un projet artistique ;
+* un voyage ;
+* un chantier ;
+* une communauté ;
+* une cause solidaire ;
+* un projet personnel.
+
+Chaque projet disposerait de sa propre page ou espace.
+
+Mais cette page ne devrait pas être une page construite entièrement à la main à chaque fois.
+
+L’idée serait plutôt :
+
+Un projet = un contexte + des personnes + des lieux + du temps + des ressources + des modules.
+
+La page Mariage actuelle pourrait donc devenir une démonstration d’un système plus universel.
+
+⸻
+
+6. Les outils comme modules activables
+
+Chaque projet pourrait activer les outils dont il a besoin.
+
+Par exemple :
+
+Pour un mariage
+
+* timeline ;
+* invités ;
+* RSVP ;
+* budget ;
+* prestataires ;
+* lieux ;
+* musique ;
+* documents ;
+* planning.
+
+Pour une entreprise
+
+* équipe ;
+* projets ;
+* documents ;
+* calendrier ;
+* ressources ;
+* missions ;
+* finances.
+
+Pour une association
+
+* membres ;
+* bénévoles ;
+* événements ;
+* besoins ;
+* dons ;
+* documents ;
+* actions locales.
+
+Pour un artiste
+
+* projets ;
+* événements ;
+* collaborations ;
+* musique ;
+* médias ;
+* calendrier ;
+* contacts.
+
+Le système devrait idéalement permettre de composer ces espaces avec une logique modulaire.
+
+⸻
+
+7. La carte comme réseau social vivant
+
+Je voudrais explorer une idée encore plus ambitieuse.
+
+Au lieu d’avoir uniquement un feed classique où l’on fait défiler des publications, la carte pourrait devenir une représentation vivante du réseau.
+
+On pourrait voir :
+
+* où se trouvent les projets ;
+* quels événements arrivent ;
+* quelles personnes sont disponibles ;
+* quelles opportunités existent ;
+* quels besoins apparaissent ;
+* quelles communautés sont actives.
+
+Des connexions pourraient éventuellement apparaître entre certains éléments.
+
+L’idée n’est pas forcément de créer immédiatement une visualisation complexe.
+
+Mais je veux que l’architecture puisse évoluer vers :
+
+une représentation géographique et relationnelle du réseau AIME.
+
+⸻
+
+8. L’import intelligent : transformer le chaos en projet structuré
+
+Une fonctionnalité centrale que je voudrais imaginer est un système d’importation.
+
+L’utilisateur pourrait importer :
+
+* PDF ;
+* images ;
+* documents ;
+* captures d’écran ;
+* fichiers ;
+* tableaux ;
+* programmes ;
+* devis ;
+* listes ;
+* documents administratifs.
+
+AIME analyserait ensuite ces contenus.
+
+Le processus idéal serait :
+
+1. Importation
+
+L’utilisateur dépose ses fichiers.
+
+2. Lecture
+
+Le système utilise :
+
+* OCR pour les images et documents scannés ;
+* extraction de texte ;
+* analyse structurée ;
+* identification des informations.
+
+3. Compréhension
+
+Le système tente d’identifier :
+
+* personnes ;
+* lieux ;
+* dates ;
+* horaires ;
+* événements ;
+* entreprises ;
+* montants ;
+* documents ;
+* ressources ;
+* relations entre les éléments.
+
+4. Transformation
+
+AIME propose ensuite de transformer les informations en objets propres dans le projet.
+
+Par exemple :
+
+Un programme PDF pourrait devenir automatiquement :
+
+* une timeline ;
+* des événements ;
+* des personnes ;
+* des horaires.
+
+Un devis pourrait devenir :
+
+* un prestataire ;
+* un budget ;
+* une ressource ;
+* un document lié.
+
+Une liste pourrait devenir :
+
+* des tâches ;
+* des personnes ;
+* des invitations ;
+* des missions.
+
+⸻
+
+9. Principe essentiel : l’utilisateur garde le contrôle
+
+L’intelligence artificielle ne doit pas décider seule.
+
+Je voudrais imaginer un système où l’IA propose une compréhension structurée, mais où l’utilisateur valide.
+
+Par exemple :
+
+Nous avons détecté :
+
+* 12 personnes ;
+* 3 lieux ;
+* 8 événements ;
+* 4 dates ;
+* 2 entreprises.
+
+L’utilisateur pourrait ensuite :
+
+* accepter ;
+* modifier ;
+* fusionner ;
+* supprimer ;
+* corriger.
+
+L’objectif est donc :
+
+Document brut → compréhension → proposition → validation → monde structuré.
+
+⸻
+
+10. Le Bureau Document
+
+Le projet contient déjà des réflexions autour des documents.
+
+Je considère que le “Bureau Document” est important.
+
+Cependant, je ne souhaite pas forcément qu’il monopolise toute l’interface.
+
+Il pourrait fonctionner comme un espace contextuel accessible depuis le bas ou depuis une zone persistante de l’application.
+
+L’idée serait d’avoir une sorte de couche documentaire disponible partout.
+
+Un utilisateur pourrait :
+
+* déposer un document ;
+* l’ouvrir ;
+* voir son analyse ;
+* relier ses informations à un projet ;
+* retrouver les éléments extraits.
+
+Il faudrait réfléchir à la meilleure manière de l’intégrer à l’expérience sans recréer une application bureautique classique.
+
+⸻
+
+11. AIME Radio / TV
+
+Je voudrais également prévoir une dimension média.
+
+AIME pourrait à terme proposer un espace :
+
+AIME RADIO / TV
+
+Cet espace pourrait permettre de diffuser ou découvrir :
+
+* musique ;
+* vidéos ;
+* événements ;
+* lives ;
+* contenus de communautés ;
+* artistes ;
+* projets.
+
+Je ne demande pas nécessairement d’implémenter toute cette partie immédiatement.
+
+Mais je veux que l’architecture globale puisse accueillir ce type de module.
+
+L’idée est que le réseau puisse également devenir un espace de diffusion et de découverte.
+
+⸻
+
+12. Le principe fondamental d’AIME
+
+Je voudrais que tu cherches à identifier dans le projet existant ce qui peut converger vers ce modèle :
+
+Une personne arrive avec une intention, une idée ou du contenu brut.
+
+↓
+
+AIME comprend et structure progressivement les informations.
+
+↓
+
+Un projet / monde est créé.
+
+↓
+
+Les personnes, lieux, événements, documents et ressources sont connectés.
+
+↓
+
+Les bons outils apparaissent selon le contexte.
+
+↓
+
+Le projet peut ensuite être connecté au réseau global et à la carte.
+
+⸻
+
+13. Ce que je te demande concrètement
+
+Dans un premier temps, ne cherche pas à tout reconstruire immédiatement.
+
+Je voudrais que tu produises une analyse structurée comprenant :
+
+A. Audit du projet ZIP
+
+* architecture actuelle ;
+* modules existants ;
+* pages ;
+* composants importants ;
+* fonctionnalités réelles ;
+* prototypes ;
+* dette technique éventuelle.
+
+B. Carte des fonctionnalités
+
+Montre comment les fonctionnalités existantes pourraient être regroupées.
+
+Par exemple :
+
+* Réseau ;
+* Projet / Monde ;
+* Personnes ;
+* Carte ;
+* Documents ;
+* Timeline ;
+* Médias ;
+* Finances ;
+* Communication ;
+* Intelligence AIME.
+
+C. Proposition d’architecture cible
+
+Imagine une architecture propre permettant de faire évoluer le projet sans devoir tout recommencer à chaque nouveau type de projet.
+
+D. Proposition UX
+
+Réfléchis à :
+
+* la navigation principale ;
+* la place de la carte ;
+* la place des projets ;
+* la découverte du réseau ;
+* les panneaux contextuels ;
+* les actions rapides ;
+* les permissions et rôles.
+
+E. Plan de convergence
+
+Je veux surtout savoir :
+
+Comment partir du projet existant pour converger progressivement vers cette vision sans jeter tout ce qui a déjà été construit.
+
+Identifie :
+
+1. ce que nous conservons ;
+2. ce que nous refactorisons ;
+3. ce que nous fusionnons ;
+4. ce que nous mettons de côté ;
+5. ce qu’il manque réellement.
+
+⸻
+
+IMPORTANT
+
+Ne considère pas ce projet comme une simple application à “rendre plus jolie”.
+
+Le design que tu as réussi à produire jusqu’à présent me semble déjà particulièrement propre et cohérent.
+
+Ce que je cherche maintenant est plus profond :
+
+Transformer le laboratoire AIME en un véritable système cohérent.
+
+Je veux conserver l’esprit d’expérimentation et les idées fortes présentes dans le projet, mais leur donner une architecture claire.
+
+L’objectif à long terme serait d’avoir une plateforme capable de gérer des milliers de contextes différents sans créer une application différente à chaque fois.
+
+Le mariage serait simplement l’un des premiers exemples.
+
+Le vrai produit serait :
+
+AIME
+
+Un réseau vivant où les personnes, les projets, les lieux, les documents, les événements et les ressources peuvent progressivement se comprendre, se structurer et se connecter.
+
+Commence donc par une analyse approfondie du ZIP.
+
+Ne fais pas de suppression massive et ne reconstruis pas aveuglément.
+
+Je veux d’abord que tu comprennes le système existant, que tu identifies son potentiel réel, puis que tu me proposes la meilleure trajectoire possible pour le faire évoluer.
