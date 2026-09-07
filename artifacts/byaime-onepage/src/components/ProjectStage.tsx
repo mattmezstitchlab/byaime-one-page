@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { getAssetUrl } from '@/lib/assets';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
@@ -9,12 +9,14 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Settings, UserCheck, UserRound } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Layers3, Map as MapIcon, Settings, UserCheck, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import type { Guest, Provider } from '@/lib/types';
+import { UniversalMap } from './UniversalMap';
+import { buildMapSubjects, mapSubjectKey } from '@/lib/universal/map-subjects';
 
 const providerImages: Partial<Record<Provider['category'], string>> = {
   lieu: 'images/visual-venue-kJsZKZPp.jpg',
@@ -67,6 +69,9 @@ export function ProjectStage() {
   const [registryFilter, setRegistryFilter] = useState<"all" | "guests" | "family" | "providers">("all");
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [activeMapSubjectId, setActiveMapSubjectId] = useState<string | null>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
@@ -75,6 +80,7 @@ export function ProjectStage() {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [now, setNow] = useState(() => Date.now());
+  const reduceMotion = useReducedMotion();
 
   const pivotDate = project?.pivot.value ?? Date.now();
 
@@ -132,6 +138,9 @@ export function ProjectStage() {
     if (!project?.tasks.length) return 0;
     return Math.round((project.tasks.filter(task => task.status === 'termine').length / project.tasks.length) * 100);
   }, [project]);
+  const mapSubjects = useMemo(() => project ? buildMapSubjects(project) : [], [project]);
+  const mappedSubjects = mapSubjects.filter(subject => subject.latitude !== undefined && subject.longitude !== undefined);
+  const activeMapSubject = mapSubjects.find(subject => mapSubjectKey(subject) === activeMapSubjectId);
 
   const subtitleIsRedundant = useMemo(() => {
     if (!project?.subtitle) return false;
@@ -403,7 +412,7 @@ export function ProjectStage() {
       <nav aria-label="Vues du Monde" className="border-y border-white/8 bg-[#050505]">
         <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 py-4 hide-scrollbar">
           {([
-            ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["day-of", "Jour J"], ["person", "Invités"], ["provider", "Professionnels"],
+            ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["map", "Carte"], ["day-of", "Jour J"], ["person", "Invités"], ["provider", "Professionnels"],
             ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
           ] as Array<[TimelineView, string]>).map(([id, label]) => (
             <button
@@ -431,6 +440,36 @@ export function ProjectStage() {
 
       {/* Main Content Area */}
       <main className="w-full">
+        {view === "map" && (
+          <section className="relative h-[72vh] min-h-[560px] overflow-hidden border-b border-white/8 bg-[#fbf8f4]">
+            <UniversalMap
+              subjects={mappedSubjects}
+              activeId={activeMapSubjectId}
+              focusId={activeMapSubjectId}
+              reduceMotion={reduceMotion}
+              onSelect={setActiveMapSubjectId}
+              onReady={() => { setMapReady(true); setMapError(false); }}
+              onError={() => setMapError(true)}
+            />
+            {!mapReady && (
+              <div className="pointer-events-none absolute inset-0 z-[1] grid place-items-center bg-[#fbf8f4] text-[#3e3a35]">
+                <div className="text-center">
+                  <MapIcon className="mx-auto mb-3 h-8 w-8 opacity-25" />
+                  <p className="text-sm">{mapError ? "Le fond de carte est indisponible" : "La Carte se dessine…"}</p>
+                  <p className="mt-2 max-w-sm text-xs opacity-50">{mapError ? "Les lieux restent accessibles depuis les informations pratiques." : "AIME rassemble les lieux, les personnes et les Moments visibles dans cette couche."}</p>
+                </div>
+              </div>
+            )}
+            <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 p-5 sm:p-7">
+              <div className="pointer-events-auto mx-auto flex max-w-5xl flex-wrap items-center gap-2">
+                <span className="flex items-center gap-2 rounded-full border border-black/10 bg-white/85 px-4 py-2 text-[9px] uppercase tracking-[.16em] text-black/60 shadow-sm backdrop-blur-xl"><Layers3 className="h-3.5 w-3.5" /> Couche active</span>
+                {["Informations pratiques", "Réseau", "Autour de moi"].map((label, index) => (
+                  <span key={label} className={cn("rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.14em] shadow-sm backdrop-blur-xl", index === 0 ? "border-black bg-black text-white" : "border-black/10 bg-white/85 text-black/50")}>{label}</span>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
         {view === "person" && (
           <section className="overflow-hidden border-b border-white/8 bg-[#080808] px-6 py-20">
             <div className="mx-auto max-w-5xl">
@@ -464,7 +503,7 @@ export function ProjectStage() {
             </div>
           </section>
         )}
-        <UniversalTimeline events={visibleEvents} />
+        {view !== "map" && <UniversalTimeline events={visibleEvents} />}
         <div className="max-w-5xl mx-auto px-6 pt-12 pb-32">
           <TimelineAudit />
         </div>
@@ -555,6 +594,14 @@ export function ProjectStage() {
           <div className="rounded-2xl border border-dashed border-white/15 px-6 py-10 text-center">
             <p className="text-sm text-white/65">Aucune cagnotte n’est ouverte pour le moment.</p>
             <p className="mt-2 text-xs font-light leading-relaxed text-white/35">Les montants, bénéficiaires, frais et conditions devront être affichés clairement avant d’activer un paiement réel.</p>
+          </div>
+        </CenteredBlock>
+      )}
+      {activeMapSubject && (
+        <CenteredBlock eyebrow={activeMapSubject.ref.kind === "place" ? "Lieu" : activeMapSubject.ref.kind === "moment" ? "Moment" : "Réseau"} title={activeMapSubject.label} description={activeMapSubject.summary} onClose={() => setActiveMapSubjectId(null)}>
+          <div className="flex flex-wrap gap-2">
+            {activeMapSubject.city && <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/55">{activeMapSubject.city}</span>}
+            <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/55">{activeMapSubject.locationLevel === "public" ? "Visible publiquement" : "Visible dans ce Monde"}</span>
           </div>
         </CenteredBlock>
       )}
@@ -697,7 +744,7 @@ export function ProjectStage() {
       {aimeMenuOpen && (
         <CenteredBlock eyebrow="AIME" title="Le point d’entrée" description="Comprendre le concept, apprendre à utiliser AIME, obtenir de l’aide ou retrouver les réglages globaux." onClose={() => setAimeMenuOpen(false)}>
           <div className="divide-y divide-white/8">
-            <Link href={`/profil/${project.id}`} onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
+            <Link href="/profile" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
               <UserRound className="h-4 w-4 text-white/35" />
               <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/80">Profil</span><span className="mt-1 block text-xs font-light text-white/35">Voir la projection de votre identité, de vos Moments et de vos liens.</span></span>
               <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />

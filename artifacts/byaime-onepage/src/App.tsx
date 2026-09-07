@@ -158,6 +158,9 @@ function Portal() {
 function NetworkRoute() {
   return <><Show when="signed-in"><NetworkPage /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }
+function PrivateProfileRoute() {
+  return <><Show when="signed-in"><PublicProfilePage privatePreview /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
+}
 function SignUpPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const tracked = useRef(false);
@@ -258,12 +261,13 @@ function Routes() {
     <Route path="/concept" component={ConceptLanding} />
     <Route path="/" component={HomeRedirect} />
     <Route path="/user-portal" component={Portal} />
+    <Route path="/profile" component={PrivateProfileRoute} />
     <Route path="/network" component={NetworkRoute} />
     <Route path="/sign-in/*?">{() => <AuthPage />}</Route>
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />
     <Route path="/rsvp/:token" component={RsvpPage} />
-    <Route path="/profil/:projectId" component={PublicProfilePage} />
+    <Route path="/profil/:projectId">{() => <PublicProfilePage />}</Route>
     <Route component={NotFound} />
   </Switch></RoutedErrorBoundary>;
 }

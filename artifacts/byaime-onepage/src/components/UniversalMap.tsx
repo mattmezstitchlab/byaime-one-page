@@ -69,6 +69,9 @@ export function UniversalMap({ subjects, activeId, focusId, reduceMotion, onSele
         attributionControl: false,
       });
       mapRef.current = map;
+      map.on('error', () => {
+        if (!readyRef.current) stateRef.current.onError?.();
+      });
       map.addControl(new gl.NavigationControl({ showCompass: false }), 'bottom-right');
       map.addControl(new gl.AttributionControl({ compact: true, customAttribution: '© OpenStreetMap © CARTO' }), 'bottom-left');
 

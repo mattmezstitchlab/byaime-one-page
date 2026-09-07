@@ -81,7 +81,7 @@ export function NetworkPage() {
         onSelect={id => { setActiveId(id); setMobileView('map'); }}
       />
       {!mapReady && !mapError && (
-        <div className="absolute inset-0 z-[1] grid place-items-center bg-[#050505] text-white/50" role="status">
+        <div className="absolute inset-0 z-[1] grid place-items-center bg-[#fbf8f4] text-black/50" role="status">
           <div className="text-center">
             <MapIcon className="mx-auto mb-3 h-8 w-8 opacity-20" />
             <p className="text-sm">La carte se dessine…</p>
@@ -89,7 +89,7 @@ export function NetworkPage() {
         </div>
       )}
       {mapError && (
-        <div className="absolute inset-0 z-[1] grid place-items-center bg-[#050505] text-white/50" role="alert">
+        <div className="absolute inset-0 z-[1] grid place-items-center bg-[#fbf8f4] text-black/50" role="alert">
           <div className="text-center">
             <MapIcon className="mx-auto mb-3 h-8 w-8 opacity-20" />
             <p className="text-sm">Carte indisponible</p>

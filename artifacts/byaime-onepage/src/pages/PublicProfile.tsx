@@ -114,14 +114,15 @@ function Hero({ profile }: { profile: { title: string; subtitle?: string; city?:
   );
 }
 
-export function PublicProfilePage() {
+export function PublicProfilePage({ privatePreview: forcePrivatePreview = false }: { privatePreview?: boolean }) {
   const params = useParams<{ projectId: string }>();
   const { project, isHydrated } = useProject();
-  const { data: publishedProfile, isLoading, error } = useGetPublicProfile(params.projectId || "", {
-    query: { queryKey: getGetPublicProfileQueryKey(params.projectId || ""), retry: false },
+  const profileId = forcePrivatePreview ? project?.id || "" : params.projectId || "";
+  const { data: publishedProfile, isLoading, error } = useGetPublicProfile(profileId, {
+    query: { queryKey: getGetPublicProfileQueryKey(profileId), retry: false, enabled: !forcePrivatePreview && Boolean(profileId) },
   });
   const privatePreview = useMemo<PublicProfile | undefined>(() => {
-    if (!project || project.id !== params.projectId) return undefined;
+    if (!project || (!forcePrivatePreview && project.id !== params.projectId)) return undefined;
     return {
       id: project.id,
       title: project.title,
@@ -149,9 +150,9 @@ export function PublicProfilePage() {
           visibility: "audience" as const,
         })),
     };
-  }, [params.projectId, project]);
-  const profile = publishedProfile ?? privatePreview;
-  const isPrivatePreview = !publishedProfile && Boolean(privatePreview);
+  }, [forcePrivatePreview, params.projectId, project]);
+  const profile = forcePrivatePreview ? privatePreview : publishedProfile;
+  const isPrivatePreview = forcePrivatePreview && Boolean(privatePreview);
   const [selectedEvent, setSelectedEvent] = useState<PublicTimelineEvent | undefined>();
   const now = Date.now();
   const sections = useMemo(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
-import { CloudAlert, CloudCheck, CloudOff, Download, Globe, LoaderCircle, PenLine, Upload } from 'lucide-react';
+import { CloudAlert, CloudCheck, CloudOff, Download, LoaderCircle, PenLine, Upload } from 'lucide-react';
 import { useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Link } from 'wouter';
@@ -87,10 +87,7 @@ export function PortalControls() {
 
   return <>
      <div data-testid="portal-controls" className="fixed top-4 right-4 z-[60] flex items-center gap-2">
-       <Link href="/network" className="p-2.5 text-white/70 transition-colors hover:text-white" aria-label="Carte des lieux et des personnes">
-         <Globe className="h-4 w-4" />
-       </Link>
-         <button data-testid="sync-status" title={syncError || labels[syncStatus]} onClick={() => setPanel('sync')} className={`p-2.5 transition-colors hover:text-white ${syncStatus === 'error' || syncStatus === 'conflict' ? 'text-amber-200' : 'text-white/60'}`} aria-label={`Synchronisation : ${labels[syncStatus]}`}><SyncIcon className={`h-4 w-4 ${syncStatus === 'loading' || syncStatus === 'saving' ? 'animate-spin' : ''}`} /></button>
+          <button data-testid="sync-status" title={syncError || labels[syncStatus]} onClick={() => setPanel('sync')} className={`p-2.5 transition-colors hover:text-white ${syncStatus === 'error' || syncStatus === 'conflict' ? 'text-amber-200' : 'text-white/60'}`} aria-label={`Synchronisation : ${labels[syncStatus]}`}><SyncIcon className={`h-4 w-4 ${syncStatus === 'loading' || syncStatus === 'saving' ? 'animate-spin' : ''}`} /></button>
          <button data-testid="settings-open" onClick={() => setPanel('editor')} className="p-2.5 text-white/70 transition-colors hover:text-white" aria-label="Éditer le Monde" title="Éditer le Monde"><PenLine className="h-4 w-4" /></button>
     </div>
       {panel === 'sync' && <CenteredBlock eyebrow="Synchronisation" title={syncStatus === 'conflict' ? "Des changements sont à vérifier" : labels[syncStatus]} description={syncStatus === 'conflict' ? "Une version plus récente du Monde existe. AIME bloque l’écrasement automatique pour protéger les modifications de chacun." : "Voici l’état de conservation de ce Monde."} onClose={() => setPanel(null)}>
