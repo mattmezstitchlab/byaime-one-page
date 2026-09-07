@@ -47,6 +47,7 @@ export function ProjectStage() {
   const [layers, setLayers] = useState<string[]>([]);
   const [view, setView] = useState<TimelineView>("chronological");
   const [providersOpen, setProvidersOpen] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const pivotDate = project?.pivot.value ?? Date.now();
@@ -54,9 +55,10 @@ export function ProjectStage() {
   const daysToPivot = Math.floor(distanceToPivot / 86400000);
   const hoursToPivot = Math.floor((distanceToPivot % 86400000) / 3600000);
   const minutesToPivot = Math.floor((distanceToPivot % 3600000) / 60000);
+  const secondsToPivot = Math.floor((distanceToPivot % 60000) / 1000);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -97,16 +99,6 @@ export function ProjectStage() {
     const universe = normalize(project.universe);
     return subtitle === title || subtitle === universe || subtitle === `${universe}${new Date(pivotDate).getFullYear()}`;
   }, [pivotDate, project]);
-
-  const nextTask = useMemo(() => {
-    if (!project) return undefined;
-    return project.tasks
-      .filter(task => task.status !== 'termine')
-      .sort((a, b) => {
-        if (a.priority !== b.priority) return a.priority === 'haute' ? -1 : b.priority === 'haute' ? 1 : 0;
-        return (a.dueDate ?? Number.MAX_SAFE_INTEGER) - (b.dueDate ?? Number.MAX_SAFE_INTEGER);
-      })[0];
-  }, [project]);
 
   if (!project) return null;
 
@@ -199,38 +191,42 @@ export function ProjectStage() {
                 {stats.engaged.toLocaleString('fr-FR')} € déjà prévus
               </span>
             )}
-            <span className="px-1 py-1 text-xs tabular-nums tracking-[.08em] text-white/80">
-              {distanceToPivot > 0 ? `${daysToPivot} J · ${String(hoursToPivot).padStart(2, '0')} H · ${String(minutesToPivot).padStart(2, '0')} MIN` : 'LE JOUR EST ARRIVÉ'}
-            </span>
-
-            <span
-              className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px]"
+            <button
+              type="button"
+              onClick={() => setTasksOpen(true)}
+              className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               style={{ background: `conic-gradient(from -90deg, #ff375f 0deg, #ff9f0a ${completion * 1.2}deg, #ffe620 ${completion * 2.1}deg, #30d158 ${completion * 2.8}deg, #64d2ff ${completion * 3.25}deg, #bf5af2 ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
-              aria-label={`${completion}% complété`}
+              aria-label={`Ouvrir les étapes, ${completion}% complété`}
             >
               <span className="grid h-full w-full place-items-center rounded-full bg-black/90 text-[11px] font-medium tabular-nums text-white">{completion}%</span>
-            </span>
+            </button>
           </motion.div>
 
-          {nextTask && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="mt-6 pt-6 border-t border-white/10"
-            >
-              <div className="text-[10px] uppercase tracking-widest text-white/50 mb-2">Prochaine étape</div>
-              <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4 w-fit pr-8">
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white/80" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-white">{nextTask.title}</div>
-                  <div className="text-xs text-white/40 mt-0.5">{nextTask.priority === 'haute' ? 'Très important' : nextTask.priority === 'basse' ? 'Peu important' : 'Importance normale'}{nextTask.dueDate ? ` · à faire avant le ${format(nextTask.dueDate, 'd MMMM', { locale: fr })}` : ''}</div>
-                </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-6 border-t border-white/10 pt-7"
+          >
+            <p className="text-[10px] uppercase tracking-[.24em] text-white/42">Jusqu’au moment</p>
+            {distanceToPivot > 0 ? (
+              <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2 font-display font-light tabular-nums text-white">
+                {[
+                  [daysToPivot, "jours"],
+                  [hoursToPivot, "heures"],
+                  [minutesToPivot, "minutes"],
+                  [secondsToPivot, "secondes"],
+                ].map(([value, label]) => (
+                  <span key={label} className="inline-flex items-baseline gap-1.5">
+                    <span className="text-3xl sm:text-4xl md:text-5xl">{String(value).padStart(2, "0")}</span>
+                    <span className="text-[9px] uppercase tracking-[.16em] text-white/38">{label}</span>
+                  </span>
+                ))}
               </div>
-            </motion.div>
-          )}
+            ) : (
+              <p className="mt-3 font-display text-4xl font-light">Le jour est arrivé</p>
+            )}
+          </motion.div>
           {project.missing.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-white/55">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
@@ -328,6 +324,44 @@ export function ProjectStage() {
               <p className="text-sm text-white/60">Aucun prestataire pour le moment.</p>
               <p className="mt-2 text-xs text-white/30">Ajoutez-les depuis ME pour retrouver ici leur visage et un accès direct.</p>
             </div>
+          )}
+        </CenteredBlock>
+      )}
+      {tasksOpen && (
+        <CenteredBlock
+          eyebrow="Progression du Monde"
+          title={`${completion}% accompli`}
+          description={`${project.tasks.filter(task => task.status === "termine").length} étape${project.tasks.filter(task => task.status === "termine").length > 1 ? "s" : ""} terminée${project.tasks.filter(task => task.status === "termine").length > 1 ? "s" : ""} sur ${project.tasks.length}.`}
+          onClose={() => setTasksOpen(false)}
+          size="lg"
+          leading={
+            <span
+              className="grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px]"
+              style={{ background: `conic-gradient(from -90deg, #ff375f 0deg, #ff9f0a ${completion * 1.2}deg, #ffe620 ${completion * 2.1}deg, #30d158 ${completion * 2.8}deg, #64d2ff ${completion * 3.25}deg, #bf5af2 ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
+            >
+              <span className="grid h-full w-full place-items-center rounded-full bg-[#0a0a0a] text-[11px] tabular-nums">{completion}%</span>
+            </span>
+          }
+        >
+          {project.tasks.length ? (
+            <div className="divide-y divide-white/8">
+              {[...project.tasks]
+                .sort((a, b) => Number(a.status === "termine") - Number(b.status === "termine") || (a.dueDate ?? Number.MAX_SAFE_INTEGER) - (b.dueDate ?? Number.MAX_SAFE_INTEGER))
+                .map(task => (
+                  <div key={task.id} className="flex items-start gap-4 py-4">
+                    <span className={cn("mt-1 h-3 w-3 shrink-0 rounded-full border", task.status === "termine" ? "border-white bg-white" : task.status === "en_cours" ? "border-amber-300 bg-amber-300/35" : "border-white/25")} />
+                    <div className="min-w-0 flex-1">
+                      <p className={cn("text-sm", task.status === "termine" ? "text-white/35 line-through" : "text-white/85")}>{task.title}</p>
+                      <p className="mt-1 text-[10px] uppercase tracking-[.14em] text-white/30">
+                        {task.priority === "haute" ? "Très important" : task.priority === "basse" ? "Peu important" : "Importance normale"}
+                        {task.dueDate ? ` · ${format(task.dueDate, "d MMMM yyyy", { locale: fr })}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="py-10 text-center text-sm text-white/35">Aucune étape n’a encore été créée.</p>
           )}
         </CenteredBlock>
       )}
