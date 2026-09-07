@@ -14,8 +14,15 @@ import {
 } from "@workspace/db";
 import { z } from "zod";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
-import { authenticatedUserId } from "../lib/permissions";
+import { authenticatedUserId, can, type ProjectRole } from "../lib/permissions";
 import { projectToPublicProfile } from "../lib/publicProfile";
+import {
+  configuredAppOrigin,
+  createRateLimit,
+  safeDownloadName,
+  signUploadAuthorization,
+  verifyUploadAuthorization,
+} from "../lib/security";
 
 type AuthedRequest = Parameters<RequestHandler>[0] & { userId?: string };
 const router: IRouter = Router();
@@ -26,6 +33,8 @@ const editableRoles = new Set(["owner", "planner", "family"]);
 const managedRoles = new Set(["owner", "planner"]);
 const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "video/mp4"]);
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
+const UPLOAD_TOKEN_TTL_MS = 15 * 60 * 1000;
+const uuid = z.string().uuid();
 
 function shouldSimulateProviderFailure(req: AuthedRequest): boolean {
   return process.env.NODE_ENV !== "production"
@@ -45,7 +54,10 @@ const fileInput = z.object({
   contentType: z.string(),
   size: z.number().int().positive().max(MAX_FILE_SIZE),
 });
-const fileFinalize = fileInput.extend({ objectPath: z.string().regex(/^\/objects\/uploads\/[a-f0-9-]+$/i) });
+const fileFinalize = fileInput.extend({
+  objectPath: z.string().regex(/^\/objects\/uploads\/[a-f0-9-]+$/i),
+  finalizeToken: z.string().min(32).max(4096),
+});
 const messageInput = z.object({
   kind: z.enum(["invitation", "rsvp_reminder", "practical_info", "provider_follow_up", "thank_you"]),
   recipients: z.array(z.string().email()).min(1).max(100),
@@ -71,6 +83,12 @@ function escapeHtml(value: string): string {
   })[character]!);
 }
 
+function uploadSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET is required for upload finalization");
+  return secret;
+}
+
 function auth(req: AuthedRequest, res: Parameters<RequestHandler>[1], next: Parameters<RequestHandler>[2]) {
   const value = getAuth(req);
   const userId = authenticatedUserId(value);
@@ -87,6 +105,14 @@ async function membership(projectId: string, userId: string) {
     .where(and(eq(membershipsTable.projectId, projectId), eq(membershipsTable.userId, userId)));
   return member;
 }
+
+router.param("id", (req, res, next, value) => {
+  if (!uuid.safeParse(String(value)).success) {
+    res.status(404).json({ error: "Ressource introuvable" });
+    return;
+  }
+  next();
+});
 
 router.get("/public/profiles/:id", async (req, res): Promise<void> => {
   const projectId = z.string().uuid().safeParse(String(req.params.id));
@@ -121,6 +147,86 @@ router.get("/projects", auth, async (req: AuthedRequest, res): Promise<void> => 
     .from(membershipsTable).innerJoin(projectsTable, eq(projectsTable.id, membershipsTable.projectId))
     .where(eq(membershipsTable.userId, req.userId!));
   res.json(rows.map(({ project, role }) => ({ ...project, role })));
+});
+
+router.get("/account/export", auth, createRateLimit({ windowMs: 60 * 60 * 1000, max: 5, key: (req) => `account-export:${(req as AuthedRequest).userId}` }), async (req: AuthedRequest, res): Promise<void> => {
+  const userId = req.userId!;
+  const ownedProjects = await db.select().from(projectsTable).where(eq(projectsTable.ownerUserId, userId));
+  const collaborations = await db.select({
+    projectId: membershipsTable.projectId,
+    role: membershipsTable.role,
+    email: membershipsTable.email,
+    createdAt: membershipsTable.createdAt,
+  }).from(membershipsTable).where(eq(membershipsTable.userId, userId));
+  const uploadedFiles = await db.select({
+    id: filesTable.id,
+    projectId: filesTable.projectId,
+    name: filesTable.name,
+    contentType: filesTable.contentType,
+    size: filesTable.size,
+    createdAt: filesTable.createdAt,
+  }).from(filesTable).where(eq(filesTable.uploaderUserId, userId));
+  const sentMessages = await db.select({
+    id: messagesTable.id,
+    projectId: messagesTable.projectId,
+    kind: messagesTable.kind,
+    recipients: messagesTable.recipients,
+    subject: messagesTable.subject,
+    body: messagesTable.body,
+    status: messagesTable.status,
+    sentAt: messagesTable.sentAt,
+    createdAt: messagesTable.createdAt,
+  }).from(messagesTable).where(eq(messagesTable.createdBy, userId));
+  const sentInvitations = await db.select({
+    id: invitationsTable.id,
+    projectId: invitationsTable.projectId,
+    email: invitationsTable.email,
+    role: invitationsTable.role,
+    acceptedAt: invitationsTable.acceptedAt,
+    revokedAt: invitationsTable.revokedAt,
+    createdAt: invitationsTable.createdAt,
+  }).from(invitationsTable).where(eq(invitationsTable.invitedBy, userId));
+  res.setHeader("Content-Disposition", 'attachment; filename="mes-donnees-aime.json"');
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ format: "aime-personal-export", version: 1, exportedAt: new Date().toISOString(), ownedProjects, collaborations, uploadedFiles, sentMessages, sentInvitations });
+});
+
+router.delete("/account", auth, async (req: AuthedRequest, res): Promise<void> => {
+  if (req.body?.confirmation !== "SUPPRIMER MON COMPTE") {
+    res.status(400).json({ error: "Confirmation SUPPRIMER MON COMPTE requise" });
+    return;
+  }
+  const userId = req.userId!;
+  const ownedProjects = await db.select({ id: projectsTable.id }).from(projectsTable).where(eq(projectsTable.ownerUserId, userId));
+  const ownedFiles = (await Promise.all(ownedProjects.map(({ id }) => db.select().from(filesTable).where(eq(filesTable.projectId, id))))).flat();
+  const userUploadedFiles = await db.select().from(filesTable).where(eq(filesTable.uploaderUserId, userId));
+  const objectPaths = [...new Set([...ownedFiles, ...userUploadedFiles].map(({ objectPath }) => objectPath))];
+  const deletionResults = await Promise.allSettled(objectPaths.map(async (objectPath) => {
+    try { await (await storage.getObjectEntityFile(objectPath)).delete(); } catch (error) {
+      if (!(error instanceof ObjectNotFoundError)) throw error;
+    }
+  }));
+  const failedObjects = deletionResults.filter((result) => result.status === "rejected");
+  if (failedObjects.length > 0) {
+    req.log.error({ userId, failedObjects: failedObjects.length }, "Account deletion stopped before database removal");
+    res.status(503).json({ error: "Certains documents n’ont pas pu être supprimés. Le compte a été conservé afin de réessayer sans perdre leur trace." });
+    return;
+  }
+  await db.transaction(async (tx) => {
+    await tx.delete(filesTable).where(eq(filesTable.uploaderUserId, userId));
+    await tx.delete(messagesTable).where(eq(messagesTable.createdBy, userId));
+    await tx.delete(invitationsTable).where(eq(invitationsTable.invitedBy, userId));
+    await tx.delete(projectsTable).where(eq(projectsTable.ownerUserId, userId));
+    await tx.delete(membershipsTable).where(eq(membershipsTable.userId, userId));
+  });
+  try {
+    await clerkClient.users.deleteUser(userId);
+  } catch (error) {
+    req.log.error({ error, userId }, "Clerk account deletion failed after application data cleanup");
+    res.status(502).json({ error: "Les données AIME ont été supprimées, mais la fermeture de la connexion doit être relancée." });
+    return;
+  }
+  res.sendStatus(204);
 });
 
 router.post("/projects", auth, async (req: AuthedRequest, res): Promise<void> => {
@@ -164,11 +270,17 @@ router.delete("/projects/:id", auth, async (req: AuthedRequest, res): Promise<vo
   const member = await membership(String(req.params.id), req.userId!);
   if (member?.role !== "owner") { res.status(403).json({ error: "Seul le propriétaire peut supprimer" }); return; }
   const files = await db.select().from(filesTable).where(eq(filesTable.projectId, String(req.params.id)));
-  await Promise.all(files.map(async ({ objectPath }) => {
+  const deletionResults = await Promise.allSettled(files.map(async ({ objectPath }) => {
     try { await (await storage.getObjectEntityFile(objectPath)).delete(); } catch (error) {
-      if (!(error instanceof ObjectNotFoundError)) req.log.warn({ error, objectPath }, "Object deletion failed");
+      if (!(error instanceof ObjectNotFoundError)) throw error;
     }
   }));
+  const failedObjects = deletionResults.filter((result) => result.status === "rejected");
+  if (failedObjects.length > 0) {
+    req.log.error({ projectId: req.params.id, failedObjects: failedObjects.length }, "Project deletion stopped before database removal");
+    res.status(503).json({ error: "Certains documents n’ont pas pu être supprimés. Le Monde a été conservé afin de réessayer sans perdre sa trace." });
+    return;
+  }
   await db.delete(projectsTable).where(eq(projectsTable.id, String(req.params.id)));
   res.sendStatus(204);
 });
@@ -186,11 +298,16 @@ router.patch("/projects/:id/privacy", auth, async (req: AuthedRequest, res): Pro
 router.get("/projects/:id/export", auth, async (req: AuthedRequest, res): Promise<void> => {
   const member = await membership(String(req.params.id), req.userId!);
   if (!member) { res.status(404).json({ error: "Projet introuvable" }); return; }
+  if (!can(member.role as ProjectRole, "delete")) { res.status(403).json({ error: "Seul le propriétaire peut exporter toutes les données du Monde" }); return; }
   const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, String(req.params.id)));
-  const members = await db.select().from(membershipsTable).where(eq(membershipsTable.projectId, project.id));
-  const files = await db.select().from(filesTable).where(eq(filesTable.projectId, project.id));
   res.setHeader("Content-Disposition", `attachment; filename="aime-${project.id}.json"`);
-  res.json({ format: "aime-backup", version: 1, exportedAt: new Date().toISOString(), project, members, files });
+  res.setHeader("Cache-Control", "no-store");
+  res.json({
+    format: "aime-backup",
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    project: { id: project.id, title: project.title, data: project.data, retentionDays: project.retentionDays, createdAt: project.createdAt, updatedAt: project.updatedAt },
+  });
 });
 
 router.get("/projects/:id/members", auth, async (req: AuthedRequest, res): Promise<void> => {
@@ -202,15 +319,14 @@ router.get("/projects/:id/members", auth, async (req: AuthedRequest, res): Promi
   res.json({ members, invitations });
 });
 
-router.post("/projects/:id/invitations", auth, async (req: AuthedRequest, res): Promise<void> => {
+router.post("/projects/:id/invitations", auth, createRateLimit({ windowMs: 60 * 60 * 1000, max: 30, key: (req) => `invite:${(req as AuthedRequest).userId}` }), async (req: AuthedRequest, res): Promise<void> => {
   const input = parseBody(inviteInput, req, res);
   if (!input) return;
   const projectId = String(req.params.id);
   const member = await membership(projectId, req.userId!);
   if (!managedRoles.has(member?.role ?? "")) { res.status(403).json({ error: "Permission refusée" }); return; }
   const [invitation] = await db.insert(invitationsTable).values({ projectId, ...input, invitedBy: req.userId! }).returning();
-  const origin = req.get("origin") ?? `${req.protocol}://${req.get("host")}`;
-  const link = `${origin}/invite/${invitation.token}`;
+  const link = `${configuredAppOrigin(process.env.REPLIT_DOMAINS, process.env.NODE_ENV)}/invite/${invitation.token}`;
   try {
     await connectors.proxy("resend", "/emails", {
       method: "POST",
@@ -226,6 +342,7 @@ router.post("/projects/:id/invitations", auth, async (req: AuthedRequest, res): 
 });
 
 router.post("/invitations/:token/accept", auth, async (req: AuthedRequest, res): Promise<void> => {
+  if (!uuid.safeParse(String(req.params.token)).success) { res.status(404).json({ error: "Invitation invalide ou révoquée" }); return; }
   const [invite] = await db.select().from(invitationsTable).where(and(
     eq(invitationsTable.token, String(req.params.token)), isNull(invitationsTable.revokedAt), isNull(invitationsTable.acceptedAt),
   ));
@@ -261,7 +378,9 @@ router.post("/storage/uploads/request-url", auth, async (req: AuthedRequest, res
   if (!managedRoles.has(member?.role ?? "")) { res.status(403).json({ error: "Permission d'envoi refusée" }); return; }
   if (!allowedTypes.has(input.contentType)) { res.status(415).json({ error: "Type de fichier non autorisé" }); return; }
   const uploadURL = await storage.getObjectEntityUploadURL();
-  res.json({ uploadURL, objectPath: storage.normalizeObjectEntityPath(uploadURL.split("?")[0]) });
+  const objectPath = storage.normalizeObjectEntityPath(uploadURL.split("?")[0]);
+  const finalizeToken = signUploadAuthorization({ ...input, objectPath, userId: req.userId!, expiresAt: Date.now() + UPLOAD_TOKEN_TTL_MS }, uploadSecret());
+  res.json({ uploadURL, objectPath, finalizeToken });
 });
 
 router.post("/storage/files", auth, async (req: AuthedRequest, res): Promise<void> => {
@@ -269,9 +388,14 @@ router.post("/storage/files", auth, async (req: AuthedRequest, res): Promise<voi
   if (!input) return;
   const member = await membership(input.projectId, req.userId!);
   if (!managedRoles.has(member?.role ?? "")) { res.status(403).json({ error: "Permission refusée" }); return; }
+  const { finalizeToken, ...file } = input;
+  if (!verifyUploadAuthorization(finalizeToken, { ...file, userId: req.userId! }, uploadSecret())) {
+    res.status(403).json({ error: "Autorisation de finalisation invalide ou expirée" });
+    return;
+  }
   const path = await storage.trySetObjectEntityAclPolicy(input.objectPath, { owner: req.userId!, visibility: "private" });
-  const [file] = await db.insert(filesTable).values({ ...input, objectPath: path, uploaderUserId: req.userId! }).returning();
-  res.status(201).json(file);
+  const [storedFile] = await db.insert(filesTable).values({ ...file, objectPath: path, uploaderUserId: req.userId! }).returning();
+  res.status(201).json(storedFile);
 });
 
 router.get("/projects/:id/files", auth, async (req: AuthedRequest, res): Promise<void> => {
@@ -285,7 +409,9 @@ router.get("/storage/files/:id", auth, async (req: AuthedRequest, res): Promise<
   if (!meta || !(await membership(meta.projectId, req.userId!))) { res.status(404).json({ error: "Fichier introuvable" }); return; }
   const response = await storage.downloadObject(await storage.getObjectEntityFile(meta.objectPath), 0);
   response.headers.forEach((value, key) => res.setHeader(key, value));
-  if (req.query.download === "1") res.setHeader("Content-Disposition", `attachment; filename="${meta.name.replaceAll('"', "")}"`);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "private, no-store");
+  if (req.query.download === "1") res.setHeader("Content-Disposition", `attachment; filename="${safeDownloadName(meta.name)}"; filename*=UTF-8''${encodeURIComponent(meta.name)}`);
   if (response.body) Readable.fromWeb(response.body as never).pipe(res);
 });
 
@@ -298,7 +424,7 @@ router.delete("/storage/files/:id", auth, async (req: AuthedRequest, res): Promi
   res.sendStatus(204);
 });
 
-router.post("/projects/:id/messages", auth, async (req: AuthedRequest, res): Promise<void> => {
+router.post("/projects/:id/messages", auth, createRateLimit({ windowMs: 60 * 60 * 1000, max: 30, key: (req) => `message:${(req as AuthedRequest).userId}` }), async (req: AuthedRequest, res): Promise<void> => {
   const input = parseBody(messageInput, req, res);
   if (!input) return;
   const projectId = String(req.params.id);
@@ -338,6 +464,14 @@ router.get("/projects/:id/messages", auth, async (req: AuthedRequest, res): Prom
 router.post("/projects/:id/rsvp-links/:guestId", auth, async (req: AuthedRequest, res): Promise<void> => {
   const projectId = String(req.params.id);
   if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) { res.status(403).json({ error: "Permission refusée" }); return; }
+  const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, projectId));
+  const guests = Array.isArray((project?.data as Record<string, unknown> | undefined)?.guests)
+    ? (project!.data as { guests: Array<{ id?: unknown }> }).guests
+    : [];
+  if (!guests.some((guest) => guest.id === String(req.params.guestId))) {
+    res.status(404).json({ error: "Invité introuvable dans ce Monde" });
+    return;
+  }
   const [link] = await db.insert(rsvpsTable).values({ projectId, guestId: String(req.params.guestId) })
     .onConflictDoUpdate({ target: [rsvpsTable.projectId, rsvpsTable.guestId], set: { revoked: false, response: null, respondedAt: null } }).returning();
   res.status(201).json(link);
@@ -358,14 +492,17 @@ router.delete("/projects/:id/rsvp-links/:guestId", auth, async (req: AuthedReque
   res.sendStatus(204);
 });
 
-router.get("/rsvp/:token", async (req, res): Promise<void> => {
+router.get("/rsvp/:token", createRateLimit({ windowMs: 15 * 60 * 1000, max: 60, key: (req) => `rsvp-read:${req.ip}` }), async (req, res): Promise<void> => {
+  if (!uuid.safeParse(String(req.params.token)).success) { res.status(404).json({ error: "Lien RSVP invalide" }); return; }
   const [link] = await db.select({ rsvp: rsvpsTable, project: projectsTable }).from(rsvpsTable)
     .innerJoin(projectsTable, eq(projectsTable.id, rsvpsTable.projectId)).where(eq(rsvpsTable.token, String(req.params.token)));
   if (!link || link.rsvp.revoked) { res.status(404).json({ error: "Lien RSVP invalide" }); return; }
-  res.json({ projectTitle: link.project.title, guestId: link.rsvp.guestId, response: link.rsvp.response });
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ projectTitle: link.project.title, response: link.rsvp.response });
 });
 
-router.put("/rsvp/:token", async (req, res): Promise<void> => {
+router.put("/rsvp/:token", createRateLimit({ windowMs: 15 * 60 * 1000, max: 12, key: (req) => `rsvp-write:${req.ip}:${String(req.params.token)}` }), async (req, res): Promise<void> => {
+  if (!uuid.safeParse(String(req.params.token)).success) { res.status(404).json({ error: "Lien RSVP invalide ou révoqué" }); return; }
   const input = parseBody(rsvpInput, req, res);
   if (!input) return;
   const [updated] = await db.update(rsvpsTable).set({ response: input, respondedAt: new Date() })

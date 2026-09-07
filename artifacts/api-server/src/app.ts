@@ -8,6 +8,27 @@ import { logger } from "./lib/logger";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
 
 const app: Express = express();
+const trustedOrigins = new Set(
+  (process.env.REPLIT_DOMAINS ?? "")
+    .split(",")
+    .map((host) => host.trim())
+    .filter(Boolean)
+    .flatMap((host) => [`https://${host}`, `http://${host}`]),
+);
+if (process.env.NODE_ENV !== "production") {
+  trustedOrigins.add("http://localhost");
+  trustedOrigins.add("http://127.0.0.1");
+}
+
+function isTrustedOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    if (trustedOrigins.has(origin)) return true;
+    return process.env.NODE_ENV !== "production" && (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+  } catch {
+    return false;
+  }
+}
 
 app.use(
   pinoHttp({
@@ -29,9 +50,22 @@ app.use(
   }),
 );
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  const origin = req.get("origin");
+  if (origin && !isTrustedOrigin(origin) && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    res.status(403).json({ error: "Origine non autorisée" });
+    return;
+  }
+  next();
+});
+app.use(cors({
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin || isTrustedOrigin(origin)) callback(null, true);
+    else callback(null, false);
+  },
+}));
+app.use(express.json({ limit: "256kb" }));
 app.use(clerkMiddleware((req) => ({
   publishableKey: publishableKeyFromHost(getClerkProxyHost(req) ?? "", process.env.CLERK_PUBLISHABLE_KEY),
 })));

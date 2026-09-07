@@ -64,7 +64,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     setBusy(true);
     setRemoteError("");
     try {
-      const request = await api<{ uploadURL: string; objectPath: string }>("/storage/uploads/request-url", {
+      const request = await api<{ uploadURL: string; objectPath: string; finalizeToken: string }>("/storage/uploads/request-url", {
         method: "POST",
         body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type }),
       });
@@ -72,7 +72,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       if (!uploaded.ok) throw new Error("Échec du transfert vers le stockage privé");
       await api("/storage/files", {
         method: "POST",
-        body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath }),
+        body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath, finalizeToken: request.finalizeToken }),
       });
       setFiles(await api<StoredFile[]>(`/projects/${project.id}/files`));
     } catch (error) {

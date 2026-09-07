@@ -11,6 +11,7 @@ import { Home } from '@/pages/Home';
 import { NetworkPage } from '@/pages/Network';
 import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LeMondeAimePage } from '@/pages/LeMondeAime';
+import { LegalPage } from '@/pages/Legal';
 import { CommandBar } from '@/components/CommandBar';
 import { PortalControls } from '@/components/PortalControls';
 import { ProjectProvider } from '@/store/project-store';
@@ -80,6 +81,7 @@ function Landing() {
            <a data-testid="landing-sign-up" href={`${basePath}/sign-up`} className="rounded-full bg-white text-black px-7 py-3 text-sm font-semibold">Créer mon espace</a>
            <a data-testid="landing-sign-in" href={`${basePath}/sign-in`} className="rounded-full border border-white/25 px-7 py-3 text-sm">Se connecter</a>
         </div>
+        <p className="mt-8 text-xs text-white/30">En créant un espace, vous acceptez les <a href={`${basePath}/conditions`} className="underline underline-offset-4 hover:text-white/60">conditions</a> et la <a href={`${basePath}/confidentialite`} className="underline underline-offset-4 hover:text-white/60">politique de confidentialité</a>.</p>
       </div>
     </main>
   );
@@ -181,9 +183,9 @@ function SignUpPage() {
   return <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />;
 }
 function AuthPage({ signup = false }: { signup?: boolean }) {
-  return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="relative min-h-[100dvh] bg-black flex items-center justify-center px-4"><img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />{signup
+  return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="relative min-h-[100dvh] bg-black flex items-center justify-center px-4 pb-20"><img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />{signup
     ? <SignUpPage />
-    : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />}</div>;
+    : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />}<p className="absolute bottom-6 text-center text-[11px] text-white/35"><a href={`${basePath}/conditions`} className="hover:text-white/60">Conditions</a><span className="mx-2">·</span><a href={`${basePath}/confidentialite`} className="hover:text-white/60">Confidentialité</a></p></div>;
 }
 function InvitePage({ params }: { params: { token: string } }) {
   const [, navigate] = useLocation();
@@ -267,6 +269,8 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function Routes() {
   return <RoutedErrorBoundary><Switch>
     <Route path="/concept" component={ConceptLanding} />
+    <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
+    <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={HomeRedirect} />
     <Route path="/user-portal" component={Portal} />
     <Route path="/profile" component={PrivateProfileRoute} />

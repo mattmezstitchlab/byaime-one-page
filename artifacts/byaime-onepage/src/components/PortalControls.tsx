@@ -13,7 +13,7 @@ export function PortalControls() {
   const { signOut } = useClerk();
   const { user } = useUser();
   const { project, projects, selectProject, syncStatus, syncError, currentRole, canEdit, updateProject, importBackup, clearProject } = useProject();
-  const [panel, setPanel] = useState<'settings' | 'editor' | 'sync' | 'invite' | 'message' | 'delete-file' | 'delete-project' | null>(null);
+  const [panel, setPanel] = useState<'settings' | 'editor' | 'sync' | 'invite' | 'message' | 'delete-file' | 'delete-project' | 'delete-account' | null>(null);
   const [notice, setNotice] = useState('');
   const [files, setFiles] = useState<{ id: string; name: string; contentType: string; size: number }[]>([]);
   const [selectedFile, setSelectedFile] = useState<{ id: string; name: string } | null>(null);
@@ -23,8 +23,10 @@ export function PortalControls() {
   const [subject, setSubject] = useState('');
   const [messageBody, setMessageBody] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteAccountConfirmation, setDeleteAccountConfirmation] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const canManage = currentRole === 'owner' || currentRole === 'planner';
   useEffect(() => {
     const openMe = () => setPanel('settings');
     window.addEventListener('aime:open-me', openMe);
@@ -79,7 +81,7 @@ export function PortalControls() {
     const request = await api('/storage/uploads/request-url', { method: 'POST', body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type }) });
     const uploaded = await fetch(request.uploadURL, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
     if (!uploaded.ok) throw new Error('Échec du transfert vers App Storage');
-    await api('/storage/files', { method: 'POST', body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath }) });
+    await api('/storage/files', { method: 'POST', body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath, finalizeToken: request.finalizeToken }) });
     setFiles(await api(`/projects/${project.id}/files`));
     trackEvent('file_added');
     setNotice(`${file.name} ajouté à l'espace privé`);
@@ -151,11 +153,12 @@ export function PortalControls() {
         </select>
          {notice && <p className="mb-5 border-l border-white/20 py-1 pl-3 text-sm text-white/60">{notice}</p>}
         <div className="grid grid-cols-2 gap-2">
-           <button onClick={() => setPanel('invite')} className="action">Inviter l'équipe</button>
-           <button onClick={() => setPanel('message')} className="action">Envoyer un e-mail</button>
-          <button onClick={() => fileRef.current?.click()} className="action"><Upload className="h-4 w-4" /> Ajouter un fichier</button>
+           {canManage && <button onClick={() => setPanel('invite')} className="action">Inviter l'équipe</button>}
+           {canManage && <button onClick={() => setPanel('message')} className="action">Envoyer un e-mail</button>}
+           {canManage && <button onClick={() => fileRef.current?.click()} className="action"><Upload className="h-4 w-4" /> Ajouter un fichier</button>}
           <input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={e => e.target.files?.[0] && void upload(e.target.files[0]).catch(err => setNotice(err.message))} />
-           <a href={`/api/projects/${project.id}/export`} onClick={() => trackEvent('project_exported', { format: 'json' })} className="action"><Download className="h-4 w-4" /> Sauvegarde JSON</a>
+           {currentRole === 'owner' && <a href={`/api/projects/${project.id}/export`} onClick={() => trackEvent('project_exported', { format: 'json' })} className="action"><Download className="h-4 w-4" /> Sauvegarde du Monde</a>}
+           <a href="/api/account/export" className="action"><Download className="h-4 w-4" /> Mes données</a>
           <button onClick={exportCsv} className="action">Invités CSV</button>
           <button onClick={() => window.print()} className="action">Imprimer Jour J / tables</button>
           <button onClick={() => document.getElementById('backup-input')?.click()} className="action">Importer JSON</button>
@@ -165,14 +168,14 @@ export function PortalControls() {
           }} />
         </div>
         {files.length > 0 && <div className="mt-8 border-t border-white/10 pt-6"><h3 className="font-medium mb-3">Documents & médias privés</h3><div className="space-y-2">{files.map(file =>
-           <div key={file.id} className="flex items-center gap-2 rounded-xl bg-white/5 p-3 text-xs"><span className="min-w-0 flex-1 truncate">{file.name}</span><a target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="text-white/70">Aperçu</a><a href={`/api/storage/files/${file.id}?download=1`} className="text-white/70">Télécharger</a><button className="text-white/40 transition hover:text-white" onClick={() => { setSelectedFile({ id: file.id, name: file.name }); setPanel('delete-file'); }}>Supprimer</button></div>
+            <div key={file.id} className="flex items-center gap-2 rounded-xl bg-white/5 p-3 text-xs"><span className="min-w-0 flex-1 truncate">{file.name}</span><a target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="text-white/70">Aperçu</a><a href={`/api/storage/files/${file.id}?download=1`} className="text-white/70">Télécharger</a>{canManage && <button className="text-white/40 transition hover:text-white" onClick={() => { setSelectedFile({ id: file.id, name: file.name }); setPanel('delete-file'); }}>Supprimer</button>}</div>
         )}</div></div>}
         <div className="mt-8 border-t border-white/10 pt-6">
-          <h3 className="font-medium mb-2">Confidentialité & conservation</h3>
-          <p className="text-xs text-white/45 mb-3">Les documents restent privés. Choisissez la durée de conservation du projet.</p>
-          <select defaultValue="365" onChange={e => void api(`/projects/${project.id}/privacy`, { method: 'PATCH', body: JSON.stringify({ retentionDays: Number(e.target.value) }) }).then(() => setNotice('Préférence enregistrée')).catch(err => setNotice(err.message))} className="w-full rounded-xl border border-white/15 bg-white/5 p-3">
+           <h3 className="font-medium mb-2">Confidentialité & conservation</h3>
+           <p className="text-xs text-white/45 mb-3">Les documents restent privés. Choisissez la durée souhaitée. Pendant le pilote, aucune suppression automatique n’a lieu sans avertissement.</p>
+           {currentRole === 'owner' && <select defaultValue="365" onChange={e => void api(`/projects/${project.id}/privacy`, { method: 'PATCH', body: JSON.stringify({ retentionDays: Number(e.target.value) }) }).then(() => setNotice('Préférence enregistrée')).catch(err => setNotice(err.message))} className="w-full rounded-xl border border-white/15 bg-white/5 p-3">
             <option className="bg-black" value="180">6 mois</option><option className="bg-black" value="365">1 an</option><option className="bg-black" value="1095">3 ans</option>
-          </select>
+           </select>}
           {currentRole === 'owner' && <div className="mt-6 border-t border-white/10 pt-6">
             <label className="flex items-start justify-between gap-5">
               <span><span className="block text-sm">Profil public</span><span className="mt-1 block text-xs font-light leading-relaxed text-white/45">Seuls les Moments marqués « Public » seront visibles. Les invités, messages, documents et informations d’organisation restent privés.</span></span>
@@ -191,8 +194,10 @@ export function PortalControls() {
           </div>}
         </div>
         <div className="mt-8 space-y-2">
+           <div className="flex justify-center gap-4 py-2 text-xs text-white/35"><Link href="/confidentialite">Confidentialité</Link><Link href="/conditions">Conditions</Link></div>
            <button data-testid="sign-out" className="w-full rounded-xl border border-white/15 p-3 text-sm" onClick={() => void signOut({ redirectUrl: basePath() })}>Se déconnecter</button>
-           <button className="w-full p-3 text-sm text-white/35 transition hover:text-white/70" onClick={() => setPanel('delete-project')}>Supprimer définitivement le projet</button>
+           {currentRole === 'owner' && <button className="w-full p-3 text-sm text-white/35 transition hover:text-white/70" onClick={() => setPanel('delete-project')}>Supprimer définitivement le projet</button>}
+           <button className="w-full p-3 text-sm text-rose-200/45 transition hover:text-rose-200/80" onClick={() => setPanel('delete-account')}>Supprimer mon compte et mes accès</button>
         </div>
        </CenteredBlock>}
       {panel === 'invite' && <CenteredBlock eyebrow="ME · Équipe" title="Inviter une personne" description="Choisissez qui peut rejoindre ce Monde et ce qu’elle pourra y faire." onClose={() => setPanel('settings')}>
@@ -223,6 +228,18 @@ export function PortalControls() {
         <div className="mt-8 flex gap-3">
           <button onClick={() => setPanel('settings')} className="flex-1 rounded-full border border-white/15 px-5 py-3 text-sm text-white/60">Conserver</button>
           <button disabled={deleteConfirmation !== 'SUPPRIMER' || submitting} onClick={() => { setSubmitting(true); void api(`/projects/${project.id}`, { method: 'DELETE', body: JSON.stringify({ confirmation: 'SUPPRIMER' }) }).then(() => { clearProject(); location.reload(); }).catch(error => { setSubmitting(false); setNotice(error.message); setPanel('settings'); }); }} className="flex-1 rounded-full bg-white px-5 py-3 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-25">Supprimer</button>
+        </div>
+      </CenteredBlock>}
+      {panel === 'delete-account' && <CenteredBlock eyebrow="ME · Compte" title="Supprimer définitivement votre compte ?" description="Vos Mondes, leurs documents et tous vos accès seront supprimés. Cette action ne peut pas être annulée." onClose={() => setPanel('settings')}>
+        <Field label="Écrivez SUPPRIMER MON COMPTE pour confirmer"><input autoFocus value={deleteAccountConfirmation} onChange={event => setDeleteAccountConfirmation(event.target.value)} className="field" /></Field>
+        <div className="mt-8 flex gap-3">
+          <button onClick={() => setPanel('settings')} className="flex-1 rounded-full border border-white/15 px-5 py-3 text-sm text-white/60">Conserver mon compte</button>
+          <button disabled={deleteAccountConfirmation !== 'SUPPRIMER MON COMPTE' || submitting} onClick={() => {
+            setSubmitting(true);
+            void api('/account', { method: 'DELETE', body: JSON.stringify({ confirmation: 'SUPPRIMER MON COMPTE' }) })
+              .then(() => { clearProject(); return signOut({ redirectUrl: basePath() }); })
+              .catch(error => { setSubmitting(false); setNotice(error.message); setPanel('settings'); });
+          }} className="flex-1 rounded-full bg-white px-5 py-3 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-25">{submitting ? 'Suppression…' : 'Supprimer mon compte'}</button>
         </div>
       </CenteredBlock>}
   </>;
