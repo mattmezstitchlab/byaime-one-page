@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { executeCommand, parseFrenchCommand, proposeCommand, type CommandProposal } from "@/lib/command-agent";
+import { CenteredBlock } from "@/components/CenteredBlock";
 
 export function CommandBar({ setPhase, setLayers }: { setPhase: (phase: "tout"|"avant"|"pendant"|"apres") => void; setLayers: (layers: string[]) => void }) {
   const [open, setOpen] = useState(false);
@@ -32,9 +32,7 @@ export function CommandBar({ setPhase, setLayers }: { setPhase: (phase: "tout"|"
     try { const output = executeCommand(project, proposal, true); updateProject(output.project); setResult(output.message); setProposal(undefined); } catch (reason) { setError(reason instanceof Error ? reason.message : "Cette action n’a pas pu être réalisée."); }
   };
   return <>
-    {open && <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/70 px-4 pt-[12vh]" onClick={() => setOpen(false)}>
-      <div onClick={event => event.stopPropagation()} className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#101010] p-5 shadow-2xl">
-        <div className="flex items-center justify-between"><div><h3 className="font-medium">Que souhaitez-vous faire ?</h3><p className="mt-1 text-xs text-white/45">AIME vérifie votre demande et vous demande votre accord avant tout changement.</p></div><button onClick={() => setOpen(false)} aria-label="Fermer"><X className="h-4 w-4" /></button></div>
+    {open && <CenteredBlock eyebrow="AIME" title="Que souhaitez-vous faire ?" description="AIME vérifie votre demande et vous demande votre accord avant tout changement." onClose={() => setOpen(false)} size="lg">
         <form onSubmit={event => { event.preventDefault(); inspect(); }} className="mt-5 flex gap-2"><input autoFocus value={input} onChange={event => setInput(event.target.value)} placeholder="Décaler la cérémonie de 15 minutes…" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none" /><button className="rounded-xl bg-white px-4 text-sm text-black">Vérifier</button></form>
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">{["Voir les tâches restantes", "Repérer les horaires qui se chevauchent", "Vérifier les besoins alimentaires", "Préparer le programme des professionnels", "Ajouter 2 invités"].map(example => <button key={example} onClick={() => setInput(example)} className="text-[10px] uppercase tracking-[.12em] text-white/35 transition hover:text-white/70">{example}</button>)}</div>
         {error && <p className="mt-4 border-l border-white/25 py-1 pl-3 text-sm text-white/60">{error}</p>}
@@ -43,7 +41,6 @@ export function CommandBar({ setPhase, setLayers }: { setPhase: (phase: "tout"|"
           {proposal.mutation ? <div className="mt-4"><p className="mb-2 text-xs text-white/45">Rien ne changera sans votre accord.</p><button disabled={!canEdit} onClick={execute} className="rounded-full bg-white px-4 py-2 text-xs text-black disabled:opacity-40">{canEdit ? "Oui, faire ce changement" : "Vous pouvez consulter, mais pas modifier"}</button></div> : <p className="mt-4 text-xs text-white/35">Aucune information n’a été modifiée.</p>}
         </div>}
         <div className="mt-4 flex gap-2 border-t border-white/5 pt-3"><button onClick={() => { setPhase("pendant"); setLayers([]); setOpen(false); }} className="text-xs text-white/50">Voir le Jour J</button><button onClick={() => { setPhase("tout"); setLayers([]); setOpen(false); }} className="text-xs text-white/50">Voir toute la timeline</button></div>
-      </div>
-    </div>}
+    </CenteredBlock>}
   </>;
 }
