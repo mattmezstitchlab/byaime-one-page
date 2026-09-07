@@ -45,7 +45,7 @@ export function NetworkPage() {
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<'map' | 'list'>('list');
+  const [mobileView, setMobileView] = useState<'map' | 'list'>('map');
   const shouldReduceMotion = useReducedMotion();
 
   const mappedSubjects = subjects.filter(s => s.latitude !== undefined && s.longitude !== undefined);
@@ -60,7 +60,7 @@ export function NetworkPage() {
     try {
       m = new maplibregl.Map({
         container: mapContainer.current,
-        style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
         center: [2.3522, 48.8566],
         zoom: 5,
         attributionControl: false,
