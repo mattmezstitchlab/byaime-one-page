@@ -9,7 +9,7 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Settings, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -47,7 +47,10 @@ export function ProjectStage() {
   const [playMode, setPlayMode] = useState(false);
   const [layers, setLayers] = useState<string[]>([]);
   const [view, setView] = useState<TimelineView>("chronological");
-  const [providersOpen, setProvidersOpen] = useState(false);
+  const [registryOpen, setRegistryOpen] = useState(false);
+  const [registryFilter, setRegistryFilter] = useState<"all" | "guests" | "family" | "providers">("all");
+  const [rsvpOpen, setRsvpOpen] = useState(false);
+  const [fundOpen, setFundOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
@@ -130,7 +133,7 @@ export function ProjectStage() {
   const nextDayEvent = dayEvents.find(event => event.time > now);
   const featuredDayEvent = liveEvent || nextDayEvent;
   const memoryCount = project.memories.length + project.media.length;
-  const isMiniSite = view === "mini-site";
+  const isPublicInfo = view === "public-info";
   const phaseHeroCopy = {
     tout: {
       eyebrow: project.universe,
@@ -157,13 +160,13 @@ export function ProjectStage() {
         : "Les souvenirs, remerciements et médias des invités trouveront ici leur place.",
     },
   }[phase];
-  const heroCopy = isMiniSite
+  const heroCopy = isPublicInfo
     ? {
-        eyebrow: "Mini-site · Aperçu invités",
+        eyebrow: "Informations pratiques",
         title: project.title,
         description: project.subtitle && !subtitleIsRedundant
           ? project.subtitle
-          : "Toutes les informations choisies pour accueillir les invités dans ce Monde.",
+          : "Les informations que ce Monde a choisi de rendre visibles aux personnes concernées.",
       }
     : phaseHeroCopy;
   const calendarDays = eachDayOfInterval({
@@ -202,7 +205,7 @@ export function ProjectStage() {
                 key={item.id}
                 onClick={() => {
                   setPhase(item.id as typeof phase);
-                  if (view === "mini-site") setView("chronological");
+                   if (view === "public-info") setView("chronological");
                 }}
                 className={cn(
                   "whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors",
@@ -256,7 +259,7 @@ export function ProjectStage() {
             </motion.p>
           )}
 
-          {(isMiniSite || phase !== "apres") && <motion.div
+          {(isPublicInfo || phase !== "apres") && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -283,7 +286,7 @@ export function ProjectStage() {
             )}
           </motion.div>}
 
-          {!isMiniSite && phase !== "apres" && <motion.div
+          {!isPublicInfo && phase !== "apres" && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -291,15 +294,15 @@ export function ProjectStage() {
           >
             <button
               type="button"
-              onClick={() => setProvidersOpen(true)}
+               onClick={() => setRegistryOpen(true)}
               className="group flex items-center gap-2 py-1 pr-2 text-xs text-white/80 transition hover:text-white"
-              aria-label={`Ouvrir le trombinoscope des prestataires, ${stats.booked} confirmés`}
+               aria-label={`Ouvrir le Registre, ${project.guests.length + project.providers.length} personnes et professionnels`}
             >
               <span className="flex -space-x-2">
                 {project.providers.slice(0, 4).map((provider, index) => <ProviderPortrait key={provider.id} provider={provider} index={index} />)}
                 {project.providers.length === 0 && <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-black bg-white/10 text-[10px]">0</span>}
               </span>
-              <span>{project.providers.length ? `${stats.booked}/${project.providers.length}` : 'Prestataires'}</span>
+               <span>{project.guests.length + project.providers.length} dans le Registre</span>
             </button>
             {stats.open > 0 && (
               <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
@@ -322,7 +325,7 @@ export function ProjectStage() {
             </button>
           </motion.div>}
 
-          {(isMiniSite || phase === "tout" || phase === "avant") && <motion.button
+          {(isPublicInfo || phase === "tout" || phase === "avant") && <motion.button
             type="button"
             onClick={() => setCountdownsOpen(true)}
             initial={{ opacity: 0, y: 10 }}
@@ -354,7 +357,7 @@ export function ProjectStage() {
               <p className="mt-3 font-display text-4xl font-light">Le Moment est arrivé</p>
             )}
           </motion.button>}
-          {!isMiniSite && phase === "pendant" && (
+          {!isPublicInfo && phase === "pendant" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-white/10 pt-7">
               <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? "En ce moment" : "Prochain Moment"}</p>
               {featuredDayEvent ? (
@@ -365,7 +368,7 @@ export function ProjectStage() {
               ) : <p className="mt-4 text-sm text-white/45">Ajoutez les Moments du Jour J pour activer le direct.</p>}
             </motion.div>
           )}
-          {!isMiniSite && phase === "apres" && (
+          {!isPublicInfo && phase === "apres" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-white/10 pt-7">
               <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Souvenirs</p></div>
               <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Médias</p></div>
@@ -384,14 +387,14 @@ export function ProjectStage() {
       <nav aria-label="Vues du Monde" className="border-y border-white/8 bg-[#050505]">
         <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 py-4 hide-scrollbar">
           {([
-            ["chronological", "Dans l’ordre"], ["mini-site", "Mini-site"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
+            ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
             ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
           ] as Array<[TimelineView, string]>).map(([id, label]) => (
             <button
               key={id}
               onClick={() => {
                 setView(id);
-                if (id === "mini-site") setPhase("tout");
+                 if (id === "public-info") setPhase("tout");
               }}
               className={cn(
                 "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors",
@@ -401,6 +404,12 @@ export function ProjectStage() {
               {label}
             </button>
           ))}
+          <button type="button" onClick={() => setRsvpOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-white/55 transition-colors hover:border-white/25 hover:text-white">
+            Je participe
+          </button>
+          <button type="button" onClick={() => setFundOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-white/55 transition-colors hover:border-white/25 hover:text-white">
+            Cagnotte
+          </button>
         </div>
       </nav>
 
@@ -415,19 +424,44 @@ export function ProjectStage() {
       <CommandBar setPhase={setPhase} setLayers={setLayers} />
       <BottomDock phase={phase} view={view} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
-        if (view === "mini-site") setView("chronological");
+        if (view === "public-info") setView("chronological");
       }} onPlay={() => setPlayMode(true)} />
 
       {playMode && <PlayMode events={visibleEvents} onClose={() => setPlayMode(false)} />}
-      {providersOpen && (
+      {registryOpen && (
         <CenteredBlock
-          eyebrow="Réseau · Prestataires"
-          title="Le trombinoscope"
-          description="Toutes les personnes qui font avancer ce Monde, à portée immédiate."
-          onClose={() => setProvidersOpen(false)}
+          eyebrow="Réseau du Monde"
+          title="Le Registre"
+          description="Invités, proches, professionnels et organisations réunis sans enfermer une personne dans un seul rôle."
+          onClose={() => setRegistryOpen(false)}
           size="lg"
         >
-          {project.providers.length ? (
+          <div className="mb-6 flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+            {([
+              ["all", "Tout le monde"],
+              ["guests", "Invités"],
+              ["family", "Famille"],
+              ["providers", "Professionnels"],
+            ] as const).map(([id, label]) => (
+              <button key={id} type="button" onClick={() => setRegistryFilter(id)} className={cn("shrink-0 rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em]", registryFilter === id ? "border-white bg-white text-black" : "border-white/10 text-white/45")}>{label}</button>
+            ))}
+          </div>
+          {(registryFilter === "all" || registryFilter === "guests" || registryFilter === "family") && project.guests.filter(guest => registryFilter !== "family" || guest.role === "famille").length > 0 && (
+            <div className="mb-7">
+              <p className="mb-3 text-[9px] uppercase tracking-[.18em] text-white/30">Invités et proches</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {project.guests.filter(guest => registryFilter !== "family" || guest.role === "famille").map(guest => (
+                  <article key={guest.id} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-xs text-white/70">{guest.name.split(/\s+/).map(part => part[0]).slice(0, 2).join("")}</span>
+                    <div className="min-w-0 flex-1"><p className="truncate text-sm text-white">{guest.name}</p><p className="mt-1 text-[10px] uppercase tracking-[.16em] text-white/40">{guest.role} · {guest.rsvp === "confirme" ? "Participe" : guest.rsvp === "decline" ? "Ne participe pas" : "Réponse attendue"}</p></div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+          {(registryFilter === "all" || registryFilter === "providers") && project.providers.length ? (
+            <div>
+              <p className="mb-3 text-[9px] uppercase tracking-[.18em] text-white/30">Professionnels</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {project.providers.map(provider => {
                 const directHref = provider.contact
@@ -449,12 +483,30 @@ export function ProjectStage() {
                 );
               })}
             </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-white/15 px-6 py-10 text-center">
-              <p className="text-sm text-white/60">Aucun prestataire pour le moment.</p>
-              <p className="mt-2 text-xs text-white/30">Ajoutez-les depuis ME pour retrouver ici leur visage et un accès direct.</p>
             </div>
+          ) : (
+            registryFilter === "providers" && <p className="py-10 text-center text-sm text-white/35">Aucun professionnel dans ce Monde pour le moment.</p>
           )}
+        </CenteredBlock>
+      )}
+      {rsvpOpen && (
+        <CenteredBlock eyebrow="Présence" title="Est-ce que vous participez ?" description="La réponse appartient à la personne et peut s’appliquer au Monde entier ou à certains Moments." onClose={() => setRsvpOpen(false)}>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {["Je participe", "Peut-être", "Je ne participe pas"].map((label, index) => (
+              <button key={label} type="button" className="rounded-2xl border border-white/12 bg-white/[.035] px-4 py-6 text-sm text-white/75 transition hover:border-white/35 hover:bg-white/[.07]">
+                <UserCheck className={cn("mx-auto mb-3 h-5 w-5", index === 1 ? "text-amber-200" : "text-white/45")} />{label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-5 text-xs font-light leading-relaxed text-white/35">Une invitation personnelle reliera ensuite cette réponse au bon Profil et aux Moments auxquels il est invité.</p>
+        </CenteredBlock>
+      )}
+      {fundOpen && (
+        <CenteredBlock eyebrow="Soutenir ce Monde" title="Cagnotte" description="Un même espace pour contribuer à un projet, faire un don à une association ou rémunérer une personne depuis son Profil." onClose={() => setFundOpen(false)} leading={<span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/[.06]"><Gift className="h-5 w-5 text-white/65" /></span>}>
+          <div className="rounded-2xl border border-dashed border-white/15 px-6 py-10 text-center">
+            <p className="text-sm text-white/65">Aucune cagnotte n’est ouverte pour le moment.</p>
+            <p className="mt-2 text-xs font-light leading-relaxed text-white/35">Les montants, bénéficiaires, frais et conditions devront être affichés clairement avant d’activer un paiement réel.</p>
+          </div>
         </CenteredBlock>
       )}
       {tasksOpen && (

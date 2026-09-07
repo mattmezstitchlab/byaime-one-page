@@ -35,7 +35,7 @@ Une playlist est un objet canonique relié à un Monde, un Profil et des Moments
 
 La capsule temporelle est le sélecteur d’état global du Monde, placé en haut et restant visible. Elle ne filtre pas seulement la Timeline : elle transforme tout le récit et les actions de la page.
 
-**Why:** Un mariage n’a pas les mêmes besoins avant, pendant et après. Le même Monde doit devenir successivement mini-site de préparation, régie live du Jour J et mémoire collective.
+**Why:** Un mariage n’a pas les mêmes besoins avant, pendant et après. Le même Monde doit devenir successivement espace de préparation, régie live du Jour J et mémoire collective.
 
 **How to apply:** AVANT met en avant informations pratiques et préparation ; LE JOUR J montre le Moment en cours, le prochain, les responsables et alertes ; APRÈS ouvre souvenirs, remerciements et médias ; TOUT relie ces états.
 
@@ -44,3 +44,9 @@ Le hero d’un Monde sert aussi de navigation sémantique : sa nature ouvre le m
 **Why:** Les informations structurantes ne doivent pas rester décoratives, et le passage entre marque, Profil, Mondes et Kits doit être compréhensible sans ajouter une navigation technique.
 
 **How to apply:** Rendre la nature et la date directement actionnables dans le hero ; conserver les réglages personnels dans ME ; présenter Profil, Monde, Kit et AI + ME sur une landing AIME accessible depuis tout Monde.
+
+Ne jamais présenter la projection publique d’un Monde comme un « mini-site » séparé. Les informations pratiques, la participation et les contributions sont des fonctions natives de la page Monde ou Profil, gouvernées par la visibilité de chaque information.
+
+**Why:** AIME ne doit pas reproduire les mini-sites spécialisés des concurrents ; sa différence est qu’une même page vivante organise, partage et relie les informations sans duplication.
+
+**How to apply:** Nommer la vue « Informations pratiques » et proposer dans la navigation des actions contextuelles comme participer et cagnotte. La cagnotte sert aux projets, dons associatifs et paiements vers un Profil, avec un bénéficiaire et des conditions explicites.

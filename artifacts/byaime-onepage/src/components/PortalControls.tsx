@@ -104,7 +104,7 @@ export function PortalControls() {
           <button onClick={() => setPanel(null)} className="rounded-full border border-white/15 px-4 py-2 text-xs text-white/65">Fermer</button>
         </div>
       </CenteredBlock>}
-      {panel === 'editor' && <CenteredBlock eyebrow="Éditeur du Monde" title="Modifier l’ouverture" description="Ces informations composent le hero privé et la base du mini-site." onClose={() => setPanel(null)} size="lg">
+      {panel === 'editor' && <CenteredBlock eyebrow="Éditeur du Monde" title="Modifier l’ouverture" description="Ces informations composent le hero et sa projection visible selon les droits de chacun." onClose={() => setPanel(null)} size="lg">
         <form className="space-y-5" onSubmit={event => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);

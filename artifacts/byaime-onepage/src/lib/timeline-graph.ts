@@ -122,12 +122,12 @@ export function applyPropagationPlan(project: WorldProject, plan: PropagationPla
   };
 }
 
-export type TimelineView = "chronological" | "mini-site" | "day-of" | "person" | "provider" | "music" | "logistics" | "collaborative" | "memories";
+export type TimelineView = "chronological" | "public-info" | "day-of" | "person" | "provider" | "music" | "logistics" | "collaborative" | "memories";
 export function filterTimeline(project: WorldProject, view: TimelineView) {
   if (view === "chronological") return [...project.timeline].sort((a, b) => a.time - b.time);
-  if (view === "mini-site") return project.timeline.filter(event => event.visibility === "audience").sort((a, b) => a.time - b.time);
+  if (view === "public-info") return project.timeline.filter(event => event.visibility === "audience").sort((a, b) => a.time - b.time);
   if (view === "day-of") return project.timeline.filter(e => e.phase === "pendant").sort((a, b) => a.time - b.time);
-  const kinds: Record<Exclude<TimelineView, "chronological" | "mini-site" | "day-of">, TimelineEntityKind[]> = {
+  const kinds: Record<Exclude<TimelineView, "chronological" | "public-info" | "day-of">, TimelineEntityKind[]> = {
     person: ["guest", "team"], provider: ["provider"], music: ["music"], logistics: ["logistics", "table"],
     collaborative: ["team", "message"], memories: ["memory"],
   };
