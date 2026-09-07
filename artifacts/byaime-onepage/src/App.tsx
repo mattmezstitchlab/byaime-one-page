@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from '@clerk/react';
+import { ClerkProvider, SignIn, SignUp, Show, useAuth, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
+import { trackEvent } from '@/lib/analytics';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 
 const queryClient = new QueryClient();
@@ -82,9 +83,20 @@ function HomeRedirect() {
 function Portal() {
   return <><Show when="signed-in"><Home /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }
+function SignUpPage() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const tracked = useRef(false);
+  useEffect(() => {
+    if (isLoaded && isSignedIn && !tracked.current) {
+      tracked.current = true;
+      trackEvent('account_created');
+    }
+  }, [isLoaded, isSignedIn]);
+  return <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />;
+}
 function AuthPage({ signup = false }: { signup?: boolean }) {
   return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="min-h-[100dvh] bg-black flex items-center justify-center px-4">{signup
-    ? <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
+    ? <SignUpPage />
     : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />}</div>;
 }
 function InvitePage({ params }: { params: { token: string } }) {
@@ -147,6 +159,7 @@ function RsvpPage({ params }: { params: { token: string } }) {
        }) }); const body = await response.json().catch(() => ({}));
        if (!response.ok) throw new Error(body.error || 'Réponse impossible à enregistrer');
        setDone(true);
+        if (state.status === 'confirmed') trackEvent('rsvp_confirmed');
      } catch (reason) {
        setError(reason instanceof Error ? reason.message : 'Réponse impossible à enregistrer');
        setStatus('error');

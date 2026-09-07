@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/react';
 import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
 import { normalizeProject } from '../lib/project-migration';
+import { trackEvent } from '@/lib/analytics';
 
 type ProjectStore = {
   project: WorldProject | null;
@@ -45,6 +46,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const hydratedRef = useRef(false);
   const previousUserRef = useRef<string | null | undefined>(undefined);
   const saveChainRef = useRef(Promise.resolve());
+  const projectCreationSourceRef = useRef<'created' | 'imported'>('created');
 
   const request = useCallback(async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, {
@@ -94,6 +96,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         const data = normalizeStoredProject(JSON.parse(legacy));
         const created = await request('/projects', { method: 'POST', body: JSON.stringify({ title: data.title, data }) });
         available = [created];
+         trackEvent('project_imported');
         localStorage.removeItem('aime-project');
       }
       if (cancelled) return;
@@ -142,6 +145,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           versionRef.current = created.updatedAt;
           setProject(prev => prev ? { ...prev, id: created.id } : prev);
           setProjects(prev => [...prev, { id: created.id, title: created.title, role: 'owner' }]);
+           trackEvent(projectCreationSourceRef.current === 'imported' ? 'project_imported' : 'project_created');
         } else {
           const updated = await request(`/projects/${project.id}`, {
             method: 'PUT',
@@ -172,6 +176,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const commitDraft = useCallback(() => {
     if (draft && intentionText) {
+      projectCreationSourceRef.current = 'created';
       const newProject = createInitialProject(draft, intentionText);
       setProject(newProject);
       setDraft(null);
@@ -180,6 +185,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, [draft, intentionText]);
 
   const createWeddingDemo = useCallback(() => {
+    projectCreationSourceRef.current = 'created';
     const example = "On se marie le 14 août 2027 près de Lille, 120 invités, ambiance champêtre avec un budget de 20 000€";
     const exampleDraft = parseIntention(example);
     setProject(createInitialProject(exampleDraft, example));
@@ -199,6 +205,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       throw new Error('Sauvegarde AIME invalide');
     }
     versionRef.current = undefined;
+    projectCreationSourceRef.current = 'imported';
     setProject(normalizeStoredProject(candidate as WorldProject));
   }, []);
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
 import { Download, Settings2, Upload, X } from 'lucide-react';
 import { useProject } from '@/store/project-store';
+import { trackEvent } from '@/lib/analytics';
 
 const labels = { local: 'Local', loading: 'Chargement…', saving: 'Enregistrement…', saved: 'Enregistré', error: 'Hors connexion', conflict: 'Conflit' };
 
@@ -32,12 +33,14 @@ export function PortalControls() {
   const exportCsv = () => {
     const quote = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
     download(['Nom,Contact,RSVP,Régime,Table', ...project.guests.map(g => [g.name, g.contact, g.rsvp, g.dietary, g.tableId].map(quote).join(','))].join('\n'), 'invites-aime.csv', 'text/csv');
+    trackEvent('project_exported', { format: 'csv' });
   };
   const invite = async () => {
     const email = prompt('Adresse e-mail de la personne à inviter');
     if (!email) return;
     const role = prompt('Rôle : planner, family ou viewer', 'family');
     await api(`/projects/${project.id}/invitations`, { method: 'POST', body: JSON.stringify({ email, role }) });
+    trackEvent('collaborator_invitation_sent');
     setNotice(`Invitation envoyée à ${email}`);
   };
   const sendMessage = async () => {
@@ -49,6 +52,7 @@ export function PortalControls() {
     await api(`/projects/${project.id}/messages`, { method: 'POST', body: JSON.stringify({
       kind: 'practical_info', recipients: recipients.split(',').map(v => v.trim()), subject, body, confirmed: true,
     }) });
+    trackEvent('message_sent');
     setNotice('Message envoyé');
   };
   const upload = async (file: File) => {
@@ -57,6 +61,7 @@ export function PortalControls() {
     if (!uploaded.ok) throw new Error('Échec du transfert vers App Storage');
     await api('/storage/files', { method: 'POST', body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath }) });
     setFiles(await api(`/projects/${project.id}/files`));
+    trackEvent('file_added');
     setNotice(`${file.name} ajouté à l'espace privé`);
   };
 
@@ -78,7 +83,7 @@ export function PortalControls() {
           <button onClick={() => void sendMessage().catch(e => setNotice(e.message))} className="action">Envoyer un e-mail</button>
           <button onClick={() => fileRef.current?.click()} className="action"><Upload className="h-4 w-4" /> Ajouter un fichier</button>
           <input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={e => e.target.files?.[0] && void upload(e.target.files[0]).catch(err => setNotice(err.message))} />
-          <a href={`/api/projects/${project.id}/export`} className="action"><Download className="h-4 w-4" /> Sauvegarde JSON</a>
+           <a href={`/api/projects/${project.id}/export`} onClick={() => trackEvent('project_exported', { format: 'json' })} className="action"><Download className="h-4 w-4" /> Sauvegarde JSON</a>
           <button onClick={exportCsv} className="action">Invités CSV</button>
           <button onClick={() => window.print()} className="action">Imprimer Jour J / tables</button>
           <button onClick={() => document.getElementById('backup-input')?.click()} className="action">Importer JSON</button>
