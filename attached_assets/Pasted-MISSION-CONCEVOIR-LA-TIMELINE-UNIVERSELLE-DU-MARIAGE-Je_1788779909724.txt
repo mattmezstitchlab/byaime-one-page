@@ -1,0 +1,725 @@
+MISSION — CONCEVOIR LA TIMELINE UNIVERSELLE DU MARIAGE
+
+Je veux que tu conçoives et implémentes une Timeline universelle, exhaustive, intelligente et collaborative, qui devient le système nerveux central de toute l’application mariage.
+
+Cette Timeline ne doit surtout pas être une simple liste de tâches ou un calendrier classique.
+
+Elle doit représenter l’histoire complète du mariage, depuis les premières intentions et préparatifs jusqu’aux souvenirs après l’événement.
+
+L’objectif est qu’un futur marié puisse arriver avec un projet quasiment vide et que le système puisse progressivement construire avec lui une organisation complète, cohérente et reliée.
+
+⸻
+
+1. LA TIMELINE COMME SOURCE CENTRALE DE VÉRITÉ
+
+La Timeline doit être pensée comme une colonne vertébrale.
+
+Chaque moment, événement, tâche ou étape peut être connecté à :
+
+* des personnes
+* des invités
+* des tables
+* des groupes
+* des prestataires
+* des lieux
+* des documents
+* des budgets
+* des paiements
+* des échéances
+* des contrats
+* de la musique
+* des médias
+* des messages
+* des équipes
+* de la logistique
+* des transports
+* des repas
+* des allergies
+* des souvenirs
+
+Une modification dans un élément doit pouvoir se propager intelligemment aux éléments concernés.
+
+Exemple :
+
+Si l’heure du cocktail change, les horaires des prestataires concernés, la musique associée, les transports, les invités concernés et les tâches dépendantes doivent pouvoir être identifiés.
+
+La Timeline doit donc fonctionner comme un graphe vivant d’événements et de relations, et non comme une succession isolée de blocs.
+
+⸻
+
+2. STRUCTURE UNIVERSELLE EN TROIS GRANDES PÉRIODES
+
+La Timeline doit couvrir intégralement :
+
+AVANT — PRÉPARER
+
+Toute la période précédant le mariage.
+
+Elle doit pouvoir s’adapter à différentes durées :
+
+* 24 mois avant
+* 18 mois avant
+* 12 mois avant
+* 9 mois avant
+* 6 mois avant
+* 3 mois avant
+* 1 mois avant
+* dernière semaine
+* veille
+
+Créer une structure universelle de préparation comprenant notamment :
+
+Vision et intention
+
+* définition du mariage
+* nombre approximatif d’invités
+* budget cible
+* style
+* ambiance
+* priorités
+* contraintes
+* inspirations
+* valeurs du couple
+
+Administratif
+
+* documents
+* contrats
+* assurances
+* mairie
+* cérémonie
+* obligations
+* échéances
+* autorisations
+
+Budget
+
+Chaque étape peut être reliée à :
+
+* budget prévu
+* devis
+* acompte
+* paiement
+* solde restant
+* échéance
+* prestataire associé
+* document associé
+
+Invités
+
+Prévoir :
+
+* liste complète
+* familles
+* amis
+* collègues
+* enfants
+* accompagnants
+* RSVP
+* régime alimentaire
+* allergies
+* hébergement
+* transport
+* présence aux différents moments
+
+Lieux
+
+* cérémonie
+* réception
+* cocktail
+* dîner
+* soirée
+* hébergements
+* parking
+* zones logistiques
+* accès
+
+Prestataires
+
+* traiteur
+* photographe
+* vidéaste
+* DJ
+* groupe
+* musiciens
+* fleuriste
+* wedding planner
+* transport
+* location
+* décoration
+* pâtissier
+* officiant
+* maquillage
+* coiffure
+
+Chaque prestataire doit être connecté aux moments précis de la Timeline où il intervient.
+
+Tenues et préparation personnelle
+
+* robe
+* costume
+* accessoires
+* coiffure
+* maquillage
+* essayages
+* retouches
+* récupération
+
+Musique
+
+Préparer progressivement :
+
+* cérémonie
+* entrées
+* sorties
+* cocktail
+* repas
+* animations
+* ouverture de bal
+* soirée
+* fin de soirée
+
+⸻
+
+3. LE JOUR J — UNE CHRONOLOGIE AU NIVEAU LE PLUS DÉTAILLÉ POSSIBLE
+
+Le Jour J doit pouvoir être visualisé à plusieurs niveaux.
+
+Niveau 1 — Vue globale
+
+Les grandes séquences :
+
+* préparation
+* arrivée des invités
+* cérémonie
+* sortie
+* photos
+* cocktail
+* repas
+* animations
+* ouverture de bal
+* soirée
+* fin de soirée
+* départs
+* clôture
+
+Niveau 2 — Vue opérationnelle
+
+Chaque séquence peut être découpée en événements détaillés.
+
+Exemple :
+
+Cérémonie
+
+* arrivée prestataires
+* installation technique
+* vérification musique
+* arrivée premiers invités
+* accueil
+* placement
+* arrivée famille
+* arrivée témoins
+* arrivée marié
+* entrée mariée
+* musique associée
+* discours
+* échange des alliances
+* signatures
+* sortie
+* musique de sortie
+* organisation photos
+
+Chaque événement doit avoir potentiellement :
+
+* heure de début
+* durée
+* heure de fin
+* responsable
+* personnes concernées
+* prestataires concernés
+* lieu
+* ressources nécessaires
+* musique
+* documents
+* budget éventuel
+* messages
+* tâches
+* dépendances
+
+⸻
+
+4. RELIER LA TIMELINE AUX INVITÉS
+
+La Timeline doit être directement connectée aux invités.
+
+Un invité peut avoir son propre parcours.
+
+Exemple :
+
+Marie arrive à 15h30
+
+Elle peut voir :
+
+* son heure d’arrivée
+* son lieu
+* son transport
+* sa table
+* son menu
+* ses allergies
+* les personnes avec lesquelles elle est placée
+* les moments auxquels elle est invitée
+* les messages qui lui sont destinés
+
+Le système doit pouvoir créer une vue :
+
+“Mon mariage”
+
+mais aussi :
+
+“Ma journée en tant qu’invité”
+
+Chaque invité ne doit voir que ce qui est pertinent pour lui.
+
+⸻
+
+5. PLAN DE TABLE INTELLIGENT
+
+Le plan de table doit être connecté à la Timeline.
+
+Chaque table et chaque personne peut contenir :
+
+* nom
+* famille
+* relations
+* contraintes
+* allergies
+* régime alimentaire
+* âge
+* enfants
+* préférences
+
+Le traiteur doit pouvoir accéder, selon ses droits, à une vue opérationnelle permettant de savoir :
+
+* qui mange quoi
+* allergies
+* régimes spécifiques
+* nombre de couverts
+* tables concernées
+
+Une modification dans les invités doit pouvoir mettre à jour automatiquement les données liées.
+
+⸻
+
+6. PRESTATAIRES CONNECTÉS À LA TIMELINE
+
+Chaque prestataire doit avoir une présence temporelle.
+
+Exemple :
+
+Photographe
+
+* arrivée : 9h00
+* préparation : 10h00
+* cérémonie : 15h00
+* cocktail : 17h00
+* dîner : 20h00
+* fin : 23h00
+
+Le système doit pouvoir générer automatiquement :
+
+* son planning
+* ses horaires
+* ses contacts
+* ses documents
+* ses tâches
+* ses instructions
+
+Chaque prestataire doit disposer d’une vue filtrée :
+
+“Ma journée”
+
+⸻
+
+7. LOGISTIQUE
+
+Créer un système logistique relié à la Timeline.
+
+Inclure :
+
+* transports
+* véhicules
+* chauffeurs
+* navettes
+* horaires
+* livraisons
+* installation
+* démontage
+* matériel
+* accès
+* parkings
+* hébergements
+
+Chaque élément logistique doit pouvoir être relié à un moment précis.
+
+⸻
+
+8. MUSIQUE — UN VÉRITABLE MOTEUR MUSICAL
+
+La musique ne doit pas être une simple liste de titres.
+
+Créer une véritable Timeline musicale synchronisée avec la Timeline du mariage.
+
+Chaque morceau peut être associé à :
+
+* un moment
+* une heure
+* une durée
+* une personne
+* une ambiance
+* un événement
+
+Prévoir une recherche musicale permettant de trouver :
+
+* titre
+* artiste
+* album
+* véritable cover
+* durée
+* aperçu audio lorsque légalement et techniquement disponible
+
+Chaque morceau doit pouvoir afficher :
+
+* la cover
+* le titre
+* l’artiste
+* un bouton Play
+* un aperçu audio réel lorsque disponible via une source/API autorisée
+
+La playlist doit pouvoir être organisée par :
+
+* cérémonie
+* cocktail
+* repas
+* animations
+* ouverture de bal
+* soirée
+
+Créer une logique de lecture continue :
+
+* morceau suivant
+* file d’attente
+* enchaînement
+* lecture automatique lorsque techniquement possible
+* mode manuel
+* contrôle par les personnes autorisées
+
+Important :
+
+Ne pas utiliser de faux boutons Play ou de fausses covers.
+
+Connecter cette fonctionnalité à de vraies sources musicales/API autorisées.
+
+Prévoir également une bibliothèque de suggestions basée sur les morceaux généralement utilisés lors des mariages.
+
+Le système doit proposer des playlists adaptables selon :
+
+* âge des invités
+* génération
+* ambiance
+* pays
+* culture
+* style musical
+
+⸻
+
+9. APPLICATION COLLABORATIVE POUR LES INVITÉS
+
+Les invités doivent pouvoir participer au mariage.
+
+Selon leurs autorisations, ils peuvent :
+
+* confirmer leur présence
+* répondre à des questions
+* indiquer leurs allergies
+* partager des photos
+* partager des vidéos
+* proposer des musiques
+* envoyer des messages
+* répondre à des missions
+* consulter leur programme
+* participer aux souvenirs
+
+La collaboration doit fonctionner avant, pendant et après le mariage.
+
+⸻
+
+10. MESSAGES ET COMMUNICATIONS LIÉS À LA TIMELINE
+
+Créer un système de messages contextualisés.
+
+Un message peut être associé à :
+
+* une date
+* un moment
+* un événement
+* une personne
+* un groupe
+* un prestataire
+
+Exemple :
+
+“Le cocktail commence dans 15 minutes.”
+
+Le système doit pouvoir permettre :
+
+* messages manuels
+* notifications
+* rappels
+* messages automatiques
+
+Tout doit rester relié à l’événement correspondant.
+
+⸻
+
+11. L’ÉQUIPE
+
+Créer une couche “Équipe”.
+
+Les rôles peuvent inclure :
+
+* mariés
+* témoins
+* famille
+* wedding planner
+* coordinateur
+* prestataires
+* bénévoles
+
+Chaque personne peut recevoir :
+
+* missions
+* horaires
+* notifications
+* accès à certains événements
+
+Chaque membre doit pouvoir disposer d’une vue :
+
+“Ce que je dois faire maintenant”
+
+⸻
+
+12. APRÈS LE MARIAGE
+
+La Timeline ne doit pas s’arrêter à minuit.
+
+Créer une période :
+
+APRÈS — PROLONGER ET TRANSMETTRE
+
+Inclure :
+
+* récupération photos
+* récupération vidéos
+* partage souvenirs
+* messages de remerciement
+* retours prestataires
+* derniers paiements
+* récupération matériel
+* nettoyage
+* statistiques
+* création album
+* création film souvenir
+
+Les invités doivent pouvoir déposer leurs souvenirs sur les moments correspondants de la Timeline.
+
+Exemple :
+
+Photo déposée sur “Sortie de cérémonie — 16h42”
+
+Les souvenirs doivent progressivement reconstruire une mémoire collective du mariage.
+
+⸻
+
+13. LE BLOC “QUE SOUHAITEZ-VOUS FAIRE ?” DOIT DEVENIR UN AGENT AGENTIC
+
+Le bloc :
+
+“Que souhaitez-vous faire ?”
+
+ne doit pas être un simple champ de recherche ou un chatbot.
+
+Il doit devenir un agent agentic central capable d’agir sur l’ensemble du système.
+
+L’utilisateur doit pouvoir écrire naturellement :
+
+“Ajoute 20 personnes à la liste des invités.”
+
+“Décale le cocktail de 30 minutes.”
+
+“Trouve-moi les tâches qu’il reste à faire.”
+
+“Prépare le planning du photographe.”
+
+“Analyse les allergies pour le traiteur.”
+
+“Réorganise la Timeline pour éviter les conflits.”
+
+“Prépare une playlist pour une soirée de mariage intergénérationnelle.”
+
+L’agent doit être capable de :
+
+1. comprendre l’intention
+2. identifier les données concernées
+3. rechercher les relations
+4. proposer un plan d’action
+5. exécuter les modifications autorisées
+6. expliquer les conséquences
+7. demander validation lorsque nécessaire
+
+L’agent doit pouvoir agir sur :
+
+* Timeline
+* invités
+* plan de table
+* prestataires
+* budget
+* documents
+* musique
+* logistique
+* messages
+* équipe
+* souvenirs
+
+Il doit fonctionner comme un véritable chef d’orchestre numérique du mariage.
+
+⸻
+
+14. PRINCIPE DE CONCEPTION TECHNIQUE
+
+Ne pas construire cette fonctionnalité comme une collection de pages indépendantes.
+
+Construire un modèle de données central où les entités peuvent être reliées.
+
+Conceptuellement :
+
+* TimelineEvent
+* Person
+* Guest
+* TeamMember
+* Vendor
+* Venue
+* Table
+* Meal
+* Allergy
+* BudgetItem
+* Payment
+* Document
+* Task
+* Message
+* MediaAsset
+* MusicTrack
+* Playlist
+* LogisticsItem
+* Memory
+
+Les relations doivent être natives.
+
+Un événement de Timeline doit pouvoir référencer plusieurs entités.
+
+Une entité doit également pouvoir retrouver tous les événements auxquels elle est liée.
+
+⸻
+
+15. EXPÉRIENCE UTILISATEUR
+
+La Timeline doit pouvoir être explorée selon plusieurs modes :
+
+Vue Chronologique
+
+La grande histoire complète du mariage.
+
+Vue Jour J
+
+Une Timeline opérationnelle détaillée minute par minute.
+
+Vue Personne
+
+Le parcours d’un invité ou d’un membre de l’équipe.
+
+Vue Prestataire
+
+Les interventions et obligations d’un professionnel.
+
+Vue Musique
+
+La partition musicale complète du mariage.
+
+Vue Logistique
+
+Les mouvements, livraisons et installations.
+
+Vue Collaborative
+
+Ce qui nécessite une action humaine.
+
+Vue Souvenirs
+
+La reconstruction de la mémoire du mariage.
+
+⸻
+
+OBJECTIF FINAL
+
+Je ne veux pas une application avec plusieurs modules isolés.
+
+Je veux un organisme vivant et connecté.
+
+Le mariage doit exister comme un monde numérique cohérent dans lequel :
+
+un changement dans un endroit peut révéler ou impacter les autres éléments concernés.
+
+La Timeline est la dimension temporelle de ce monde.
+
+Les personnes sont sa dimension humaine.
+
+Les prestataires et ressources sont sa dimension opérationnelle.
+
+Le budget est sa dimension financière.
+
+Les documents sont sa mémoire administrative.
+
+La musique est sa dimension émotionnelle.
+
+Les messages sont sa dimension communicationnelle.
+
+Les souvenirs deviennent sa mémoire collective.
+
+L’agent “Que souhaitez-vous faire ?” est le cerveau capable de comprendre une intention et de coordonner ces dimensions.
+
+⸻
+
+DIRECTIVE D’IMPLÉMENTATION
+
+Avant de modifier massivement l’interface :
+
+1. analyser l’architecture existante
+2. identifier les modèles de données déjà présents
+3. conserver ce qui fonctionne
+4. identifier les relations manquantes
+5. renforcer le modèle central plutôt que créer des données dupliquées
+6. concevoir la Timeline comme une infrastructure réutilisable
+7. rendre les fonctionnalités progressivement opérationnelles
+8. ne jamais simuler une fonctionnalité présentée comme réelle
+9. distinguer clairement les données réelles, les données de démonstration et les intégrations nécessitant une configuration
+10. vérifier que chaque module est réellement relié aux autres
+
+À la fin, produire un audit indiquant :
+
+* ce qui est déjà fonctionnel
+* ce qui est réellement connecté
+* ce qui est encore isolé
+* les données de démonstration restantes
+* les intégrations externes nécessaires
+* les prochaines priorités techniques
+
+La réussite du projet sera mesurée non pas au nombre d’écrans créés, mais au niveau réel de connexion entre les données, les événements, les personnes et les actions.
