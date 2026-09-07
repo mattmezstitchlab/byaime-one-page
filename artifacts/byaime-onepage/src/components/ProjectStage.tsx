@@ -9,7 +9,7 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Settings, UserCheck } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Settings, UserCheck, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -697,6 +697,11 @@ export function ProjectStage() {
       {aimeMenuOpen && (
         <CenteredBlock eyebrow="AIME" title="Le point d’entrée" description="Comprendre le concept, apprendre à utiliser AIME, obtenir de l’aide ou retrouver les réglages globaux." onClose={() => setAimeMenuOpen(false)}>
           <div className="divide-y divide-white/8">
+            <Link href={`/profil/${project.id}`} onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
+              <UserRound className="h-4 w-4 text-white/35" />
+              <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/80">Profil</span><span className="mt-1 block text-xs font-light text-white/35">Voir la projection de votre identité, de vos Moments et de vos liens.</span></span>
+              <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            </Link>
             <Link href="/concept" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
               <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/80">Découvrir AIME</span><span className="mt-1 block text-xs font-light text-white/35">Profil, Monde, Kit et AI · + · ME.</span></span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
             </Link>
