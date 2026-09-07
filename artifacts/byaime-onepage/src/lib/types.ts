@@ -31,6 +31,10 @@ export type Guest = {
   id: string;
   name: string;
   householdId?: string;
+  adults?: number;
+  children?: number;
+  plusOne?: boolean;
+  invitationSent?: boolean;
   role: GuestRole;
   rsvp: GuestRSVP;
   dietary?: string;
@@ -68,6 +72,8 @@ export type Payment = {
   at: number;
   state: "paye" | "du";
   providerId?: string;
+  category?: string;
+  dueDate?: number;
 };
 
 export type Document = {
@@ -87,11 +93,71 @@ export type Communication = {
   status: CommunicationStatus;
   sentAt?: number;
   audience: string;
+  body?: string;
 };
 
 export type Logistics = {
   accommodations: { id: string; name: string; capacity: number; booked: number; address: string; }[];
   shuttles: { id: string; route: string; departure: string; capacity: number; }[];
+  parking: string;
+  accessibility: string;
+  weatherFallback: string;
+  emergencyContacts: { id: string; name: string; phone: string; role: string }[];
+  packing: { id: string; label: string; done: boolean }[];
+};
+
+export type CeremonyContent = {
+  structure: string[];
+  notes: string;
+  readings: { id: string; title: string; reader: string; text: string }[];
+  vows: { id: string; person: string; text: string }[];
+  traditions: string[];
+  menu: string;
+  drinks: string;
+  cake: string;
+  firstDance: string;
+};
+
+export type MusicTrack = {
+  id: string;
+  moment: string;
+  title: string;
+  artist: string;
+  status: "a_choisir" | "valide";
+  notes?: string;
+};
+
+export type TeamRole = {
+  id: string;
+  name: string;
+  role: string;
+  contact?: string;
+  responsibilities: string[];
+};
+
+export type MemoryItem = {
+  id: string;
+  kind: "shot" | "media" | "message" | "album" | "rappel";
+  title: string;
+  owner?: string;
+  status: "a_faire" | "en_cours" | "termine";
+  notes?: string;
+};
+
+export type MessageTemplate = {
+  id: string;
+  title: string;
+  type: "invitation" | "rappel" | "pratique" | "remerciement" | "prestataire";
+  body: string;
+};
+
+export type MessageLog = {
+  id: string;
+  templateId?: string;
+  recipient: string;
+  sentAt: number;
+  status: "simule" | "brouillon";
+  note?: string;
 };
 
 export type TimelineStatus = "prepare" | "execute" | "en_attente" | "a_valider" | "bloque" | "echoue";
@@ -104,6 +170,10 @@ export type TimelineEvent = {
   detail?: string;
   amountCents?: number;
   location?: string;
+  responsible?: string;
+  vendor?: string;
+  notes?: string;
+  delayMinutes?: number;
   status: TimelineStatus;
   confidence: Confidence;
   phase: "avant" | "pendant" | "apres";
@@ -131,6 +201,14 @@ export type WorldProject = {
   documents: Document[];
   communications: Communication[];
   logistics: Logistics;
+  ceremony: CeremonyContent;
+  music: MusicTrack[];
+  team: TeamRole[];
+  memories: MemoryItem[];
+  messageTemplates: MessageTemplate[];
+  messageLogs: MessageLog[];
+  media: MemoryItem[];
+  messages: MessageLog[];
   
   missing: string[];
 };

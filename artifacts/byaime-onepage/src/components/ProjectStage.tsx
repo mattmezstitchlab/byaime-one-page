@@ -45,6 +45,16 @@ export function ProjectStage() {
     return { booked, open, engaged };
   }, [project]);
 
+  const nextTask = useMemo(() => {
+    if (!project) return undefined;
+    return project.tasks
+      .filter(task => task.status !== 'termine')
+      .sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority === 'haute' ? -1 : b.priority === 'haute' ? 1 : 0;
+        return (a.dueDate ?? Number.MAX_SAFE_INTEGER) - (b.dueDate ?? Number.MAX_SAFE_INTEGER);
+      })[0];
+  }, [project]);
+
   if (!project) return null;
 
   return (
@@ -138,7 +148,7 @@ export function ProjectStage() {
           </motion.div>
           
           {/* Prochaine étape */}
-          {project.tasks.find(t => t.status === 'a_faire') && (
+          {nextTask && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -151,10 +161,16 @@ export function ProjectStage() {
                   <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-white">{project.tasks.find(t => t.status === 'a_faire')?.title}</div>
-                  <div className="text-xs text-white/40 mt-0.5">Priorité {project.tasks.find(t => t.status === 'a_faire')?.priority}</div>
+                  <div className="text-sm font-medium text-white">{nextTask.title}</div>
+                  <div className="text-xs text-white/40 mt-0.5">Priorité {nextTask.priority}{nextTask.dueDate ? ` · avant le ${format(nextTask.dueDate, 'd MMMM', { locale: fr })}` : ''}</div>
                 </div>
               </div>
+            </motion.div>
+          )}
+          {project.missing.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-white/55">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
+              <span><span className="text-white/75">Suggestion AIME :</span> préciser {project.missing[0]}{project.missing.length > 1 ? ` et ${project.missing.length - 1} autre${project.missing.length > 2 ? 's' : ''}` : ''} pour fiabiliser la suite.</span>
             </motion.div>
           )}
         </div>

@@ -105,22 +105,22 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
 
     tasks: isWedding ? [
       { id: "tk1", title: "Définir le budget global", phase: "12m+", status: "termine", priority: "haute" },
-      { id: "tk2", title: "Trouver le lieu de réception", phase: "12m+", status: "en_cours", priority: "haute" },
-      { id: "tk3", title: "Créer la liste d'invités préliminaire", phase: "12m+", status: "en_cours", priority: "normale" },
-      { id: "tk4", title: "Réserver le photographe", phase: "6-12m", status: "a_faire", priority: "haute" },
+      { id: "tk2", title: "Trouver le lieu de réception", phase: "12m+", status: "en_cours", priority: "haute", owner: "Les deux", dueDate: pivotTime - 300 * 86400000 },
+      { id: "tk3", title: "Créer la liste d'invités préliminaire", phase: "12m+", status: "en_cours", priority: "normale", owner: "Élise", dueDate: pivotTime - 270 * 86400000 },
+      { id: "tk4", title: "Réserver le photographe", phase: "6-12m", status: "a_faire", priority: "haute", owner: "Paul", dueDate: pivotTime - 240 * 86400000 },
       { id: "tk5", title: "Choisir le traiteur", phase: "6-12m", status: "a_faire", priority: "haute" },
       { id: "tk6", title: "Envoyer les Save the Date", phase: "6-12m", status: "a_faire", priority: "normale" },
       { id: "tk7", title: "Choisir la robe / le costume", phase: "6-12m", status: "a_faire", priority: "haute" },
       { id: "tk8", title: "Planifier la cérémonie laïque", phase: "3-6m", status: "a_faire", priority: "normale" },
       { id: "tk9", title: "Envoyer les faire-part", phase: "3-6m", status: "a_faire", priority: "haute" },
-      { id: "tk10", title: "Finaliser le plan de table", phase: "1-3m", status: "a_faire", priority: "haute" },
+      { id: "tk10", title: "Finaliser le plan de table", phase: "1-3m", status: "a_faire", priority: "haute", owner: "Élise", dueDate: pivotTime - 30 * 86400000 },
     ] : [],
 
     guests: isWedding ? [
       { id: "g1", name: "Sophie Martin", role: "temoin", rsvp: "confirme", dietary: "Végétarien", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: true } },
       { id: "g2", name: "Lucas Dubois", role: "temoin", rsvp: "confirme", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: true } },
-      { id: "g3", name: "Marie Laurent", role: "famille", rsvp: "en_attente", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false } },
-      { id: "g4", name: "Jean Laurent", role: "famille", rsvp: "en_attente", dietary: "Sans gluten", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false } },
+      { id: "g3", name: "Marie Laurent", role: "famille", householdId: "h2", adults: 1, children: 0, plusOne: false, invitationSent: true, rsvp: "en_attente", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false } },
+      { id: "g4", name: "Jean Laurent", role: "famille", householdId: "h2", adults: 1, children: 0, plusOne: false, invitationSent: true, rsvp: "en_attente", dietary: "Sans gluten", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false } },
       { id: "g5", name: "Hugo Bernard", role: "invite", rsvp: "confirme", tableId: "tb1", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false } },
       { id: "g6", name: "Camille Petit", role: "invite", rsvp: "decline", attendance: { ceremony: false, cocktail: false, dinner: false, brunch: false } },
     ] : [],
@@ -162,9 +162,60 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
       shuttles: isWedding ? [
         { id: "s1", route: "Domaine -> Hôtels", departure: "02:00", capacity: 50 },
         { id: "s2", route: "Domaine -> Hôtels", departure: "04:00", capacity: 50 },
+      ] : [],
+      parking: isWedding ? "Parking visiteurs à 250 m du domaine. Navette PMR sur demande." : "",
+      accessibility: isWedding ? "Accès de plain-pied à la salle, rampe côté jardin, chambre PMR à réserver." : "",
+      weatherFallback: isWedding ? "Repli du cocktail sous la verrière. Prévoir 40 chaises supplémentaires." : "",
+      emergencyContacts: isWedding ? [
+        { id: "ec1", name: "Claire Martin", phone: "06 42 18 73 20", role: "Coordination jour J" },
+        { id: "ec2", name: "Domaine de la Tour", phone: "03 20 54 18 90", role: "Lieu" }
+      ] : [],
+      packing: isWedding ? [
+        { id: "pk1", label: "Urne et livre d'or", done: false },
+        { id: "pk2", label: "Alliances", done: false },
+        { id: "pk3", label: "Kit retouches et urgence", done: true },
+        { id: "pk4", label: "Signalétique et plans de table", done: false }
       ] : []
     },
 
-    missing: []
+    ceremony: isWedding ? {
+      structure: ["Accueil des invités", "Entrée des mariés", "Lecture de Sophie", "Échange des vœux", "Échange des alliances", "Signature", "Sortie"],
+      notes: "Une cérémonie laïque courte, intime et lumineuse. Prévoir un pupitre et deux chaises pour les témoins.",
+      readings: [{ id: "r1", title: "Lecture à choisir", reader: "Sophie Martin", text: "À compléter avec un texte qui vous ressemble." }],
+      vows: [{ id: "v1", person: "Élise", text: "" }, { id: "v2", person: "Paul", text: "" }],
+      traditions: ["Échange des alliances", "Discours des témoins"],
+      menu: "Entrée fraîche · plat végétal ou volaille · dessert de saison",
+      drinks: "Champagne à l'arrivée, vins du domaine, bar sans alcool",
+      cake: "Pièce montée aux fruits rouges",
+      firstDance: "À choisir"
+    } : { structure: [], notes: "", readings: [], vows: [], traditions: [], menu: "", drinks: "", cake: "", firstDance: "" },
+    music: isWedding ? [
+      { id: "m1", moment: "Entrée des mariés", title: "À choisir", artist: "", status: "a_choisir" },
+      { id: "m2", moment: "Cérémonie · sortie", title: "Home", artist: "Edward Sharpe & The Magnetic Zeros", status: "valide" },
+      { id: "m3", moment: "Ouverture du bal", title: "À choisir", artist: "", status: "a_choisir" },
+      { id: "m4", moment: "Fin de soirée", title: "Playlist libre", artist: "", status: "valide", notes: "Prévoir un set dansant, sans obligation de décennie." }
+    ] : [],
+    team: isWedding ? [
+      { id: "tm1", name: "Élise & Paul", role: "Couple", contact: "", responsibilities: ["Décisions finales", "Vœux", "Invités"] },
+      { id: "tm2", name: "Claire Martin", role: "Coordination jour J", contact: "06 42 18 73 20", responsibilities: ["Run sheet", "Prestataires", "Urgences"] },
+      { id: "tm3", name: "Sophie Martin", role: "Témoin", contact: "", responsibilities: ["Lecture", "Livre d'or", "Kit urgence"] }
+    ] : [],
+    memories: isWedding ? [
+      { id: "mm1", kind: "shot", title: "Portraits des grands-parents", owner: "Photographe", status: "a_faire" },
+      { id: "mm2", kind: "shot", title: "Photo de groupe complète", owner: "Claire", status: "a_faire" },
+      { id: "mm3", kind: "album", title: "Choisir les photos de l'album", owner: "Les deux", status: "a_faire" },
+      { id: "mm4", kind: "rappel", title: "Anniversaire de mariage · 1 an", owner: "AIME", status: "a_faire" }
+    ] : [],
+    messageTemplates: isWedding ? [
+      { id: "mt1", title: "Relance RSVP", type: "rappel", body: "Bonjour, petit rappel pour confirmer votre présence avant le 15 juin. À très vite !" },
+      { id: "mt2", title: "Informations pratiques", type: "pratique", body: "Retrouvez ici les horaires, l'adresse, le parking et les navettes." },
+      { id: "mt3", title: "Merci pour votre présence", type: "remerciement", body: "Merci d'avoir partagé cette journée avec nous. Votre présence nous a beaucoup touchés." }
+    ] : [],
+    messageLogs: isWedding ? [
+      { id: "ml1", templateId: "mt1", recipient: "Marie Laurent", sentAt: Date.now() - 3 * 86400000, status: "simule", note: "Envoi local simulé" }
+    ] : [],
+    media: [],
+    messages: [],
+    missing: isWedding ? ["Adresse définitive du lieu", "Choix de la musique d'entrée", "Texte des vœux"] : []
   };
 }

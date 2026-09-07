@@ -1,124 +1,26 @@
-import { useState } from 'react';
-import { useProject } from '@/store/project-store';
-import { Users, Mail, Phone, CalendarDays, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Guest } from '@/lib/types';
+import { useState } from "react";
+import { useProject } from "@/store/project-store";
+import { CheckCircle2, Plus, Search, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Guest } from "@/lib/types";
 
 export function GuestPanel() {
-  const { project, updateEntity } = useProject();
-  const [tab, setTab] = useState<'liste' | 'tables'>('liste');
-  
+  const { project, updateEntity, addEntity, removeEntity } = useProject();
+  const [tab, setTab] = useState<"liste" | "tables">("liste");
+  const [query, setQuery] = useState("");
   if (!project) return null;
-
-  const guests = project.guests;
-  const stats = {
-    total: guests.length,
-    confirmed: guests.filter(g => g.rsvp === 'confirme').length,
-    pending: guests.filter(g => g.rsvp === 'en_attente').length,
-    declined: guests.filter(g => g.rsvp === 'decline').length,
-  };
-
-  const getTable = (guest: Guest) => project.tables.find(t => t.id === guest.tableId);
-
-  return (
-    <div className="max-w-4xl mx-auto flex flex-col h-full">
-      {/* Header Stats */}
-      <div className="grid grid-cols-4 gap-2 mb-8">
-        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl text-center">
-          <div className="text-2xl font-light">{stats.total}</div>
-          <div className="text-[10px] uppercase tracking-wider text-white/50 mt-1">Invités</div>
-        </div>
-        <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl text-center text-emerald-400">
-          <div className="text-2xl font-light">{stats.confirmed}</div>
-          <div className="text-[10px] uppercase tracking-wider opacity-60 mt-1">Confirmés</div>
-        </div>
-        <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl text-center text-amber-400">
-          <div className="text-2xl font-light">{stats.pending}</div>
-          <div className="text-[10px] uppercase tracking-wider opacity-60 mt-1">En attente</div>
-        </div>
-        <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl text-center text-rose-400">
-          <div className="text-2xl font-light">{stats.declined}</div>
-          <div className="text-[10px] uppercase tracking-wider opacity-60 mt-1">Absents</div>
-        </div>
-      </div>
-
-      <div className="flex bg-white/5 p-1 rounded-full w-fit mb-6">
-        <button 
-          onClick={() => setTab('liste')}
-          className={cn("px-4 py-1.5 rounded-full text-xs font-medium transition-colors", tab === 'liste' ? "bg-white text-black" : "text-white/60 hover:text-white")}
-        >
-          Liste complète
-        </button>
-        <button 
-          onClick={() => setTab('tables')}
-          className={cn("px-4 py-1.5 rounded-full text-xs font-medium transition-colors", tab === 'tables' ? "bg-white text-black" : "text-white/60 hover:text-white")}
-        >
-          Plan de table
-        </button>
-      </div>
-
-      {tab === 'liste' && (
-        <div className="space-y-2 overflow-y-auto pb-20 scrollbar-none">
-          {guests.map(guest => (
-            <div key={guest.id} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors">
-              <div>
-                <div className="font-medium text-sm flex items-center gap-2">
-                  {guest.name}
-                  {guest.role !== 'invite' && (
-                    <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/10 text-white/70">
-                      {guest.role}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 mt-1.5 text-xs text-white/50">
-                  <span className={cn(
-                    "flex items-center gap-1",
-                    guest.rsvp === 'confirme' ? "text-emerald-400" :
-                    guest.rsvp === 'decline' ? "text-rose-400" : "text-amber-400"
-                  )}>
-                    <CheckCircle2 className="w-3 h-3" />
-                    {guest.rsvp.replace('_', ' ')}
-                  </span>
-                  {guest.dietary && (
-                    <span className="border-l border-white/20 pl-3">{guest.dietary}</span>
-                  )}
-                  {guest.tableId && (
-                    <span className="border-l border-white/20 pl-3">{getTable(guest)?.name}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'tables' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-20">
-          {project.tables.map(table => {
-            const tableGuests = guests.filter(g => g.tableId === table.id);
-            return (
-              <div key={table.id} className="border border-white/10 bg-white/5 rounded-2xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-sm">{table.name}</h4>
-                  <span className="text-xs text-white/40">{tableGuests.length} / {table.capacity} places</span>
-                </div>
-                <div className="space-y-1.5">
-                  {tableGuests.map(g => (
-                    <div key={g.id} className="text-sm text-white/80 py-1 border-b border-white/5 last:border-0">
-                      {g.name}
-                    </div>
-                  ))}
-                  {Array.from({ length: Math.max(0, table.capacity - tableGuests.length) }).map((_, i) => (
-                    <div key={i} className="text-sm text-white/20 py-1 border-b border-white/5 last:border-0 italic">
-                      Place libre
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+  const guests = project.guests.filter(g => g.name.toLowerCase().includes(query.toLowerCase()) || (g.dietary || "").toLowerCase().includes(query.toLowerCase()));
+  const counts = [project.guests.length, project.guests.filter(g => g.rsvp === "confirme").length, project.guests.filter(g => g.rsvp === "en_attente").length, project.guests.filter(g => g.rsvp === "decline").length];
+  return <div className="mx-auto flex max-w-4xl flex-col">
+    <div className="mb-5 grid grid-cols-4 gap-2">{counts.map((count, i) => <div key={i} className={cn("rounded-2xl border p-3 text-center", i === 1 ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-300" : i === 2 ? "border-amber-400/20 bg-amber-400/5 text-amber-300" : "border-white/10 bg-white/[.035]")}><div className="text-xl font-light">{count}</div><div className="mt-1 text-[9px] uppercase tracking-widest text-white/45">{["Invités", "Confirmés", "En attente", "Absents"][i]}</div></div>)}</div>
+    <div className="mb-5 flex flex-wrap gap-2"><div className="flex flex-1 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 min-w-40"><Search className="h-3.5 w-3.5 text-white/40" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Nom, foyer, régime…" className="w-full bg-transparent py-2 text-sm outline-none" /></div><button onClick={() => addEntity("guests", { name: "Nouvel invité", role: "invite", adults: 1, children: 0, plusOne: false, invitationSent: false, rsvp: "en_attente", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false } })} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 text-xs hover:bg-white hover:text-black"><Plus className="h-3.5 w-3.5" />Ajouter</button></div>
+    <div className="mb-5 flex w-fit rounded-full bg-white/5 p-1"><button onClick={() => setTab("liste")} className={cn("rounded-full px-4 py-1.5 text-xs", tab === "liste" ? "bg-white text-black" : "text-white/60")}>Liste complète</button><button onClick={() => setTab("tables")} className={cn("rounded-full px-4 py-1.5 text-xs", tab === "tables" ? "bg-white text-black" : "text-white/60")}>Plan de table</button></div>
+    {tab === "liste" ? <div className="space-y-2 pb-10">{guests.length === 0 ? <EmptyGuest /> : guests.map(guest => <GuestRow key={guest.id} guest={guest} tables={project.tables} onEdit={u => updateEntity("guests", guest.id, u)} onDelete={() => removeEntity("guests", guest.id)} />)}</div> : <div className="grid gap-4 pb-10 md:grid-cols-2">{project.tables.map(table => { const seated = project.guests.filter(g => g.tableId === table.id); return <div key={table.id} className="rounded-2xl border border-white/10 bg-white/[.035] p-4"><div className="flex items-center justify-between"><input value={table.name} onChange={e => updateEntity("tables", table.id, { name: e.target.value })} className="w-full bg-transparent text-sm outline-none" /><button onClick={() => { seated.forEach(g => updateEntity("guests", g.id, { tableId: undefined })); removeEntity("tables", table.id); }} className="text-white/30 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button></div><div className="mt-1 flex items-center gap-2 text-xs text-white/40"><input type="number" min="1" value={table.capacity} onChange={e => updateEntity("tables", table.id, { capacity: Number(e.target.value) })} className="w-10 bg-transparent outline-none" /> places · {seated.length} occupées</div><div className="mt-4 space-y-2">{seated.map(g => <div key={g.id} className="flex items-center justify-between rounded-lg bg-black/20 px-3 py-2 text-sm"><span>{g.name}</span><button onClick={() => updateEntity("guests", g.id, { tableId: undefined })} className="text-xs text-white/35 hover:text-white">retirer</button></div>)}</div></div>})}<button onClick={() => addEntity("tables", { name: `Table ${project.tables.length + 1}`, capacity: 8 })} className="min-h-32 rounded-2xl border border-dashed border-white/15 text-sm text-white/45 hover:border-white/30 hover:text-white"><Plus className="mx-auto mb-2 h-5 w-5" />Nouvelle table</button></div>}
+  </div>;
 }
+
+function GuestRow({ guest, tables, onEdit, onDelete }: { guest: Guest; tables: { id: string; name: string }[]; onEdit: (u: Partial<Guest>) => void; onDelete: () => void }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[.035] p-4"><div className="flex items-center gap-3"><div className="flex-1"><input value={guest.name} onChange={e => onEdit({ name: e.target.value })} className="w-full bg-transparent text-sm font-medium outline-none" /><div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/40"><span className={cn(guest.rsvp === "confirme" ? "text-emerald-300" : guest.rsvp === "decline" ? "text-rose-300" : "text-amber-300")}><CheckCircle2 className="mr-1 inline h-3 w-3" />{guest.rsvp.replace("_", " ")}</span>{guest.contact && <span>{guest.contact}</span>}</div></div><button onClick={onDelete} className="text-white/25 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4"><select value={guest.rsvp} onChange={e => onEdit({ rsvp: e.target.value as Guest["rsvp"] })} className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none"><option value="en_attente">En attente</option><option value="confirme">Confirmé</option><option value="decline">Absent</option></select><input value={guest.dietary || ""} onChange={e => onEdit({ dietary: e.target.value })} placeholder="Régime" className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none" /><select value={guest.tableId || ""} onChange={e => onEdit({ tableId: e.target.value || undefined })} className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none"><option value="">Sans table</option>{tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select><input value={guest.contact || ""} onChange={e => onEdit({ contact: e.target.value })} placeholder="Contact" className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none" /><input type="number" min="0" value={guest.children || 0} onChange={e => onEdit({ children: Number(e.target.value) })} placeholder="Enfants" className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none" /><label className="flex items-center gap-2 rounded-lg bg-white/10 px-2 py-2 text-xs"><input type="checkbox" checked={Boolean(guest.plusOne)} onChange={e => onEdit({ plusOne: e.target.checked })} />+1</label><label className="flex items-center gap-2 rounded-lg bg-white/10 px-2 py-2 text-xs"><input type="checkbox" checked={Boolean(guest.invitationSent)} onChange={e => onEdit({ invitationSent: e.target.checked })} />Faire-part</label></div></div>;
+}
+
+function EmptyGuest() { return <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center text-sm text-white/40">Aucun invité ne correspond à cette recherche.</div>; }

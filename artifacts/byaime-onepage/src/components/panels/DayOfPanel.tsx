@@ -1,24 +1,16 @@
-import { useProject } from '@/store/project-store';
-import { UniversalTimeline } from '../UniversalTimeline';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { useProject } from "@/store/project-store";
+import { Plus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { TimelineEvent } from "@/lib/types";
 
 export function DayOfPanel() {
-  const { project } = useProject();
+  const { project, updateEntity, addEntity, removeEntity } = useProject();
   if (!project) return null;
+  const events = project.timeline.filter(e => e.phase === "pendant").sort((a, b) => a.time - b.time);
+  const addEvent = () => addEntity("timeline", { time: project.pivot.value, kind: "evenement", title: "Nouveau temps fort", status: "prepare", confidence: "confirme", phase: "pendant", universe: project.universe });
+  return <div className="mx-auto max-w-4xl space-y-5 pb-10"><div className="flex items-center justify-between"><div><h4 className="text-2xl font-display font-light">Le déroulé du Jour J</h4><p className="mt-1 text-sm text-white/45">{new Date(project.pivot.value).toLocaleDateString("fr-FR", { dateStyle: "full" })}</p></div><button onClick={addEvent} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-xs hover:bg-white hover:text-black"><Plus className="h-3.5 w-3.5" />Ajouter</button></div>{events.length === 0 ? <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center text-sm text-white/40">Le run sheet est vide.</div> : <div className="space-y-3">{events.map(event => <RunSheetRow key={event.id} event={event} onEdit={u => updateEntity("timeline", event.id, u)} onDelete={() => removeEntity("timeline", event.id)} />)}</div>}</div>;
+}
 
-  const dayOfEvents = project.timeline.filter(e => e.phase === 'pendant').sort((a, b) => a.time - b.time);
-
-  return (
-    <div className="max-w-3xl mx-auto pb-20">
-      <div className="text-center mb-8">
-        <h4 className="text-2xl font-display font-light">Le Déroulé du Jour J</h4>
-        <p className="text-white/50 text-sm mt-2">
-          {format(project.pivot.value, 'EEEE d MMMM yyyy', { locale: fr })}
-        </p>
-      </div>
-      
-      <UniversalTimeline events={dayOfEvents} />
-    </div>
-  );
+function RunSheetRow({ event, onEdit, onDelete }: { event: TimelineEvent; onEdit: (u: Partial<TimelineEvent>) => void; onDelete: () => void }) {
+  return <div className={cn("rounded-2xl border p-4", event.delayMinutes ? "border-amber-300/30 bg-amber-300/5" : "border-white/10 bg-white/[.035]")}><div className="flex items-center gap-3"><input type="time" value={new Date(event.time).toTimeString().slice(0, 5)} onChange={e => { const [h, m] = e.target.value.split(":").map(Number); const next = new Date(event.time); next.setHours(h, m, 0, 0); onEdit({ time: next.getTime() }); }} className="rounded-lg bg-white/10 px-2 py-1.5 font-mono text-sm outline-none" /><input value={event.title} onChange={e => onEdit({ title: e.target.value })} className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none" /><button onClick={onDelete} className="text-white/25 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4"><input value={event.location || ""} onChange={e => onEdit({ location: e.target.value })} placeholder="Lieu" className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none" /><input value={event.responsible || ""} onChange={e => onEdit({ responsible: e.target.value })} placeholder="Responsable" className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none" /><input value={event.vendor || ""} onChange={e => onEdit({ vendor: e.target.value })} placeholder="Prestataire" className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none" /><select value={event.status} onChange={e => onEdit({ status: e.target.value as TimelineEvent["status"] })} className="rounded-lg bg-white/10 px-2 py-2 text-xs outline-none"><option value="prepare">À préparer</option><option value="execute">Terminé</option><option value="bloque">Bloqué</option><option value="a_valider">À valider</option></select></div><div className="mt-2 flex gap-2"><input type="number" min="0" value={event.delayMinutes || 0} onChange={e => onEdit({ delayMinutes: Number(e.target.value) || undefined })} placeholder="Retard min." className="w-28 rounded-lg bg-white/10 px-2 py-2 text-xs outline-none" /><input value={event.notes || event.detail || ""} onChange={e => onEdit({ notes: e.target.value, detail: e.target.value })} placeholder="Note ou consigne" className="min-w-0 flex-1 rounded-lg bg-white/10 px-2 py-2 text-xs outline-none" /></div></div>;
 }
