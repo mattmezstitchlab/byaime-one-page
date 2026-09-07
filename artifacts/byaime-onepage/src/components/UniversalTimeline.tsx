@@ -159,25 +159,19 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
             </p>
           )}
 
-          <div className="pt-8 flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-x-7 gap-y-3 pt-8">
             {event.location && (
-              <span className="px-4 py-1.5 rounded-full border border-white/10 bg-black/40 text-xs text-white/80 flex items-center gap-2">
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
                 <MapPin className="w-3 h-3" />
                 {event.location}
               </span>
             )}
             {(event.relations?.length || 0) > 0 && (
-              <span className="px-4 py-1.5 rounded-full border border-white/10 bg-black/40 text-xs text-white/80 flex items-center gap-2">
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
                 <Link2 className="w-3 h-3" />
                 {event.relations!.length} liens
               </span>
             )}
-            <span className="px-4 py-1.5 rounded-full border border-white/10 bg-black/40 text-xs text-white/70">
-              {event.status.replace('_', ' ')}
-            </span>
-            <span className="px-4 py-1.5 rounded-full border border-white/10 bg-black/40 text-xs text-white/60">
-              {event.provenance || "real"}
-            </span>
           </div>
         </motion.div>
       </div>

@@ -86,7 +86,7 @@ export function PortalControls() {
         <select value={project.id} onChange={e => void selectProject(e.target.value)} className="w-full rounded-xl border border-white/15 bg-white/5 p-3 mb-6">
           {projects.map(item => <option className="bg-black" key={item.id} value={item.id}>{item.title} · {item.role}</option>)}
         </select>
-        {notice && <p className="mb-5 rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-300">{notice}</p>}
+         {notice && <p className="mb-5 border-l border-white/20 py-1 pl-3 text-sm text-white/60">{notice}</p>}
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => void invite().catch(e => setNotice(e.message))} className="action">Inviter l'équipe</button>
           <button onClick={() => void sendMessage().catch(e => setNotice(e.message))} className="action">Envoyer un e-mail</button>
@@ -113,7 +113,7 @@ export function PortalControls() {
         </div>
         <div className="mt-8 space-y-2">
            <button data-testid="sign-out" className="w-full rounded-xl border border-white/15 p-3 text-sm" onClick={() => void signOut({ redirectUrl: basePath() })}>Se déconnecter</button>
-          <button className="w-full rounded-xl border border-red-500/30 p-3 text-sm text-red-300" onClick={async () => {
+          <button className="w-full p-3 text-sm text-white/35 transition hover:text-white/70" onClick={async () => {
             if (prompt('Tapez SUPPRIMER pour supprimer définitivement ce projet') !== 'SUPPRIMER') return;
             await api(`/projects/${project.id}`, { method: 'DELETE', body: JSON.stringify({ confirmation: 'SUPPRIMER' }) });
             clearProject(); location.reload();
