@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Byaime — one-page"
+description = "Une interface web one-page qui rassemble l’essentiel de Byaime dans un parcours fluide, avec navigation, sélection éditoriale et interactions de découverte."
+version = "1.0.0"
+id = "artifacts/byaime-onepage"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19075
+
+[services.development]
+run = "pnpm --filter @workspace/byaime-onepage run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/byaime-onepage", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/byaime-onepage/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19075"
+BASE_PATH = "/"
