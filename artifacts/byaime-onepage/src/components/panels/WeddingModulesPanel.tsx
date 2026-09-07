@@ -1,14 +1,28 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, AlertTriangle, Send, X } from "lucide-react";
+import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle } from "lucide-react";
 import type { MemoryItem, Payment } from "@/lib/types";
 
 export type WeddingModule = "seating" | "budget" | "documents" | "ceremony" | "music" | "logistics" | "messages" | "team" | "memories";
 
 const euro = (cents: number) => `${(cents / 100).toLocaleString("fr-FR")} €`;
 const newId = () => Math.random().toString(36).slice(2, 9);
+type StoredFile = { id: string; name: string; contentType: string; size: number; createdAt?: string };
+type SentMessage = { id: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; sentAt?: string | null; createdAt: string };
+
+async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`/api${path}`, {
+    ...init,
+    headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers },
+  });
+  const body = response.status === 204 ? null : await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body?.error || `Erreur ${response.status}`);
+  return body as T;
+}
+
+const fileSize = (bytes: number) => bytes < 1_000_000 ? `${Math.max(1, Math.round(bytes / 1_000))} Ko` : `${(bytes / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
 
 function AddBar({ label, onAdd }: { label: string; onAdd: () => void }) {
   return <button onClick={onAdd} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-xs text-white/75 hover:bg-white hover:text-black transition-colors"><Plus className="w-3.5 h-3.5" />{label}</button>;
@@ -19,12 +33,96 @@ function Empty({ children }: { children: string }) {
 }
 
 export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
-  const { project, updateProject, updateEntity, addEntity, removeEntity } = useProject();
+  const { project, currentRole, updateProject, updateEntity, addEntity, removeEntity } = useProject();
   const [query, setQuery] = useState("");
+  const [files, setFiles] = useState<StoredFile[]>([]);
+  const [messages, setMessages] = useState<SentMessage[]>([]);
+  const [remoteError, setRemoteError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [recipients, setRecipients] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const canManage = currentRole === "owner" || currentRole === "planner";
+  const projectId = project?.id;
+
+  useEffect(() => {
+    if (!projectId || module !== "documents") return;
+    setRemoteError("");
+    void api<StoredFile[]>(`/projects/${projectId}/files`).then(setFiles).catch(error => setRemoteError(error.message));
+  }, [module, projectId]);
+
+  useEffect(() => {
+    if (!projectId || module !== "messages" || !canManage) return;
+    setRemoteError("");
+    void api<SentMessage[]>(`/projects/${projectId}/messages`).then(setMessages).catch(error => setRemoteError(error.message));
+  }, [canManage, module, projectId]);
+
   if (!project) return null;
 
   const addPayment = () => addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
-  const addDocument = () => addEntity("documents", { title: "Nouveau document", kind: "autre", at: Date.now() });
+  const uploadFile = async (file: File) => {
+    setBusy(true);
+    setRemoteError("");
+    try {
+      const request = await api<{ uploadURL: string; objectPath: string }>("/storage/uploads/request-url", {
+        method: "POST",
+        body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type }),
+      });
+      const uploaded = await fetch(request.uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+      if (!uploaded.ok) throw new Error("Échec du transfert vers le stockage privé");
+      await api("/storage/files", {
+        method: "POST",
+        body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath }),
+      });
+      setFiles(await api<StoredFile[]>(`/projects/${project.id}/files`));
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Ajout impossible");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+  const deleteFile = async (file: StoredFile) => {
+    if (!window.confirm(`Supprimer définitivement « ${file.name} » ?`)) return;
+    setBusy(true);
+    setRemoteError("");
+    try {
+      await api(`/storage/files/${file.id}`, { method: "DELETE" });
+      setFiles(value => value.filter(item => item.id !== file.id));
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Suppression impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const sendTemplate = async (template: typeof project.messageTemplates[number]) => {
+    const recipientList = recipients.split(",").map(value => value.trim()).filter(Boolean);
+    if (!recipientList.length || !template.title.trim() || !template.body.trim()) return;
+    setBusy(true);
+    setRemoteError("");
+    try {
+      await api(`/projects/${project.id}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: template.title.trim(), body: template.body.trim(), confirmed: true }),
+      });
+      setRecipients("");
+      setSelectedTemplateId(null);
+      try {
+        setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
+      } catch {
+        setRemoteError("Le message a été traité, mais le journal n’a pas pu être actualisé. Rouvrez ce module pour vérifier son statut.");
+      }
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Envoi impossible");
+      try {
+        setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
+      } catch {
+        // The delivery error above remains the source of truth if history is unavailable too.
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (module === "seating") {
     const unassigned = project.guests.filter(g => g.rsvp !== "decline" && !g.tableId);
@@ -43,12 +141,17 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     return <div className="max-w-4xl mx-auto space-y-6">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{[["Estimé", estimated], ["Engagé", committed], ["Payé", paid], ["Restant", remaining]].map(([label, value]) => <div key={label as string} className="rounded-2xl border border-white/10 bg-white/[.035] p-4"><p className="text-[10px] uppercase tracking-widest text-white/40">{label}</p><p className="mt-2 font-mono text-lg">{euro(value as number)}</p></div>)}</div>
       <div className="rounded-2xl border border-white/10 bg-white/[.025] p-4"><p className="text-[10px] uppercase tracking-widest text-white/40">Répartition par catégorie</p><div className="mt-4 space-y-3">{Array.from(new Set(project.providers.map(p => p.category))).map(category => { const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0); const pct = estimated ? Math.min(100, Math.round(amount / estimated * 100)) : 0; return <div key={category}><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-white/65">{category}</span><span className="font-mono text-white/45">{euro(amount)}</span></div><div className="h-1 rounded-full bg-white/10"><div className="h-1 rounded-full bg-white/60" style={{ width: `${pct}%` }} /></div></div> })}</div></div>
-      <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Échéancier</h4><p className="text-xs text-white/40 mt-1">Chaque modification est enregistrée localement.</p></div><AddBar label="Ajouter un paiement" onAdd={addPayment} /></div>
+      <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Échéancier</h4><p className="text-xs text-white/40 mt-1">Chaque modification est enregistrée dans ce Monde.</p></div><AddBar label="Ajouter un paiement" onAdd={addPayment} /></div>
       {project.payments.length === 0 ? <Empty>Aucun paiement à suivre.</Empty> : <div className="space-y-2">{project.payments.map(p => <PaymentRow key={p.id} payment={p} onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })} onDelete={() => removeEntity("payments", p.id)} onEdit={updates => updateEntity("payments", p.id, updates)} />)}</div>}
     </div>;
   }
 
-  if (module === "documents") return <div className="max-w-3xl mx-auto space-y-5"><div className="flex justify-between items-center"><p className="text-sm text-white/50">Métadonnées locales, sans envoi de fichier.</p><AddBar label="Ajouter" onAdd={addDocument} /></div>{project.documents.length === 0 ? <Empty>Aucun document référencé.</Empty> : <div className="space-y-2">{project.documents.map(d => <div key={d.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[.035] p-4"><div><p className="text-sm">{d.title}</p><p className="text-xs uppercase tracking-widest text-white/35 mt-1">{d.kind} · {new Date(d.at).toLocaleDateString("fr-FR")}</p></div><div className="flex gap-2"><button onClick={() => updateEntity("documents", d.id, { title: d.title === "Nouveau document" ? "Contrat à renseigner" : `${d.title} · vérifié` })} className="rounded-full px-3 py-1.5 text-xs border border-white/10 hover:bg-white hover:text-black">Modifier</button><button onClick={() => removeEntity("documents", d.id)} className="p-2 text-white/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div></div>)}</div>}</div>;
+  if (module === "documents") return <div className="max-w-3xl mx-auto space-y-5">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-white/70">Documents & médias privés</p><p className="mt-1 text-xs text-white/40">Stockés dans l’espace sécurisé de ce Monde.</p></div>{canManage && <><button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-xs text-white/75 transition hover:bg-white hover:text-black disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter un fichier</button><input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => event.target.files?.[0] && void uploadFile(event.target.files[0])} /></>}</div>
+    {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
+    {files.length === 0 ? <Empty>Aucun document stocké.</Empty> : <div className="space-y-2">{files.map(file => <div key={file.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.035] p-4"><div className="min-w-0 flex-1"><p className="truncate text-sm">{file.name}</p><p className="mt-1 text-xs text-white/35">{fileSize(file.size)} · {file.contentType || "fichier"}</p></div><a aria-label={`Aperçu de ${file.name}`} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="p-2 text-white/45 hover:text-white"><ExternalLink className="h-4 w-4" /></a><a aria-label={`Télécharger ${file.name}`} href={`/api/storage/files/${file.id}?download=1`} className="p-2 text-white/45 hover:text-white"><Download className="h-4 w-4" /></a>{canManage && <button disabled={busy} aria-label={`Supprimer ${file.name}`} onClick={() => void deleteFile(file)} className="p-2 text-white/30 hover:text-rose-300 disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>}
+    {!canManage && <p className="text-xs text-white/35">Vous pouvez consulter les documents, mais seuls les responsables du Monde peuvent les modifier.</p>}
+  </div>;
 
   if (module === "ceremony") {
     const c = project.ceremony;
@@ -64,7 +167,15 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "messages") {
     const templates = project.messageTemplates.filter(t => t.title.toLowerCase().includes(query.toLowerCase()));
-    return <div className="max-w-4xl mx-auto space-y-5"><div className="flex gap-2 items-center"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm outline-none focus:border-white/30" /><AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} /></div><div className="grid gap-3 md:grid-cols-2">{templates.map(t => <div key={t.id} className="rounded-2xl border border-white/10 bg-white/[.035] p-4"><div className="flex justify-between gap-2"><input value={t.title} onChange={e => updateEntity("messageTemplates", t.id, { title: e.target.value })} className="min-w-0 flex-1 bg-transparent text-sm outline-none" /><button onClick={() => removeEntity("messageTemplates", t.id)} className="text-white/30 hover:text-rose-300"><Trash2 className="w-3.5 h-3.5" /></button></div><textarea value={t.body} onChange={e => updateEntity("messageTemplates", t.id, { body: e.target.value })} placeholder="Écrire le message…" rows={3} className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-white/55 outline-none" /><button onClick={() => addEntity("messageLogs", { templateId: t.id, recipient: "Destinataire local", sentAt: Date.now(), status: "simule", note: "Envoi local simulé" })} className="mt-3 inline-flex items-center gap-2 text-xs text-white/70 hover:text-white"><Send className="w-3.5 h-3.5" /> Simuler l'envoi</button></div>)}</div><div><p className="text-[10px] uppercase tracking-widest text-white/40 mb-3">Journal local</p>{project.messageLogs.map(log => <div key={log.id} className="flex justify-between py-3 border-b border-white/5 text-sm"><span>{log.recipient}</span><span className="text-xs text-white/40">{new Date(log.sentAt).toLocaleDateString("fr-FR")} · {log.status}</span></div>)}</div></div>;
+    return <div className="max-w-4xl mx-auto space-y-5">
+      {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
+      <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm outline-none focus:border-white/30" />{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
+      <div className="grid gap-3 md:grid-cols-2">{templates.map(template => <div key={template.id} className="rounded-2xl border border-white/10 bg-white/[.035] p-4"><div className="flex justify-between gap-2"><input disabled={!canManage} value={template.title} onChange={event => updateEntity("messageTemplates", template.id, { title: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-white/60" />{canManage && <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-white/30 hover:text-rose-300"><Trash2 className="h-3.5 w-3.5" /></button>}</div><textarea disabled={!canManage} value={template.body} onChange={event => updateEntity("messageTemplates", template.id, { body: event.target.value })} placeholder="Écrire le message…" rows={3} className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-white/55 outline-none" />
+        {canManage && selectedTemplateId !== template.id && <button disabled={!template.title.trim() || !template.body.trim()} onClick={() => setSelectedTemplateId(template.id)} className="mt-3 inline-flex items-center gap-2 text-xs text-white/70 hover:text-white disabled:opacity-30"><Send className="h-3.5 w-3.5" />Préparer l’envoi</button>}
+        {selectedTemplateId === template.id && <div className="mt-4 space-y-3 border-t border-white/10 pt-4"><label className="block text-[10px] uppercase tracking-widest text-white/40">Destinataires</label><input autoFocus value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs outline-none focus:border-white/30" /><p className="text-xs text-white/40">L’objet sera « {template.title} ». L’envoi ne partira qu’après votre confirmation.</p><div className="flex gap-2"><button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/55">Annuler</button><button disabled={busy || !recipients.trim()} onClick={() => void sendTemplate(template)} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-medium text-black disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}Confirmer et envoyer</button></div></div>}
+      </div>)}</div>
+      <div><p className="mb-3 text-[10px] uppercase tracking-widest text-white/40">Journal des envois réels</p>{!canManage ? <p className="text-xs text-white/35">Seuls les responsables du Monde peuvent envoyer des messages et consulter leur journal.</p> : messages.length === 0 ? <Empty>Aucun message envoyé.</Empty> : messages.map(message => <div key={message.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 py-3 text-sm"><div className="min-w-0"><p className="truncate">{message.subject}</p><p className="mt-1 truncate text-xs text-white/35">{message.recipients.join(", ")}</p>{message.providerError && <p className="mt-1 text-xs text-rose-300">{message.providerError}</p>}</div><span className={cn("text-xs", message.status === "sent" ? "text-emerald-300" : message.status === "failed" ? "text-rose-300" : "text-amber-200")}>{new Date(message.sentAt || message.createdAt).toLocaleString("fr-FR")} · {message.status === "sent" ? "envoyé" : message.status === "failed" ? "échec" : "en cours"}</span></div>)}</div>
+    </div>;
   }
 
   if (module === "team") return <CollectionPanel title="Répartition des responsabilités" addLabel="Ajouter un rôle" onAdd={() => addEntity("team", { name: "Nouvelle personne", role: "Responsable", contact: "", responsibilities: [] })}>{project.team.length === 0 ? <Empty>Aucun rôle assigné.</Empty> : project.team.map(role => <div key={role.id} className="rounded-2xl border border-white/10 bg-white/[.035] p-4 flex items-start gap-4"><div className="grid flex-1 gap-2 sm:grid-cols-3"><input value={role.name} onChange={e => updateEntity("team", role.id, { name: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={role.role} onChange={e => updateEntity("team", role.id, { role: e.target.value })} className="bg-transparent text-xs text-white/55 outline-none" /><input value={role.contact || ""} onChange={e => updateEntity("team", role.id, { contact: e.target.value })} placeholder="Contact" className="bg-transparent text-xs text-white/55 outline-none" /><input value={role.responsibilities.join(", ")} onChange={e => updateEntity("team", role.id, { responsibilities: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} placeholder="Responsabilités séparées par des virgules" className="sm:col-span-3 bg-transparent text-xs text-white/65 outline-none placeholder:text-white/25" /></div><button onClick={() => removeEntity("team", role.id)} className="text-white/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>)}</CollectionPanel>;

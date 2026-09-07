@@ -165,7 +165,7 @@ function NetworkRoute() {
 function PrivateProfileRoute() {
   return <><Show when="signed-in">
     <PublicProfilePage privatePreview />
-    <CommandBar setPhase={() => undefined} setLayers={() => undefined} />
+    <CommandBar />
     <PortalControls />
   </Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }

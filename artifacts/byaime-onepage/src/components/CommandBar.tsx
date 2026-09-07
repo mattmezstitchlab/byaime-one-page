@@ -3,7 +3,7 @@ import { useProject } from "@/store/project-store";
 import { executeCommand, parseFrenchCommand, proposeCommand, type CommandProposal } from "@/lib/command-agent";
 import { CenteredBlock } from "@/components/CenteredBlock";
 
-export function CommandBar({ setPhase, setLayers }: { setPhase: (phase: "tout"|"avant"|"pendant"|"apres") => void; setLayers: (layers: string[]) => void }) {
+export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: "tout"|"avant"|"pendant"|"apres") => void; setLayers?: (layers: string[]) => void }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [proposal, setProposal] = useState<CommandProposal>();
@@ -40,7 +40,7 @@ export function CommandBar({ setPhase, setLayers }: { setPhase: (phase: "tout"|"
         {proposal && <div className="mt-4 rounded-xl border border-white/10 bg-white/[.035] p-4"><p className="font-medium">{proposal.title}</p><ul className="mt-3 space-y-1 text-xs text-white/55">{proposal.impact.length ? proposal.impact.map((line, index) => <li key={index}>• {line}</li>) : <li>Aucun élément concerné.</li>}</ul>
           {proposal.mutation ? <div className="mt-4"><p className="mb-2 text-xs text-white/45">Rien ne changera sans votre accord.</p><button disabled={!canEdit} onClick={execute} className="rounded-full bg-white px-4 py-2 text-xs text-black disabled:opacity-40">{canEdit ? "Oui, faire ce changement" : "Vous pouvez consulter, mais pas modifier"}</button></div> : <p className="mt-4 text-xs text-white/35">Aucune information n’a été modifiée.</p>}
         </div>}
-        <div className="mt-4 flex gap-2 border-t border-white/5 pt-3"><button onClick={() => { setPhase("pendant"); setLayers([]); setOpen(false); }} className="text-xs text-white/50">Voir le Jour J</button><button onClick={() => { setPhase("tout"); setLayers([]); setOpen(false); }} className="text-xs text-white/50">Voir toute la timeline</button></div>
+        {setPhase && setLayers && <div className="mt-4 flex gap-2 border-t border-white/5 pt-3"><button onClick={() => { setPhase("pendant"); setLayers([]); setOpen(false); }} className="text-xs text-white/50">Voir le Jour J</button><button onClick={() => { setPhase("tout"); setLayers([]); setOpen(false); }} className="text-xs text-white/50">Voir toute la timeline</button></div>}
     </CenteredBlock>}
   </>;
 }
