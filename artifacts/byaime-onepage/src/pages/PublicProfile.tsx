@@ -4,9 +4,10 @@ import { fr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Clock3, CalendarDays } from "lucide-react";
 import { useParams, Link } from "wouter";
-import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicTimelineEvent } from "@workspace/api-client-react";
+import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicProfile, type PublicTimelineEvent } from "@workspace/api-client-react";
 import { CenteredBlock } from "@/components/CenteredBlock";
 import { cn } from "@/lib/utils";
+import { useProject } from "@/store/project-store";
 
 const YEAR = 365 * 86400000;
 const WEEK = 7 * 86400000;
@@ -115,9 +116,42 @@ function Hero({ profile }: { profile: { title: string; subtitle?: string; city?:
 
 export function PublicProfilePage() {
   const params = useParams<{ projectId: string }>();
-  const { data: profile, isLoading, error } = useGetPublicProfile(params.projectId || "", {
+  const { project, isHydrated } = useProject();
+  const { data: publishedProfile, isLoading, error } = useGetPublicProfile(params.projectId || "", {
     query: { queryKey: getGetPublicProfileQueryKey(params.projectId || ""), retry: false },
   });
+  const privatePreview = useMemo<PublicProfile | undefined>(() => {
+    if (!project || project.id !== params.projectId) return undefined;
+    return {
+      id: project.id,
+      title: project.title,
+      ...(project.subtitle?.trim() ? { subtitle: project.subtitle.trim() } : {}),
+      ...(project.universe ? { universe: project.universe } : {}),
+      ...(project.city.value?.trim() ? { city: project.city.value.trim() } : {}),
+      pivot: project.pivot.value,
+      timeline: project.timeline
+        .filter(event => event.visibility === "audience")
+        .sort((a, b) => a.time - b.time)
+        .map(event => ({
+          id: event.id,
+          time: event.time,
+          ...(event.endTime === undefined ? {} : { endTime: event.endTime }),
+          ...(event.durationMinutes === undefined ? {} : { durationMinutes: event.durationMinutes }),
+          kind: event.kind,
+          title: event.title,
+          ...(event.detail ? { detail: event.detail } : {}),
+          ...(event.location ? { location: event.location } : {}),
+          status: event.status,
+          confidence: event.confidence,
+          phase: event.phase,
+          universe: event.universe,
+          ...(event.provenance ? { provenance: event.provenance } : {}),
+          visibility: "audience" as const,
+        })),
+    };
+  }, [params.projectId, project]);
+  const profile = publishedProfile ?? privatePreview;
+  const isPrivatePreview = !publishedProfile && Boolean(privatePreview);
   const [selectedEvent, setSelectedEvent] = useState<PublicTimelineEvent | undefined>();
   const now = Date.now();
   const sections = useMemo(() => {
@@ -155,7 +189,7 @@ export function PublicProfilePage() {
     };
   }, [profile]);
 
-  if (isLoading) {
+  if (isLoading || (!isHydrated && !profile)) {
     return (
       <main data-testid="profile-loading" className="min-h-[100dvh] bg-[#020202] text-white flex items-center justify-center px-6">
         <motion.p 
@@ -187,6 +221,11 @@ export function PublicProfilePage() {
 
   return (
     <main data-testid="public-profile-page" className="min-h-[100dvh] bg-[#020202] text-white selection:bg-white/20 selection:text-white">
+      {isPrivatePreview && (
+        <div className="fixed right-4 top-4 z-50 rounded-full border border-white/12 bg-black/75 px-4 py-2 text-[9px] uppercase tracking-[.18em] text-white/55 backdrop-blur-xl">
+          Prévisualisation privée
+        </div>
+      )}
       <Hero profile={profile} />
 
       <div className="sticky top-0 z-30 border-y border-white/10 bg-black/80 px-4 py-3 backdrop-blur-xl">
