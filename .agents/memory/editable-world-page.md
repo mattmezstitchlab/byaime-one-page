@@ -38,3 +38,9 @@ La capsule temporelle est le sélecteur d’état global du Monde, placé en hau
 **Why:** Un mariage n’a pas les mêmes besoins avant, pendant et après. Le même Monde doit devenir successivement mini-site de préparation, régie live du Jour J et mémoire collective.
 
 **How to apply:** AVANT met en avant informations pratiques et préparation ; LE JOUR J montre le Moment en cours, le prochain, les responsables et alertes ; APRÈS ouvre souvenirs, remerciements et médias ; TOUT relie ces états.
+
+Le hero d’un Monde sert aussi de navigation sémantique : sa nature ouvre le menu des Mondes et sa date ouvre un calendrier centré sur les Moments. AIME dans le bandeau global renvoie vers la présentation du concept.
+
+**Why:** Les informations structurantes ne doivent pas rester décoratives, et le passage entre marque, Profil, Mondes et Kits doit être compréhensible sans ajouter une navigation technique.
+
+**How to apply:** Rendre la nature et la date directement actionnables dans le hero ; conserver les réglages personnels dans ME ; présenter Profil, Monde, Kit et AI + ME sur une landing AIME accessible depuis tout Monde.

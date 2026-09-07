@@ -2,13 +2,14 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { getAssetUrl } from '@/lib/assets';
-import { format } from 'date-fns';
+import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Link } from 'wouter';
 import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -41,13 +42,17 @@ function ProviderPortrait({ provider, index = 0 }: { provider: Provider; index?:
 }
 
 export function ProjectStage() {
-  const { project } = useProject();
+  const { project, projects, selectProject, updateProject, canEdit } = useProject();
   const [phase, setPhase] = useState<"tout" | "avant" | "pendant" | "apres">("tout");
   const [playMode, setPlayMode] = useState(false);
   const [layers, setLayers] = useState<string[]>([]);
   const [view, setView] = useState<TimelineView>("chronological");
   const [providersOpen, setProvidersOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [worldMenuOpen, setWorldMenuOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [now, setNow] = useState(() => Date.now());
 
   const pivotDate = project?.pivot.value ?? Date.now();
@@ -61,6 +66,13 @@ export function ProjectStage() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!project) return;
+    const pivot = new Date(project.pivot.value);
+    setCalendarMonth(pivot);
+    setSelectedDate(pivot);
+  }, [project?.id, project?.pivot.value]);
 
   const visibleEvents = useMemo(() => {
     if (!project) return [];
@@ -143,12 +155,18 @@ export function ProjectStage() {
           : "Toutes les informations choisies pour accueillir les invités dans ce Monde.",
       }
     : phaseHeroCopy;
+  const calendarDays = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 1 }),
+    end: endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }),
+  });
+  const selectedDayEvents = project.timeline.filter(event => isSameDay(event.time, selectedDate));
 
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
       {/* The temporal capsule changes the whole World, not only the Timeline. */}
       <div className="sticky top-0 z-50 border-b border-white/10 bg-black/88 backdrop-blur-xl">
         <div className="relative mx-auto flex max-w-5xl items-center justify-center px-6 py-3">
+          <Link href="/concept" className="absolute left-6 text-xs font-medium tracking-[.32em] text-white/80 transition hover:text-white" aria-label="Découvrir AIME">AIME</Link>
           <div className="flex max-w-full overflow-x-auto rounded-full bg-white/10 p-1 hide-scrollbar">
             {[
               { id: 'tout', label: 'Tout' },
@@ -181,16 +199,18 @@ export function ProjectStage() {
           style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
         />
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/60 to-[#050505]" />
-        <img src={getAssetUrl('logo.svg')} alt="AIME" className="absolute left-6 top-5 z-20 h-10 w-auto rounded-xl md:left-12" />
-
         <div className="relative z-20 w-full max-w-5xl mx-auto space-y-6">
-          <motion.div
+          <motion.button
+            type="button"
+            onClick={() => setWorldMenuOpen(true)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-fit rounded-full border border-white/20 bg-black/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md"
+            className="flex w-fit items-center gap-2 rounded-full border border-white/20 bg-black/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition hover:bg-white hover:text-black"
+            aria-label="Choisir un Monde"
           >
             {heroCopy.eyebrow}
-          </motion.div>
+            <ChevronDown className="h-3 w-3" />
+          </motion.button>
 
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
@@ -218,9 +238,15 @@ export function ProjectStage() {
             transition={{ delay: 0.3 }}
             className="flex flex-wrap gap-2 text-[13px]"
           >
-            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => setCalendarOpen(true)}
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm transition hover:border-white/30 hover:bg-white/10"
+              aria-label="Ouvrir le calendrier du Monde"
+            >
+              <CalendarDays className="h-3.5 w-3.5 text-white/55" />
               {format(pivotDate, 'd MMMM yyyy', { locale: fr })}
-            </span>
+            </button>
             {project.city.value && (
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
                 {project.city.value}
@@ -436,6 +462,86 @@ export function ProjectStage() {
           ) : (
             <p className="py-10 text-center text-sm text-white/35">Aucune étape n’a encore été créée.</p>
           )}
+        </CenteredBlock>
+      )}
+      {worldMenuOpen && (
+        <CenteredBlock eyebrow="Monde" title="Choisir un Monde" description="Chaque Monde organise une réalité différente tout en partageant votre Profil et vos relations." onClose={() => setWorldMenuOpen(false)} size="lg">
+          <div className="divide-y divide-white/8">
+            {projects.map(item => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.id !== project.id) void selectProject(item.id);
+                  setWorldMenuOpen(false);
+                }}
+                className="group flex w-full items-center gap-4 py-5 text-left"
+              >
+                <span className={cn("h-2.5 w-2.5 rounded-full border", item.id === project.id ? "border-white bg-white" : "border-white/25")} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-display text-xl font-light text-white/85">{item.title}</span>
+                  <span className="mt-1 block text-[9px] uppercase tracking-[.18em] text-white/32">{item.id === project.id ? `${project.universe} · Monde actif` : item.role}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/55" />
+              </button>
+            ))}
+          </div>
+          <p className="mt-6 text-xs font-light leading-relaxed text-white/35">Le + universel accueillera ensuite la création de nouveaux Mondes et le choix de leur Kit.</p>
+        </CenteredBlock>
+      )}
+      {calendarOpen && (
+        <CenteredBlock eyebrow="Calendrier du Monde" title={format(calendarMonth, "MMMM yyyy", { locale: fr })} description="Le temps du Monde, ses Moments et sa date pivot réunis dans une seule vue." onClose={() => setCalendarOpen(false)} size="lg" leading={
+          <span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/12 bg-white/[.04]"><CalendarDays className="h-5 w-5 text-white/65" /></span>
+        }>
+          <div className="flex items-center justify-between border-y border-white/8 py-3">
+            <button type="button" onClick={() => setCalendarMonth(month => subMonths(month, 1))} className="rounded-full p-2 text-white/45 transition hover:bg-white/8 hover:text-white" aria-label="Mois précédent"><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" onClick={() => setCalendarMonth(new Date(project.pivot.value))} className="text-[10px] uppercase tracking-[.18em] text-white/45 transition hover:text-white">Revenir au Moment pivot</button>
+            <button type="button" onClick={() => setCalendarMonth(month => addMonths(month, 1))} className="rounded-full p-2 text-white/45 transition hover:bg-white/8 hover:text-white" aria-label="Mois suivant"><ChevronRight className="h-4 w-4" /></button>
+          </div>
+          <div className="mt-5 grid grid-cols-7 gap-1">
+            {["L", "M", "M", "J", "V", "S", "D"].map((day, index) => <span key={`${day}-${index}`} className="pb-2 text-center text-[9px] uppercase tracking-[.14em] text-white/25">{day}</span>)}
+            {calendarDays.map(day => {
+              const momentCount = project.timeline.filter(event => isSameDay(event.time, day)).length;
+              const isPivot = isSameDay(day, project.pivot.value);
+              const isSelected = isSameDay(day, selectedDate);
+              return (
+                <button
+                  type="button"
+                  key={day.toISOString()}
+                  onClick={() => setSelectedDate(day)}
+                  className={cn(
+                    "relative aspect-square rounded-2xl text-sm transition",
+                    !isSameMonth(day, calendarMonth) && "text-white/16",
+                    isSameMonth(day, calendarMonth) && "text-white/58 hover:bg-white/[.06] hover:text-white",
+                    isSelected && "bg-white text-black hover:bg-white hover:text-black",
+                    isPivot && !isSelected && "ring-1 ring-inset ring-white/45"
+                  )}
+                >
+                  {format(day, "d")}
+                  {momentCount > 0 && <span className={cn("absolute bottom-2 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full", isSelected ? "bg-black/55" : "bg-white/55")} />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-6 grid gap-4 border-t border-white/8 pt-6 sm:grid-cols-[1fr_auto] sm:items-end">
+            <div>
+              <p className="font-display text-2xl font-light capitalize">{format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })}</p>
+              <p className="mt-2 text-xs font-light text-white/38">{selectedDayEvents.length ? `${selectedDayEvents.length} Moment${selectedDayEvents.length > 1 ? "s" : ""} ce jour-là : ${selectedDayEvents.map(event => event.title).join(" · ")}` : "Aucun Moment n’est encore placé ce jour-là."}</p>
+            </div>
+            <button
+              type="button"
+              disabled={!canEdit || isSameDay(selectedDate, project.pivot.value)}
+              onClick={() => {
+                const current = new Date(project.pivot.value);
+                const next = new Date(selectedDate);
+                next.setHours(current.getHours(), current.getMinutes(), current.getSeconds(), current.getMilliseconds());
+                updateProject({ pivot: { ...project.pivot, value: next.getTime() } });
+                setCalendarOpen(false);
+              }}
+              className="rounded-full bg-white px-5 py-2.5 text-xs font-medium text-black disabled:cursor-default disabled:opacity-25"
+            >
+              {isSameDay(selectedDate, project.pivot.value) ? "Date actuelle" : "Choisir comme date pivot"}
+            </button>
+          </div>
         </CenteredBlock>
       )}
     </div>

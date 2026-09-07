@@ -81,6 +81,74 @@ function Landing() {
   );
 }
 
+function ConceptLanding() {
+  const pillars = [
+    { number: '01', title: 'Profil', text: 'Votre identité durable, vos liens, vos créations et ce que vous choisissez de rendre visible.' },
+    { number: '02', title: 'Monde', text: 'Une réalité organisée dans le temps : mariage, voyage, projet, famille, équipe ou aventure collective.' },
+    { number: '03', title: 'Kit', text: 'La spécialisation qui donne à chaque Monde ses outils, ses méthodes et son langage sans enfermer les données.' },
+  ];
+  return (
+    <main data-testid="concept-landing" className="bg-black text-white">
+      <section className="relative flex min-h-[100dvh] items-center justify-center px-6">
+        <a href={`${basePath}/`} className="absolute left-6 top-6 text-sm font-medium tracking-[.32em] text-white/80 md:left-10 md:top-8">AIME</a>
+        <div className="max-w-3xl text-center">
+          <p className="mb-8 text-xs uppercase tracking-[.35em] text-white/50">L’art de créer des liens</p>
+          <h1 className="mb-8 font-display text-6xl tracking-[.12em] md:text-8xl">AIME</h1>
+          <p className="mb-10 text-lg font-light leading-relaxed text-white/65 md:text-2xl">Un espace vivant pour relier les personnes, les projets et les Moments — avant, maintenant et après.</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Show when="signed-in"><a href={`${basePath}/user-portal`} className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black">Entrer dans mon Monde</a></Show>
+            <Show when="signed-out">
+              <a href={`${basePath}/sign-up`} className="rounded-full bg-white px-7 py-3 text-sm font-semibold text-black">Créer mon espace</a>
+              <a href={`${basePath}/sign-in`} className="rounded-full border border-white/25 px-7 py-3 text-sm">Se connecter</a>
+            </Show>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-white/8 px-6 py-28 md:px-10 md:py-40">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-[10px] uppercase tracking-[.28em] text-white/35">Un seul système, plusieurs réalités</p>
+          <h2 className="mt-6 max-w-4xl font-display text-4xl font-light leading-tight md:text-7xl">Votre vie n’est pas une succession de tableaux de bord.</h2>
+          <p className="mt-8 max-w-2xl text-base font-light leading-relaxed text-white/48 md:text-lg">AIME compose une Timeline cinématique autour de personnes, de lieux, de documents, de besoins et de décisions qui restent reliés entre eux.</p>
+          <div className="mt-20 grid gap-px overflow-hidden rounded-[2rem] bg-white/10 md:grid-cols-3">
+            {pillars.map(pillar => (
+              <article key={pillar.title} className="bg-[#080808] p-8 md:min-h-72 md:p-10">
+                <p className="text-[10px] tracking-[.2em] text-white/25">{pillar.number}</p>
+                <h3 className="mt-12 font-display text-3xl font-light">{pillar.title}</h3>
+                <p className="mt-5 text-sm font-light leading-relaxed text-white/42">{pillar.text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-white/8 px-6 py-28 md:px-10 md:py-40">
+        <div className="mx-auto grid max-w-6xl gap-16 md:grid-cols-[.8fr_1.2fr] md:items-end">
+          <div>
+            <p className="text-[10px] uppercase tracking-[.28em] text-white/35">AI · + · ME</p>
+            <h2 className="mt-6 font-display text-4xl font-light leading-tight md:text-6xl">Comprendre. Créer. Contrôler.</h2>
+          </div>
+          <div className="space-y-8 text-base font-light leading-relaxed text-white/48">
+            <p><span className="text-white">AI</span> comprend le contexte, vérifie les conséquences et conseille sans décider à votre place.</p>
+            <p><span className="text-white">+</span> crée, importe ou relie une personne, un lieu, un Moment, une tâche, un document ou un besoin.</p>
+            <p><span className="text-white">ME</span> garde la maîtrise de l’identité, des droits, de la confidentialité, de la publication et des exports.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid min-h-[70dvh] place-items-center border-t border-white/8 px-6 py-24 text-center">
+        <div className="max-w-3xl">
+          <p className="text-[10px] uppercase tracking-[.3em] text-white/35">Le premier Kit complet</p>
+          <h2 className="mt-7 font-display text-5xl font-light md:text-7xl">Un mariage, avant, pendant et après.</h2>
+          <p className="mx-auto mt-7 max-w-2xl text-base font-light leading-relaxed text-white/48">Préparer ensemble, conduire le Jour J en direct, puis conserver les souvenirs dans le même Monde.</p>
+          <Show when="signed-in"><a href={`${basePath}/user-portal`} className="mt-10 inline-flex rounded-full bg-white px-7 py-3 text-sm font-semibold text-black">Retrouver mon Monde</a></Show>
+          <Show when="signed-out"><a href={`${basePath}/sign-up`} className="mt-10 inline-flex rounded-full bg-white px-7 py-3 text-sm font-semibold text-black">Commencer</a></Show>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function HomeRedirect() {
   return <><Show when="signed-in"><Redirect to="/user-portal" /></Show><Show when="signed-out"><Landing /></Show></>;
 }
@@ -187,6 +255,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 function Routes() {
   return <RoutedErrorBoundary><Switch>
+    <Route path="/concept" component={ConceptLanding} />
     <Route path="/" component={HomeRedirect} />
     <Route path="/user-portal" component={Portal} />
     <Route path="/network" component={NetworkRoute} />
