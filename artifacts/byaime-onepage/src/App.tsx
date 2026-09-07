@@ -8,6 +8,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
+import { NetworkPage } from '@/pages/Network';
+import { ProjectProvider } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 
@@ -82,6 +84,9 @@ function HomeRedirect() {
 }
 function Portal() {
   return <><Show when="signed-in"><Home /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
+}
+function NetworkRoute() {
+  return <><Show when="signed-in"><NetworkPage /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
 }
 function SignUpPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -182,6 +187,7 @@ function Routes() {
   return <RoutedErrorBoundary><Switch>
     <Route path="/" component={HomeRedirect} />
     <Route path="/user-portal" component={Portal} />
+    <Route path="/network" component={NetworkRoute} />
     <Route path="/sign-in/*?">{() => <AuthPage />}</Route>
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />
@@ -195,7 +201,12 @@ function Providers() {
     signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`}
     localization={{ signIn: { start: { title: 'Heureux de vous revoir', subtitle: 'Retrouvez votre mariage' } }, signUp: { start: { title: 'Créer votre espace AIME', subtitle: 'Votre histoire commence ici' } } }}
     routerPush={to => setLocation(stripBase(to))} routerReplace={to => setLocation(stripBase(to), { replace: true })}>
-    <QueryClientProvider client={queryClient}><CacheInvalidator /><TooltipProvider><Routes /><Toaster /></TooltipProvider></QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <CacheInvalidator />
+      <ProjectProvider>
+        <TooltipProvider><Routes /><Toaster /></TooltipProvider>
+      </ProjectProvider>
+    </QueryClientProvider>
   </ClerkProvider>;
 }
 export default function App() {

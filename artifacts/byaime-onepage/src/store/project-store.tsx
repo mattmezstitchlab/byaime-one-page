@@ -11,6 +11,7 @@ type ProjectStore = {
   intentionText: string;
   hasProject: boolean;
   projects: { id: string; title: string; role: string }[];
+  isHydrated: boolean;
   syncStatus: 'local' | 'loading' | 'saving' | 'saved' | 'error' | 'conflict';
   syncError?: string;
   currentRole: string;
@@ -40,6 +41,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [intentionText, setIntentionTextState] = useState('');
   const [draft, setDraft] = useState<Partial<WorldProject> | null>(null);
   const [projects, setProjects] = useState<{ id: string; title: string; role: string }[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [syncStatus, setSyncStatus] = useState<ProjectStore['syncStatus']>('local');
   const [syncError, setSyncError] = useState<string>();
   const versionRef = useRef<string | undefined>(undefined);
@@ -81,12 +83,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       if (previousUserRef.current) localStorage.removeItem(`aime-project:${previousUserRef.current}`);
       setProject(null);
       setProjects([]);
+      setIsHydrated(false);
       versionRef.current = undefined;
       hydratedRef.current = false;
     }
     previousUserRef.current = userId ?? null;
-    if (!isSignedIn || !userId) { setSyncStatus('local'); return; }
+    if (!isSignedIn || !userId) {
+      setSyncStatus('local');
+      setIsHydrated(true);
+      return;
+    }
     let cancelled = false;
+    setIsHydrated(false);
     setSyncStatus('loading');
     void request('/projects').then(async (rows: any[]) => {
       if (cancelled) return;
@@ -111,12 +119,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         setProject(cached ? normalizeStoredProject(JSON.parse(cached)) : null);
       }
       hydratedRef.current = true;
+      setIsHydrated(true);
       setSyncStatus('saved');
     }).catch((error) => {
       if (cancelled) return;
       const cached = localStorage.getItem(`aime-project:${userId}`);
       if (cached) setProject(normalizeStoredProject(JSON.parse(cached)));
       hydratedRef.current = true;
+      setIsHydrated(true);
       setSyncError(error instanceof Error ? error.message : 'Mode hors connexion');
       setSyncStatus('error');
     });
@@ -259,6 +269,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       intentionText,
       hasProject: project !== null,
       projects,
+      isHydrated,
       syncStatus,
       syncError,
       currentRole,

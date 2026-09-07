@@ -1,4 +1,4 @@
-import { ProjectProvider, useProject } from '@/store/project-store';
+import { useProject } from '@/store/project-store';
 import { ComposerHero } from '@/components/ComposerHero';
 import { ProjectStage } from '@/components/ProjectStage';
 import { PortalControls } from '@/components/PortalControls';
@@ -19,9 +19,5 @@ function AppContent() {
 }
 
 export function Home() {
-  return (
-    <ProjectProvider>
-      <AppContent />
-    </ProjectProvider>
-  );
+  return <AppContent />;
 }

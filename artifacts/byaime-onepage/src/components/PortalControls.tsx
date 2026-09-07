@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
-import { Download, Settings2, Upload, X } from 'lucide-react';
+import { Download, Settings2, Upload, X, Globe } from 'lucide-react';
 import { useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
+import { Link } from 'wouter';
 
 const labels = { local: 'Local', loading: 'Chargement…', saving: 'Enregistrement…', saved: 'Enregistré', error: 'Hors connexion', conflict: 'Conflit' };
 
@@ -67,8 +68,11 @@ export function PortalControls() {
 
   return <>
      <div data-testid="portal-controls" className="fixed top-4 right-4 z-[60] flex items-center gap-2">
+       <Link href="/network" className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Carte Universelle">
+         <Globe className="h-4 w-4" />
+       </Link>
        <span data-testid="sync-status" title={syncError} className={`rounded-full border px-3 py-1.5 text-[11px] backdrop-blur ${syncStatus === 'error' || syncStatus === 'conflict' ? 'border-amber-400/40 bg-amber-950/70 text-amber-200' : 'border-white/15 bg-black/60 text-white/65'}`}>{labels[syncStatus]}</span>
-       <button data-testid="settings-open" onClick={() => setOpen(true)} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur" aria-label="Ouvrir les réglages"><Settings2 className="h-4 w-4" /></button>
+       <button data-testid="settings-open" onClick={() => setOpen(true)} className="rounded-full border border-white/20 bg-black/60 p-2.5 backdrop-blur hover:bg-white/10 transition-colors text-white" aria-label="Ouvrir les réglages"><Settings2 className="h-4 w-4" /></button>
     </div>
     {open && <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex justify-end" onClick={() => setOpen(false)}>
        <aside data-testid="settings-panel" className="h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-[#0d0d0d] p-6 text-white" onClick={e => e.stopPropagation()}>
