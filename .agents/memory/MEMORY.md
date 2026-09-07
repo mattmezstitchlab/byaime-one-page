@@ -9,3 +9,4 @@
 - [Profil système nerveux](profile-nervous-system.md) — le mode Éditer révèle l’architecture vivante d’AIME et ouvre chaque nœud dans le bloc central.
 - [Contrôle universel](universal-review-control.md) — « À vérifier » agrège partout sauvegarde, liens incomplets et décisions humaines dans une commande blanche.
 - [Partition vivante mondiale](world-heartbeat.md) — Le Monde AIME observe des événements sourcés sur une Timeline commune, avec démo explicite et providers remplaçables.
+- [Grille universelle des vivants](universal-living-grid.md) — centrer le réseau sur le Profil, avec cases X/Y stables, profondeurs Z et actions autorisées.

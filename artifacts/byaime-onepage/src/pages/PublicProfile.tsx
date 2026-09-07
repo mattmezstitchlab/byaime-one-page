@@ -289,7 +289,10 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   };
 
   return (
-    <main data-testid="public-profile-page" className="min-h-[100dvh] bg-[#020202] text-white pb-40 overflow-x-hidden">
+    <main data-testid="public-profile-page" className={cn("min-h-[100dvh] bg-[#020202] text-white overflow-x-hidden", isEditMode ? "h-[100dvh] overflow-y-hidden" : "pb-40")}>
+      <Link href="/" className="fixed top-6 left-6 z-50 pointer-events-auto">
+        <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="AIME" className="h-8 w-auto rounded-lg opacity-80 hover:opacity-100 transition-opacity" />
+      </Link>
       {isPrivatePreview && (
         <div className="absolute top-20 right-6 z-40 pointer-events-auto">
           <Link href="/le-monde-aime" className="flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-black/40 backdrop-blur-md text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all group shadow-xl" title="Le Cœur Battant du Monde">
@@ -306,9 +309,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       </div>
 
       {isEditMode ? (
-        <div className="relative z-10 pt-24 px-6 max-w-[1200px] mx-auto pb-40">
-
-           <div className="mb-8 flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
+        <div className="relative z-10 pt-24 px-6 w-full h-[100dvh] flex flex-col">
+           <div className="mb-6 flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left shrink-0 max-w-[1200px] w-full mx-auto">
               <div>
                 <h2 className="text-3xl font-display font-light text-white mb-2">Architecture du Profil</h2>
                 <p className="text-sm font-light text-white/40">Gérez les connexions, les contenus et leur visibilité depuis une même carte vivante.</p>
@@ -317,7 +319,9 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                 <Pencil className="h-3 w-3" /> Terminer
               </button>
            </div>
-           <ProfileNervousSystem />
+           <div className="flex-1 w-full relative min-h-0">
+             <ProfileNervousSystem />
+           </div>
         </div>
       ) : (
         <>
@@ -492,7 +496,15 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         {selectedRepere && (
           <CenteredBlock eyebrow="Repère du Profil" title={selectedRepere.label} description={selectedRepere.description} onClose={() => setSelectedRepere(null)} leading={<selectedRepere.icon className="mt-4 h-6 w-6 shrink-0 text-white/55" />}>
             <div className="grid gap-3 sm:grid-cols-2">
-              {(selectedRepere.id === "archives" ? CATEGORIES.slice(0, 3) : selectedRepere.id === "network" ? CATEGORIES.slice(5, 6) : selectedRepere.id === "history" ? CATEGORIES.slice(3) : [{ id: "identity", label: "Naissance et identité", icon: Fingerprint }]).map(item => (
+              {selectedRepere.id === "network" ? (
+                <Link href="/network" className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-5 text-left transition hover:border-white/25 hover:bg-white/[.06]">
+                  <Network className="h-5 w-5 text-white/45" />
+                  <span>
+                    <span className="block text-xs uppercase tracking-[.16em] text-white/75">Ouvrir la Grille universelle</span>
+                    <span className="mt-2 block text-xs font-light leading-relaxed text-white/35">Votre Profil devient le point zéro ; les personnes et les professionnels occupent les cases reliées.</span>
+                  </span>
+                </Link>
+              ) : (selectedRepere.id === "archives" ? CATEGORIES.slice(0, 3) : selectedRepere.id === "history" ? CATEGORIES.slice(3) : [{ id: "identity", label: "Naissance et identité", icon: Fingerprint }]).map(item => (
                 <button key={item.id} type="button" onClick={() => { setSelectedRepere(null); setActiveCategory(item.id === "identity" ? null : item.id); }} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-5 text-left transition hover:border-white/25 hover:bg-white/[.06]">
                   <item.icon className="h-5 w-5 text-white/45" /><span className="text-xs uppercase tracking-[.16em] text-white/75">{item.label}</span>
                 </button>

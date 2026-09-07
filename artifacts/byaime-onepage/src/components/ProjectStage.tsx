@@ -9,14 +9,12 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Layers3, Map as MapIcon, Moon, Settings, Sun, UserCheck, UserRound } from 'lucide-react';
+import { BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Moon, Settings, Sun, UserCheck, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import type { Guest, Provider } from '@/lib/types';
-import { UniversalMap } from './UniversalMap';
-import { buildMapSubjects, mapSubjectKey } from '@/lib/universal/map-subjects';
 
 const providerImages: Partial<Record<Provider['category'], string>> = {
   lieu: 'images/visual-venue-kJsZKZPp.jpg',
@@ -79,13 +77,8 @@ export function ProjectStage() {
   const [playMode, setPlayMode] = useState(false);
   const [layers, setLayers] = useState<string[]>([]);
   const [view, setView] = useState<TimelineView>("chronological");
-  const [registryOpen, setRegistryOpen] = useState(false);
-  const [registryFilter, setRegistryFilter] = useState<"all" | "guests" | "family" | "providers">("all");
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
-  const [mapError, setMapError] = useState(false);
-  const [activeMapSubjectId, setActiveMapSubjectId] = useState<string | null>(null);
   const [appearance, setAppearance] = useState<"dark" | "light">(() => localStorage.getItem("aime-appearance") === "light" ? "light" : "dark");
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -158,10 +151,6 @@ export function ProjectStage() {
     if (!project?.tasks.length) return 0;
     return Math.round((project.tasks.filter(task => task.status === 'termine').length / project.tasks.length) * 100);
   }, [project]);
-  const mapSubjects = useMemo(() => project ? buildMapSubjects(project) : [], [project]);
-  const mappedSubjects = mapSubjects.filter(subject => subject.latitude !== undefined && subject.longitude !== undefined);
-  const activeMapSubject = mapSubjects.find(subject => mapSubjectKey(subject) === activeMapSubjectId);
-
   const subtitleIsRedundant = useMemo(() => {
     if (!project?.subtitle) return false;
     const normalize = (value: string) => value.toLocaleLowerCase('fr').replace(/[^a-zà-ÿ0-9]/g, '');
@@ -347,9 +336,8 @@ export function ProjectStage() {
             transition={{ delay: 0.4 }}
             className="flex flex-wrap gap-2 pt-4"
           >
-            <button
-              type="button"
-               onClick={() => setRegistryOpen(true)}
+            <Link
+              href="/network"
               className="group flex items-center gap-2 py-1 pr-2 text-xs text-white/80 transition hover:text-white"
                aria-label={`Ouvrir le Registre, ${project.guests.length + project.providers.length} personnes et professionnels`}
             >
@@ -358,7 +346,7 @@ export function ProjectStage() {
                 {project.guests.length === 0 && <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-black bg-white/10 text-[10px]">0</span>}
               </span>
                <span>{project.guests.length + project.providers.length} dans le Registre</span>
-            </button>
+            </Link>
             {stats.open > 0 && (
               <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
                 {stats.open} professionnels à trouver
@@ -442,23 +430,31 @@ export function ProjectStage() {
       <nav aria-label="Vues du Monde" className="border-y border-white/8 bg-[#050505]">
         <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 py-4 hide-scrollbar">
           {([
-            ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["map", "Carte"], ["day-of", "Jour J"], ["person", "Invités"], ["provider", "Professionnels"],
+            ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["map", "Grille"], ["day-of", "Jour J"], ["person", "Invités"], ["provider", "Professionnels"],
             ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
-          ] as Array<[TimelineView, string]>).map(([id, label]) => (
-            <button
+          ] as Array<[TimelineView, string]>).map(([id, label]) => id === "map" ? (
+            <Link
               key={id}
-              onClick={() => {
-                setView(id);
-                 if (id === "public-info") setPhase("tout");
-              }}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors",
-                view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:border-white/25 hover:text-white"
-              )}
+              href="/network"
+              className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-white/55 transition-colors hover:border-white/25 hover:text-white"
             >
               {label}
-            </button>
-          ))}
+            </Link>
+          ) : (
+              <button
+                key={id}
+                onClick={() => {
+                  setView(id);
+                  if (id === "public-info") setPhase("tout");
+                }}
+                className={cn(
+                  "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors",
+                  view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:border-white/25 hover:text-white"
+                )}
+              >
+                {label}
+              </button>
+            ))}
           <button type="button" onClick={() => setRsvpOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-white/55 transition-colors hover:border-white/25 hover:text-white">
             Je participe
           </button>
@@ -470,36 +466,6 @@ export function ProjectStage() {
 
       {/* Main Content Area */}
       <main className="w-full">
-        {view === "map" && (
-          <section className="relative h-[72vh] min-h-[560px] overflow-hidden border-b border-white/8 bg-[#fbf8f4]">
-            <UniversalMap
-              subjects={mappedSubjects}
-              activeId={activeMapSubjectId}
-              focusId={activeMapSubjectId}
-              reduceMotion={reduceMotion}
-              onSelect={setActiveMapSubjectId}
-              onReady={() => { setMapReady(true); setMapError(false); }}
-              onError={() => { setMapError(true); setMapReady(false); }}
-            />
-            {!mapReady && (
-              <div className="pointer-events-none absolute inset-0 z-[1] grid place-items-center bg-[#fbf8f4] text-[#3e3a35]">
-                <div className="text-center">
-                  <MapIcon className="mx-auto mb-3 h-8 w-8 opacity-25" />
-                  <p className="text-sm">{mapError ? "Le fond de carte est indisponible" : "La Carte se dessine…"}</p>
-                  <p className="mt-2 max-w-sm text-xs opacity-50">{mapError ? "Les lieux restent accessibles depuis les informations pratiques." : "AIME rassemble les lieux, les personnes et les Moments visibles dans cette couche."}</p>
-                </div>
-              </div>
-            )}
-            <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 p-5 sm:p-7">
-              <div className="pointer-events-auto mx-auto flex max-w-5xl flex-wrap items-center gap-2">
-                <span className="flex items-center gap-2 rounded-full border border-black/10 bg-white/85 px-4 py-2 text-[9px] uppercase tracking-[.16em] text-black/60 shadow-sm backdrop-blur-xl"><Layers3 className="h-3.5 w-3.5" /> Couche active</span>
-                {["Informations pratiques", "Réseau", "Autour de moi"].map((label, index) => (
-                  <span key={label} className={cn("rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.14em] shadow-sm backdrop-blur-xl", index === 0 ? "border-black bg-black text-white" : "border-black/10 bg-white/85 text-black/50")}>{label}</span>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
         {view === "person" && (
           <section className="overflow-hidden border-b border-white/8 bg-[#080808] px-6 py-20">
             <div className="mx-auto max-w-5xl">
@@ -511,24 +477,20 @@ export function ProjectStage() {
               {project.guests.length ? (
                 <div className="mt-14 flex flex-wrap items-end gap-x-2 gap-y-8 sm:gap-x-4">
                   {project.guests.map((guest, index) => (
-                    <button
+                    <Link
                       key={guest.id}
-                      type="button"
-                      onClick={() => {
-                        setRegistryFilter(guest.role === "famille" ? "family" : "guests");
-                        setRegistryOpen(true);
-                      }}
+                      href="/network"
                       className={cn("group flex flex-col items-center", index % 3 === 1 && "sm:translate-y-8")}
                       aria-label={`Ouvrir ${guest.name} dans le Registre`}
                     >
                       <span className="transition duration-300 group-hover:-translate-y-2 group-hover:scale-105"><GuestPortrait guest={guest} index={index} large /></span>
                       <span className="mt-3 max-w-24 truncate text-[10px] text-white/58 transition group-hover:text-white">{guest.name}</span>
                       <span className="mt-1 text-[8px] uppercase tracking-[.14em] text-white/24">{guest.role}</span>
-                    </button>
+                    </Link>
                   ))}
                 </div>
               ) : (
-                <button type="button" onClick={() => setRegistryOpen(true)} className="mt-12 rounded-3xl border border-dashed border-white/15 px-8 py-12 text-sm text-white/38">Le Registre accueillera ici les personnes reliées à ce Monde.</button>
+                <Link href="/network" className="mt-12 block rounded-3xl border border-dashed border-white/15 px-8 py-12 text-center text-sm text-white/38 hover:border-white/30 transition-colors">Le Registre accueillera ici les personnes reliées à ce Monde.</Link>
               )}
             </div>
           </section>
@@ -546,67 +508,6 @@ export function ProjectStage() {
       }} onPlay={() => setPlayMode(true)} />
 
       {playMode && <PlayMode events={visibleEvents} onClose={() => setPlayMode(false)} />}
-      {registryOpen && (
-        <CenteredBlock
-          eyebrow="Réseau du Monde"
-          title="Le Registre"
-          description="Invités, proches, professionnels et organisations réunis sans enfermer une personne dans un seul rôle."
-          onClose={() => setRegistryOpen(false)}
-          size="lg"
-        >
-          <div className="mb-6 flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-            {([
-              ["all", "Tout le monde"],
-              ["guests", "Invités"],
-              ["family", "Famille"],
-              ["providers", "Professionnels"],
-            ] as const).map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setRegistryFilter(id)} className={cn("shrink-0 rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em]", registryFilter === id ? "border-white bg-white text-black" : "border-white/10 text-white/45")}>{label}</button>
-            ))}
-          </div>
-          {(registryFilter === "all" || registryFilter === "guests" || registryFilter === "family") && project.guests.filter(guest => registryFilter !== "family" || guest.role === "famille").length > 0 && (
-            <div className="mb-7">
-              <p className="mb-3 text-[9px] uppercase tracking-[.18em] text-white/30">Invités et proches</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {project.guests.filter(guest => registryFilter !== "family" || guest.role === "famille").map((guest, index) => (
-                  <article key={guest.id} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4">
-                    <GuestPortrait guest={guest} index={index} />
-                    <div className="min-w-0 flex-1"><p className="truncate text-sm text-white">{guest.name}</p><p className="mt-1 text-[10px] uppercase tracking-[.16em] text-white/40">{guest.role} · {guest.rsvp === "confirme" ? "Participe" : guest.rsvp === "decline" ? "Ne participe pas" : "Réponse attendue"}</p></div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
-          {(registryFilter === "all" || registryFilter === "providers") && project.providers.length ? (
-            <div>
-              <p className="mb-3 text-[9px] uppercase tracking-[.18em] text-white/30">Professionnels</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {project.providers.map(provider => {
-                const directHref = provider.contact
-                  ? provider.contact.includes('@') ? `mailto:${provider.contact}` : `tel:${provider.contact.replace(/\s/g, '')}`
-                  : null;
-                return (
-                  <article key={provider.id} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-4">
-                    <ProviderPortrait provider={provider} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-white">{provider.name || 'À identifier'}</p>
-                      <p className="mt-1 text-[10px] uppercase tracking-[.16em] text-white/40">{provider.role}</p>
-                    </div>
-                    {directHref && (
-                      <a href={directHref} className="rounded-full border border-white/15 p-2 text-white/55 transition hover:bg-white hover:text-black" aria-label={`Contacter ${provider.name || provider.role}`}>
-                        <ArrowUpRight className="h-4 w-4" />
-                      </a>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-            </div>
-          ) : (
-            registryFilter === "providers" && <p className="py-10 text-center text-sm text-white/35">Aucun professionnel dans ce Monde pour le moment.</p>
-          )}
-        </CenteredBlock>
-      )}
       {rsvpOpen && (
         <CenteredBlock eyebrow="Présence" title="Est-ce que vous participez ?" description="La réponse appartient à la personne et peut s’appliquer au Monde entier ou à certains Moments." onClose={() => setRsvpOpen(false)}>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -624,14 +525,6 @@ export function ProjectStage() {
           <div className="rounded-2xl border border-dashed border-white/15 px-6 py-10 text-center">
             <p className="text-sm text-white/65">Aucune cagnotte n’est ouverte pour le moment.</p>
             <p className="mt-2 text-xs font-light leading-relaxed text-white/35">Les montants, bénéficiaires, frais et conditions devront être affichés clairement avant d’activer un paiement réel.</p>
-          </div>
-        </CenteredBlock>
-      )}
-      {activeMapSubject && (
-        <CenteredBlock eyebrow={activeMapSubject.ref.kind === "place" ? "Lieu" : activeMapSubject.ref.kind === "moment" ? "Moment" : "Réseau"} title={activeMapSubject.label} description={activeMapSubject.summary} onClose={() => setActiveMapSubjectId(null)}>
-          <div className="flex flex-wrap gap-2">
-            {activeMapSubject.city && <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/55">{activeMapSubject.city}</span>}
-            <span className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/55">{activeMapSubject.locationLevel === "public" ? "Visible publiquement" : "Visible dans ce Monde"}</span>
           </div>
         </CenteredBlock>
       )}

@@ -100,7 +100,7 @@ export function ProfileNervousSystem() {
   if (!project || !canEdit) return null;
 
   return (
-    <div className="relative h-[70vh] min-h-[600px] w-full overflow-auto rounded-3xl border border-white/5 bg-[#020202] shadow-2xl">
+    <div className="absolute inset-0 w-full h-full overflow-hidden rounded-3xl border border-white/5 bg-[#020202] shadow-2xl">
       <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] to-[#020202] opacity-80" />
       <motion.div 
          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.02),transparent_60%)] pointer-events-none"
@@ -108,7 +108,7 @@ export function ProfileNervousSystem() {
          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      <div className="relative mx-auto aspect-square h-full min-h-[720px] min-w-[720px] max-h-[1000px] max-w-[1000px]">
+      <div className="relative mx-auto aspect-square h-full w-full max-h-[1000px] max-w-[1000px]">
       <svg className="absolute inset-0 h-full w-full pointer-events-none" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
         {MAIN_NODES.filter(n => n.type === "root").map(root => (
           <motion.line
