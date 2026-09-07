@@ -15,6 +15,11 @@ export function PortalControls() {
   const [notice, setNotice] = useState('');
   const [files, setFiles] = useState<{ id: string; name: string; contentType: string; size: number }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const openMe = () => setOpen(true);
+    window.addEventListener('aime:open-me', openMe);
+    return () => window.removeEventListener('aime:open-me', openMe);
+  }, []);
   const api = async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, { ...init, headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers } });
     const body = response.status === 204 ? null : await response.json().catch(() => ({}));
