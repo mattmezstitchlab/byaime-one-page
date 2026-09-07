@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Grid2X2, Map, Plus, Users, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, FileText, Grid2X2, Link2, MapPin, PackageOpen, Plus, Users } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { PlanningPanel } from "./panels/PlanningPanel";
 import { GuestPanel } from "./panels/GuestPanel";
@@ -8,6 +8,7 @@ import { ProviderPanel } from "./panels/ProviderPanel";
 import { DayOfPanel } from "./panels/DayOfPanel";
 import { WeddingModule, WeddingModulesPanel } from "./panels/WeddingModulesPanel";
 import { CenteredBlock } from "./CenteredBlock";
+import { UNIVERSAL_CREATE_ACTIONS, type UniversalCreateActionId } from "@/lib/universal/create-actions";
 
 const secondary: { id: WeddingModule; label: string }[] = [
   { id: "seating", label: "Plan de table" },
@@ -31,17 +32,29 @@ export function BottomDock() {
   const [activePanel, setActivePanel] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   if (!project) return null;
-  const hubItems = [
-    { id: "planning", icon: ClipboardList, label: "À faire", detail: "Créer et suivre les prochaines étapes" },
-    { id: "guests", icon: Users, label: "Invités", detail: "Ajouter les personnes et leurs besoins" },
-    { id: "providers", icon: BriefcaseBusiness, label: "Professionnels", detail: "Chercher, ajouter et organiser les métiers" },
-    { id: "dayof", icon: CalendarDays, label: "Jour J", detail: "Préparer les moments de cette journée" },
-    { id: "plus", icon: Grid2X2, label: "Toutes les sections", detail: "Documents, budget, musique et souvenirs" },
-  ];
+  const icons = {
+    person: Users,
+    place: MapPin,
+    moment: CalendarDays,
+    task: ClipboardList,
+    "document-media": FileText,
+    resource: PackageOpen,
+    relation: Link2,
+  } satisfies Record<UniversalCreateActionId, typeof Users>;
+  const panelTargets: Partial<Record<UniversalCreateActionId, string>> = {
+    person: "guests",
+    moment: "dayof",
+    task: "planning",
+    "document-media": "documents",
+  };
   const isSecondary = secondary.some(item => item.id === activePanel);
   const openPanel = (id: string) => {
     setActivePanel(id);
     setQuickOpen(false);
+  };
+  const openCreateAction = (id: UniversalCreateActionId) => {
+    const target = panelTargets[id];
+    if (target) openPanel(target);
   };
 
   return <><AnimatePresence>{activePanel && <CenteredBlock eyebrow={isSecondary ? "Toutes les sections" : "Créer et organiser"} title={labels[activePanel]} size="xl" onClose={() => setActivePanel(null)} leading={isSecondary ? <button onClick={() => setActivePanel("plus")} aria-label="Retour aux sections" className="mt-5 rounded-full p-2 text-white/40 transition hover:text-white"><ChevronLeft className="h-4 w-4" /></button> : undefined}>
@@ -55,11 +68,14 @@ export function BottomDock() {
     </div>
   </CenteredBlock>}</AnimatePresence>
   <AnimatePresence>{quickOpen && <CenteredBlock eyebrow="Créer et organiser" title="Par où voulez-vous commencer ?" onClose={() => setQuickOpen(false)}>
-      <div>{hubItems.map(item => <button key={item.id} onClick={() => openPanel(item.id)} className="group flex w-full items-center gap-5 border-b border-white/10 py-5 text-left">
-        <item.icon className="h-5 w-5 shrink-0 stroke-[1.35] text-white/45 transition group-hover:text-white" />
-        <span className="min-w-0 flex-1"><span className="block text-[11px] uppercase tracking-[.2em] text-white/80">{item.label}</span><span className="mt-1.5 block text-sm font-light text-white/38">{item.detail}</span></span>
-        <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/60" />
-      </button>)}</div>
+      <div>{UNIVERSAL_CREATE_ACTIONS.map(item => {
+        const Icon = icons[item.id];
+        return <button key={item.id} disabled={!item.availableInCurrentProject} onClick={() => openCreateAction(item.id)} className="group flex w-full items-center gap-5 border-b border-white/10 py-5 text-left disabled:cursor-default disabled:opacity-45">
+          <Icon className="h-5 w-5 shrink-0 stroke-[1.35] text-white/45 transition group-hover:text-white" />
+          <span className="min-w-0 flex-1"><span className="block text-[11px] uppercase tracking-[.2em] text-white/80">{item.label}</span><span className="mt-1.5 block text-sm font-light text-white/38">{item.description}</span>{!item.availableInCurrentProject && <span className="mt-2 block text-[9px] uppercase tracking-[.16em] text-white/30">Fondation universelle en construction</span>}</span>
+          {item.availableInCurrentProject && <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/60" />}
+        </button>;
+      })}</div>
   </CenteredBlock>}</AnimatePresence>
   <nav aria-label="Centre AI plus ME" className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 text-white">
       <div className="flex h-[76px] w-[280px] shrink-0 items-center justify-between rounded-full bg-black/88 p-2 shadow-2xl backdrop-blur-xl sm:w-[320px]">

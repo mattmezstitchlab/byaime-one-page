@@ -8,6 +8,8 @@ La vue courante peut changer l’ordre et les exemples, mais pas inventer une no
 
 ## Conclusion de l’audit
 
+**Décision validée le 7 septembre 2026 : les sept entrées proposées deviennent le noyau canonique du bouton `+`.**
+
 Les entrées actuelles « À faire », « Invités », « Professionnels », « Jour J » et « Toutes les sections » sont des projections du Monde Mariage. Elles ne constituent pas le registre universel.
 
 Le noyau universel recommandé est :
