@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ type CenteredBlockProps = {
   children: ReactNode;
   leading?: ReactNode;
   size?: "md" | "lg" | "xl";
+  testId?: string;
 };
 
 const widths = {
@@ -19,7 +20,15 @@ const widths = {
   xl: "max-w-5xl",
 };
 
-export function CenteredBlock({ eyebrow, title, description, onClose, children, leading, size = "md" }: CenteredBlockProps) {
+export function CenteredBlock({ eyebrow, title, description, onClose, children, leading, size = "md", testId }: CenteredBlockProps) {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -29,6 +38,7 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
       onClick={onClose}
     >
       <motion.section
+        data-testid={testId}
         role="dialog"
         aria-modal="true"
         aria-label={title}
