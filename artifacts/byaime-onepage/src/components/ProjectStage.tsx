@@ -180,7 +180,7 @@ export function ProjectStage() {
             <button
               type="button"
               onClick={() => setProvidersOpen(true)}
-              className="group flex items-center gap-2 rounded-full border border-white/20 bg-black/60 py-1 pl-1 pr-3 text-xs text-white/80 transition hover:border-white/45 hover:bg-white/10"
+              className="group flex items-center gap-2 py-1 pr-2 text-xs text-white/80 transition hover:text-white"
               aria-label={`Ouvrir le trombinoscope des prestataires, ${stats.booked} confirmés`}
             >
               <span className="flex -space-x-2">
@@ -199,7 +199,7 @@ export function ProjectStage() {
                 {stats.engaged.toLocaleString('fr-FR')} € déjà prévus
               </span>
             )}
-            <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs tabular-nums text-white/80">
+            <span className="px-1 py-1 text-xs tabular-nums tracking-[.08em] text-white/80">
               {distanceToPivot > 0 ? `${daysToPivot} J · ${String(hoursToPivot).padStart(2, '0')} H · ${String(minutesToPivot).padStart(2, '0')} MIN` : 'LE JOUR EST ARRIVÉ'}
             </span>
 
