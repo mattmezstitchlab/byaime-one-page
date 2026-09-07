@@ -4,7 +4,7 @@ import { fr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Clock3, CalendarDays } from "lucide-react";
 import { useParams, Link } from "wouter";
-import { useGetPublicProfile, type PublicTimelineEvent } from "@workspace/api-client-react";
+import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicTimelineEvent } from "@workspace/api-client-react";
 import { CenteredBlock } from "@/components/CenteredBlock";
 import { cn } from "@/lib/utils";
 
@@ -116,7 +116,7 @@ function Hero({ profile }: { profile: { title: string; subtitle?: string; city?:
 export function PublicProfilePage() {
   const params = useParams<{ projectId: string }>();
   const { data: profile, isLoading, error } = useGetPublicProfile(params.projectId || "", {
-    query: { retry: false },
+    query: { queryKey: getGetPublicProfileQueryKey(params.projectId || ""), retry: false },
   });
   const [selectedEvent, setSelectedEvent] = useState<PublicTimelineEvent | undefined>();
   const now = Date.now();
