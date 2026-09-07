@@ -97,6 +97,41 @@
   --app-font-display: 'Plus Jakarta Sans', sans-serif;
 }
 
+:root[data-aime-theme="light"] {
+  --background: 36 24% 96%;
+  --foreground: 30 12% 9%;
+  --card: 36 22% 93%;
+  --card-foreground: 30 12% 9%;
+  --card-border: 30 12% 84%;
+  --popover: 36 24% 96%;
+  --popover-foreground: 30 12% 9%;
+  --popover-border: 30 12% 84%;
+  --primary: 30 12% 9%;
+  --primary-foreground: 36 24% 96%;
+  --secondary: 30 10% 88%;
+  --secondary-foreground: 30 12% 9%;
+  --muted: 30 10% 88%;
+  --muted-foreground: 30 8% 38%;
+  --accent: 30 10% 88%;
+  --accent-foreground: 30 12% 9%;
+  --border: 30 12% 82%;
+  --input: 30 12% 82%;
+  --ring: 30 12% 24%;
+  color-scheme: light;
+}
+
+:root[data-aime-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-aime-theme="light"] .aime-page-shell {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+:root[data-aime-theme="light"] .aime-page-shell :is(img, video, canvas, [data-preserve-color]) {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 html {
   scroll-behavior: smooth;
   background-color: hsl(var(--background));

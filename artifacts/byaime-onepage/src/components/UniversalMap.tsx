@@ -4,11 +4,25 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { MapSubject } from '@workspace/aime-domain';
 import { mapSubjectKey } from '@/lib/universal/map-subjects';
 
-const STYLE_URL = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-const IVORY = '#fbf8f4';
-const WATER = '#e9e2d8';
-const LINE = '#eae3d9';
-const INK = '#79736b';
+const MAP_STYLE = {
+  version: 8 as const,
+  sources: {
+    carto: {
+      type: 'raster' as const,
+      tiles: [
+        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+      ],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors © CARTO',
+    },
+  },
+  layers: [
+    { id: 'carto-background', type: 'background' as const, paint: { 'background-color': '#fbf8f4' } },
+    { id: 'carto-tiles', type: 'raster' as const, source: 'carto', minzoom: 0, maxzoom: 20 },
+  ],
+};
 
 type UniversalMapProps = {
   subjects: MapSubject[];
@@ -63,14 +77,14 @@ export function UniversalMap({ subjects, activeId, focusId, reduceMotion, onSele
 
       const map = new gl.Map({
         container: containerRef.current,
-        style: STYLE_URL,
+        style: MAP_STYLE,
         center: [2.3522, 48.8566],
         zoom: 4,
         attributionControl: false,
       });
       mapRef.current = map;
-      map.on('error', () => {
-        if (!readyRef.current) stateRef.current.onError?.();
+      map.on('error', (event: any) => {
+        if (!readyRef.current && event?.error) stateRef.current.onError?.();
       });
       map.addControl(new gl.NavigationControl({ showCompass: false }), 'bottom-right');
       map.addControl(new gl.AttributionControl({ compact: true, customAttribution: '© OpenStreetMap © CARTO' }), 'bottom-left');
@@ -81,23 +95,6 @@ export function UniversalMap({ subjects, activeId, focusId, reduceMotion, onSele
 
       map.on('style.load', () => {
         if (cancelled) return;
-        for (const layer of map.getStyle().layers ?? []) {
-          try {
-            if (layer.type === 'background') map.setPaintProperty(layer.id, 'background-color', IVORY);
-            if (layer.type === 'fill') map.setPaintProperty(layer.id, 'fill-color', /water|ocean|sea/i.test(layer.id) ? WATER : IVORY);
-            if (layer.type === 'line') {
-              map.setPaintProperty(layer.id, 'line-color', LINE);
-              map.setPaintProperty(layer.id, 'line-opacity', 0.9);
-            }
-            if (layer.type === 'symbol') {
-              map.setPaintProperty(layer.id, 'text-color', INK);
-              map.setPaintProperty(layer.id, 'text-halo-color', IVORY);
-            }
-          } catch {
-            // Some vendor layers do not expose every paint property.
-          }
-        }
-
         map.addSource('subjects', {
           type: 'geojson',
           data: toGeoJson(stateRef.current.subjects, stateRef.current.activeId),

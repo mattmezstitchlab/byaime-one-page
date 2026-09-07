@@ -5,3 +5,4 @@
 - [Actions universelles de création](universal-create-actions.md) — le bouton + partage sept primitives validées entre tous les types de Monde.
 - [Timeline des profils publics](public-profile-timeline.md) — structurer une vie autour d’aujourd’hui et ne publier que des Moments projetés par le serveur.
 - [Monde éditable et publiable](editable-world-page.md) — faire du Monde privé une page composable, puis un site public projeté et contrôlé.
+- [Apparence inclusive](accessible-appearance.md) — proposer Sombre et Clair comme préférence transversale, mémorisée et indépendante des Kits.

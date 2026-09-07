@@ -9,7 +9,7 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Layers3, Map as MapIcon, Settings, UserCheck, UserRound } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Layers3, Map as MapIcon, Moon, Settings, Sun, UserCheck, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -72,6 +72,7 @@ export function ProjectStage() {
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [activeMapSubjectId, setActiveMapSubjectId] = useState<string | null>(null);
+  const [appearance, setAppearance] = useState<"dark" | "light">(() => localStorage.getItem("aime-appearance") === "light" ? "light" : "dark");
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
@@ -88,6 +89,11 @@ export function ProjectStage() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.aimeTheme = appearance;
+    localStorage.setItem("aime-appearance", appearance);
+  }, [appearance]);
 
   useEffect(() => {
     if (!project) return;
@@ -214,11 +220,22 @@ export function ProjectStage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
+    <div className="aime-page-shell relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
       {/* The temporal capsule changes the whole World, not only the Timeline. */}
       <div className="sticky top-0 z-50 border-b border-white/10 bg-black/88 backdrop-blur-xl">
         <div className="relative mx-auto flex max-w-5xl items-center justify-center px-6 py-3">
-          <button type="button" onClick={() => setAimeMenuOpen(true)} className="absolute left-6 text-xs font-medium tracking-[.32em] text-white/80 transition hover:text-white" aria-label="Ouvrir le menu AIME">AIME</button>
+          <div className="absolute left-4 flex items-center gap-3 sm:left-6">
+            <button type="button" onClick={() => setAimeMenuOpen(true)} className="text-xs font-medium tracking-[.32em] text-white/80 transition hover:text-white" aria-label="Ouvrir le menu AIME">AIME</button>
+            <button
+              type="button"
+              onClick={() => setAppearance(value => value === "dark" ? "light" : "dark")}
+              className="flex items-center gap-1.5 rounded-full border border-white/12 px-2.5 py-1.5 text-[8px] uppercase tracking-[.12em] text-white/50 transition hover:border-white/30 hover:text-white"
+              aria-label={`Activer le mode ${appearance === "dark" ? "clair" : "sombre"}`}
+            >
+              {appearance === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+              <span className="hidden sm:inline">{appearance === "dark" ? "Clair" : "Sombre"}</span>
+            </button>
+          </div>
           <div className="flex max-w-full overflow-x-auto rounded-full bg-white/10 p-1 hide-scrollbar">
             {[
               { id: 'tout', label: 'Tout' },
@@ -247,6 +264,7 @@ export function ProjectStage() {
       {/* Cinematic Header */}
       <header key={phase} className="relative isolate flex min-h-[75vh] w-full flex-col justify-end overflow-hidden px-6 pb-24 pt-28 md:px-12">
         <div
+          data-preserve-color
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
         />
@@ -449,7 +467,7 @@ export function ProjectStage() {
               reduceMotion={reduceMotion}
               onSelect={setActiveMapSubjectId}
               onReady={() => { setMapReady(true); setMapError(false); }}
-              onError={() => setMapError(true)}
+              onError={() => { setMapError(true); setMapReady(false); }}
             />
             {!mapReady && (
               <div className="pointer-events-none absolute inset-0 z-[1] grid place-items-center bg-[#fbf8f4] text-[#3e3a35]">

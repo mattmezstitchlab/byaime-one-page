@@ -3,9 +3,9 @@ name: Cartographie dans l’artifact web
 description: Choix de moteur cartographique fiable pour les vues Carte d’AIME sur Replit.
 ---
 
-Utiliser MapLibre avec le worker construit dans l’artifact et le style vectoriel CARTO Positron sans clé. Conserver la Liste comme repli lorsque le fond cartographique est inaccessible.
+Utiliser MapLibre avec le worker construit dans l’artifact et un style CARTO sans clé chargé directement dans la configuration. Conserver la Liste comme repli lorsque le fond cartographique est inaccessible.
 
-**Why:** L’ancien fond raster a fini par afficher une demande de clé. L’implémentation MapLibre issue du prototype historique fournit le rendu ivoire, le clustering et un worker local ; son chargement, son build et ses ressources ont été validés dans l’aperçu.
+**Why:** Le chargement d’un style vectoriel distant pouvait être déclaré prêt tout en restant visuellement vide. La configuration directe garde le rendu ivoire, le clustering et le worker local sans dépendre d’un manifeste distant.
 
 **How to apply:** Construire le worker avec Vite, attendre explicitement `style.load`, afficher un état de chargement borné et ne cartographier que des localisations vérifiées. Ne jamais déduire la position d’une personne depuis la ville générale du Monde.
 
