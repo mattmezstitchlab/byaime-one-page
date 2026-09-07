@@ -54,7 +54,7 @@ export function HeroSection() {
               
               <input 
                 type="text"
-                placeholder="L'univers d'abord, puis une question fine à la fois."
+                placeholder="Choisissez un sujet, puis répondez à une question à la fois."
                 className="bg-transparent border-none outline-none w-full flex-1 px-5 py-3 text-sm placeholder:text-white/40 text-center sm:text-left min-w-0 text-white font-medium focus:placeholder:opacity-0 transition-opacity"
                 value={currentQuestion}
                 onChange={(e) => setCurrentQuestion(e.target.value)}
@@ -68,7 +68,7 @@ export function HeroSection() {
           
           <div className="pt-2">
             <button className="text-white/60 text-xs tracking-wide hover:text-white transition-colors border-b border-white/20 pb-0.5 hover:border-white/50">
-              Raconter autrement, en une phrase
+              Décrire votre projet en une phrase
             </button>
           </div>
         </motion.div>
@@ -86,7 +86,7 @@ export function HeroSection() {
           <div className="text-[10px] font-medium tracking-[0.2em] uppercase text-white/70 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
             Aujourd'hui
           </div>
-          <span className="text-[10px] sm:text-xs text-white/50 font-medium">Votre ligne de temps, prête à recevoir</span>
+          <span className="text-[10px] sm:text-xs text-white/50 font-medium">Votre calendrier est prêt à être rempli</span>
           
           {/* Subtle timeline axis preview */}
           <div className="w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mt-4 sm:mt-6 relative">

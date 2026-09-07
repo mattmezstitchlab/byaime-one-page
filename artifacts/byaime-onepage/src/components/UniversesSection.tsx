@@ -30,7 +30,7 @@ export function UniversesSection() {
               Les univers
             </h2>
             <h3 className="text-4xl md:text-5xl font-display font-light text-white text-balance">
-              Douze mondes,<br />une seule ligne de temps.
+              Douze mondes,<br />un seul calendrier.
             </h3>
           </div>
           <div className="max-w-md text-white/60 text-sm md:text-base leading-relaxed">

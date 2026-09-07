@@ -22,7 +22,7 @@ const secondary: { id: WeddingModule; label: string }[] = [
 ];
 
 const labels: Record<string, string> = {
-  planning: "Planning", guests: "Invités", providers: "Prestataires", dayof: "Le Jour J", plus: "Toutes les sections",
+  planning: "À faire", guests: "Invités", providers: "Professionnels", dayof: "Le Jour J", plus: "Toutes les sections",
   ...Object.fromEntries(secondary.map(item => [item.id, item.label])),
 };
 
@@ -47,7 +47,7 @@ export function BottomDock() {
       {activePanel === "guests" && <GuestPanel />}
       {activePanel === "providers" && <ProviderPanel />}
       {activePanel === "dayof" && <DayOfPanel />}
-      {activePanel === "plus" && <div className="mx-auto grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3">{secondary.map(item => <button key={item.id} onClick={() => setActivePanel(item.id)} className="min-h-20 rounded-2xl border border-white/10 bg-white/[.035] px-4 text-left text-sm text-white/75 transition hover:border-white/25 hover:bg-white/10">{item.label}<span className="mt-2 block text-[10px] uppercase tracking-widest text-white/30">Ouvrir</span></button>)}</div>}
+      {activePanel === "plus" && <div className="mx-auto grid max-w-3xl grid-cols-2 gap-2 sm:grid-cols-3">{secondary.map(item => <button key={item.id} onClick={() => setActivePanel(item.id)} className="min-h-20 rounded-2xl border border-white/10 bg-white/[.035] px-4 text-left text-sm text-white/75 transition hover:border-white/25 hover:bg-white/10">{item.label}<span className="mt-2 block text-[10px] uppercase tracking-widest text-white/30">Voir cette section</span></button>)}</div>}
       {isSecondary && <WeddingModulesPanel module={activePanel as WeddingModule} />}
     </div>
   </motion.div>}</AnimatePresence>

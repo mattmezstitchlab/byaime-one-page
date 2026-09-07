@@ -36,7 +36,7 @@ export function ComposerHero() {
             Racontez-nous tout.
           </h1>
           <p className="text-white/60 text-sm md:text-base max-w-xl mx-auto font-light">
-            La date, le lieu, les invités, l'ambiance : une seule phrase suffit pour commencer.
+            Dites-nous la date, le lieu, le nombre d’invités et l’ambiance. Une phrase suffit.
           </p>
 
           <div className="mt-10 relative w-full group">
@@ -109,7 +109,7 @@ export function ComposerHero() {
       <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center opacity-40 pointer-events-none">
         <div className="w-px h-16 bg-gradient-to-b from-transparent via-white/30 to-transparent" />
         <div className="w-2 h-2 rounded-full bg-white/50 shadow-[0_0_10px_rgba(255,255,255,0.5)] mt-2" />
-        <span className="text-[9px] uppercase tracking-[0.3em] text-white/50 mt-4">La ligne de temps attend</span>
+        <span className="text-[9px] uppercase tracking-[0.3em] text-white/50 mt-4">Votre calendrier vous attend</span>
       </div>
     </section>
   );

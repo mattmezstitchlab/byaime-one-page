@@ -36,7 +36,7 @@ export function TimelineSection() {
             Ligne de temps
           </h2>
           <h3 className="text-3xl md:text-5xl font-display font-light text-white text-balance">
-            Votre ligne de temps,<br />prête à recevoir.
+            Votre calendrier,<br />prêt à être rempli.
           </h3>
         </div>
 

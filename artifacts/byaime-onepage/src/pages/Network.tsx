@@ -213,8 +213,9 @@ export function NetworkPage() {
           
           <div className="flex items-center justify-between border-b border-white/10 px-6 py-5 mt-14 md:mt-0">
              <div>
+               <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="AIME" className="mb-3 h-9 w-auto rounded-xl" />
                <h1 className="font-display text-xl font-medium tracking-tight">Réseau AIME</h1>
-               <p className="text-[10px] text-white/50 tracking-widest uppercase mt-1">Carte Universelle</p>
+               <p className="text-[10px] text-white/50 tracking-widest uppercase mt-1">Carte des lieux et des personnes</p>
              </div>
              <Link href="/user-portal" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:text-white text-white/70 transition-colors">
                <ArrowLeft className="h-4 w-4" />
@@ -246,7 +247,7 @@ export function NetworkPage() {
                       }}
                     />
                  ))}
-                 {mappedSubjects.length === 0 && <p className="text-[13px] text-white/30 italic">Aucun élément localisé</p>}
+                  {mappedSubjects.length === 0 && <p className="text-[13px] text-white/30 italic">Aucun élément trouvé sur la carte</p>}
                </div>
              </div>
 
@@ -378,7 +379,7 @@ function ContextCard({ subject, worldRole, onClose }: { subject: MapSubject; wor
 
       <div>
         <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/40 mb-1.5">
-           {subject.ref.kind === 'world' ? 'Monde' : subject.ref.kind === 'place' ? 'Lieu' : subject.ref.kind === 'moment' ? 'Moment Timeline' : 'Prestataire'}
+           {subject.ref.kind === 'world' ? 'Monde' : subject.ref.kind === 'place' ? 'Lieu' : subject.ref.kind === 'moment' ? 'Moment du calendrier' : 'Professionnel'}
         </div>
         <h3 className="font-display text-xl md:text-2xl font-medium leading-tight">{subject.label}</h3>
         {subject.summary && <p className="mt-1 text-[13px] text-white/60 leading-relaxed">{subject.summary}</p>}
@@ -399,7 +400,7 @@ function ContextCard({ subject, worldRole, onClose }: { subject: MapSubject; wor
       <div className="mt-1 flex gap-2">
           {decision.allowed && (
            <Link href="/user-portal" className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white text-black px-4 py-3 text-xs font-semibold hover:bg-white/90 transition-colors">
-              <ExternalLink className="h-3.5 w-3.5" /> Ouvrir le Monde
+              <ExternalLink className="h-3.5 w-3.5" /> Voir le Monde
            </Link>
          )}
           {!decision.allowed && <p className="text-xs text-white/50">{decision.reason}</p>}

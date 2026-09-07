@@ -18,12 +18,12 @@ export function ConceptSection() {
           <div className="w-16 h-[1px] bg-white/30 mx-auto" />
           
           <h2 className="text-3xl md:text-5xl lg:text-6xl font-display font-light text-white leading-tight text-balance">
-            L'univers d'abord, <br />
-            <span className="italic text-white/60">puis une question fine à la fois.</span>
+            Choisissez un sujet, <br />
+            <span className="italic text-white/60">puis avancez une question à la fois.</span>
           </h2>
           
           <p className="text-white/50 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-            AIME n'est pas un simple répertoire. C'est un écosystème conçu pour structurer vos projets, vos envies et vos connexions. En sélectionnant un univers, vous ouvrez une voie. En répondant à une question, vous définissez votre trajectoire. Les personnes, les lieux et les idées convergent ensuite naturellement vers vous.
+            AIME vous aide à organiser votre projet et à trouver les bonnes personnes et les bons lieux. Choisissez un sujet, puis répondez à une question à la fois.
           </p>
           
           <div className="w-16 h-[1px] bg-white/30 mx-auto" />

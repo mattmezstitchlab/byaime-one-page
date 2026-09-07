@@ -68,6 +68,7 @@ export function ProjectStage() {
           style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
         />
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/60 to-[#050505]" />
+        <img src={getAssetUrl('logo.svg')} alt="AIME" className="absolute left-6 top-5 z-20 h-10 w-auto rounded-xl md:left-12" />
 
         <div className="relative z-20 w-full max-w-5xl mx-auto space-y-6">
           <motion.div
@@ -126,16 +127,16 @@ export function ProjectStage() {
             className="flex flex-wrap gap-2 pt-4"
           >
             <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
-              {stats.booked} places pourvues
+              {stats.booked} professionnels confirmés
             </span>
             {stats.open > 0 && (
               <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
-                {stats.open} places à pourvoir
+                {stats.open} professionnels à trouver
               </span>
             )}
             {stats.engaged > 0 && (
               <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
-                {stats.engaged.toLocaleString('fr-FR')} € engagés
+                {stats.engaged.toLocaleString('fr-FR')} € déjà prévus
               </span>
             )}
             <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
@@ -163,7 +164,7 @@ export function ProjectStage() {
                 </div>
                 <div>
                   <div className="text-sm font-medium text-white">{nextTask.title}</div>
-                  <div className="text-xs text-white/40 mt-0.5">Priorité {nextTask.priority}{nextTask.dueDate ? ` · avant le ${format(nextTask.dueDate, 'd MMMM', { locale: fr })}` : ''}</div>
+                  <div className="text-xs text-white/40 mt-0.5">{nextTask.priority === 'haute' ? 'Très important' : nextTask.priority === 'basse' ? 'Peu important' : 'Importance normale'}{nextTask.dueDate ? ` · à faire avant le ${format(nextTask.dueDate, 'd MMMM', { locale: fr })}` : ''}</div>
                 </div>
               </div>
             </motion.div>
@@ -171,7 +172,7 @@ export function ProjectStage() {
           {project.missing.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-white/55">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
-              <span><span className="text-white/75">Suggestion AIME :</span> préciser {project.missing[0]}{project.missing.length > 1 ? ` et ${project.missing.length - 1} autre${project.missing.length > 2 ? 's' : ''}` : ''} pour fiabiliser la suite.</span>
+              <span><span className="text-white/75">Suggestion AIME :</span> préciser {project.missing[0]}{project.missing.length > 1 ? ` et ${project.missing.length - 1} autre${project.missing.length > 2 ? 's' : ''}` : ''} pour que la suite se passe bien.</span>
             </motion.div>
           )}
         </div>
@@ -212,8 +213,8 @@ export function ProjectStage() {
         </div>
         <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 pb-3 hide-scrollbar">
           {([
-            ["chronological", "Chronologique"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Prestataires"],
-            ["music", "Musique"], ["logistics", "Logistique"], ["collaborative", "Collaboratif"], ["memories", "Souvenirs"],
+            ["chronological", "Dans l’ordre"], ["day-of", "Jour J"], ["person", "Personnes"], ["provider", "Professionnels"],
+            ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
           ] as Array<[TimelineView, string]>).map(([id, label]) => <button key={id} onClick={() => setView(id)} className={cn("whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px]", view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:text-white")}>{label}</button>)}
         </div>
       </div>

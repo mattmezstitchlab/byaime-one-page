@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Search, ChevronDown, User, MessageSquare, Menu } from 'lucide-react';
+import { getAssetUrl } from '@/lib/assets';
 
 export function NavBar() {
   const [scrolled, setScrolled] = useState(false);
@@ -23,7 +24,7 @@ export function NavBar() {
     >
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 text-white cursor-pointer hover:opacity-80 transition-opacity">
-          <span className="font-display font-medium text-2xl tracking-[0.2em] uppercase">AIME</span>
+          <img src={getAssetUrl('logo.svg')} alt="AIME" className="h-10 w-auto rounded-xl" />
           <ChevronDown className="w-4 h-4 opacity-50" />
         </div>
       </div>

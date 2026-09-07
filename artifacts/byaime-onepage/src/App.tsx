@@ -65,11 +65,12 @@ function CacheInvalidator() {
 
 function Landing() {
   return (
-    <main data-testid="landing" className="min-h-[100dvh] bg-black text-white flex items-center justify-center px-6">
+    <main data-testid="landing" className="relative min-h-[100dvh] bg-black text-white flex items-center justify-center px-6">
+      <img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />
       <div className="max-w-3xl text-center">
-        <p className="text-xs tracking-[.35em] uppercase text-white/50 mb-8">The art of connection</p>
+        <p className="text-xs tracking-[.35em] uppercase text-white/50 mb-8">L’art de créer des liens</p>
         <h1 className="font-display text-6xl md:text-8xl tracking-[.12em] mb-8">AIME</h1>
-        <p className="text-lg md:text-2xl text-white/65 font-light leading-relaxed mb-10">Votre mariage, orchestré avec élégance. Invités, budget, prestataires et jour J réunis dans un espace privé.</p>
+        <p className="text-lg md:text-2xl text-white/65 font-light leading-relaxed mb-10">Organisez votre mariage simplement. Retrouvez vos invités, votre budget, les professionnels et le Jour J dans un espace privé.</p>
         <div className="flex flex-wrap justify-center gap-3">
            <a data-testid="landing-sign-up" href={`${basePath}/sign-up`} className="rounded-full bg-white text-black px-7 py-3 text-sm font-semibold">Créer mon espace</a>
            <a data-testid="landing-sign-in" href={`${basePath}/sign-in`} className="rounded-full border border-white/25 px-7 py-3 text-sm">Se connecter</a>
@@ -100,7 +101,7 @@ function SignUpPage() {
   return <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />;
 }
 function AuthPage({ signup = false }: { signup?: boolean }) {
-  return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="min-h-[100dvh] bg-black flex items-center justify-center px-4">{signup
+  return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="relative min-h-[100dvh] bg-black flex items-center justify-center px-4"><img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />{signup
     ? <SignUpPage />
     : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />}</div>;
 }
