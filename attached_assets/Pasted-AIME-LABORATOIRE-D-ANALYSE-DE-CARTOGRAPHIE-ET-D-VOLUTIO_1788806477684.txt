@@ -1,0 +1,576 @@
+AIME — LABORATOIRE D’ANALYSE, DE CARTOGRAPHIE ET D’ÉVOLUTION DU SYSTÈME
+
+Je te confie l’analyse approfondie du dépôt actuel AIME.
+
+Ce projet a beaucoup évolué. Il n’a pas été construit de manière strictement linéaire : il s’est développé comme un laboratoire d’expérimentation, avec des idées, prototypes, interfaces, moteurs, concepts et architectures qui ont été testés progressivement.
+
+Certaines parties sont aujourd’hui très avancées. D’autres sont encore expérimentales. Certaines fonctionnalités peuvent sembler isolées alors qu’elles constituent peut-être les prémices d’un système plus important.
+
+OBJECTIF PRINCIPAL
+
+Avant toute reconstruction ou modification importante, je veux que tu comprennes ce qui existe réellement.
+
+Ton rôle initial n’est donc pas de nettoyer, simplifier, supprimer ou reconstruire.
+
+Ton rôle est de réaliser une véritable archéologie du système AIME.
+
+Je veux que tu identifies :
+
+* ce qui existe réellement dans le code ;
+* ce qui fonctionne ;
+* ce qui est expérimental ;
+* ce qui est incomplet ;
+* ce qui est dupliqué ;
+* ce qui constitue déjà une fondation solide ;
+* ce qui pourrait devenir un module du système ;
+* ce qui est aujourd’hui isolé mais pourrait être connecté ;
+* ce qui doit rester dans le LAB ;
+* ce qui mérite d’être intégré au CORE AIME ;
+* ce qui pourrait être abandonné ou archivé.
+
+⸻
+
+1 — RÈGLE ABSOLUE : AUDIT AVANT ACTION
+
+Dans cette première phase :
+
+ne supprime rien.
+
+ne déplace rien.
+
+ne reconstruis rien.
+
+ne simplifie pas artificiellement le projet.
+
+ne remplace pas une architecture existante avant d’avoir démontré que tu la comprends.
+
+Commence par explorer le dépôt dans son intégralité.
+
+Je veux une photographie fidèle de l’état actuel.
+
+Si plusieurs architectures ou approches coexistent, considère cela comme une information importante.
+
+Ne pars pas du principe qu’il faut immédiatement choisir une seule solution.
+
+Le projet a volontairement évolué comme un laboratoire.
+
+⸻
+
+2 — COMPRENDRE LA VISION D’AIME
+
+AIME ne doit pas être considéré comme une simple application métier.
+
+Le projet explore une idée plus large :
+
+Transformer une intention humaine exprimée naturellement en un monde structuré, compréhensible, représentable et actionnable.
+
+Le principe général est :
+
+INTENTION HUMAINE
+        ↓
+COMPRÉHENSION
+        ↓
+EXTRACTION D'INFORMATIONS
+        ↓
+ENTITÉS + RELATIONS
+        ↓
+WORLD MODEL
+        ↓
+REPRÉSENTATIONS
+        ↓
+INTERACTIONS
+        ↓
+ACTIONS RÉELLES
+
+L’utilisateur ne devrait pas avoir besoin de remplir immédiatement des dizaines de formulaires.
+
+Il peut commencer par raconter une situation, un projet, une intention ou un besoin.
+
+Le système doit progressivement comprendre :
+
+* les personnes ;
+* les lieux ;
+* le temps ;
+* les événements ;
+* les ressources ;
+* les objets ;
+* les documents ;
+* les relations ;
+* les contraintes ;
+* les intentions ;
+* les scénarios possibles.
+
+Puis construire progressivement une représentation du monde concerné.
+
+⸻
+
+3 — LE PROJET EST UN LABORATOIRE
+
+Je veux considérer le dépôt actuel comme un :
+
+AIME LAB
+
+Le LAB est l’espace où les idées peuvent être :
+
+* explorées ;
+* testées ;
+* comparées ;
+* visualisées ;
+* connectées ;
+* évaluées ;
+* transformées en fonctionnalités ;
+* ou volontairement laissées à l’état expérimental.
+
+Toutes les expérimentations n’ont pas vocation à devenir immédiatement des fonctionnalités de production.
+
+Certaines peuvent devenir :
+
+EXPÉRIENCE
+    ↓
+PROTOTYPE
+    ↓
+CONCEPT VALIDÉ
+    ↓
+MODULE
+    ↓
+CORE
+
+Je veux que ton audit permette précisément de comprendre où se situe chaque élément.
+
+⸻
+
+4 — CARTOGRAPHIE COMPLÈTE DU DÉPÔT
+
+Explore l’ensemble du projet et produis une cartographie structurée.
+
+Identifie notamment :
+
+A. LES SURFACES
+
+Toutes les pages, vues, interfaces et expériences utilisateur.
+
+Pour chacune, indique :
+
+* son rôle ;
+* son niveau de maturité ;
+* les données utilisées ;
+* les composants importants ;
+* ses connexions avec le reste du système.
+
+⸻
+
+B. LES MOTEURS
+
+Identifie les systèmes logiques existants.
+
+Par exemple :
+
+* moteur d’intention ;
+* extraction documentaire ;
+* analyse de texte ;
+* génération de concepts ;
+* scoring ;
+* recommandations ;
+* World Model ;
+* timeline ;
+* budget ;
+* relations ;
+* scénarios ;
+* agents ;
+* intelligence artificielle.
+
+Ne suppose pas leur existence : identifie ce qui existe réellement dans le code.
+
+⸻
+
+C. LES ENTITÉS ET MODÈLES DE DONNÉES
+
+Cartographie :
+
+* interfaces ;
+* types ;
+* modèles ;
+* schémas ;
+* stores ;
+* bases de données ;
+* persistance locale ;
+* APIs ;
+* structures de données.
+
+Je veux identifier les concepts qui reviennent naturellement dans différentes parties du projet.
+
+Ces répétitions peuvent révéler les véritables primitives du système AIME.
+
+⸻
+
+D. LES CONNEXIONS
+
+Cherche les relations entre les systèmes.
+
+Par exemple :
+
+Document
+    ↓
+Extraction
+    ↓
+Entités
+    ↓
+Relations
+    ↓
+World Model
+    ↓
+Timeline
+    ↓
+Interface
+
+Mais ne te limite pas à cet exemple.
+
+Je veux découvrir les flux réellement présents dans le code.
+
+⸻
+
+5 — IDENTIFIER LE VÉRITABLE CORE AIME
+
+Une partie essentielle de ton travail consiste à identifier ce qui pourrait constituer le véritable noyau indépendant d’AIME.
+
+Je veux que tu distingues :
+
+CORE
+
+Les concepts et systèmes réutilisables indépendamment du domaine.
+
+Exemples conceptuels possibles :
+
+* Intent ;
+* Entity ;
+* Relation ;
+* World ;
+* Constraint ;
+* Time ;
+* Resource ;
+* Scenario ;
+* Action.
+
+MODULES
+
+Les fonctionnalités spécialisées construites sur le Core.
+
+Par exemple :
+
+MARIAGE
+ÉVÉNEMENT
+PROJET
+FAMILLE
+ASSOCIATION
+CRÉATION
+MUSIQUE
+
+Le but n’est pas de créer artificiellement cette architecture immédiatement.
+
+Le but est de vérifier si le code actuel contient déjà les prémices naturelles de cette séparation.
+
+⸻
+
+6 — CLASSIFICATION DES ÉLÉMENTS DU LAB
+
+Pour chaque système, fonctionnalité ou expérience importante, attribue une classification.
+
+🟢 CORE CANDIDATE
+
+Élément suffisamment générique pour devenir une fondation.
+
+🔵 MODULE
+
+Fonctionnalité métier construite sur des concepts plus génériques.
+
+🟣 EXPERIMENT
+
+Prototype ou piste intéressante à conserver dans le LAB.
+
+🟠 DUPLICATION
+
+Plusieurs implémentations ou concepts similaires existent.
+
+Ne supprime rien immédiatement.
+
+Explique les différences et recommande éventuellement une convergence.
+
+🔴 LEGACY / ARCHIVE CANDIDATE
+
+Élément obsolète, isolé ou remplacé.
+
+Aucune suppression sans validation.
+
+⸻
+
+7 — RECHERCHER LES DOUBLONS INTELLIGEMMENT
+
+Attention : deux composants qui semblent similaires ne sont pas nécessairement des doublons inutiles.
+
+Avant de recommander une fusion, vérifie :
+
+* les responsabilités ;
+* les données manipulées ;
+* les dépendances ;
+* les comportements ;
+* la maturité ;
+* les usages ;
+* l’intention initiale.
+
+Je préfère conserver temporairement deux approches plutôt que perdre une piste prometteuse.
+
+⸻
+
+8 — IDENTIFIER LES EXPÉRIMENTATIONS À FORTE VALEUR
+
+Je veux particulièrement que tu recherches les fonctionnalités qui semblent aujourd’hui secondaires ou isolées mais qui pourraient être extrêmement importantes.
+
+Par exemple :
+
+* une visualisation inhabituelle ;
+* une interface conversationnelle ;
+* un prototype de Canvas ;
+* une timeline ;
+* une intelligence documentaire ;
+* une relation entre entités ;
+* une représentation graphique ;
+* un système de mémoire ;
+* un agent ;
+* une surface d’exploration.
+
+Pour chacune, demande-toi :
+
+Si cette expérimentation était développée correctement, quelle pourrait être sa véritable fonction dans AIME ?
+
+⸻
+
+9 — PRODUIRE UNE CARTE DU SYSTÈME
+
+À la fin de l’audit, je veux une représentation claire du système.
+
+Idéalement sous forme de :
+
+                           AIME
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+       CORE                LAB               MODULES
+        │                   │                   │
+        │                   │                   │
+   primitives           experiments          domains
+        │                   │                   │
+        └───────────────────┼───────────────────┘
+                            │
+                       SURFACES
+                            │
+                       UTILISATEUR
+
+Mais adapte cette représentation à ce que tu trouves réellement.
+
+Ne force pas le projet à correspondre à ce schéma.
+
+Le schéma final doit être une conséquence de ton analyse.
+
+⸻
+
+10 — ANALYSE DES FLUX
+
+Pour les principaux systèmes identifiés, documente les flux.
+
+Exemple de format :
+
+ENTRÉE UTILISATEUR
+        ↓
+COMPRÉHENSION
+        ↓
+TRANSFORMATION DES DONNÉES
+        ↓
+MODÈLE INTERNE
+        ↓
+REPRÉSENTATION
+        ↓
+INTERACTION
+        ↓
+ACTION
+
+Identifie particulièrement les ruptures.
+
+Je veux savoir :
+
+* où l’information se perd ;
+* où les données sont dupliquées ;
+* où deux systèmes ne communiquent pas ;
+* où une fonctionnalité existe sans être connectée ;
+* où une validation humaine manque ;
+* où une expérimentation pourrait devenir structurante.
+
+⸻
+
+11 — LE POINT CRITIQUE : COMPRÉHENSION → MONDE
+
+Une question particulièrement importante pour AIME :
+
+INTENTION
+    ↓
+COMPRÉHENSION
+    ↓
+?
+    ↓
+WORLD MODEL
+
+Je veux identifier précisément ce qui existe actuellement entre la compréhension d’une intention ou d’un document et la construction du modèle du monde.
+
+S’il existe une rupture, un manque ou une transition implicite, signale-le.
+
+Il pourrait être nécessaire d’imaginer une future surface de :
+
+VALIDATION / INTERPRÉTATION
+
+où l’utilisateur peut voir ce qu’AIME a compris avant que cela ne devienne une donnée structurante.
+
+Mais ne l’implémente pas automatiquement.
+
+Analyse d’abord si le besoin est réel et où cette surface devrait s’intégrer.
+
+⸻
+
+12 — AUDIT TECHNIQUE
+
+En parallèle de l’audit conceptuel, analyse :
+
+* architecture ;
+* structure des dossiers ;
+* dépendances ;
+* composants ;
+* état global ;
+* persistance ;
+* APIs ;
+* serveur ;
+* sécurité ;
+* dette technique ;
+* tests ;
+* TypeScript ;
+* build ;
+* performance ;
+* risques de régression.
+
+Distingue clairement :
+
+PROBLÈME RÉEL
+
+Élément qui peut provoquer une erreur, une dette ou une instabilité.
+
+CHOIX EXPÉRIMENTAL
+
+Approche inhabituelle mais cohérente avec le LAB.
+
+Ne traite pas automatiquement un prototype comme une mauvaise architecture.
+
+⸻
+
+13 — LIVRABLE FINAL ATTENDU
+
+Avant toute modification importante, produis un rapport structuré contenant :
+
+1. RÉSUMÉ EXÉCUTIF
+
+Qu’est réellement AIME aujourd’hui ?
+
+2. CARTOGRAPHIE DU DÉPÔT
+
+Les grandes zones du système.
+
+3. INVENTAIRE DES SURFACES
+
+Pages et expériences.
+
+4. INVENTAIRE DES MOTEURS
+
+Logiques et intelligences.
+
+5. MODÈLE DE DONNÉES ACTUEL
+
+Concepts et structures.
+
+6. CARTE DES CONNEXIONS
+
+Flux entre les systèmes.
+
+7. CORE CANDIDATE
+
+Ce qui pourrait devenir le noyau.
+
+8. MODULES
+
+Ce qui est spécifique à un domaine.
+
+9. LAB EXPERIMENTS
+
+Les expérimentations à préserver et à explorer.
+
+10. DUPLICATIONS
+
+Les zones qui pourraient éventuellement converger.
+
+11. RUPTURES DU SYSTÈME
+
+Les connexions manquantes.
+
+12. RISQUES TECHNIQUES
+
+Les vrais problèmes à traiter.
+
+13. OPPORTUNITÉS MAJEURES
+
+Les idées ou prototypes qui pourraient devenir structurants.
+
+14. ROADMAP RECOMMANDÉE
+
+Une progression en étapes :
+
+PHASE 0 — COMPRENDRE
+PHASE 1 — STABILISER
+PHASE 2 — CONNECTER
+PHASE 3 — STRUCTURER
+PHASE 4 — CONSTRUIRE LE CORE
+PHASE 5 — INDUSTRIALISER
+
+⸻
+
+14 — APRÈS L’AUDIT
+
+Une fois l’analyse terminée :
+
+ne commence pas automatiquement une grande refonte.
+
+Présente-moi d’abord :
+
+A. CE QUE TU AS DÉCOUVERT
+
+B. CE QUE TU PENSES ÊTRE LE VRAI SYSTÈME AIME
+
+C. CE QUI DEVRAIT RESTER DANS LE LAB
+
+D. CE QUI DEVRAIT DEVENIR UNE FONDATION
+
+E. LES 3 À 5 PROCHAINES ACTIONS À PLUS FORT IMPACT
+
+Je prendrai ensuite les décisions avec toi.
+
+⸻
+
+PRINCIPE FINAL
+
+AIME ne doit pas devenir plus simple en supprimant prématurément ses idées.
+
+Il doit devenir plus clair en comprenant ce qu’il possède déjà.
+
+Le but de ce travail est donc :
+
+Révéler l’architecture qui est déjà en train d’émerger dans le laboratoire, avant de décider comment la formaliser.
+
+Commence maintenant par explorer l’intégralité du dépôt.
+
+Aucune modification fonctionnelle majeure avant la restitution complète de l’audit.
+
+À la fin de cette première phase, fournis-moi le rapport complet directement dans la conversation, avec une vision claire, critique et argumentée de l’état actuel du projet.
