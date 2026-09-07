@@ -12,8 +12,9 @@ import {
 import { Link, useLocation } from 'wouter';
 import { ArrowLeft, MapPin, Calendar, Map as MapIcon, Users, Navigation, ExternalLink, Lock, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
 import { buildMapSubjects, mapSubjectKey } from '@/lib/universal/map-subjects';
+import { CenteredBlock } from '@/components/CenteredBlock';
 
 function toWorldRole(role: string): WorldAccessRole {
   const legacyRoles: LegacyProjectRole[] = ['owner', 'planner', 'family', 'viewer'];
@@ -276,41 +277,18 @@ export function NetworkPage() {
           </div>
         </div>
 
-        {/* Desktop Context Card */}
-        <div className="hidden md:flex flex-1 flex-col items-end justify-end p-8 pointer-events-none">
-           <AnimatePresence>
-             {activeSubject && (
-                <motion.div 
-                   initial={shouldReduceMotion ? false : { opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                   transition={shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }}
-                  className="pointer-events-auto w-[360px] rounded-3xl border border-white/10 bg-black/90 backdrop-blur-xl p-6 shadow-2xl"
-                >
-                   <ContextCard subject={activeSubject} worldRole={worldRole} onClose={() => setActiveId(null)} />
-                </motion.div>
-             )}
-           </AnimatePresence>
-        </div>
-
       </div>
-
-      {/* Mobile Bottom Context Card */}
-      <div className="md:hidden absolute bottom-0 left-0 right-0 z-50 p-4 pointer-events-none">
-         <AnimatePresence>
-             {activeSubject && mobileView === 'map' && (
-                <motion.div 
-                   initial={shouldReduceMotion ? false : { opacity: 0, y: 100 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 100 }}
-                   transition={shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }}
-                  className="pointer-events-auto w-full rounded-3xl border border-white/10 bg-black/90 backdrop-blur-xl p-5 shadow-2xl"
-                >
-                   <ContextCard subject={activeSubject} worldRole={worldRole} onClose={() => setActiveId(null)} />
-                </motion.div>
-             )}
-         </AnimatePresence>
-      </div>
+      {activeSubject && (
+        <CenteredBlock
+          eyebrow={subjectKindLabel(activeSubject)}
+          title={activeSubject.label}
+          description={activeSubject.summary}
+          onClose={() => setActiveId(null)}
+          leading={<SubjectIcon subject={activeSubject} />}
+        >
+          <ContextCard subject={activeSubject} worldRole={worldRole} />
+        </CenteredBlock>
+      )}
     </div>
   );
 }
@@ -358,8 +336,16 @@ function SubjectItem({ subject, isActive, isHovered, onHover, onClick }: {
   );
 }
 
-function ContextCard({ subject, worldRole, onClose }: { subject: MapSubject; worldRole: WorldAccessRole; onClose: () => void }) {
+function SubjectIcon({ subject }: { subject: MapSubject }) {
   const Icon = subject.ref.kind === 'world' ? Navigation : subject.ref.kind === 'place' ? Landmark : subject.ref.kind === 'moment' ? Calendar : Users;
+  return <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-black"><Icon className="h-5 w-5" /></span>;
+}
+
+function subjectKindLabel(subject: MapSubject) {
+  return subject.ref.kind === 'world' ? 'Monde' : subject.ref.kind === 'place' ? 'Lieu' : subject.ref.kind === 'moment' ? 'Moment' : 'Personne ou organisation';
+}
+
+function ContextCard({ subject, worldRole }: { subject: MapSubject; worldRole: WorldAccessRole }) {
   const decision = evaluateCapability(subject.primaryCapability ?? 'world.view', {
     authenticated: true,
     worldRole,
@@ -368,23 +354,6 @@ function ContextCard({ subject, worldRole, onClose }: { subject: MapSubject; wor
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-start justify-between">
-         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-black">
-           <Icon className="h-5 w-5" />
-         </div>
-         <button onClick={onClose} className="rounded-full border border-white/10 bg-white/5 p-2 text-white/50 hover:bg-white/20 hover:text-white transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-         </button>
-      </div>
-
-      <div>
-        <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/40 mb-1.5">
-           {subject.ref.kind === 'world' ? 'Monde' : subject.ref.kind === 'place' ? 'Lieu' : subject.ref.kind === 'moment' ? 'Moment du calendrier' : 'Professionnel'}
-        </div>
-        <h3 className="font-display text-xl md:text-2xl font-medium leading-tight">{subject.label}</h3>
-        {subject.summary && <p className="mt-1 text-[13px] text-white/60 leading-relaxed">{subject.summary}</p>}
-      </div>
-
       <div className="flex flex-wrap gap-2 text-[11px] font-medium">
          {subject.city && (
            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/70">

@@ -10,6 +10,9 @@
 @layer components {
   .action { display: flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem; border: 1px solid rgb(255 255 255 / .14); border-radius: .75rem; padding: .7rem; font-size: .75rem; text-align: center; transition: background .2s; }
   .action:hover { background: rgb(255 255 255 / .08); }
+  .field { width: 100%; border: 0; border-bottom: 1px solid rgb(255 255 255 / .2); border-radius: 0; background: transparent; padding: .65rem 0; color: white; font-size: .875rem; outline: none; transition: border-color .2s; }
+  .field::placeholder { color: rgb(255 255 255 / .25); }
+  .field:focus { border-color: rgb(255 255 255 / .85); }
 }
 
 @media print {
