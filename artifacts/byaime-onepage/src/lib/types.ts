@@ -205,6 +205,7 @@ export type TimelineEvent = {
 
 export type WorldProject = {
   schemaVersion: 2;
+  storyVersion?: 1;
   id: string;
   title: string;
   subtitle?: string;

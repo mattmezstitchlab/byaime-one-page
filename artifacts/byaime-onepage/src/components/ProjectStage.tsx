@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { getAssetUrl } from '@/lib/assets';
 import { format } from 'date-fns';
@@ -8,13 +8,13 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { Pencil, Link2, CalendarDays, Clock3, Images, Users, WalletCards, Music2, MessageCircle } from 'lucide-react';
+import { Images } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
 
 export function ProjectStage() {
-  const { project, updateProject } = useProject();
+  const { project } = useProject();
   const [phase, setPhase] = useState<"tout" | "avant" | "pendant" | "apres">("tout");
   const [playMode, setPlayMode] = useState(false);
   const [layers, setLayers] = useState<string[]>([]);
@@ -22,28 +22,28 @@ export function ProjectStage() {
 
   const pivotDate = project?.pivot.value ?? Date.now();
   const daysToPivot = Math.max(0, Math.ceil((pivotDate - Date.now()) / 86400000));
-  
+
   const visibleEvents = useMemo(() => {
     if (!project) return [];
     return filterTimeline(project, view).filter(e => {
       // Phase filtering
-      if (phase === 'avant' && e.time >= pivotDate) return false;
-      if (phase === 'pendant' && (e.time < pivotDate || e.time >= pivotDate + 86400000)) return false;
-      if (phase === 'apres' && e.time < pivotDate + 86400000) return false;
-      
+      if (phase === 'avant' && e.phase !== 'avant') return false;
+      if (phase === 'pendant' && e.phase !== 'pendant') return false;
+      if (phase === 'apres' && e.phase !== 'apres') return false;
+
       // Layer filtering
       if (layers.length > 0 && !layers.includes(e.kind)) return false;
-      
+
       return true;
     });
-  }, [project, phase, layers, pivotDate, view]);
+  }, [project, phase, layers, view]);
 
   const stats = useMemo(() => {
     if (!project) return { booked: 0, open: 0, engaged: 0 };
     const booked = project.providers.filter(p => p.status === 'reserve').length;
     const open = project.providers.filter(p => p.status === 'recherche').length;
     const engaged = project.payments.reduce((acc, p) => acc + p.amountCents, 0) / 100;
-    
+
     return { booked, open, engaged };
   }, [project]);
 
@@ -63,22 +63,22 @@ export function ProjectStage() {
     <div className="relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
       {/* Cinematic Header */}
       <header className="relative isolate min-h-[75vh] w-full overflow-hidden flex flex-col justify-end pb-32 pt-28 px-6 md:px-12">
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
         />
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/60 to-[#050505]" />
 
         <div className="relative z-20 w-full max-w-5xl mx-auto space-y-6">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="w-fit rounded-full border border-white/20 bg-black/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md"
           >
             {project.universe}
           </motion.div>
-          
-          <motion.h1 
+
+          <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -86,9 +86,9 @@ export function ProjectStage() {
           >
             {project.title}
           </motion.h1>
-          
+
           {project.subtitle && (
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -98,7 +98,7 @@ export function ProjectStage() {
             </motion.p>
           )}
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -119,7 +119,7 @@ export function ProjectStage() {
             )}
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -141,17 +141,16 @@ export function ProjectStage() {
             <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
               {daysToPivot > 0 ? `J-${daysToPivot}` : 'Date passée'}
             </span>
-            
+
             {project.tasks.length > 0 && (
               <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 px-3 py-1 text-xs font-medium ml-auto">
                 {Math.round((project.tasks.filter(t => t.status === 'termine').length / project.tasks.length) * 100)}% complété
               </span>
             )}
           </motion.div>
-          
-          {/* Prochaine étape */}
+
           {nextTask && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -160,7 +159,7 @@ export function ProjectStage() {
               <div className="text-[10px] uppercase tracking-widest text-white/50 mb-2">Prochaine étape</div>
               <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4 w-fit pr-8">
                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                  <div className="w-2 h-2 rounded-full bg-white/80" />
                 </div>
                 <div>
                   <div className="text-sm font-medium text-white">{nextTask.title}</div>
@@ -181,7 +180,6 @@ export function ProjectStage() {
       {/* Control Bar (sticky) */}
       <div className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between gap-4 overflow-x-auto hide-scrollbar">
-          {/* Phase Filter */}
           <div className="flex bg-white/10 p-1 rounded-full shrink-0">
             {[
               { id: 'tout', label: 'Tout' },
@@ -203,7 +201,7 @@ export function ProjectStage() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <button 
+            <button
               onClick={() => setPlayMode(true)}
               className="px-4 py-2 rounded-full border border-white/20 text-xs font-medium hover:bg-white hover:text-black transition-colors flex items-center gap-2"
             >
@@ -221,14 +219,16 @@ export function ProjectStage() {
       </div>
 
       {/* Main Content Area */}
-      <main className="max-w-5xl mx-auto px-6 py-12">
+      <main className="w-full">
         <UniversalTimeline events={visibleEvents} />
-        <TimelineAudit />
+        <div className="max-w-5xl mx-auto px-6 pt-12 pb-32">
+          <TimelineAudit />
+        </div>
       </main>
 
       <CommandBar setPhase={setPhase} setLayers={setLayers} />
       <BottomDock />
-      
+
       {playMode && <PlayMode events={visibleEvents} onClose={() => setPlayMode(false)} />}
     </div>
   );

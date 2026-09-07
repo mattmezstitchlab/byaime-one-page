@@ -1,4 +1,5 @@
 import type { TimelineEvent, WorldProject } from "./types";
+import { generateWeddingTimeline } from "./seed-data";
 import { TIMELINE_SCHEMA_VERSION } from "./timeline-graph";
 
 const defaults = (event: TimelineEvent): TimelineEvent => ({
@@ -16,10 +17,23 @@ const defaults = (event: TimelineEvent): TimelineEvent => ({
 export function normalizeProject(value: WorldProject): WorldProject {
   const emptyCeremony = { structure: [], notes: "", readings: [], vows: [], traditions: [], menu: "", drinks: "", cake: "", firstDance: "" };
   const emptyLogistics = { accommodations: [], shuttles: [], parking: "", accessibility: "", weatherFallback: "", emergencyContacts: [], packing: [] };
+  const timeline = (Array.isArray(value.timeline) ? value.timeline : []).map(defaults);
+  const isLegacyWeddingSeed = value.universe === "Mariage"
+    && timeline.length < 20
+    && ["t1", "t2", "dj3"].every(id => timeline.some(event => event.id === id));
+  const enrichedTimeline = isLegacyWeddingSeed
+    ? [
+        ...timeline,
+        ...generateWeddingTimeline(value.pivot.value, value.universe, value.subtitle || "")
+          .filter(candidate => !timeline.some(event => event.id === candidate.id)),
+      ]
+    : timeline;
+
   return {
     ...value,
     schemaVersion: TIMELINE_SCHEMA_VERSION,
-    timeline: (Array.isArray(value.timeline) ? value.timeline : []).map(defaults).sort((a, b) => a.time - b.time),
+    storyVersion: value.universe === "Mariage" ? 1 : value.storyVersion,
+    timeline: enrichedTimeline.sort((a, b) => a.time - b.time),
     tables: Array.isArray(value.tables) ? value.tables : [], communications: Array.isArray(value.communications) ? value.communications : [],
     tasks: (Array.isArray(value.tasks) ? value.tasks : []).map(task => ({ ...task, priority: task.priority || "normale", status: task.status || "a_faire", phase: task.phase || "1-3m" })),
     guests: (Array.isArray(value.guests) ? value.guests : []).map(guest => ({ ...guest, attendance: guest.attendance || { ceremony: true, cocktail: true, dinner: true, brunch: false }, rsvp: guest.rsvp || "en_attente", role: guest.role || "invite" })),
