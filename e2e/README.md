@@ -1,8 +1,16 @@
 # AIME E2E
 
-Cette suite est volontairement désactivée par défaut : elle utilise une vraie
-session Clerk et les services configurés (PostgreSQL, App Storage et Resend).
+Cette suite est volontairement désactivée par défaut : elle utilise de vraies
+sessions Clerk et les services configurés (PostgreSQL, App Storage et Resend).
 Elle ne lit aucune clé ni aucun mot de passe dans le dépôt.
+
+Dans GitHub Actions, PostgreSQL est éphémère et les transports App Storage et
+Resend sont remplacés par des fournisseurs locaux strictement réservés au mode
+`AIME_E2E_RUN=1` hors production. Les deux utilisateurs Clerk vérifiés sont
+créés au début du run, leurs sessions sont écrites dans le répertoire temporaire
+du runner, puis les utilisateurs sont supprimés par le teardown Playwright.
+Seuls `CLERK_SECRET_KEY` et `CLERK_PUBLISHABLE_KEY` doivent être configurés dans
+les secrets GitHub du dépôt.
 
 ## Préparer une exécution live
 
