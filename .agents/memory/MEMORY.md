@@ -13,3 +13,5 @@
 - [Timeline sonore relationnelle](relational-sound-timeline.md) — le Moment garde le sens; fournisseurs, lecture, droits et consentements restent des couches remplaçables.
 - [Fil vivant](living-fil.md) — projeter les Moments en cinéma direct ou replay; Profil cockpit, Monde collectif, transformations non destructives.
 - [Réponses des connecteurs](connector-http-responses.md) — une requête connecteur peut retourner une réponse HTTP non réussie sans lever d’exception.
+- [Précision des versions temporelles](optimistic-timestamp-precision.md) — aligner les verrous optimistes PostgreSQL sur la précision ISO réellement transmise au client.
+- [Sessions Clerk en E2E](clerk-e2e-sessions.md) — rafraîchir chaque session sauvegardée dans une page avant l’API et isoler les comptes utilisés pour une déconnexion réelle.

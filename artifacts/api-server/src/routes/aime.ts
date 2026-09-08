@@ -2,7 +2,7 @@ import { Router, type IRouter, type RequestHandler } from "express";
 import { Readable } from "node:stream";
 import { clerkClient, getAuth } from "@clerk/express";
 import { ReplitConnectors } from "@replit/connectors-sdk";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   db,
   filesTable,
@@ -544,7 +544,7 @@ router.put(
       .where(
         and(
           eq(projectsTable.id, current.id),
-          eq(projectsTable.updatedAt, current.updatedAt),
+          sql`date_trunc('milliseconds', ${projectsTable.updatedAt}) = ${current.updatedAt}`,
         ),
       )
       .returning();

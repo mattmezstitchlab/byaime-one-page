@@ -117,6 +117,9 @@ export async function setupClerkCI(): Promise<void> {
   );
   const attempt = (process.env.GITHUB_RUN_ATTEMPT ?? "1").replace(/\D/g, "");
   const ownerEmail = `aime-owner-${runId}-${attempt}@example.com`;
+  const switchingOwnerEmail = `aime-switching-owner-${runId}-${attempt}@example.com`;
+  process.env.AIME_E2E_OWNER_EMAIL = ownerEmail;
+  process.env.AIME_E2E_SWITCHING_OWNER_EMAIL = switchingOwnerEmail;
   const userIds: string[] = [];
 
   try {
@@ -126,6 +129,11 @@ export async function setupClerkCI(): Promise<void> {
     });
     const owner = await createVerifiedUser(ownerEmail, "Owner");
     userIds.push(owner.id);
+    const switchingOwner = await createVerifiedUser(
+      switchingOwnerEmail,
+      "Switching Owner",
+    );
+    userIds.push(switchingOwner.id);
     const collaborator = await createVerifiedUser(
       collaboratorEmail,
       "Collaborator",

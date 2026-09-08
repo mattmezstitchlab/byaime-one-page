@@ -50,6 +50,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const previousUserRef = useRef<string | null | undefined>(undefined);
   const saveChainRef = useRef(Promise.resolve());
   const localRevisionRef = useRef(0);
+  const serverSyncedProjectRef = useRef<WorldProject | null>(null);
   const projectCreationSourceRef = useRef<'created' | 'imported'>('created');
 
   const request = useCallback(async (path: string, init?: RequestInit) => {
@@ -68,10 +69,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const list = await request('/projects');
       const row = list.find((item: any) => item.id === id);
       if (!row) throw new Error('Projet introuvable');
-      setProject(normalizeStoredProject({ ...(row.data as WorldProject), id: row.id, title: row.title }));
+      const selectedProject = normalizeStoredProject({ ...(row.data as WorldProject), id: row.id, title: row.title });
+      serverSyncedProjectRef.current = selectedProject;
+      setProject(selectedProject);
       versionRef.current = row.updatedAt;
       hydratedRef.current = true;
       localStorage.setItem(`aime-project:${userId}`, JSON.stringify(row.data));
+      if (userId) localStorage.setItem(`aime-active-project:${userId}`, row.id);
       setSyncStatus('saved');
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : 'Chargement impossible');
@@ -82,12 +86,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return;
     if (previousUserRef.current !== undefined && previousUserRef.current !== (userId ?? null)) {
-      if (previousUserRef.current) localStorage.removeItem(`aime-project:${previousUserRef.current}`);
+      if (previousUserRef.current) {
+        localStorage.removeItem(`aime-project:${previousUserRef.current}`);
+        localStorage.removeItem(`aime-active-project:${previousUserRef.current}`);
+      }
       setProject(null);
       setProjects([]);
       setIsHydrated(false);
       versionRef.current = undefined;
       hydratedRef.current = false;
+      serverSyncedProjectRef.current = null;
     }
     previousUserRef.current = userId ?? null;
     if (!isSignedIn || !userId) {
@@ -112,12 +120,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       setProjects(available.map(row => ({ id: row.id, title: row.title, role: row.role })));
       if (available[0]) {
-        const row = available[0];
-        setProject(normalizeStoredProject({ ...(row.data as WorldProject), id: row.id, title: row.title }));
+        const activeProjectId = localStorage.getItem(`aime-active-project:${userId}`);
+        const row = available.find(item => item.id === activeProjectId) ?? available[0];
+        const hydratedProject = normalizeStoredProject({ ...(row.data as WorldProject), id: row.id, title: row.title });
+        serverSyncedProjectRef.current = hydratedProject;
+        setProject(hydratedProject);
         versionRef.current = row.updatedAt;
         localStorage.setItem(`aime-project:${userId}`, JSON.stringify(row.data));
+        localStorage.setItem(`aime-active-project:${userId}`, row.id);
       } else {
         const cached = localStorage.getItem(`aime-project:${userId}`);
+        serverSyncedProjectRef.current = null;
         setProject(cached ? normalizeStoredProject(JSON.parse(cached)) : null);
       }
       hydratedRef.current = true;
@@ -146,6 +159,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!project || !isSignedIn || !hydratedRef.current) return;
+    if (project === serverSyncedProjectRef.current) return;
     const userAtSchedule = userId;
     const revisionAtSchedule = ++localRevisionRef.current;
     setSyncStatus('saving');
@@ -157,8 +171,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         if (!versionRef.current || !projects.some(item => item.id === project.id)) {
           const created = await request('/projects', { method: 'POST', body: JSON.stringify({ title: project.title, data: project }) });
           versionRef.current = created.updatedAt;
-          setProject(prev => prev ? { ...prev, id: created.id } : prev);
+          setProject(prev => {
+            if (!prev) return prev;
+            const withServerId = { ...prev, id: created.id };
+            if (prev === project) serverSyncedProjectRef.current = withServerId;
+            return withServerId;
+          });
           setProjects(prev => [...prev, { id: created.id, title: created.title, role: 'owner' }]);
+          if (userId) localStorage.setItem(`aime-active-project:${userId}`, created.id);
            trackEvent(projectCreationSourceRef.current === 'imported' ? 'project_imported' : 'project_created');
         } else {
           const updated = await request(`/projects/${project.id}`, {
@@ -166,6 +186,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             body: JSON.stringify({ title: project.title, data: project, updatedAt: versionRef.current }),
           });
           versionRef.current = updated.updatedAt;
+          serverSyncedProjectRef.current = project;
         }
         if (isCurrentRevision(localRevisionRef.current, revisionAtSchedule)) {
           setSyncError(undefined);
