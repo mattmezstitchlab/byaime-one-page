@@ -18,6 +18,7 @@ import { authenticatedUserId, can, type ProjectRole } from "../lib/permissions";
 import { projectToPublicProfile } from "../lib/publicProfile";
 import { buildAuthorizedWeddingBrief } from "../lib/weddingBrief";
 import { mergeProtectedProjectData, projectDataForRole } from "../lib/projectDataPolicy";
+import { assertProviderAccepted } from "../lib/providerResponse";
 import {
   configuredAppOrigin,
   createRateLimit,
@@ -381,11 +382,12 @@ router.post("/projects/:id/invitations", auth, createRateLimit({ windowMs: 60 * 
   const [invitation] = await db.insert(invitationsTable).values({ projectId, ...input, invitedBy: req.userId! }).returning();
   const link = `${configuredAppOrigin(process.env.REPLIT_DOMAINS, process.env.NODE_ENV)}/invite/${invitation.token}`;
   try {
-    await connectors.proxy("resend", "/emails", {
+    const providerResponse = await connectors.proxy("resend", "/emails", {
       method: "POST",
       body: JSON.stringify({ from: "AIME <onboarding@resend.dev>", to: [input.email], subject: "Invitation à votre espace mariage AIME", html: `<p>Vous êtes invité·e à collaborer sur un mariage dans AIME.</p><p><a href="${link}">Accepter l'invitation</a></p>` }),
       headers: { "Content-Type": "application/json" },
     });
+    assertProviderAccepted(providerResponse, "l’invitation");
   } catch (error) {
     await db.delete(invitationsTable).where(eq(invitationsTable.id, invitation.id));
     res.status(502).json({ error: `Invitation non envoyée: ${error instanceof Error ? error.message : "erreur Resend"}` });
@@ -486,7 +488,7 @@ router.post("/projects/:id/messages", auth, createRateLimit({ windowMs: 60 * 60 
   const [message] = await db.insert(messagesTable).values({ ...input, projectId, createdBy: req.userId!, status: "pending" }).returning();
   try {
     if (shouldSimulateProviderFailure(req)) throw new Error("Échec fournisseur simulé pour le scénario E2E");
-    await connectors.proxy("resend", "/emails", {
+    const providerResponse = await connectors.proxy("resend", "/emails", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         from: "AIME <onboarding@resend.dev>",
@@ -495,6 +497,7 @@ router.post("/projects/:id/messages", auth, createRateLimit({ windowMs: 60 * 60 
         html: `<div>${escapeHtml(input.body).replaceAll("\n", "<br>")}</div>`,
       }),
     });
+    assertProviderAccepted(providerResponse, "le message");
     const [sent] = await db.update(messagesTable).set({ status: "sent", sentAt: new Date() }).where(eq(messagesTable.id, message.id)).returning();
     req.log.info({ messageId: message.id, projectId, status: sent.status }, "Email delivery recorded");
     res.status(201).json(sent);

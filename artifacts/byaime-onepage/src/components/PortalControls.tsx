@@ -26,6 +26,7 @@ export function PortalControls() {
   const [deleteAccountConfirmation, setDeleteAccountConfirmation] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pendingSaveSeenRef = useRef(false);
   const canManage = currentRole === 'owner' || currentRole === 'planner';
   useEffect(() => {
     const openMe = () => setPanel('settings');
@@ -35,9 +36,29 @@ export function PortalControls() {
   const api = async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, { ...init, headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers } });
     const body = response.status === 204 ? null : await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body?.error || `Erreur ${response.status}`);
+    if (!response.ok) throw new Error(body?.error || body?.providerError || `Erreur ${response.status}`);
     return body;
   };
+  useEffect(() => {
+    if (!notice.includes('enregistrement en cours')) {
+      pendingSaveSeenRef.current = false;
+      return;
+    }
+    if (syncStatus === 'saving') pendingSaveSeenRef.current = true;
+    if (!pendingSaveSeenRef.current) return;
+    if (syncStatus === 'saved') {
+      pendingSaveSeenRef.current = false;
+      setNotice('Modification enregistrée dans le Monde');
+    }
+    if (syncStatus === 'error') {
+      pendingSaveSeenRef.current = false;
+      setNotice(syncError || 'Modification conservée sur cet appareil, mais pas encore enregistrée en ligne');
+    }
+    if (syncStatus === 'conflict') {
+      pendingSaveSeenRef.current = false;
+      setNotice('Modification non enregistrée : une autre version du Monde doit être vérifiée');
+    }
+  }, [notice, syncError, syncStatus]);
   useEffect(() => {
     if (panel !== 'settings' || !project) return;
     void api(`/projects/${project.id}/files`).then(setFiles).catch(error => setNotice(error.message));
@@ -56,35 +77,51 @@ export function PortalControls() {
   const invite = async () => {
     if (!inviteEmail.trim()) return;
     setSubmitting(true);
-    await api(`/projects/${project.id}/invitations`, { method: 'POST', body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }) });
-    trackEvent('collaborator_invitation_sent');
-    setNotice(`Invitation envoyée à ${inviteEmail.trim()}`);
-    setInviteEmail('');
-    setPanel('settings');
-    setSubmitting(false);
+    const email = inviteEmail.trim();
+    try {
+      await api(`/projects/${project.id}/invitations`, { method: 'POST', body: JSON.stringify({ email, role: inviteRole }) });
+      trackEvent('collaborator_invitation_sent');
+      setNotice(`Invitation créée et e-mail envoyé à ${email}`);
+      setInviteEmail('');
+      setPanel('settings');
+    } finally {
+      setSubmitting(false);
+    }
   };
   const sendMessage = async () => {
     if (!recipients.trim() || !subject.trim() || !messageBody.trim()) return;
     setSubmitting(true);
-    await api(`/projects/${project.id}/messages`, { method: 'POST', body: JSON.stringify({
-      kind: 'practical_info', recipients: recipients.split(',').map(v => v.trim()).filter(Boolean), subject: subject.trim(), body: messageBody.trim(), confirmed: true,
-    }) });
-    trackEvent('message_sent');
-    setNotice('Message envoyé');
-    setRecipients('');
-    setSubject('');
-    setMessageBody('');
-    setPanel('settings');
-    setSubmitting(false);
+    const recipientList = recipients.split(',').map(v => v.trim()).filter(Boolean);
+    try {
+      const delivery = await api(`/projects/${project.id}/messages`, { method: 'POST', body: JSON.stringify({
+        kind: 'practical_info', recipients: recipientList, subject: subject.trim(), body: messageBody.trim(), confirmed: true,
+      }) });
+      if (delivery?.status !== 'sent') throw new Error(delivery?.providerError || 'La livraison de l’e-mail n’a pas été confirmée');
+      trackEvent('message_sent');
+      setNotice(`E-mail envoyé à ${recipientList.length} destinataire${recipientList.length > 1 ? 's' : ''}`);
+      setRecipients('');
+      setSubject('');
+      setMessageBody('');
+      setPanel('settings');
+    } finally {
+      setSubmitting(false);
+    }
   };
   const upload = async (file: File) => {
-    const request = await api('/storage/uploads/request-url', { method: 'POST', body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type }) });
-    const uploaded = await fetch(request.uploadURL, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
-    if (!uploaded.ok) throw new Error('Échec du transfert vers App Storage');
-    await api('/storage/files', { method: 'POST', body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath, finalizeToken: request.finalizeToken }) });
-    setFiles(await api(`/projects/${project.id}/files`));
-    trackEvent('file_added');
-    setNotice(`${file.name} ajouté à l'espace privé`);
+    setSubmitting(true);
+    setNotice(`Transfert de ${file.name} en cours…`);
+    try {
+      const request = await api('/storage/uploads/request-url', { method: 'POST', body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type }) });
+      const uploaded = await fetch(request.uploadURL, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+      if (!uploaded.ok) throw new Error('Échec du transfert vers App Storage');
+      await api('/storage/files', { method: 'POST', body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath, finalizeToken: request.finalizeToken }) });
+      setFiles(await api(`/projects/${project.id}/files`));
+      trackEvent('file_added');
+      setNotice(`${file.name} est enregistré dans l’espace privé`);
+    } finally {
+      setSubmitting(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   };
   const SyncIcon = syncStatus === 'conflict' ? CloudAlert : syncStatus === 'error' ? CloudOff : syncStatus === 'loading' || syncStatus === 'saving' ? LoaderCircle : CloudCheck;
   const audit = auditTimelineConnections(project);
@@ -134,7 +171,8 @@ export function PortalControls() {
             venue: { ...project.venue, value: String(form.get('venue') || '').trim() || null },
             pivot: { ...project.pivot, value: date ? new Date(`${date}T12:00:00`).getTime() : project.pivot.value },
           });
-          setPanel(null);
+          setNotice('Ouverture modifiée — enregistrement en cours');
+          setPanel('settings');
         }}>
           <Field label="Titre"><input name="title" required defaultValue={project.title} className="field" /></Field>
           <Field label="Sous-titre"><input name="subtitle" defaultValue={project.subtitle || ''} className="field" /></Field>
@@ -155,7 +193,7 @@ export function PortalControls() {
         <div className="grid grid-cols-2 gap-2">
            {canManage && <button onClick={() => setPanel('invite')} className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Inviter l'équipe</button>}
            {canManage && <button onClick={() => setPanel('message')} className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Envoyer un e-mail</button>}
-           {canManage && <button onClick={() => fileRef.current?.click()} className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Upload className="h-4 w-4" /> Ajouter un fichier</button>}
+           {canManage && <button disabled={submitting} onClick={() => fileRef.current?.click()} className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"><Upload className="h-4 w-4" /> {submitting ? 'Opération en cours…' : 'Ajouter un fichier'}</button>}
           <input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={e => e.target.files?.[0] && void upload(e.target.files[0]).catch(err => setNotice(err.message))} />
            {currentRole === 'owner' && <a href={`/api/projects/${project.id}/export`} onClick={() => trackEvent('project_exported', { format: 'json' })} className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Download className="h-4 w-4" /> Sauvegarde du Monde</a>}
            <a href="/api/account/export" className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Download className="h-4 w-4" /> Mes données</a>
@@ -181,7 +219,7 @@ export function PortalControls() {
               <span><span className="block text-sm">Profil public</span><span className="mt-1 block text-xs font-light leading-relaxed text-foreground/50">Seuls les Moments marqués « Public » seront visibles. Les invités, messages, documents et informations d’organisation restent privés.</span></span>
               <input data-testid="toggle-public-profile" type="checkbox" checked={project.publicProfile?.published === true} onChange={event => {
                 updateProject({ publicProfile: { published: event.target.checked } });
-                setNotice(event.target.checked ? 'Profil public activé' : 'Profil public désactivé');
+                setNotice(`${event.target.checked ? 'Activation' : 'Désactivation'} du profil public — enregistrement en cours`);
               }} className="mt-1 h-4 w-4 accent-foreground" />
             </label>
             {project.publicProfile?.published && <div className="mt-4 flex gap-2">
@@ -201,14 +239,14 @@ export function PortalControls() {
         </div>
        </CenteredBlock>}
       {panel === 'invite' && <CenteredBlock eyebrow="ME · Équipe" title="Inviter une personne" description="Choisissez qui peut rejoindre ce Monde et ce qu’elle pourra y faire." onClose={() => setPanel('settings')}>
-        <form className="space-y-7" onSubmit={event => { event.preventDefault(); void invite().catch(error => { setSubmitting(false); setNotice(error.message); setPanel('settings'); }); }}>
+        <form className="space-y-7" onSubmit={event => { event.preventDefault(); void invite().catch(error => { setNotice(`Invitation non envoyée : ${error.message}`); setPanel('settings'); }); }}>
           <Field label="Adresse e-mail"><input required type="email" autoFocus value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} className="field" placeholder="personne@exemple.fr" /></Field>
           <Field label="Rôle"><select value={inviteRole} onChange={event => setInviteRole(event.target.value)} className="field bg-background"><option value="planner">Organisation</option><option value="family">Proche</option><option value="viewer">Lecture</option></select></Field>
           <Actions onBack={() => setPanel('settings')} submitLabel={submitting ? 'Envoi…' : 'Envoyer l’invitation'} disabled={submitting || !inviteEmail.trim()} />
         </form>
       </CenteredBlock>}
       {panel === 'message' && <CenteredBlock eyebrow="ME · Messages" title="Préparer un message" description="AIME ne l’enverra qu’après votre confirmation." onClose={() => setPanel('settings')} size="lg">
-        <form className="space-y-7" onSubmit={event => { event.preventDefault(); void sendMessage().catch(error => { setSubmitting(false); setNotice(error.message); setPanel('settings'); }); }}>
+        <form className="space-y-7" onSubmit={event => { event.preventDefault(); void sendMessage().catch(error => { setNotice(`E-mail non envoyé : ${error.message}`); setPanel('settings'); }); }}>
           <Field label="Destinataires"><input required type="text" autoFocus value={recipients} onChange={event => setRecipients(event.target.value)} className="field" placeholder="Une ou plusieurs adresses, séparées par des virgules" /></Field>
           <Field label="Objet"><input required value={subject} onChange={event => setSubject(event.target.value)} className="field" /></Field>
           <Field label="Message"><textarea required rows={7} value={messageBody} onChange={event => setMessageBody(event.target.value)} className="field resize-none" /></Field>

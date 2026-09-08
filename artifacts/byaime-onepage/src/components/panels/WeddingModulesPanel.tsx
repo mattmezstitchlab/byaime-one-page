@@ -34,7 +34,7 @@ function Empty({ children }: { children: string }) {
 }
 
 export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
-  const { project, currentRole, updateProject, updateEntity, addEntity, removeEntity } = useProject();
+  const { project, currentRole, syncStatus, syncError, updateProject, updateEntity, addEntity, removeEntity } = useProject();
   const [query, setQuery] = useState("");
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [messages, setMessages] = useState<SentMessage[]>([]);
@@ -102,10 +102,11 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     setBusy(true);
     setRemoteError("");
     try {
-      await api(`/projects/${project.id}/messages`, {
+      const delivery = await api<SentMessage>(`/projects/${project.id}/messages`, {
         method: "POST",
         body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: template.title.trim(), body: template.body.trim(), confirmed: true }),
       });
+      if (delivery.status !== "sent") throw new Error(delivery.providerError || "La livraison de l’e-mail n’a pas été confirmée");
       setRecipients("");
       setSelectedTemplateId(null);
       try {
@@ -148,6 +149,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   }
 
   if (module === "documents") return <div className="max-w-3xl mx-auto space-y-5">
+    <PersistenceState status={syncStatus} error={syncError} />
     <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-foreground/70">Documents & médias privés</p><p className="mt-1 text-xs text-foreground/40">Stockés dans l’espace sécurisé de ce Monde.</p></div>{canManage && <><button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter un fichier</button><input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => event.target.files?.[0] && void uploadFile(event.target.files[0])} /></>}</div>
     {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
     {files.length === 0 ? <Empty>Aucun document stocké.</Empty> : <div className="space-y-2">{files.map(file => <div key={file.id} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="min-w-0 flex-1"><p className="truncate text-sm">{file.name}</p><p className="mt-1 text-xs text-foreground/35">{fileSize(file.size)} · {file.contentType || "fichier"}</p></div><a aria-label={`Aperçu de ${file.name}`} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="p-2 text-foreground/45 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a><a aria-label={`Télécharger ${file.name}`} href={`/api/storage/files/${file.id}?download=1`} className="p-2 text-foreground/45 hover:text-foreground"><Download className="h-4 w-4" /></a>{canManage && <button disabled={busy} aria-label={`Supprimer ${file.name}`} onClick={() => void deleteFile(file)} className="p-2 text-foreground/30 hover:text-rose-300 disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>}
@@ -169,6 +171,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   if (module === "messages") {
     const templates = project.messageTemplates.filter(t => t.title.toLowerCase().includes(query.toLowerCase()));
     return <div className="max-w-4xl mx-auto space-y-5">
+      <PersistenceState status={syncStatus} error={syncError} />
       {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
       <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
       <div className="grid gap-3 md:grid-cols-2">{templates.map(template => <div key={template.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex justify-between gap-2"><input disabled={!canManage} value={template.title} onChange={event => updateEntity("messageTemplates", template.id, { title: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-foreground/60" />{canManage && <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-foreground/30 hover:text-rose-300"><Trash2 className="h-3.5 w-3.5" /></button>}</div><textarea disabled={!canManage} value={template.body} onChange={event => updateEntity("messageTemplates", template.id, { body: event.target.value })} placeholder="Écrire le message…" rows={3} className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none" />
@@ -198,4 +201,17 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
 
 function CollectionPanel({ title, addLabel, onAdd, children }: { title: string; addLabel: string; onAdd: () => void; children: ReactNode }) {
   return <div className="max-w-3xl mx-auto space-y-5">{title === "Morceaux reliés aux Moments" && <div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-xs text-amber-800/80 dark:text-amber-100/70">Cet outil relie des morceaux aux Moments. La destination majeure « Musique » reste la projection sonore de la Timeline, pas une simple playlist.</div>}<div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{title}</h4><p className="text-xs text-foreground/40 mt-1">Un espace simple, pensé pour avancer.</p></div><AddBar label={addLabel} onAdd={onAdd} /></div><div className="space-y-3">{children}</div></div>;
+}
+
+function PersistenceState({ status, error }: { status: "local" | "loading" | "saving" | "saved" | "error" | "conflict"; error?: string }) {
+  const state = status === "saving" || status === "loading"
+    ? { label: "Enregistrement en cours…", tone: "text-amber-200 border-amber-300/20 bg-amber-300/5" }
+    : status === "saved"
+      ? { label: "Modifications enregistrées dans le Monde", tone: "text-emerald-300 border-emerald-300/20 bg-emerald-300/5" }
+      : status === "conflict"
+        ? { label: "Une autre version doit être vérifiée avant d’enregistrer", tone: "text-rose-300 border-rose-300/20 bg-rose-300/5" }
+        : status === "error"
+          ? { label: error || "Modifications non enregistrées en ligne", tone: "text-rose-300 border-rose-300/20 bg-rose-300/5" }
+          : { label: "Conservé sur cet appareil", tone: "text-foreground/50 border-foreground/10 bg-foreground/[.03]" };
+  return <p role="status" aria-live="polite" className={cn("rounded-xl border px-3 py-2 text-xs", state.tone)}>{state.label}</p>;
 }

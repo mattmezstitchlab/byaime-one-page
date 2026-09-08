@@ -4,6 +4,7 @@ import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, 
 import { parseIntention, createInitialProject } from '../lib/parser';
 import { normalizeProject } from '../lib/project-migration';
 import { trackEvent } from '@/lib/analytics';
+import { isCurrentRevision } from '@/lib/project-sync';
 
 type ProjectStore = {
   project: WorldProject | null;
@@ -48,6 +49,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const hydratedRef = useRef(false);
   const previousUserRef = useRef<string | null | undefined>(undefined);
   const saveChainRef = useRef(Promise.resolve());
+  const localRevisionRef = useRef(0);
   const projectCreationSourceRef = useRef<'created' | 'imported'>('created');
 
   const request = useCallback(async (path: string, init?: RequestInit) => {
@@ -145,6 +147,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!project || !isSignedIn || !hydratedRef.current) return;
     const userAtSchedule = userId;
+    const revisionAtSchedule = ++localRevisionRef.current;
+    setSyncStatus('saving');
     const timer = window.setTimeout(() => {
       saveChainRef.current = saveChainRef.current.catch(() => undefined).then(async () => {
         if (userId !== userAtSchedule || !isSignedIn) return;
@@ -163,12 +167,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           });
           versionRef.current = updated.updatedAt;
         }
-        setSyncError(undefined);
-        setSyncStatus('saved');
+        if (isCurrentRevision(localRevisionRef.current, revisionAtSchedule)) {
+          setSyncError(undefined);
+          setSyncStatus('saved');
+        }
       } catch (error: any) {
-        if (error?.status === 409) setSyncStatus('conflict');
-        else setSyncStatus('error');
-        setSyncError(error instanceof Error ? error.message : 'Sauvegarde impossible');
+        if (isCurrentRevision(localRevisionRef.current, revisionAtSchedule)) {
+          if (error?.status === 409) setSyncStatus('conflict');
+          else setSyncStatus('error');
+          setSyncError(error instanceof Error ? error.message : 'Sauvegarde impossible');
+        }
       }
       });
     }, 900);
