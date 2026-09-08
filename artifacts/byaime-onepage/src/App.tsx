@@ -12,6 +12,7 @@ import { NetworkPage } from '@/pages/Network';
 import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LeMondeAimePage } from '@/pages/LeMondeAime';
 import { LegalPage } from '@/pages/Legal';
+import { GuidesPage } from '@/pages/Guides';
 import { ComposerHero } from '@/components/ComposerHero';
 import { ProjectProvider, useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
@@ -125,6 +126,9 @@ function ConceptLanding() {
                 <p className="mt-5 text-sm font-light leading-relaxed text-foreground/60">{pillar.text}</p>
               </article>
             ))}
+          </div>
+          <div className="mt-12 text-center">
+            <a href={`${basePath}/guides`} className="inline-flex rounded-full border border-foreground/20 px-7 py-3 text-sm hover:bg-foreground/5 transition-colors">Explorer les guides détaillés</a>
           </div>
         </div>
       </section>
@@ -351,6 +355,7 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 }
 function Routes() {
   return <RoutedErrorBoundary><Switch>
+    <Route path="/guides" component={GuidesPage} />
     <Route path="/concept" component={ConceptLanding} />
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>

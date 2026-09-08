@@ -8,16 +8,24 @@ import {
   LoaderCircle,
   PenLine,
   Upload,
+  LogOut,
+  Trash2,
 } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
+import { cn } from "@/lib/utils";
 import {
   auditTimelineConnections,
   buildTimelineIndex,
 } from "@/lib/timeline-graph";
 import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
+import {
+  INVITATION_ROLE_OPTIONS,
+  type InvitationRole,
+} from "@/lib/collaboration-roles";
+import { pendingSaveOutcomeNotice } from "@/lib/pending-save-notice";
 
 const labels = {
   local: "Local",
@@ -46,8 +54,76 @@ function putFile(uploadURL: string, file: File, onProgress: (progress: number) =
   });
 }
 
-export function PortalControls({ embedded = false }: { embedded?: boolean }) {
-  const { signOut } = useClerk();
+function ReviewCard({
+  label,
+  value,
+  detail,
+  alert,
+}: {
+  label: string;
+  value: number;
+  detail: string;
+  alert?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border bg-card p-4 transition-colors ${alert ? "border-destructive/30 bg-destructive/5" : "border-border"}`}
+    >
+      <div className="flex items-start justify-between">
+        <span
+          className={`text-xs uppercase tracking-widest ${alert ? "text-destructive/80" : "text-foreground/50"}`}
+        >
+          {label}
+        </span>
+        <span
+          className={`text-xl font-medium ${alert ? "text-destructive" : "text-foreground"}`}
+        >
+          {value}
+        </span>
+      </div>
+      <p
+        className={`mt-2 text-xs ${alert ? "text-destructive/70" : "text-foreground/45"}`}
+      >
+        {detail}
+      </p>
+    </div>
+  );
+}
+
+function ReviewLine({ label, meta }: { label: string; meta: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors hover:bg-foreground/5">
+      <span className="truncate text-foreground/80">{label}</span>
+      <span className="ml-4 shrink-0 text-xs text-foreground/40">{meta}</span>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-[10px] uppercase tracking-[.25em] text-foreground/45">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+export function PortalControls({
+  embedded = false,
+  openMeSignal = 0,
+}: {
+  embedded?: boolean;
+  openMeSignal?: number;
+}) {
+  const { signOut, openUserProfile } = useClerk();
   const { user } = useUser();
   const {
     project,
@@ -64,7 +140,8 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
     clearProject,
   } = useProject();
   const [panel, setPanel] = useState<
-    | "settings"
+    | "me"
+    | "world-settings"
     | "editor"
     | "sync"
     | "invite"
@@ -83,7 +160,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
     name: string;
   } | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("family");
+  const [inviteRole, setInviteRole] = useState<InvitationRole>("family");
   const [recipients, setRecipients] = useState("");
   const [subject, setSubject] = useState("");
   const [messageBody, setMessageBody] = useState("");
@@ -94,17 +171,26 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingSaveSeenRef = useRef(false);
+  const pendingSaveSuccessNoticeRef = useRef<string | null>(null);
   const canManage = currentRole === "owner" || currentRole === "planner";
+  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
   useEffect(() => {
-    const openMe = () => setPanel("settings");
+    const openMe = () => setPanel("me");
+    const openWorldSettings = () => setPanel("world-settings");
     const openCollaborationInvite = () => setPanel("invite");
     window.addEventListener("aime:open-me", openMe);
+    window.addEventListener("aime:open-world-settings", openWorldSettings);
     window.addEventListener("aime:open-collaboration-invite", openCollaborationInvite);
     return () => {
       window.removeEventListener("aime:open-me", openMe);
+      window.removeEventListener("aime:open-world-settings", openWorldSettings);
       window.removeEventListener("aime:open-collaboration-invite", openCollaborationInvite);
     };
   }, []);
+  useEffect(() => {
+    if (openMeSignal > 0) setPanel("me");
+  }, [openMeSignal]);
   const api = async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, {
       ...init,
@@ -124,45 +210,36 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => {
     if (!notice.includes("enregistrement en cours")) {
       pendingSaveSeenRef.current = false;
+      pendingSaveSuccessNoticeRef.current = null;
       return;
     }
     if (syncStatus === "saving") pendingSaveSeenRef.current = true;
     if (!pendingSaveSeenRef.current) return;
     if (syncStatus === "saved") {
       pendingSaveSeenRef.current = false;
-      setNotice("Modification enregistrée dans le Monde");
+      setNotice(
+        pendingSaveOutcomeNotice(
+          "saved",
+          pendingSaveSuccessNoticeRef.current ?? undefined,
+        ),
+      );
     }
     if (syncStatus === "error") {
       pendingSaveSeenRef.current = false;
-      setNotice(
-        syncError ||
-          "Modification conservée sur cet appareil, mais pas encore enregistrée en ligne",
-      );
+      setNotice(pendingSaveOutcomeNotice("error", undefined, syncError));
     }
     if (syncStatus === "conflict") {
       pendingSaveSeenRef.current = false;
-      setNotice(
-        "Modification non enregistrée : une autre version du Monde doit être vérifiée",
-      );
+      setNotice(pendingSaveOutcomeNotice("conflict"));
     }
   }, [notice, syncError, syncStatus]);
   useEffect(() => {
-    if (panel !== "settings" || !project) return;
+    if (panel !== "world-settings" || !project) return;
     void api(`/projects/${project.id}/files`)
       .then(setFiles)
       .catch((error) => setNotice(error.message));
   }, [panel, project?.id]);
-  if (!project)
-    return (
-      <button
-        onClick={() => void signOut({ redirectUrl: basePath() })}
-        className={embedded
-          ? "h-8 rounded-full border border-border bg-background px-3 text-[10px] text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          : "fixed right-4 top-4 z-[60] rounded-full border border-foreground/20 bg-background/60 px-4 py-2 text-xs text-foreground backdrop-blur"}
-      >
-        Se déconnecter
-      </button>
-    );
+  if (!project && !user) return null;
   const download = (content: string, name: string, type: string) => {
     const url = URL.createObjectURL(new Blob([content], { type }));
     Object.assign(document.createElement("a"), {
@@ -180,7 +257,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
     download(
       [
         "Nom,Contact,RSVP,Régime,Table",
-        ...project.guests.map((g) =>
+        ...project!.guests.map((g) =>
           [g.name, g.contact, effectiveGuestRsvp(g, latestLinks[g.id]), effectiveGuestDietary(g, latestLinks[g.id]), g.tableId]
             .map(quote)
             .join(","),
@@ -192,7 +269,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
     trackEvent("project_exported", { format: "csv" });
   };
   const invite = async () => {
-    if (!inviteEmail.trim()) return;
+    if (!inviteEmail.trim() || !project) return;
     setSubmitting(true);
     const email = inviteEmail.trim();
     try {
@@ -203,13 +280,18 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
       trackEvent("collaborator_invitation_sent");
       setNotice(`Invitation créée et e-mail envoyé à ${email}`);
       setInviteEmail("");
-      setPanel("settings");
+      setPanel("world-settings");
+    } catch (error) {
+      setNotice(
+        `Invitation non envoyée : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+      setPanel("world-settings");
     } finally {
       setSubmitting(false);
     }
   };
   const sendMessage = async () => {
-    if (!recipients.trim() || !subject.trim() || !messageBody.trim()) return;
+    if (!recipients.trim() || !subject.trim() || !messageBody.trim() || !project) return;
     setSubmitting(true);
     const recipientList = recipients
       .split(",")
@@ -238,12 +320,18 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
       setRecipients("");
       setSubject("");
       setMessageBody("");
-      setPanel("settings");
+      setPanel("world-settings");
+    } catch (error) {
+      setNotice(
+        `E-mail non envoyé : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+      setPanel("world-settings");
     } finally {
       setSubmitting(false);
     }
   };
   const upload = async (file: File) => {
+    if (!project) return;
     setSubmitting(true);
     setUploadProgress(0);
     setNotice(`Transfert de ${file.name} en cours…`);
@@ -286,8 +374,9 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
         : syncStatus === "loading" || syncStatus === "saving"
           ? LoaderCircle
           : CloudCheck;
-  const audit = auditTimelineConnections(project);
-  const timelineIndex = buildTimelineIndex(project);
+
+  const audit = project ? auditTimelineConnections(project) : { isolated: [], dangling: [], manualMusic: [] };
+  const timelineIndex = project ? buildTimelineIndex(project) : { events: new Map() };
   const reviewCount =
     audit.isolated.length +
     audit.dangling.length +
@@ -297,52 +386,147 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <>
-      <div
-        data-testid="portal-controls"
-        className={embedded ? "flex items-center gap-1.5" : "fixed right-4 top-3 z-[60] flex items-center gap-1.5"}
-      >
-        <button
-          data-testid="sync-status"
-          data-sync-status={syncStatus}
-          title={
-            syncError ||
-            `${reviewCount} élément${reviewCount === 1 ? "" : "s"} à vérifier`
-          }
-          onClick={() => setPanel("sync")}
-          className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-2.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-2 sm:px-3"
-          aria-label={`${reviewCount} élément${reviewCount === 1 ? "" : "s"} à vérifier`}
+      {project && (
+        <div
+          data-testid="portal-controls"
+          className={embedded ? "flex items-center gap-1.5" : "fixed right-4 top-3 z-[60] flex items-center gap-1.5"}
         >
-          <span className="relative grid place-items-center">
-            {reviewCount > 0 && (
-              <span className="absolute inset-0 animate-ping rounded-full bg-foreground/20" />
-            )}
-            <SyncIcon
-              className={`relative h-3.5 w-3.5 ${syncStatus === "loading" || syncStatus === "saving" ? "animate-spin" : ""}`}
-            />
-          </span>
-          <span className="hidden sm:inline">À vérifier</span>
-          <span className="grid h-4 min-w-4 place-items-center rounded-full bg-foreground/10 px-1 text-[9px] font-semibold text-foreground">
-            {reviewCount}
-          </span>
-        </button>
-        {canEdit && (
           <button
-            data-testid="settings-open"
-            onClick={() =>
-              isProfileRoute
-                ? window.dispatchEvent(new Event("aime:toggle-profile-editor"))
-                : setPanel("editor")
+            data-testid="sync-status"
+            data-sync-status={syncStatus}
+            title={
+              syncError ||
+              `${reviewCount} élément${reviewCount === 1 ? "" : "s"} à vérifier`
             }
-            className="flex h-8 items-center gap-2 rounded-full border border-border bg-background px-2.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3"
-            aria-label={isProfileRoute ? "Éditer le Profil" : "Éditer le Monde"}
-            title={isProfileRoute ? "Éditer le Profil" : "Éditer le Monde"}
+            onClick={() => setPanel("sync")}
+            className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-2.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-2 sm:px-3"
+            aria-label={`${reviewCount} élément${reviewCount === 1 ? "" : "s"} à vérifier`}
           >
-            <PenLine className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Éditer</span>
+            <span className="relative grid place-items-center">
+              {reviewCount > 0 && (
+                <span className="absolute inset-0 animate-ping rounded-full bg-foreground/20" />
+              )}
+              <SyncIcon
+                className={`relative h-3.5 w-3.5 ${syncStatus === "loading" || syncStatus === "saving" ? "animate-spin" : ""}`}
+              />
+            </span>
+            <span className="hidden sm:inline">À vérifier</span>
+            <span className="grid h-4 min-w-4 place-items-center rounded-full bg-foreground/10 px-1 text-[9px] font-semibold text-foreground">
+              {reviewCount}
+            </span>
           </button>
-        )}
-      </div>
-      {panel === "sync" && (
+          {canEdit && (
+            <button
+              data-testid="settings-open"
+              onClick={() =>
+                isProfileRoute
+                  ? window.dispatchEvent(new Event("aime:toggle-profile-editor"))
+                  : setPanel("editor")
+              }
+              className="flex h-8 items-center gap-2 rounded-full border border-border bg-background px-2.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3"
+              aria-label={isProfileRoute ? "Éditer le Profil" : "Éditer le Monde"}
+              title={isProfileRoute ? "Éditer le Profil" : "Éditer le Monde"}
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Éditer</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {panel === "me" && (
+        <CenteredBlock eyebrow="ME" title="Votre compte personnel" description="Identité, accès et sécurité." onClose={() => setPanel(null)} size="lg" testId="settings-panel">
+          <div data-testid="me-panel">
+          <div className="flex flex-col md:flex-row gap-6 mb-10 items-start">
+             <div className="relative shrink-0">
+                <img src={user?.imageUrl} alt="" className="h-16 w-16 rounded-full border border-border bg-card object-cover" />
+             </div>
+             <div>
+                <h3 className="text-xl font-display font-light text-foreground">{user?.fullName || user?.firstName || "Utilisateur"}</h3>
+                <p className="text-sm text-foreground/50">{user?.primaryEmailAddress?.emailAddress}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-5 py-2 text-xs font-medium text-foreground transition hover:bg-foreground/5 hover:text-foreground">
+                     Gérer l'identité
+                  </button>
+                  <button onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-5 py-2 text-xs font-medium text-foreground transition hover:bg-foreground/5 hover:text-foreground">
+                     Sécurité
+                  </button>
+                </div>
+             </div>
+          </div>
+
+          <div className="mb-10">
+            <h4 className="mb-4 text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">Méthodes de connexion</h4>
+            <div className="space-y-2">
+              {user?.externalAccounts.map(acc => (
+                 <div key={acc.id} className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 text-sm">
+                   <span className="capitalize">{acc.provider.replace("oauth_", "")}</span>
+                   <span className="text-[10px] uppercase tracking-wider text-emerald-500/90 font-medium bg-emerald-500/10 px-2 py-1 rounded">Connecté</span>
+                 </div>
+              ))}
+              {user?.externalAccounts.length === 0 && (
+                 <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 text-sm">
+                   <span>E-mail & Mot de passe</span>
+                   <span className="text-[10px] uppercase tracking-wider text-emerald-500/90 font-medium bg-emerald-500/10 px-2 py-1 rounded">Actif</span>
+                 </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mb-10">
+             <h4 className="mb-4 text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">Mondes accessibles</h4>
+             {projects.length > 0 && (
+               <select
+                 data-testid="active-project-select"
+                 value={project?.id ?? ""}
+                 onChange={(event) => void selectProject(event.target.value)}
+                 className="mb-3 w-full rounded-2xl border border-border bg-card px-5 py-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+               >
+                 {projects.map((item) => (
+                   <option key={item.id} value={item.id}>
+                     {item.title} · {item.role}
+                   </option>
+                 ))}
+               </select>
+             )}
+             <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 hide-scrollbar">
+                {projects.map((item) => (
+                   <button
+                     key={item.id}
+                     onClick={() => { selectProject(item.id); setPanel(null); }}
+                     className={cn("flex w-full items-center justify-between rounded-2xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", item.id === project?.id ? "border-brand-accent/30 bg-brand-accent/5" : "border-border bg-card hover:border-foreground/20 hover:bg-foreground/[.02]")}
+                   >
+                      <div>
+                         <div className={cn("text-sm font-medium mb-1", item.id === project?.id ? "text-brand-accent" : "text-foreground")}>{item.title}</div>
+                         <div className="text-[10px] uppercase tracking-[.15em] text-foreground/50">{item.role}</div>
+                      </div>
+                      {item.id === project?.id && <div className="h-2.5 w-2.5 rounded-full bg-brand-accent shadow-[0_0_12px_hsl(var(--brand-accent)/0.7)]" />}
+                   </button>
+                ))}
+              {projects.length === 0 && (
+                <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">
+                  Aucun Monde pour le moment. Votre compte reste accessible.
+                </p>
+              )}
+             </div>
+          </div>
+
+          <div className="space-y-3 border-t border-border pt-8">
+             <a href="/api/account/export" className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-border">
+                <Download className="h-4 w-4" /> Exporter mes données personnelles
+             </a>
+             <button onClick={() => signOut({ redirectUrl: basePath })} className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-border">
+                <LogOut className="h-4 w-4" /> Se déconnecter
+             </button>
+             <button onClick={() => setPanel("delete-account")} className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-destructive/80 transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-destructive/20">
+                <Trash2 className="h-4 w-4" /> Supprimer mon compte
+             </button>
+          </div>
+          </div>
+        </CenteredBlock>
+      )}
+
+      {panel === "sync" && project && (
         <CenteredBlock
           eyebrow="Contrôle universel"
           title="Des changements sont à vérifier"
@@ -414,7 +598,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
           <div className="mt-6 flex flex-wrap gap-2">
             <button
               data-testid="me-open"
-              onClick={() => setPanel("settings")}
+              onClick={() => setPanel("me")}
               className="rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Ouvrir ME
@@ -428,7 +612,8 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
           </div>
         </CenteredBlock>
       )}
-      {panel === "editor" && (
+
+      {panel === "editor" && project && (
         <CenteredBlock
           eyebrow="Éditeur du Monde"
           title="Modifier l’ouverture"
@@ -461,7 +646,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
                 },
               });
               setNotice("Ouverture modifiée — enregistrement en cours");
-              setPanel("settings");
+              setPanel("world-settings");
             }}
           >
             <Field label="Titre">
@@ -514,34 +699,16 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
           </form>
         </CenteredBlock>
       )}
-      {panel === "settings" && (
+
+      {panel === "world-settings" && project && (
         <CenteredBlock
-          eyebrow="ME"
-          title="Votre espace"
-          description={user?.primaryEmailAddress?.emailAddress}
+          eyebrow="Réglages du Monde"
+          title={project.title}
+          description={`Rôle actuel : ${currentRole}`}
           onClose={() => setPanel(null)}
           size="lg"
-          testId="settings-panel"
+          testId="world-settings-panel"
         >
-          <label className="block text-xs uppercase tracking-widest text-foreground/40 mb-2">
-            Projet actif
-          </label>
-          <select
-            data-testid="active-project-select"
-            value={project.id}
-            onChange={(e) => void selectProject(e.target.value)}
-            className="w-full rounded-xl border border-border bg-card p-3 mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {projects.map((item) => (
-              <option
-                className="bg-background text-foreground"
-                key={item.id}
-                value={item.id}
-              >
-                {item.title} · {item.role}
-              </option>
-            ))}
-          </select>
           {notice && (
             <p className="mb-5 border-l border-foreground/30 py-1 pl-3 text-sm text-foreground/60">
               {notice}
@@ -608,12 +775,6 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
                 <Download className="h-4 w-4" /> Sauvegarde du Monde
               </a>
             )}
-            <a
-              href="/api/account/export"
-              className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Download className="h-4 w-4" /> Mes données
-            </a>
             <button
               onClick={exportCsv}
               className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -665,19 +826,19 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
                       target="_blank"
                       rel="noreferrer"
                       href={`/api/storage/files/${file.id}`}
-                      className="text-foreground/70 hover:text-foreground"
+                      className="text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                     >
                       Aperçu
                     </a>
                     <a
                       href={`/api/storage/files/${file.id}?download=1`}
-                      className="text-foreground/70 hover:text-foreground"
+                      className="text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                     >
                       Télécharger
                     </a>
                     {canManage && (
                       <button
-                        className="text-foreground/40 transition hover:text-destructive"
+                        className="text-foreground/40 transition hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                         onClick={() => {
                           setSelectedFile({ id: file.id, name: file.name });
                           setPanel("delete-file");
@@ -732,26 +893,33 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
                     <span className="mt-1 block text-xs font-light leading-relaxed text-foreground/50">
                       Seuls les Moments marqués « Public » seront visibles. Les
                       invités, messages, documents et informations
-                      d’organisation restent privés.
+                      personnelles restent privés.
                     </span>
                   </span>
                   <input
-                    data-testid="toggle-public-profile"
                     type="checkbox"
+                    className="mt-1 shrink-0 accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     checked={project.publicProfile?.published === true}
-                    onChange={(event) => {
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      pendingSaveSuccessNoticeRef.current =
+                        enabled
+                          ? "Profil public activé"
+                          : "Profil masqué au public";
                       updateProject({
-                        publicProfile: { published: event.target.checked },
+                        publicProfile: {
+                          ...project.publicProfile,
+                          published: enabled,
+                        },
                       });
                       setNotice(
-                        `${event.target.checked ? "Activation" : "Désactivation"} du profil public — enregistrement en cours`,
+                        "Publication modifiée — enregistrement en cours",
                       );
                     }}
-                    className="mt-1 h-4 w-4 accent-foreground"
                   />
                 </label>
                 {project.publicProfile?.published && (
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     <Link
                       data-testid="link-public-profile"
                       href={`/profil/${project.id}`}
@@ -760,14 +928,12 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
                       Voir le profil
                     </Link>
                     <button
-                      data-testid="button-copy-public-profile"
                       type="button"
+                      data-testid="copy-public-profile-link"
                       onClick={() => {
-                        const root = basePath() === "/" ? "" : basePath();
+                        const prefix = basePath === "/" ? "" : basePath;
                         void navigator.clipboard
-                          .writeText(
-                            `${window.location.origin}${root}/profil/${project.id}`,
-                          )
+                          .writeText(`${window.location.origin}${prefix}/profil/${project.id}`)
                           .then(() => setNotice("Lien du profil copié"));
                       }}
                       className="flex-1 rounded-full bg-foreground px-4 py-2.5 text-xs font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -778,381 +944,289 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
                 )}
               </div>
             )}
-          </div>
-          <div className="mt-8 space-y-2">
-            <div className="flex justify-center gap-4 py-2 text-xs text-foreground/40">
-              <Link href="/confidentialite">Confidentialité</Link>
-              <Link href="/conditions">Conditions</Link>
-            </div>
-            <button
-              data-testid="sign-out"
-              className="w-full rounded-xl border border-border p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => void signOut({ redirectUrl: basePath() })}
-            >
-              Se déconnecter
-            </button>
             {currentRole === "owner" && (
-              <button
-                className="w-full p-3 text-sm text-foreground/40 transition hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => setPanel("delete-project")}
-              >
-                Supprimer définitivement le projet
-              </button>
+              <div className="mt-6 border-t border-border pt-6">
+                <button
+                  onClick={() => setPanel("delete-project")}
+                  className="text-sm text-destructive transition hover:text-destructive/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                >
+                  Supprimer ce Monde
+                </button>
+                <p className="mt-2 text-xs font-light text-foreground/50">
+                  Cette action est définitive et concerne uniquement ce Monde.
+                </p>
+              </div>
             )}
-            <button
-              className="w-full p-3 text-sm text-destructive/60 transition hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => setPanel("delete-account")}
-            >
-              Supprimer mon compte et mes accès
-            </button>
           </div>
         </CenteredBlock>
       )}
-      {panel === "invite" && (
+
+      {panel === "invite" && project && (
         <CenteredBlock
-          eyebrow="ME · Droit de collaboration"
+          eyebrow="Équipe"
           title="Inviter à collaborer"
-          description="Cette invitation crée un accès authentifié au Monde. La personne pourra agir selon le rôle choisi ; ce n’est pas une invitation RSVP à l’événement."
-          onClose={() => setPanel("settings")}
+          description="Les personnes invitées pourront se connecter pour consulter ou modifier ce Monde selon leur rôle."
+          onClose={() => setPanel("world-settings")}
         >
-          <form
-            className="space-y-7"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void invite().catch((error) => {
-                setNotice(`Invitation non envoyée : ${error.message}`);
-                setPanel("settings");
-              });
-            }}
-          >
-            <Field label="Adresse e-mail">
+          <div className="space-y-5">
+            <Field label="E-mail">
               <input
-                required
                 type="email"
-                autoFocus
                 value={inviteEmail}
-                onChange={(event) => setInviteEmail(event.target.value)}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="prenom@exemple.com"
                 className="field"
-                placeholder="personne@exemple.fr"
+                disabled={submitting}
               />
             </Field>
             <Field label="Rôle">
               <select
                 value={inviteRole}
-                onChange={(event) => setInviteRole(event.target.value)}
-                className="field bg-background"
+                onChange={(e) =>
+                  setInviteRole(e.target.value as InvitationRole)
+                }
+                className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                disabled={submitting}
               >
-                <option value="planner">Organisation</option>
-                <option value="family">Proche</option>
-                <option value="viewer">Lecture</option>
+                {INVITATION_ROLE_OPTIONS.map((option) => (
+                  <option
+                    key={option.value}
+                    className="bg-background text-foreground"
+                    value={option.value}
+                  >
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </Field>
-            <Actions
-              onBack={() => setPanel("settings")}
-              submitLabel={submitting ? "Envoi…" : "Envoyer l’accès au Monde"}
+            <button
+              onClick={() => void invite()}
               disabled={submitting || !inviteEmail.trim()}
-            />
-          </form>
+              className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+            >
+              {submitting ? "Envoi en cours…" : "Envoyer l’invitation"}
+            </button>
+          </div>
         </CenteredBlock>
       )}
-      {panel === "message" && (
+      {panel === "message" && project && (
         <CenteredBlock
-          eyebrow="ME · Messages"
-          title="Préparer un message"
-          description="AIME ne l’enverra qu’après votre confirmation."
-          onClose={() => setPanel("settings")}
+          eyebrow="Communication"
+          title="Envoyer un e-mail"
+          description="Envoyer une information pratique ou relancer les professionnels."
+          onClose={() => setPanel("world-settings")}
           size="lg"
         >
-          <form
-            className="space-y-7"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void sendMessage().catch((error) => {
-                setNotice(`E-mail non envoyé : ${error.message}`);
-                setPanel("settings");
-              });
-            }}
-          >
+          <div className="space-y-5">
             <Field label="Destinataires">
               <input
-                required
-                type="text"
-                autoFocus
                 value={recipients}
-                onChange={(event) => setRecipients(event.target.value)}
+                onChange={(e) => setRecipients(e.target.value)}
+                placeholder="Adresses séparées par des virgules"
                 className="field"
-                placeholder="Une ou plusieurs adresses, séparées par des virgules"
+                disabled={submitting}
               />
             </Field>
             <Field label="Objet">
               <input
-                required
                 value={subject}
-                onChange={(event) => setSubject(event.target.value)}
+                onChange={(e) => setSubject(e.target.value)}
                 className="field"
+                disabled={submitting}
               />
             </Field>
             <Field label="Message">
               <textarea
-                required
-                rows={7}
                 value={messageBody}
-                onChange={(event) => setMessageBody(event.target.value)}
-                className="field resize-none"
+                onChange={(e) => setMessageBody(e.target.value)}
+                className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                rows={6}
+                disabled={submitting}
               />
             </Field>
-            <div className="border-l border-foreground/50 py-1 pl-4 text-xs font-light leading-relaxed text-foreground/50">
-              Le message sera envoyé à{" "}
-              {recipients.split(",").filter((value) => value.trim()).length ||
-                0}{" "}
-              destinataire(s).
-            </div>
-            <Actions
-              onBack={() => setPanel("settings")}
-              submitLabel={submitting ? "Envoi…" : "Confirmer et envoyer"}
+            <button
+              onClick={() => void sendMessage()}
               disabled={
                 submitting ||
                 !recipients.trim() ||
                 !subject.trim() ||
                 !messageBody.trim()
               }
-            />
-          </form>
-        </CenteredBlock>
-      )}
-      {panel === "delete-file" && selectedFile && (
-        <CenteredBlock
-          eyebrow="ME · Documents"
-          title="Supprimer ce document ?"
-          description={selectedFile.name}
-          onClose={() => setPanel("settings")}
-        >
-          <p className="text-sm font-light leading-relaxed text-foreground/60">
-            Le document ne sera plus disponible dans cet espace privé. Cette
-            action ne peut pas être annulée.
-          </p>
-          <div className="mt-8 flex gap-3">
-            <button
-              onClick={() => setPanel("settings")}
-              className="flex-1 rounded-full border border-foreground/50 px-5 py-3 text-sm text-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
-              Conserver
-            </button>
-            <button
-              onClick={() =>
-                void api(`/storage/files/${selectedFile.id}`, {
-                  method: "DELETE",
-                })
-                  .then(() => {
-                    setFiles((value) =>
-                      value.filter((item) => item.id !== selectedFile.id),
-                    );
-                    setSelectedFile(null);
-                    setNotice("Document supprimé");
-                    setPanel("settings");
-                  })
-                  .catch((error) => {
-                    setNotice(error.message);
-                    setPanel("settings");
-                  })
-              }
-              className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Supprimer
+              {submitting ? "Envoi en cours…" : "Envoyer l’e-mail"}
             </button>
           </div>
         </CenteredBlock>
       )}
-      {panel === "delete-project" && (
+      {panel === "delete-file" && project && selectedFile && (
         <CenteredBlock
-          eyebrow="ME · Monde"
-          title="Supprimer définitivement ce Monde ?"
-          description="Les informations, documents et accès associés seront supprimés."
-          onClose={() => setPanel("settings")}
+          eyebrow="Suppression"
+          title="Supprimer ce fichier ?"
+          description={`Vous êtes sur le point de supprimer définitivement le fichier "${selectedFile.name}". Cette action est irréversible.`}
+          onClose={() => setPanel("world-settings")}
         >
-          <Field label="Écrivez SUPPRIMER pour confirmer">
-            <input
-              autoFocus
-              value={deleteConfirmation}
-              onChange={(event) => setDeleteConfirmation(event.target.value)}
-              className="field"
-            />
-          </Field>
-          <div className="mt-8 flex gap-3">
+          <div className="flex gap-3">
             <button
-              onClick={() => setPanel("settings")}
-              className="flex-1 rounded-full border border-foreground/50 px-5 py-3 text-sm text-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Conserver
-            </button>
-            <button
-              disabled={deleteConfirmation !== "SUPPRIMER" || submitting}
-              onClick={() => {
+              data-testid="delete-file-confirm"
+              disabled={submitting}
+              onClick={async () => {
+                if (submitting) return;
                 setSubmitting(true);
-                void api(`/projects/${project.id}`, {
-                  method: "DELETE",
-                  body: JSON.stringify({ confirmation: "SUPPRIMER" }),
-                })
-                  .then(() => {
-                    clearProject();
-                    location.reload();
-                  })
-                  .catch((error) => {
-                    setSubmitting(false);
-                    setNotice(error.message);
-                    setPanel("settings");
+                try {
+                  await api(`/storage/files/${selectedFile.id}`, {
+                    method: "DELETE",
                   });
+                  setFiles((prev) =>
+                    prev.filter((f) => f.id !== selectedFile.id),
+                  );
+                  setNotice(`Fichier ${selectedFile.name} supprimé.`);
+                  setPanel("world-settings");
+                  trackEvent("file_deleted");
+                } catch (err) {
+                  setNotice(
+                    err instanceof Error ? err.message : "Erreur de suppression",
+                  );
+                  setPanel("world-settings");
+                } finally {
+                  setSubmitting(false);
+                }
               }}
-              className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              Supprimer
+              {submitting ? "Suppression…" : "Supprimer"}
             </button>
+            <button
+              onClick={() => setPanel("world-settings")}
+              className="flex-1 rounded-full border border-border bg-card px-5 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Annuler
+            </button>
+          </div>
+        </CenteredBlock>
+      )}
+      {panel === "delete-project" && project && (
+        <CenteredBlock
+          eyebrow="Zone critique"
+          title="Supprimer ce Monde"
+          description="Cette action est définitive et détruira toutes les données (invités, tâches, budget, documents) liées à ce projet."
+          onClose={() => setPanel("world-settings")}
+        >
+          <div className="space-y-5">
+            <Field label="Confirmation">
+              <input
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                placeholder="Tapez SUPPRIMER pour confirmer"
+                className="field"
+              />
+            </Field>
+            <div className="flex gap-3">
+              <button
+                disabled={
+                  deleteConfirmation !== "SUPPRIMER" || submitting
+                }
+                onClick={async () => {
+                  if (submitting) return;
+                  setSubmitting(true);
+                  try {
+                    await api(`/projects/${project.id}`, {
+                      method: "DELETE",
+                      body: JSON.stringify({ confirmation: "SUPPRIMER" }),
+                    });
+                    clearProject();
+                    trackEvent("project_deleted");
+                    window.location.assign(basePath || "/");
+                  } catch (err) {
+                    setSubmitting(false);
+                    setNotice(
+                      err instanceof Error
+                        ? err.message
+                        : "Erreur de suppression",
+                    );
+                    setPanel("world-settings");
+                  }
+                }}
+                className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {submitting ? "Suppression…" : "Détruire"}
+              </button>
+              <button
+                onClick={() => {
+                  setDeleteConfirmation("");
+                  setPanel("world-settings");
+                }}
+                className="flex-1 rounded-full border border-border bg-card px-5 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Annuler
+              </button>
+            </div>
           </div>
         </CenteredBlock>
       )}
       {panel === "delete-account" && (
         <CenteredBlock
-          eyebrow="ME · Compte"
-          title="Supprimer définitivement votre compte ?"
-          description="Vos Mondes, leurs documents et tous vos accès seront supprimés. Cette action ne peut pas être annulée."
-          onClose={() => setPanel("settings")}
+          eyebrow="Zone critique"
+          title="Supprimer mon compte"
+          description="Cette action détruira définitivement votre profil, tous les Mondes dont vous êtes propriétaire et retirera votre accès aux autres Mondes."
+          onClose={() => setPanel("me")}
         >
-          <Field label="Écrivez SUPPRIMER MON COMPTE pour confirmer">
-            <input
-              autoFocus
-              value={deleteAccountConfirmation}
-              onChange={(event) =>
-                setDeleteAccountConfirmation(event.target.value)
-              }
-              className="field"
-            />
-          </Field>
-          <div className="mt-8 flex gap-3">
-            <button
-              onClick={() => setPanel("settings")}
-              className="flex-1 rounded-full border border-foreground/50 px-5 py-3 text-sm text-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Conserver mon compte
-            </button>
-            <button
-              disabled={
-                deleteAccountConfirmation !== "SUPPRIMER MON COMPTE" ||
-                submitting
-              }
-              onClick={() => {
-                setSubmitting(true);
-                void api("/account", {
-                  method: "DELETE",
-                  body: JSON.stringify({
-                    confirmation: "SUPPRIMER MON COMPTE",
-                  }),
-                })
-                  .then(() => {
-                    clearProject();
-                    return signOut({ redirectUrl: basePath() });
-                  })
-                  .catch((error) => {
+          <div className="space-y-5">
+            <Field label="Confirmation">
+              <input
+                data-testid="account-delete-confirmation"
+                value={deleteAccountConfirmation}
+                onChange={(e) => setDeleteAccountConfirmation(e.target.value)}
+                placeholder="Tapez SUPPRIMER MON COMPTE pour confirmer"
+                className="field"
+              />
+            </Field>
+            <div className="flex gap-3">
+              <button
+                data-testid="account-delete-submit"
+                disabled={
+                  deleteAccountConfirmation !== "SUPPRIMER MON COMPTE" ||
+                  submitting
+                }
+                onClick={async () => {
+                  if (submitting) return;
+                  setSubmitting(true);
+                  try {
+                    await api(`/account`, {
+                      method: "DELETE",
+                      body: JSON.stringify({
+                        confirmation: "SUPPRIMER MON COMPTE",
+                      }),
+                    });
+                    trackEvent("account_deleted");
+                    await signOut({ redirectUrl: basePath || "/" });
+                  } catch (err) {
                     setSubmitting(false);
-                    setNotice(error.message);
-                    setPanel("settings");
-                  });
-              }}
-              className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {submitting ? "Suppression…" : "Supprimer mon compte"}
-            </button>
+                    setNotice(
+                      err instanceof Error
+                        ? err.message
+                        : "Erreur de suppression du compte",
+                    );
+                    setPanel("me");
+                  }
+                }}
+                className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {submitting ? "Suppression…" : "Détruire mon compte"}
+              </button>
+              <button
+                onClick={() => {
+                  setDeleteAccountConfirmation("");
+                  setPanel("me");
+                }}
+                className="flex-1 rounded-full border border-border bg-card px-5 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Annuler
+              </button>
+            </div>
           </div>
         </CenteredBlock>
       )}
     </>
   );
-}
-
-function ReviewCard({
-  label,
-  value,
-  detail,
-  alert = false,
-}: {
-  label: string;
-  value: number;
-  detail: string;
-  alert?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-2xl border p-5 ${alert ? "border-destructive/30 bg-destructive/10" : "border-border bg-card"}`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <p className="text-[10px] uppercase tracking-[.16em] text-foreground/50">
-          {label}
-        </p>
-        <span className="text-2xl font-light text-foreground">{value}</span>
-      </div>
-      <p className="mt-3 text-xs text-foreground/60">{detail}</p>
-    </div>
-  );
-}
-
-function ReviewLine({ label, meta }: { label: string; meta: string }) {
-  return (
-    <div className="flex items-center justify-between gap-5 rounded-xl px-3 py-3 transition hover:bg-foreground/5">
-      <span className="min-w-0 truncate text-sm text-foreground/90">
-        {label}
-      </span>
-      <span className="shrink-0 text-[9px] uppercase tracking-[.14em] text-foreground/40">
-        {meta}
-      </span>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-[10px] uppercase tracking-[.2em] text-foreground/40">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function Actions({
-  onBack,
-  submitLabel,
-  disabled,
-}: {
-  onBack: () => void;
-  submitLabel: string;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex gap-3 pt-2">
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex-1 rounded-full border border-foreground/50 px-5 py-3 text-sm text-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        Retour
-      </button>
-      <button
-        type="submit"
-        disabled={disabled}
-        className="flex-1 rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {submitLabel}
-      </button>
-    </div>
-  );
-}
-
-function basePath() {
-  return import.meta.env.BASE_URL.replace(/\/$/, "") || "/";
 }

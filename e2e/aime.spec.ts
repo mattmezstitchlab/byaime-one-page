@@ -78,6 +78,20 @@ test.describe("mariage complet AIME", () => {
     }
     await page.reload();
     await expect(page.getByTestId("portal")).toBeVisible();
+    await page.getByLabel("Ouvrir mon espace ME").click();
+    await expect(page.getByTestId("settings-panel")).toBeVisible();
+    await expect(
+      page.getByText("Aucun Monde pour le moment. Votre compte reste accessible."),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Supprimer mon compte" }).click();
+    const accountDeleteSubmit = page.getByTestId("account-delete-submit");
+    await expect(accountDeleteSubmit).toBeDisabled();
+    await page
+      .getByTestId("account-delete-confirmation")
+      .fill("SUPPRIMER MON COMPTE");
+    await expect(accountDeleteSubmit).toBeEnabled();
+    await page.getByRole("button", { name: "Annuler" }).click();
+    await page.getByLabel("Fermer").click();
     await expect(page.getByTestId("demo-project")).toBeVisible();
     await page.getByTestId("demo-project").click();
     await expect(page.getByTestId("settings-open")).toBeVisible();
@@ -438,11 +452,19 @@ test.describe("mariage complet AIME", () => {
     expect(finalized.response.status()).toBe(201);
     const fileId = finalized.body.id;
     expect((await api(`/storage/files/${fileId}`)).response.status()).toBe(200);
-    expect(
-      (
-        await api(`/storage/files/${fileId}`, { method: "DELETE" })
-      ).response.status(),
-    ).toBe(204);
+    await page.evaluate(() =>
+      window.dispatchEvent(new Event("aime:open-world-settings")),
+    );
+    await expect(page.getByTestId("world-settings-panel")).toBeVisible();
+    const fileRow = page.getByText("contrat-e2e.pdf").locator("..");
+    await fileRow.getByRole("button", { name: "Supprimer" }).click();
+    const fileDeleteResponse = page.waitForResponse(
+      response =>
+        response.url().endsWith(`/api/storage/files/${fileId}`) &&
+        response.request().method() === "DELETE",
+    );
+    await page.getByTestId("delete-file-confirm").click();
+    expect((await fileDeleteResponse).status()).toBe(204);
 
     const rsvpLink = await api(
       `/projects/${projectId}/rsvp-links/${rsvpGuestId}`,

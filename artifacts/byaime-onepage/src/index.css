@@ -87,12 +87,14 @@
 
   --font-sans: var(--app-font-sans);
   --font-display: var(--app-font-display);
-  
+
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --radius-full: 9999px;
+
+  --shadow-3xl: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
 }
 
 :root {

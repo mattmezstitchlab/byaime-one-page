@@ -23,7 +23,7 @@ describe("private navigation", () => {
   });
 
   it("reserves the expanded rail width only when pinned", () => {
-    expect(getDesktopRailReservedWidth(false)).toBe(64);
-    expect(getDesktopRailReservedWidth(true)).toBe(260);
+    expect(getDesktopRailReservedWidth(false)).toBe(80);
+    expect(getDesktopRailReservedWidth(true)).toBe(276);
   });
 });

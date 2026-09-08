@@ -1,5 +1,4 @@
 import { type ComponentType, type ReactNode, useEffect, useRef, useState } from 'react';
-import { useClerk } from '@clerk/react';
 import { Link, useLocation } from 'wouter';
 import {
   CircleUserRound,
@@ -96,7 +95,7 @@ function NavItem({
       )}
     >
       {isDesktopRail ? (
-        <div className="flex h-12 w-[64px] shrink-0 items-center justify-center">
+        <div className="flex h-12 w-[60px] shrink-0 items-center justify-center">
           <Icon className="h-[20px] w-[20px]" />
         </div>
       ) : (
@@ -116,7 +115,7 @@ function NavItem({
       </span>
 
       {active && isDesktopRail && (
-        <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-brand-accent shadow-[0_0_8px_hsl(var(--brand-accent)/0.6)]" />
+        <div className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-brand-accent shadow-[0_0_12px_hsl(var(--brand-accent)/0.7)]" />
       )}
     </Link>
   );
@@ -138,7 +137,7 @@ function BottomActionButton({
   const content = (
     <>
       {isDesktopRail ? (
-        <div className="flex h-11 w-[64px] shrink-0 items-center justify-center">
+        <div className="flex h-11 w-[60px] shrink-0 items-center justify-center">
           <Icon className="h-[18px] w-[18px]" />
         </div>
       ) : (
@@ -173,8 +172,8 @@ function BottomActionButton({
 
 export function PrivateLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const { openUserProfile } = useClerk();
   const { project } = useProject();
+  const [openMeSignal, setOpenMeSignal] = useState(0);
   const [appearance, setAppearance] = useState<"dark" | "light">(() => localStorage.getItem("aime-appearance") === "light" ? "light" : "dark");
   const [isPinned, setIsPinned] = useState(() => localStorage.getItem("aime-rail-pinned") === "true");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -216,23 +215,18 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
       window.requestAnimationFrame(() => mobileMenuTriggerRef.current?.focus());
     }
   };
-  const openSettings = () => {
+
+  const openWorldSettings = () => {
     if (!project) return;
-    window.dispatchEvent(new Event("aime:open-me"));
+    window.dispatchEvent(new Event("aime:open-world-settings"));
     closeMobileMenu();
-  };
-  const openMe = () => {
-    if (project) {
-      window.dispatchEvent(new Event("aime:open-me"));
-    } else {
-      openUserProfile();
-    }
   };
 
-  const openAccount = () => {
+  const openMe = () => {
+    setOpenMeSignal(signal => signal + 1);
     closeMobileMenu();
-    openUserProfile();
   };
+
   const handleDrawerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -279,7 +273,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const BottomItems = ({ isPinnedContext }: { isPinnedContext?: boolean }) => (
     <>
       <BottomActionButton
-        href={`${basePath === "/" ? "" : basePath}/concept#guides`}
+        href={`${basePath === "/" ? "" : basePath}/guides`}
         icon={HelpCircle}
         label="Aide & guides"
         isPinned={isPinnedContext}
@@ -291,18 +285,18 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         isPinned={isPinnedContext}
       />
       <BottomActionButton
-        onClick={openSettings}
+        onClick={openWorldSettings}
         disabled={!project}
         icon={Settings}
-        label="Réglages"
+        label="Réglages du Monde"
         description={!project ? "Après création" : undefined}
-        title={project ? "Ouvrir les réglages" : "Disponible après la création du premier Monde"}
+        title={project ? "Ouvrir les réglages du Monde" : "Disponible après la création du premier Monde"}
         isPinned={isPinnedContext}
       />
       <BottomActionButton
-        onClick={openAccount}
+        onClick={openMe}
         icon={CircleUserRound}
-        label="Mon compte"
+        label="Mon compte (ME)"
         isPinned={isPinnedContext}
       />
     </>
@@ -318,22 +312,30 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         aria-hidden="true"
       />
 
-      {/* Desktop Rail Visual */}
+      {/* Desktop Logo - Fixed top left */}
+      <div className="fixed left-6 top-6 z-[80] hidden md:block">
+        <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <img src={logoUrl} alt="" className="h-6 w-auto rounded-md opacity-80 shadow-sm transition-opacity hover:opacity-100" />
+        </Link>
+      </div>
+
+      {/* Desktop Rail Visual - Floating Capsule */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-[70] hidden h-[100dvh] flex-col overflow-hidden border-r border-border/20 bg-background/70 backdrop-blur-2xl transition-[width] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none md:flex",
-          isPinned ? "w-[260px]" : "w-[64px] hover:w-[260px] focus-within:w-[260px] group/rail hover:shadow-[1px_0_20px_rgba(0,0,0,0.1)] hover:border-border/40"
+          "fixed left-4 top-20 z-[70] hidden flex-col overflow-hidden rounded-[2rem] border border-border/40 bg-background/80 shadow-2xl backdrop-blur-3xl transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none md:flex",
+          isPinned ? "w-[240px] h-[calc(100dvh-6.5rem)]" : "w-[64px] h-[calc(100dvh-6.5rem)] hover:w-[240px] focus-within:w-[240px] group/rail hover:border-border/60"
         )}
       >
-        <div className="flex w-[260px] flex-col h-full">
-          <div className="flex h-16 shrink-0 items-center justify-between pr-4 pl-[20px]">
-            <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <img src={logoUrl} alt="" className="h-6 w-auto rounded-md opacity-80 shadow-sm transition-opacity hover:opacity-100" />
-            </Link>
+        <div className="flex w-[240px] flex-col h-full py-4">
+          <div className="flex shrink-0 items-center justify-between pr-4 pl-[20px] mb-4">
+            <p className={cn(
+              "text-[9px] uppercase tracking-[.2em] text-foreground/35 transition-opacity duration-200",
+              !isPinned && "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100"
+            )}>Espace privé</p>
             <button
               onClick={togglePin}
               className={cn(
-                "grid h-8 w-8 place-items-center rounded-lg text-foreground/40 transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "grid h-8 w-8 place-items-center rounded-full text-foreground/40 transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 !isPinned && "opacity-0 group-hover/rail:opacity-100 focus-visible:opacity-100"
               )}
               aria-label={isPinned ? "Détacher la barre" : "Épingler la barre"}
@@ -343,18 +345,11 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
 
-          <div className="mb-4 px-2 pt-2">
-            <p className={cn(
-              "pl-[20px] text-[9px] uppercase tracking-[.2em] text-foreground/35 transition-opacity duration-200",
-              !isPinned && "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100"
-            )}>Espace privé</p>
-          </div>
-
-          <nav aria-label="Navigation globale" className="flex-1 space-y-1.5 px-2">
+          <nav aria-label="Navigation globale" className="flex-1 space-y-2 px-2">
             <NavItems isPinnedContext={isPinned} />
           </nav>
 
-          <div className="mt-auto space-y-1 border-t border-border/50 p-2 pb-6">
+          <div className="mt-auto space-y-1 border-t border-border/30 p-2 pt-4">
             <BottomItems isPinnedContext={isPinned} />
           </div>
         </div>
@@ -377,7 +372,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
             {activeItem.label}
           </span>
           <div className="flex items-center justify-end gap-1.5">
-            <PortalControls embedded />
+            <PortalControls embedded openMeSignal={openMeSignal} />
             <button
               ref={mobileMenuTriggerRef}
               type="button"

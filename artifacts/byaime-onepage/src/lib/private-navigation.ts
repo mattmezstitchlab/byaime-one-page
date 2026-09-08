@@ -22,8 +22,8 @@ export const PRIVATE_PRIMARY_NAVIGATION = [
 export type PrivateDestinationId =
   (typeof PRIVATE_PRIMARY_NAVIGATION)[number]["id"];
 
-export function getDesktopRailReservedWidth(isPinned: boolean): 64 | 260 {
-  return isPinned ? 260 : 64;
+export function getDesktopRailReservedWidth(isPinned: boolean): 80 | 276 {
+  return isPinned ? 276 : 80;
 }
 
 export function getPrivateDestinationId(pathname: string): PrivateDestinationId {
