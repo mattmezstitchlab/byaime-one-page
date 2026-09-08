@@ -1,5 +1,28 @@
 import type { TimelineView } from "./timeline-graph";
 
+export const WORLD_PHASES = [
+  { id: "avant", label: "Avant" },
+  { id: "pendant", label: "Le Jour J" },
+  { id: "apres", label: "Après" },
+] as const;
+
+export type WorldPhase = (typeof WORLD_PHASES)[number]["id"];
+
+export function getInitialWorldPhase(
+  pivotTime: number,
+  currentTime = Date.now(),
+): WorldPhase {
+  const pivot = new Date(pivotTime);
+  const current = new Date(currentTime);
+  const isPivotDay =
+    pivot.getFullYear() === current.getFullYear() &&
+    pivot.getMonth() === current.getMonth() &&
+    pivot.getDate() === current.getDate();
+
+  if (isPivotDay) return "pendant";
+  return pivotTime > currentTime ? "avant" : "apres";
+}
+
 export const WEDDING_MODULE_IDS = [
   "seating",
   "budget",

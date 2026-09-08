@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { executeCommand, parseFrenchCommand, proposeCommand, type CommandProposal } from "@/lib/command-agent";
 import { CenteredBlock } from "@/components/CenteredBlock";
+import type { WorldPhase } from "@/lib/wedding-navigation";
 
-export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: "tout"|"avant"|"pendant"|"apres") => void; setLayers?: (layers: string[]) => void }) {
+export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: WorldPhase) => void; setLayers?: (layers: string[]) => void }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [proposal, setProposal] = useState<CommandProposal>();
@@ -108,7 +109,7 @@ export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: "tout"|
              <button type="button" disabled={notificationBusy || !selectedRecipients.length || !notification.subject.trim() || !notification.body.trim()} onClick={() => void sendNotification()} className="rounded-full bg-foreground px-4 py-2 text-xs text-background disabled:opacity-35">{notificationBusy ? "Enregistrement…" : scheduleAt ? "Confirmer et programmer" : "Confirmer et envoyer"}</button>
            </div>
          </div>}
-        {setPhase && setLayers && <div className="mt-4 flex gap-2 border-t border-foreground/50 pt-3"><button onClick={() => { setPhase("pendant"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir le Jour J</button><button onClick={() => { setPhase("tout"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir toute la timeline</button></div>}
+        {setPhase && setLayers && <div className="mt-4 flex gap-3 border-t border-foreground/50 pt-3"><button onClick={() => { setPhase("avant"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir Avant</button><button onClick={() => { setPhase("pendant"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir Le Jour J</button><button onClick={() => { setPhase("apres"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir Après</button></div>}
     </CenteredBlock>}
   </>;
 }

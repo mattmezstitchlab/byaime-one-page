@@ -9,7 +9,7 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Grid2X2, Moon, Settings, Sun, UserCheck, UserRound, Waves } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Grid2X2, UserCheck, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -17,7 +17,10 @@ import { CenteredBlock } from './CenteredBlock';
 import type { Guest, Provider } from '@/lib/types';
 import {
   isWeddingDestinationActive,
+  getInitialWorldPhase,
   WEDDING_PRIMARY_NAVIGATION,
+  WORLD_PHASES,
+  type WorldPhase,
   type WeddingDestination,
   type WeddingPanelId,
 } from '@/lib/wedding-navigation';
@@ -79,17 +82,16 @@ function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; inde
 
 export function ProjectStage() {
   const { project, projects, selectProject, updateProject, canEdit } = useProject();
-  const [phase, setPhase] = useState<"tout" | "avant" | "pendant" | "apres">("tout");
+  const pivotDate = project?.pivot.value ?? Date.now();
+  const [phase, setPhase] = useState<WorldPhase>(() => getInitialWorldPhase(pivotDate));
   const [playMode, setPlayMode] = useState(false);
   const [layers, setLayers] = useState<string[]>([]);
   const [view, setView] = useState<TimelineView>("chronological");
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
-  const [appearance, setAppearance] = useState<"dark" | "light">(() => localStorage.getItem("aime-appearance") === "light" ? "light" : "dark");
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
-  const [aimeMenuOpen, setAimeMenuOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<WeddingPanelId | null>(null);
   const [countdownsOpen, setCountdownsOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
@@ -97,17 +99,10 @@ export function ProjectStage() {
   const [now, setNow] = useState(() => Date.now());
   const reduceMotion = useReducedMotion();
 
-  const pivotDate = project?.pivot.value ?? Date.now();
-
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    document.documentElement.dataset.aimeTheme = appearance;
-    localStorage.setItem("aime-appearance", appearance);
-  }, [appearance]);
 
   useEffect(() => {
     if (!project) return;
@@ -115,6 +110,11 @@ export function ProjectStage() {
     setCalendarMonth(pivot);
     setSelectedDate(pivot);
   }, [project?.id, project?.pivot.value]);
+
+  useEffect(() => {
+    if (!project) return;
+    setPhase(getInitialWorldPhase(project.pivot.value));
+  }, [project?.id]);
 
   const visibleEvents = useMemo(() => {
     if (!project) return [];
@@ -176,11 +176,6 @@ export function ProjectStage() {
   const memoryCount = project.memories.length + project.media.length;
   const isPublicInfo = view === "public-info";
   const phaseHeroCopy = {
-    tout: {
-      eyebrow: project.universe,
-      title: project.title,
-      description: project.subtitle && !subtitleIsRedundant ? project.subtitle : undefined,
-    },
     avant: {
       eyebrow: "Avant · Préparation",
       title: project.title,
@@ -236,7 +231,6 @@ export function ProjectStage() {
     if (destination.kind === "view") {
       setActivePanel(null);
       setView(destination.view);
-      if (destination.view === "public-info") setPhase("tout");
     }
   };
   const sectionsAreActive = activePanel === "sections"
@@ -246,44 +240,27 @@ export function ProjectStage() {
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
       {/* The temporal capsule changes the whole World, not only the Timeline. */}
-      <div className="sticky top-0 z-50 border-b border-border bg-background/88 backdrop-blur-xl">
-        <div className="relative mx-auto flex max-w-5xl items-center justify-end px-3 py-3 sm:justify-center sm:px-6">
-          <div className="absolute left-3 flex items-center gap-2 sm:left-6 sm:gap-3">
-            <button type="button" onClick={() => setAimeMenuOpen(true)} className="rounded px-1 text-[11px] font-medium tracking-[.28em] text-foreground/80 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Ouvrir le menu AIME">AIME</button>
+      <header data-testid="world-context-header" className="sticky top-0 z-50 flex h-14 items-center justify-center border-b border-border bg-background/88 px-3 backdrop-blur-xl">
+        <div className="flex max-w-full overflow-x-auto rounded-full bg-foreground/5 p-1 hide-scrollbar" role="tablist" aria-label="Période du Monde">
+          {WORLD_PHASES.map(item => (
             <button
-              type="button"
-              onClick={() => setAppearance(value => value === "dark" ? "light" : "dark")}
-              className="flex items-center gap-1.5 rounded-full border border-foreground/[.12] px-2.5 py-1.5 text-[8px] uppercase tracking-[.12em] text-foreground/55 transition hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
-              aria-label={`Activer le mode ${appearance === "dark" ? "clair" : "sombre"}`}
+              key={item.id}
+              onClick={() => {
+                setPhase(item.id);
+                if (view === "public-info") setView("chronological");
+              }}
+              role="tab"
+              aria-selected={phase === item.id}
+              className={cn(
+                "whitespace-nowrap rounded-full px-5 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
+                phase === item.id ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground"
+              )}
             >
-              {appearance === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
-              <span className="hidden sm:inline">{appearance === "dark" ? "Clair" : "Sombre"}</span>
+              {item.label}
             </button>
-          </div>
-          <div className="flex max-w-[calc(100%-7.5rem)] overflow-x-auto rounded-full bg-foreground/5 p-1 hide-scrollbar sm:max-w-full">
-            {[
-              { id: 'tout', label: 'Tout' },
-              { id: 'avant', label: 'Avant' },
-              { id: 'pendant', label: 'Le Jour J' },
-              { id: 'apres', label: 'Après' }
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setPhase(item.id as typeof phase);
-                   if (view === "public-info") setView("chronological");
-                }}
-                className={cn(
-                  "whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
-                  phase === item.id ? "bg-foreground text-background" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground"
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
-      </div>
+      </header>
 
       {/* Cinematic Header */}
       <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
@@ -389,7 +366,7 @@ export function ProjectStage() {
             </button>
           </motion.div>}
 
-          {(isPublicInfo || phase === "tout" || phase === "avant") && <motion.button
+          {(isPublicInfo || phase === "avant") && <motion.button
             type="button"
             onClick={() => setCountdownsOpen(true)}
             initial={{ opacity: 0, y: 10 }}
@@ -544,7 +521,6 @@ export function ProjectStage() {
       <BottomDock phase={phase} view={view} activePanel={activePanel} onPanelChange={setActivePanel} onViewChange={nextView => {
         setActivePanel(null);
         setView(nextView);
-        if (nextView === "public-info") setPhase("tout");
       }} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
@@ -705,33 +681,6 @@ export function ProjectStage() {
               ))}
             </div>
           ) : <p className="py-10 text-center text-sm text-foreground/40">Aucun rendez-vous, Moment ou délai à venir.</p>}
-        </CenteredBlock>
-      )}
-      {aimeMenuOpen && (
-        <CenteredBlock eyebrow="AIME" title="Le point d’entrée" description="Comprendre le concept, apprendre à utiliser AIME, obtenir de l’aide ou retrouver les réglages globaux." onClose={() => setAimeMenuOpen(false)}>
-          <div className="divide-y divide-border">
-            <Link href="/profile" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
-              <UserRound className="h-4 w-4 text-foreground/40" />
-              <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-foreground/90">Profil</span><span className="mt-1 block text-xs font-light text-foreground/50">Voir la projection de votre identité, de vos Moments et de vos liens.</span></span>
-              <ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
-            </Link>
-            <Link href="/concept" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
-              <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-foreground/90">Découvrir AIME</span><span className="mt-1 block text-xs font-light text-foreground/50">Profil, Monde, Kit et AI · + · ME.</span></span><ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
-            </Link>
-            <Link href="/concept#guides" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
-              <BookOpen className="h-4 w-4 text-foreground/40" /><span className="flex-1 text-[11px] uppercase tracking-[.18em] text-foreground/80">Guides</span><ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
-            </Link>
-            <button type="button" onClick={() => { setAimeMenuOpen(false); window.dispatchEvent(new Event("aime:open-ai")); }} className="group flex w-full items-center gap-4 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
-              <Bug className="h-4 w-4 text-foreground/40" /><span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-foreground/80">Remonter un problème</span><span className="mt-1 block text-xs font-light text-foreground/50">Décrire le problème à AIME sans quitter le Monde.</span></span><ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
-            </button>
-            <button type="button" onClick={() => { setAimeMenuOpen(false); window.dispatchEvent(new Event("aime:open-me")); }} className="group flex w-full items-center gap-4 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
-              <Settings className="h-4 w-4 text-foreground/40" /><span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-foreground/80">Paramètres</span><span className="mt-1 block text-xs font-light text-foreground/50">Identité, confidentialité et préférences.</span></span><ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
-            </button>
-          </div>
-          <div className="mt-6 border-t border-border pt-5">
-            <p className="text-[10px] uppercase tracking-[.16em] text-foreground/40">À structurer dans Paramètres</p>
-            <p className="mt-2 text-xs font-light leading-relaxed text-foreground/50">Accessibilité conforme aux exigences européennes et choix de langue global. La traduction devra couvrir toute l’interface et les contenus générés, pas seulement changer une étiquette.</p>
-          </div>
         </CenteredBlock>
       )}
     </div>

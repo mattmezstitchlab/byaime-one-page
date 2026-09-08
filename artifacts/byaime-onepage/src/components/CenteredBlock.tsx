@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,12 +24,12 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-background/72 px-3 py-5 backdrop-blur-sm sm:px-6 sm:py-8"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-background/72 px-3 py-5 backdrop-blur-sm sm:px-6 sm:py-8"
       onClick={onClose}
     >
       <motion.section
@@ -57,6 +58,7 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-8 sm:px-10 sm:py-10 hide-scrollbar">{children}</div>
       </motion.section>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }

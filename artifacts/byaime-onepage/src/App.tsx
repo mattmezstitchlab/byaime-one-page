@@ -13,10 +13,12 @@ import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LeMondeAimePage } from '@/pages/LeMondeAime';
 import { LegalPage } from '@/pages/Legal';
 import { CommandBar } from '@/components/CommandBar';
-import { PortalControls } from '@/components/PortalControls';
-import { ProjectProvider } from '@/store/project-store';
+import { ComposerHero } from '@/components/ComposerHero';
+import { ProjectProvider, useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
+
+import { PrivateLayout } from '@/components/PrivateLayout';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -156,21 +158,45 @@ function ConceptLanding() {
 }
 
 function HomeRedirect() {
-  return <><Show when="signed-in"><Redirect to="/user-portal" /></Show><Show when="signed-out"><Landing /></Show></>;
+  return <><Show when="signed-in"><Redirect to="/profile" /></Show><Show when="signed-out"><Landing /></Show></>;
 }
-function Portal() {
-  return <><Show when="signed-in"><Home /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
+
+function PrivateRoute({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <Show when="signed-in">
+        <PrivateLayout>
+          {children}
+        </PrivateLayout>
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
 }
-function NetworkRoute() {
-  return <><Show when="signed-in"><NetworkPage /><PortalControls /></Show><Show when="signed-out"><Redirect to="/" /></Show></>;
+
+function ProfilePageWrapper() {
+  const { hasProject, isHydrated } = useProject();
+
+  if (!isHydrated) {
+    return (
+      <main className="grid min-h-full place-items-center bg-background text-foreground" role="status">
+        <p className="text-[10px] uppercase tracking-[.28em] text-foreground/40">Ouverture du Profil…</p>
+      </main>
+    );
+  }
+
+  if (!hasProject) return <ComposerHero />;
+
+  return (
+    <>
+      <PublicProfilePage privatePreview />
+      <CommandBar />
+    </>
+  );
 }
-function PrivateProfileRoute() {
-  return <><Show when="signed-in">
-    <PublicProfilePage privatePreview />
-    <CommandBar />
-    <PortalControls />
-  </Show><Show when="signed-out"><Redirect to="/" /></Show></>;
-}
+
 function SignUpPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const tracked = useRef(false);
@@ -272,9 +298,9 @@ function Routes() {
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={HomeRedirect} />
-    <Route path="/user-portal" component={Portal} />
-    <Route path="/profile" component={PrivateProfileRoute} />
-    <Route path="/network" component={NetworkRoute} />
+    <Route path="/user-portal">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
+    <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
+    <Route path="/network">{() => <PrivateRoute><NetworkPage /></PrivateRoute>}</Route>
     <Route path="/sign-in/*?">{() => <AuthPage />}</Route>
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />

@@ -302,15 +302,10 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
   return (
     <main data-testid="public-profile-page" className={cn("min-h-[100dvh] overflow-x-hidden bg-background text-foreground", isEditMode ? "h-[100dvh] overflow-y-hidden" : "pb-40")}>
-      <Link href="/" className="fixed top-6 left-6 z-50 pointer-events-auto">
-        <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="AIME" className="h-8 w-auto rounded-lg opacity-80 hover:opacity-100 transition-opacity" />
-      </Link>
-      {isPrivatePreview && (
-        <div className="absolute top-20 right-6 z-40 pointer-events-auto">
-          <Link href="/le-monde-aime" className="flex items-center justify-center w-12 h-12 rounded-full border border-foreground/10 bg-background/40 backdrop-blur-md text-foreground/50 hover:text-foreground hover:bg-foreground/10 hover:border-foreground/20 transition-all group shadow-xl" title="Le Cœur Battant du Monde">
-            <Globe2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          </Link>
-        </div>
+      {!isPrivatePreview && (
+        <Link href="/" className="fixed top-6 left-6 z-50 pointer-events-auto">
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="AIME" className="h-8 w-auto rounded-lg opacity-80 hover:opacity-100 transition-opacity" />
+        </Link>
       )}
       <div className="pointer-events-none fixed inset-0 z-0 bg-background">
         <div className="absolute inset-0 bg-gradient-to-b from-card to-background opacity-80" />
@@ -320,8 +315,33 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         />
       </div>
 
+      {isPrivatePreview && (
+        <header data-testid="profile-context-header" className="sticky top-0 z-50 flex h-14 items-center justify-center border-b border-border bg-background/88 px-3 backdrop-blur-xl">
+          <div className="flex max-w-full overflow-x-auto rounded-full bg-foreground/5 p-1 hide-scrollbar" role="tablist" aria-label="Vue du Profil">
+            <button
+              type="button"
+              role="tab"
+              onClick={() => setViewMode("timeline")}
+              aria-selected={viewMode === "timeline"}
+              className={cn("whitespace-nowrap rounded-full px-5 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", viewMode === "timeline" ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground")}
+            >
+              Timeline
+            </button>
+            <button
+              type="button"
+              role="tab"
+              onClick={() => setViewMode("fil")}
+              aria-selected={viewMode === "fil"}
+              className={cn("whitespace-nowrap rounded-full px-5 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", viewMode === "fil" ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground")}
+            >
+              Le Fil
+            </button>
+          </div>
+        </header>
+      )}
+
       {isEditMode ? (
-        <div className="relative z-10 pt-24 px-6 w-full h-[100dvh] flex flex-col">
+        <div className="relative z-10 flex h-[calc(100dvh-3.5rem)] w-full flex-col px-6 pt-14">
            <div className="mb-6 flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left shrink-0 max-w-[1200px] w-full mx-auto">
               <div>
                 <h2 className="text-3xl font-display font-light text-foreground mb-2">Architecture du Profil</h2>
@@ -338,7 +358,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
        ) : (
         <>
           {/* Hero Section */}
-          <div className="relative z-10 pt-24 pb-12 flex flex-col items-center px-6 text-center">
+          <div className="relative z-10 pt-16 pb-12 flex flex-col items-center px-6 text-center">
         {!isPrivatePreview && <p className="mb-7 text-[9px] uppercase tracking-[.32em] text-foreground/35">Monde public</p>}
         <div className="relative group w-32 h-32 rounded-full border border-foreground/10 bg-foreground/5 flex items-center justify-center overflow-hidden mb-8 shadow-2xl">
           {profileImage
@@ -391,32 +411,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         )}
       </div>
 
-      {/* View Toggle */}
-      {isPrivatePreview && (
-        <div className="relative z-10 flex justify-center mb-2 mt-16 px-6">
-          <div className="flex p-1.5 bg-background/80 rounded-full border border-foreground/10 shadow-2xl backdrop-blur-xl">
-            <button
-              type="button"
-              onClick={() => setViewMode("timeline")}
-              aria-pressed={viewMode === "timeline"}
-              className={cn("px-8 py-3 rounded-full text-[10px] font-medium uppercase tracking-[0.2em] transition-all", viewMode === "timeline" ? "bg-foreground text-background shadow-md" : "text-foreground/50 hover:text-foreground hover:bg-foreground/5")}
-            >
-              Timeline
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("fil")}
-              aria-pressed={viewMode === "fil"}
-              className={cn("px-8 py-3 rounded-full text-[10px] font-medium uppercase tracking-[0.2em] transition-all", viewMode === "fil" ? "bg-foreground text-background shadow-md" : "text-foreground/50 hover:text-foreground hover:bg-foreground/5")}
-            >
-              Le Fil
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Main Content Area */}
-      <div className="relative z-10 w-full mt-8 border-t border-foreground/5 pt-8 min-h-[500px]">
+      <div className="relative z-10 w-full mt-4 border-t border-foreground/5 pt-8 min-h-[500px]">
         {viewMode === "fil" ? (
           <div className="animate-in fade-in duration-500 pb-20">
              <ProfileFil projectId={profileId} onOpenMoment={(id) => {

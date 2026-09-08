@@ -27,7 +27,7 @@ const labels = {
   conflict: "À vérifier",
 };
 
-export function PortalControls() {
+export function PortalControls({ embedded = false }: { embedded?: boolean }) {
   const { signOut } = useClerk();
   const { user } = useUser();
   const {
@@ -129,7 +129,9 @@ export function PortalControls() {
     return (
       <button
         onClick={() => void signOut({ redirectUrl: basePath() })}
-        className="fixed right-4 top-4 z-[60] rounded-full border border-foreground/20 bg-background/60 px-4 py-2 text-xs text-foreground backdrop-blur"
+        className={embedded
+          ? "h-8 rounded-full border border-border bg-background px-3 text-[10px] text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          : "fixed right-4 top-4 z-[60] rounded-full border border-foreground/20 bg-background/60 px-4 py-2 text-xs text-foreground backdrop-blur"}
       >
         Se déconnecter
       </button>
@@ -270,7 +272,7 @@ export function PortalControls() {
     <>
       <div
         data-testid="portal-controls"
-        className="fixed right-3 top-[4.4rem] z-[60] flex items-center gap-2 sm:right-4 sm:top-4"
+        className={embedded ? "flex items-center gap-1.5" : "fixed right-4 top-3 z-[60] flex items-center gap-1.5"}
       >
         <button
           data-testid="sync-status"
@@ -280,21 +282,19 @@ export function PortalControls() {
             `${reviewCount} élément${reviewCount === 1 ? "" : "s"} à vérifier`
           }
           onClick={() => setPanel("sync")}
-          className="group flex h-10 sm:h-11 items-center gap-2 sm:gap-2.5 rounded-full bg-foreground px-3 sm:px-4 text-background shadow-lg transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-2.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-2 sm:px-3"
           aria-label={`${reviewCount} élément${reviewCount === 1 ? "" : "s"} à vérifier`}
         >
-          <span className="relative grid h-4 w-4 sm:h-5 sm:w-5 place-items-center">
+          <span className="relative grid place-items-center">
             {reviewCount > 0 && (
-              <span className="absolute inset-0 animate-ping rounded-full bg-background/20" />
+              <span className="absolute inset-0 animate-ping rounded-full bg-foreground/20" />
             )}
             <SyncIcon
-              className={`relative h-3 w-3 sm:h-3.5 sm:w-3.5 ${syncStatus === "loading" || syncStatus === "saving" ? "animate-spin" : ""}`}
+              className={`relative h-3.5 w-3.5 ${syncStatus === "loading" || syncStatus === "saving" ? "animate-spin" : ""}`}
             />
           </span>
-          <span className="hidden sm:inline text-[9px] font-semibold uppercase tracking-[.18em]">
-            À vérifier
-          </span>
-          <span className="grid h-4 min-w-4 sm:h-5 sm:min-w-5 place-items-center rounded-full bg-background px-1 sm:px-1.5 text-[8px] sm:text-[9px] font-semibold text-foreground">
+          <span className="hidden sm:inline">À vérifier</span>
+          <span className="grid h-4 min-w-4 place-items-center rounded-full bg-foreground/10 px-1 text-[9px] font-semibold text-foreground">
             {reviewCount}
           </span>
         </button>
@@ -306,14 +306,12 @@ export function PortalControls() {
                 ? window.dispatchEvent(new Event("aime:toggle-profile-editor"))
                 : setPanel("editor")
             }
-            className="flex h-10 sm:h-11 items-center gap-2 rounded-full border border-foreground/[.12] bg-background/90 px-3 sm:px-4 text-foreground/85 shadow-sm backdrop-blur-xl transition hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-8 items-center gap-2 rounded-full border border-border bg-background px-2.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3"
             aria-label={isProfileRoute ? "Éditer le Profil" : "Éditer le Monde"}
             title={isProfileRoute ? "Éditer le Profil" : "Éditer le Monde"}
           >
-            <PenLine className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            <span className="hidden sm:inline text-[9px] uppercase tracking-[.18em]">
-              Éditer
-            </span>
+            <PenLine className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Éditer</span>
           </button>
         )}
       </div>

@@ -17,12 +17,11 @@ import {
   WEDDING_MODULE_IDS,
   WEDDING_PANEL_LABELS,
   WEDDING_SECONDARY_NAVIGATION,
+  type WorldPhase,
   type WeddingDestination,
   type WeddingModule,
   type WeddingPanelId,
 } from "@/lib/wedding-navigation";
-
-type WorldPhase = "tout" | "avant" | "pendant" | "apres";
 
 export function BottomDock({
   phase,
@@ -76,9 +75,9 @@ export function BottomDock({
       onViewChange(destination.view);
     }
   };
-  const previousPhase: WorldPhase | null = phase === "tout" ? "avant" : phase === "avant" ? null : phase === "pendant" ? "avant" : "pendant";
-  const nextPhase: WorldPhase | null = phase === "tout" ? "apres" : phase === "avant" ? "pendant" : phase === "pendant" ? "apres" : null;
-  const phaseLabel: Record<WorldPhase, string> = { tout: "Tout", avant: "Avant", pendant: "Le Jour J", apres: "Après" };
+  const previousPhase: WorldPhase | null = phase === "avant" ? null : phase === "pendant" ? "avant" : "pendant";
+  const nextPhase: WorldPhase | null = phase === "avant" ? "pendant" : phase === "pendant" ? "apres" : null;
+  const phaseLabel: Record<WorldPhase, string> = { avant: "Avant", pendant: "Le Jour J", apres: "Après" };
   const playLabel = view === "music" ? "Lire la Timeline musicale" : phase === "pendant" || view === "day-of" ? "Lancer la régie" : "Lire la Timeline";
 
   const currentLabel = getWeddingNavigationLabel(view, activePanel);
