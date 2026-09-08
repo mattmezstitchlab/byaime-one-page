@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInitialProject, parseIntention } from "./parser";
-import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, findTimelineConflicts, linkMusicTrackToEvents, musicEventIdsForTrack, planEventPropagation } from "./timeline-graph";
+import { analyzeEventImpact, applyPropagationPlan, audiencesForTimelineEvents, buildTimelineIndex, findTimelineConflicts, linkMusicTrackToEvents, musicEventIdsForTrack, planEventPropagation } from "./timeline-graph";
 import { normalizeProject } from "./project-migration";
 
 const project = () => createInitialProject(parseIntention("Mariage le 14 août 2027 à Lille"), "Mariage le 14 août 2027 à Lille");
@@ -44,6 +44,15 @@ describe("timeline graph", () => {
     expect(applied.timeline.find(event => event.id === "dj3")?.time).toBe(source.time + 30 * 60000);
     expect(applied.timeline.find(event => event.id === "after-dj")?.time).toBe(source.time + 90 * 60000);
     expect(applied.timeline.find(event => event.id === "unrelated")?.time).toBe(source.time + 7200000);
+  });
+  it("proposes only linked people with real email contacts", () => {
+    const value = project();
+    value.guests = value.guests.map(guest => guest.id === "g1" ? { ...guest, contact: "sophie@example.com" } : guest);
+    const ceremony = value.timeline.find(event => event.id === "dj3")!;
+    const audiences = audiencesForTimelineEvents(value, [ceremony.id]);
+    expect(audiences.map(audience => audience.label)).toContain("Sophie Martin");
+    expect(audiences.some(audience => audience.email === "sophie@example.com")).toBe(true);
+    expect(audiences.every(audience => audience.reason.includes(ceremony.title))).toBe(true);
   });
   it("keeps music links synchronized in both directions", () => {
     const value = project();

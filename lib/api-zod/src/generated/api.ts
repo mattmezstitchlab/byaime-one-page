@@ -230,12 +230,104 @@ export const ListProjectMessagesResponseItem = zod.object({
   "recipients": zod.array(zod.string().email()),
   "subject": zod.string(),
   "body": zod.string(),
-  "status": zod.enum(['pending', 'sent', 'failed']),
+  "status": zod.enum(['scheduled', 'pending', 'sent', 'failed', 'cancelled']),
   "providerError": zod.string().nullish(),
+  "timelineEventId": zod.string().nullish(),
+  "scheduledAt": zod.coerce.date().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
   "createdBy": zod.string(),
   "createdAt": zod.coerce.date()
 })
 export const ListProjectMessagesResponse = zod.array(ListProjectMessagesResponseItem)
+
+
+export const CreateProjectMessageParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const createProjectMessageBodyRecipientsMax = 100;
+
+export const createProjectMessageBodySubjectMax = 200;
+
+export const createProjectMessageBodyBodyMax = 20000;
+
+export const createProjectMessageBodyTimelineEventIdMax = 200;
+
+
+
+export const CreateProjectMessageBody = zod.object({
+  "kind": zod.enum(['invitation', 'rsvp_reminder', 'practical_info', 'provider_follow_up', 'thank_you', 'event_change']),
+  "recipients": zod.array(zod.string().email()).min(1).max(createProjectMessageBodyRecipientsMax),
+  "subject": zod.string().min(1).max(createProjectMessageBodySubjectMax),
+  "body": zod.string().min(1).max(createProjectMessageBodyBodyMax),
+  "confirmed": zod.literal(true),
+  "timelineEventId": zod.string().max(createProjectMessageBodyTimelineEventIdMax).optional(),
+  "scheduledAt": zod.coerce.date().optional()
+})
+
+export const CreateProjectMessageResponse = zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "kind": zod.string(),
+  "recipients": zod.array(zod.string().email()),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "status": zod.enum(['scheduled', 'pending', 'sent', 'failed', 'cancelled']),
+  "providerError": zod.string().nullish(),
+  "timelineEventId": zod.string().nullish(),
+  "scheduledAt": zod.coerce.date().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const RescheduleProjectMessageParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "messageId": zod.coerce.string().uuid()
+})
+
+export const RescheduleProjectMessageBody = zod.object({
+  "scheduledAt": zod.coerce.date()
+})
+
+export const RescheduleProjectMessageResponse = zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "kind": zod.string(),
+  "recipients": zod.array(zod.string().email()),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "status": zod.enum(['scheduled', 'pending', 'sent', 'failed', 'cancelled']),
+  "providerError": zod.string().nullish(),
+  "timelineEventId": zod.string().nullish(),
+  "scheduledAt": zod.coerce.date().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const CancelProjectMessageParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "messageId": zod.coerce.string().uuid()
+})
+
+export const CancelProjectMessageResponse = zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "kind": zod.string(),
+  "recipients": zod.array(zod.string().email()),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "status": zod.enum(['scheduled', 'pending', 'sent', 'failed', 'cancelled']),
+  "providerError": zod.string().nullish(),
+  "timelineEventId": zod.string().nullish(),
+  "scheduledAt": zod.coerce.date().nullish(),
+  "cancelledAt": zod.coerce.date().nullish(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date()
+})
 
 
 export const RevokeRsvpLinkParams = zod.object({

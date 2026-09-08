@@ -10,7 +10,9 @@ export type MessageStatus = typeof MessageStatus[keyof typeof MessageStatus];
 
 
 export const MessageStatus = {
+  scheduled: 'scheduled',
   pending: 'pending',
   sent: 'sent',
   failed: 'failed',
+  cancelled: 'cancelled',
 } as const;

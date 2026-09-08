@@ -12,7 +12,7 @@ export type { WeddingModule } from "@/lib/wedding-navigation";
 const euro = (cents: number) => `${(cents / 100).toLocaleString("fr-FR")} €`;
 const newId = () => Math.random().toString(36).slice(2, 9);
 type StoredFile = { id: string; name: string; contentType: string; size: number; createdAt?: string };
-type SentMessage = { id: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; sentAt?: string | null; createdAt: string };
+type SentMessage = { id: string; projectId: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; timelineEventId?: string | null; scheduledAt?: string | null; cancelledAt?: string | null; sentAt?: string | null; createdAt: string };
 const MUSIC_SOURCE = "Apple Music / iTunes";
 
 async function searchAppleMusic(term: string, signal: AbortSignal): Promise<MusicSearchResult[]> {
@@ -64,6 +64,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [busy, setBusy] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [recipients, setRecipients] = useState("");
+  const [rescheduleAt, setRescheduleAt] = useState<Record<string, string>>({});
   const [musicQuery, setMusicQuery] = useState("");
   const [musicResults, setMusicResults] = useState<MusicSearchResult[]>([]);
   const [musicSearchBusy, setMusicSearchBusy] = useState(false);
@@ -149,6 +150,35 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       } catch {
         // The delivery error above remains the source of truth if history is unavailable too.
       }
+    } finally {
+      setBusy(false);
+    }
+  };
+  const cancelScheduledMessage = async (messageId: string) => {
+    setBusy(true);
+    setRemoteError("");
+    try {
+      await api<SentMessage>(`/projects/${project.id}/messages/${messageId}`, { method: "POST" });
+      setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Annulation impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const rescheduleMessage = async (messageId: string) => {
+    const value = rescheduleAt[messageId];
+    if (!value) return;
+    setBusy(true);
+    setRemoteError("");
+    try {
+      await api<SentMessage>(`/projects/${project.id}/messages/${messageId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ scheduledAt: new Date(value).toISOString() }),
+      });
+      setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Reprogrammation impossible");
     } finally {
       setBusy(false);
     }
@@ -281,7 +311,14 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
         {canManage && selectedTemplateId !== template.id && <button disabled={!template.title.trim() || !template.body.trim()} onClick={() => setSelectedTemplateId(template.id)} className="mt-3 inline-flex items-center gap-2 text-xs text-foreground/70 hover:text-foreground disabled:opacity-30"><Send className="h-3.5 w-3.5" />Préparer l’envoi</button>}
         {selectedTemplateId === template.id && <div className="mt-4 space-y-3 border-t border-foreground/10 pt-4"><label className="block text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</label><input autoFocus value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /><p className="text-xs text-foreground/40">L’objet sera « {template.title} ». L’envoi ne partira qu’après votre confirmation.</p><div className="flex gap-2"><button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Annuler</button><button disabled={busy || !recipients.trim()} onClick={() => void sendTemplate(template)} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-medium text-black disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}Confirmer et envoyer</button></div></div>}
       </div>)}</div>
-      <div><p className="mb-3 text-[10px] uppercase tracking-widest text-foreground/40">Journal des envois réels</p>{!canManage ? <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent envoyer des messages et consulter leur journal.</p> : messages.length === 0 ? <Empty>Aucun message envoyé.</Empty> : messages.map(message => <div key={message.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-foreground/5 py-3 text-sm"><div className="min-w-0"><p className="truncate">{message.subject}</p><p className="mt-1 truncate text-xs text-foreground/35">{message.recipients.join(", ")}</p>{message.providerError && <p className="mt-1 text-xs text-rose-300">{message.providerError}</p>}</div><span className={cn("text-xs", message.status === "sent" ? "text-emerald-300" : message.status === "failed" ? "text-rose-300" : "text-amber-200")}>{new Date(message.sentAt || message.createdAt).toLocaleString("fr-FR")} · {message.status === "sent" ? "envoyé" : message.status === "failed" ? "échec" : "en cours"}</span></div>)}</div>
+       <div><p className="mb-3 text-[10px] uppercase tracking-widest text-foreground/40">Journal des envois et rappels</p>{!canManage ? <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent envoyer des messages et consulter leur journal.</p> : messages.length === 0 ? <Empty>Aucun message envoyé ou programmé.</Empty> : messages.map(message => {
+         const linkedEvent = message.timelineEventId ? project.timeline.find(event => event.id === message.timelineEventId) : undefined;
+         const statusLabel = message.status === "sent" ? "envoyé" : message.status === "failed" ? "échec Resend" : message.status === "scheduled" ? "programmé" : message.status === "cancelled" ? "annulé" : "en cours";
+         return <div key={message.id} className="border-b border-foreground/5 py-3 text-sm">
+           <div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><p className="truncate">{message.subject}</p>{linkedEvent && <p className="mt-1 text-xs text-emerald-300/75">Lié à « {linkedEvent.title} »</p>}<p className="mt-1 truncate text-xs text-foreground/35">{message.recipients.join(", ")}</p>{message.providerError && <p className="mt-1 text-xs text-rose-300">Resend : {message.providerError}</p>}</div><span className={cn("text-xs", message.status === "sent" ? "text-emerald-300" : message.status === "failed" ? "text-rose-300" : message.status === "cancelled" ? "text-foreground/35" : "text-amber-200")}>{new Date(message.scheduledAt || message.sentAt || message.createdAt).toLocaleString("fr-FR")} · {statusLabel}</span></div>
+           {message.status === "scheduled" && <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-amber-300/10 bg-amber-300/5 p-3"><label className="flex-1 text-[10px] uppercase tracking-widest text-foreground/40">Nouvelle date<input type="datetime-local" value={rescheduleAt[message.id] || (message.scheduledAt ? new Date(message.scheduledAt).toISOString().slice(0, 16) : "")} min={new Date().toISOString().slice(0, 16)} onChange={event => setRescheduleAt(current => ({ ...current, [message.id]: event.target.value }))} className="mt-1 block w-full rounded-lg border border-foreground/10 bg-background/20 px-2 py-1.5 text-xs normal-case tracking-normal outline-none" /></label><button disabled={busy || !rescheduleAt[message.id]} onClick={() => void rescheduleMessage(message.id)} className="rounded-full border border-foreground/15 px-3 py-2 text-xs disabled:opacity-30">Replanifier</button><button disabled={busy} onClick={() => void cancelScheduledMessage(message.id)} className="rounded-full border border-rose-300/20 px-3 py-2 text-xs text-rose-200 disabled:opacity-30">Annuler le rappel</button></div>}
+         </div>;
+       })}</div>
     </div>;
   }
 

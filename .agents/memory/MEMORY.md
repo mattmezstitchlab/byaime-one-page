@@ -15,3 +15,4 @@
 - [Réponses des connecteurs](connector-http-responses.md) — une requête connecteur peut retourner une réponse HTTP non réussie sans lever d’exception.
 - [Précision des versions temporelles](optimistic-timestamp-precision.md) — aligner les verrous optimistes PostgreSQL sur la précision ISO réellement transmise au client.
 - [Sessions Clerk en E2E](clerk-e2e-sessions.md) — rafraîchir chaque session sauvegardée dans une page avant l’API et isoler les comptes utilisés pour une déconnexion réelle.
+- [Communications liées aux événements](event-communications.md) — séparer la confirmation du changement de la confirmation d’envoi, avec journal Resend relié au Moment.

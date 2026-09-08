@@ -108,6 +108,51 @@ export type PropagationPlan = {
   warnings: string[];
   requiresConfirmation: true;
 };
+
+export type EventAudience = {
+  id: string;
+  kind: Extract<TimelineEntityKind, "guest" | "team" | "provider">;
+  label: string;
+  email?: string;
+  reason: string;
+};
+
+const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+
+function contactEmail(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return value.match(emailPattern)?.[0];
+}
+
+export function audiencesForTimelineEvents(project: WorldProject, eventIds: string[]): EventAudience[] {
+  const index = buildTimelineIndex(project);
+  const seen = new Map<string, EventAudience>();
+  for (const eventId of eventIds) {
+    const event = index.events.get(eventId);
+    if (!event) continue;
+    for (const relation of event.relations || []) {
+      if (!["guest", "team", "provider"].includes(relation.kind)) continue;
+      const entity = index.entities.get(key(relation.kind, relation.id));
+      if (!entity) continue;
+      const email = contactEmail((entity.value as { contact?: unknown }).contact);
+      const audienceKey = email?.toLocaleLowerCase("fr") || `${relation.kind}:${relation.id}`;
+      const previous = seen.get(audienceKey);
+      const reason = `${event.title}${relation.role ? ` · ${relation.role}` : ""}`;
+      if (previous) {
+        if (!previous.reason.includes(event.title)) previous.reason = `${previous.reason}, ${reason}`;
+        continue;
+      }
+      seen.set(audienceKey, {
+        id: relation.id,
+        kind: relation.kind as EventAudience["kind"],
+        label: entity.label,
+        email,
+        reason,
+      });
+    }
+  }
+  return [...seen.values()];
+}
 export function planEventPropagation(project: WorldProject, eventId: string, patch: Partial<TimelineEvent>): PropagationPlan {
   const impact = analyzeEventImpact(project, eventId, patch);
   const timeDeltaMs = patch.time === undefined ? 0 : patch.time - impact.event.time;

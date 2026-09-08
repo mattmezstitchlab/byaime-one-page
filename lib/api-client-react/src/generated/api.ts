@@ -24,6 +24,8 @@ import type {
   HealthStatus,
   InvitationInput,
   Message,
+  MessageInput,
+  MessageScheduleInput,
   ProfileFil,
   Project,
   ProjectInput,
@@ -753,6 +755,207 @@ export function useListProjectMessages<TData = Awaited<ReturnType<typeof listPro
 
 
 
+
+export const getCreateProjectMessageUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/messages`
+}
+
+export const createProjectMessage = async (id: string,
+    messageInput: MessageInput, options?: Parameters<typeof customFetch>[1]): Promise<Message> => {
+
+  return customFetch<Message>(getCreateProjectMessageUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(messageInput)
+  }
+);}
+
+
+
+
+
+export const getCreateProjectMessageMutationOptions = <TError = ErrorType<Message>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectMessage>>, TError,{id: string;data: BodyType<MessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectMessage>>, TError,{id: string;data: BodyType<MessageInput>}, TContext> => {
+
+const mutationKey = ['createProjectMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectMessage>>, {id: string;data: BodyType<MessageInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createProjectMessage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateProjectMessageMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectMessage>>>
+    export type CreateProjectMessageMutationBody = BodyType<MessageInput>
+    export type CreateProjectMessageMutationError = ErrorType<Message>
+
+    export const useCreateProjectMessage = <TError = ErrorType<Message>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectMessage>>, TError,{id: string;data: BodyType<MessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createProjectMessage>>,
+        TError,
+        {id: string;data: BodyType<MessageInput>},
+        TContext
+      > => {
+      return useMutation(getCreateProjectMessageMutationOptions(options));
+    }
+
+export const getRescheduleProjectMessageUrl = (id: string,
+    messageId: string,) => {
+
+
+
+
+  return `/api/projects/${id}/messages/${messageId}`
+}
+
+export const rescheduleProjectMessage = async (id: string,
+    messageId: string,
+    messageScheduleInput: MessageScheduleInput, options?: Parameters<typeof customFetch>[1]): Promise<Message> => {
+
+  return customFetch<Message>(getRescheduleProjectMessageUrl(id,messageId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(messageScheduleInput)
+  }
+);}
+
+
+
+
+
+export const getRescheduleProjectMessageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescheduleProjectMessage>>, TError,{id: string;messageId: string;data: BodyType<MessageScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rescheduleProjectMessage>>, TError,{id: string;messageId: string;data: BodyType<MessageScheduleInput>}, TContext> => {
+
+const mutationKey = ['rescheduleProjectMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rescheduleProjectMessage>>, {id: string;messageId: string;data: BodyType<MessageScheduleInput>}> = (props) => {
+          const {id,messageId,data} = props ?? {};
+
+          return  rescheduleProjectMessage(id,messageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RescheduleProjectMessageMutationResult = NonNullable<Awaited<ReturnType<typeof rescheduleProjectMessage>>>
+    export type RescheduleProjectMessageMutationBody = BodyType<MessageScheduleInput>
+    export type RescheduleProjectMessageMutationError = ErrorType<unknown>
+
+    export const useRescheduleProjectMessage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescheduleProjectMessage>>, TError,{id: string;messageId: string;data: BodyType<MessageScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rescheduleProjectMessage>>,
+        TError,
+        {id: string;messageId: string;data: BodyType<MessageScheduleInput>},
+        TContext
+      > => {
+      return useMutation(getRescheduleProjectMessageMutationOptions(options));
+    }
+
+export const getCancelProjectMessageUrl = (id: string,
+    messageId: string,) => {
+
+
+
+
+  return `/api/projects/${id}/messages/${messageId}`
+}
+
+export const cancelProjectMessage = async (id: string,
+    messageId: string, options?: Parameters<typeof customFetch>[1]): Promise<Message> => {
+
+  return customFetch<Message>(getCancelProjectMessageUrl(id,messageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelProjectMessageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelProjectMessage>>, TError,{id: string;messageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelProjectMessage>>, TError,{id: string;messageId: string}, TContext> => {
+
+const mutationKey = ['cancelProjectMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelProjectMessage>>, {id: string;messageId: string}> = (props) => {
+          const {id,messageId} = props ?? {};
+
+          return  cancelProjectMessage(id,messageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelProjectMessageMutationResult = NonNullable<Awaited<ReturnType<typeof cancelProjectMessage>>>
+
+    export type CancelProjectMessageMutationError = ErrorType<unknown>
+
+    export const useCancelProjectMessage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelProjectMessage>>, TError,{id: string;messageId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelProjectMessage>>,
+        TError,
+        {id: string;messageId: string},
+        TContext
+      > => {
+      return useMutation(getCancelProjectMessageMutationOptions(options));
+    }
 
 export const getRevokeRsvpLinkUrl = (id: string,
     guestId: string,) => {

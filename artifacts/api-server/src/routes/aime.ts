@@ -2,8 +2,7 @@ import { Router, type IRouter, type RequestHandler } from "express";
 import { Readable } from "node:stream";
 import { clerkClient, getAuth } from "@clerk/express";
 import { ReplitConnectors } from "@replit/connectors-sdk";
-import { GetProfileFilResponse } from "@workspace/api-zod";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, lte, sql } from "drizzle-orm";
 import {
   db,
   filesTable,
@@ -21,7 +20,6 @@ import {
 import { authenticatedUserId, can, type ProjectRole } from "../lib/permissions";
 import { projectToPublicProfile } from "../lib/publicProfile";
 import { buildAuthorizedWeddingBrief } from "../lib/weddingBrief";
-import { buildAuthorizedProfileFil } from "../lib/profileFil";
 import {
   mergeProtectedProjectData,
   projectDataForRole,
@@ -38,6 +36,7 @@ import {
   signUploadAuthorization,
   verifyUploadAuthorization,
 } from "../lib/security";
+import { logger } from "../lib/logger";
 
 type AuthedRequest = Parameters<RequestHandler>[0] & { userId?: string };
 const router: IRouter = Router();
@@ -74,6 +73,75 @@ async function sendEmail(path: string, body: string): Promise<Response> {
   });
 }
 
+type MessageRecord = typeof messagesTable.$inferSelect;
+
+async function deliverMessage(message: MessageRecord, simulateProviderFailure = false) {
+  try {
+    if (simulateProviderFailure) {
+      throw new Error("Échec fournisseur simulé pour le scénario E2E");
+    }
+    const providerResponse = await sendEmail(
+      "/emails",
+      JSON.stringify({
+        from: "AIME <onboarding@resend.dev>",
+        to: message.recipients,
+        subject: message.subject,
+        html: `<div>${escapeHtml(message.body).replaceAll("\n", "<br>")}</div>`,
+      }),
+    );
+    assertProviderAccepted(providerResponse, "le message");
+    const [sent] = await db
+      .update(messagesTable)
+      .set({ status: "sent", sentAt: new Date(), providerError: null })
+      .where(eq(messagesTable.id, message.id))
+      .returning();
+    return { message: sent, error: undefined };
+  } catch (error) {
+    const providerError =
+      error instanceof Error ? error.message : "Erreur Resend";
+    const [failed] = await db
+      .update(messagesTable)
+      .set({ status: "failed", providerError })
+      .where(eq(messagesTable.id, message.id))
+      .returning();
+    return { message: failed, error: providerError };
+  }
+}
+
+async function deliverScheduledMessages(): Promise<void> {
+  const dueMessages = await db
+    .update(messagesTable)
+    .set({ status: "pending" })
+    .where(
+      and(
+        eq(messagesTable.status, "scheduled"),
+        lte(messagesTable.scheduledAt, new Date()),
+      ),
+    )
+    .returning();
+  for (const message of dueMessages) {
+    const result = await deliverMessage(message);
+    if (result.error) {
+      logger.warn(
+        { messageId: message.id, projectId: message.projectId, providerError: result.error },
+        "Scheduled email provider failure recorded",
+      );
+    } else {
+      logger.info(
+        { messageId: message.id, projectId: message.projectId },
+        "Scheduled email delivered",
+      );
+    }
+  }
+}
+
+const scheduledDeliveryTimer = setInterval(() => {
+  void deliverScheduledMessages().catch((error) => {
+    logger.warn({ error }, "Scheduled email sweep failed");
+  });
+}, 30_000);
+scheduledDeliveryTimer.unref?.();
+
 const projectInput = z.object({
   title: z.string().trim().min(1).max(160),
   data: z.record(z.string(), z.unknown()),
@@ -100,11 +168,17 @@ const messageInput = z.object({
     "practical_info",
     "provider_follow_up",
     "thank_you",
+    "event_change",
   ]),
   recipients: z.array(z.string().email()).min(1).max(100),
   subject: z.string().trim().min(1).max(200),
   body: z.string().trim().min(1).max(20_000),
   confirmed: z.literal(true),
+  timelineEventId: z.string().trim().min(1).max(200).optional(),
+  scheduledAt: z.string().datetime().optional(),
+});
+const messageScheduleInput = z.object({
+  scheduledAt: z.string().datetime(),
 });
 const rsvpInput = z.object({
   status: z.enum(["confirmed", "declined"]),
@@ -265,36 +339,6 @@ router.get(
         useWorldLocation: false,
       }),
     );
-  },
-);
-
-router.get(
-  "/projects/:id/fil",
-  auth,
-  async (req: AuthedRequest, res): Promise<void> => {
-    const member = await membership(String(req.params.id), req.userId!);
-    if (!member) {
-      res.status(404).json({ error: "Monde introuvable" });
-      return;
-    }
-    const [project] = await db
-      .select({
-        id: projectsTable.id,
-        title: projectsTable.title,
-        data: projectsTable.data,
-      })
-      .from(projectsTable)
-      .where(eq(projectsTable.id, String(req.params.id)));
-    if (!project) {
-      res.status(404).json({ error: "Monde introuvable" });
-      return;
-    }
-    res.json(GetProfileFilResponse.parse(buildAuthorizedProfileFil({
-      projectId: project.id,
-      title: project.title,
-      data: project.data,
-      role: member.role,
-    })));
   },
 );
 
@@ -999,54 +1043,39 @@ router.post(
     const [message] = await db
       .insert(messagesTable)
       .values({
-        ...input,
         projectId,
+        kind: input.kind,
+        recipients: input.recipients,
+        subject: input.subject,
+        body: input.body,
+        timelineEventId: input.timelineEventId,
+        scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
         createdBy: req.userId!,
-        status: "pending",
+        status: input.scheduledAt && new Date(input.scheduledAt) > new Date() ? "scheduled" : "pending",
       })
       .returning();
-    try {
-      if (shouldSimulateProviderFailure(req))
-        throw new Error("Échec fournisseur simulé pour le scénario E2E");
-      const providerResponse = await sendEmail(
-        "/emails",
-        JSON.stringify({
-          from: "AIME <onboarding@resend.dev>",
-          to: input.recipients,
-          subject: input.subject,
-          html: `<div>${escapeHtml(input.body).replaceAll("\n", "<br>")}</div>`,
-        }),
-      );
-      assertProviderAccepted(providerResponse, "le message");
-      const [sent] = await db
-        .update(messagesTable)
-        .set({ status: "sent", sentAt: new Date() })
-        .where(eq(messagesTable.id, message.id))
-        .returning();
+    if (message.status === "scheduled") {
       req.log.info(
-        { messageId: message.id, projectId, status: sent.status },
-        "Email delivery recorded",
+        { messageId: message.id, projectId, scheduledAt: message.scheduledAt },
+        "Email scheduled",
       );
-      res.status(201).json(sent);
-    } catch (error) {
-      const providerError =
-        error instanceof Error ? error.message : "Erreur Resend";
-      const [failed] = await db
-        .update(messagesTable)
-        .set({ status: "failed", providerError })
-        .where(eq(messagesTable.id, message.id))
-        .returning();
+      res.status(201).json(message);
+      return;
+    }
+    const result = await deliverMessage(message, shouldSimulateProviderFailure(req));
+    if (result.error) {
       req.log.warn(
-        {
-          messageId: message.id,
-          projectId,
-          status: failed.status,
-          providerError,
-        },
+        { messageId: message.id, projectId, status: result.message.status, providerError: result.error },
         "Email provider failure recorded",
       );
-      res.status(502).json(failed);
+      res.status(502).json(result.message);
+      return;
     }
+    req.log.info(
+      { messageId: message.id, projectId, status: result.message.status },
+      "Email delivery recorded",
+    );
+    res.status(201).json(result.message);
   },
 );
 
@@ -1064,12 +1093,87 @@ router.get(
       res.status(403).json({ error: "Permission refusée" });
       return;
     }
+    await deliverScheduledMessages();
     res.json(
       await db
         .select()
         .from(messagesTable)
         .where(eq(messagesTable.projectId, projectId)),
     );
+  },
+);
+
+router.patch(
+  "/projects/:id/messages/:messageId",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    const messageId = String(req.params.messageId);
+    const parsed = messageScheduleInput.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const scheduledAt = new Date(parsed.data.scheduledAt);
+    if (scheduledAt <= new Date()) {
+      res.status(400).json({ error: "La nouvelle date doit être dans le futur" });
+      return;
+    }
+    const member = await membership(projectId, req.userId!);
+    if (!managedRoles.has(member?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [message] = await db
+      .select()
+      .from(messagesTable)
+      .where(and(eq(messagesTable.id, messageId), eq(messagesTable.projectId, projectId)));
+    if (!message) {
+      res.status(404).json({ error: "Message introuvable" });
+      return;
+    }
+    if (message.status !== "scheduled") {
+      res.status(409).json({ error: "Seul un rappel programmé peut être replanifié" });
+      return;
+    }
+    const [updated] = await db
+      .update(messagesTable)
+      .set({ scheduledAt, providerError: null })
+      .where(eq(messagesTable.id, messageId))
+      .returning();
+    res.json(updated);
+  },
+);
+
+router.post(
+  "/projects/:id/messages/:messageId",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    const messageId = String(req.params.messageId);
+    const member = await membership(projectId, req.userId!);
+    if (!managedRoles.has(member?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [message] = await db
+      .select()
+      .from(messagesTable)
+      .where(and(eq(messagesTable.id, messageId), eq(messagesTable.projectId, projectId)));
+    if (!message) {
+      res.status(404).json({ error: "Message introuvable" });
+      return;
+    }
+    if (message.status !== "scheduled") {
+      res.status(409).json({ error: "Seul un rappel programmé peut être annulé" });
+      return;
+    }
+    const [cancelled] = await db
+      .update(messagesTable)
+      .set({ status: "cancelled", cancelledAt: new Date() })
+      .where(eq(messagesTable.id, messageId))
+      .returning();
+    res.json(cancelled);
   },
 );
 

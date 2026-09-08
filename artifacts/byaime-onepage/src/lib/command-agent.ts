@@ -1,5 +1,6 @@
 import type { WorldProject } from "./types";
-import { analyzeEventImpact, findTimelineConflicts } from "./timeline-graph";
+import { analyzeEventImpact, audiencesForTimelineEvents, findTimelineConflicts, planEventPropagation } from "./timeline-graph";
+import type { EventAudience } from "./timeline-graph";
 
 export type AgentCommand =
   | { kind: "shift-event"; query: string; minutes: number }
@@ -15,6 +16,13 @@ export type CommandProposal = {
   title: string;
   impact: string[];
   requiresConfirmation: boolean;
+  communication?: {
+    eventId: string;
+    eventTitle: string;
+    audiences: EventAudience[];
+    subject: string;
+    body: string;
+  };
 };
 
 export function parseFrenchCommand(input: string): AgentCommand | undefined {
@@ -37,10 +45,20 @@ export function proposeCommand(project: WorldProject, command: AgentCommand): Co
     if (matches.length !== 1) throw new Error(matches.length ? "Plusieurs événements correspondent : précisez le titre." : "Aucun événement correspondant.");
     const event = matches[0];
     const impact = analyzeEventImpact(project, event.id, { time: event.time + command.minutes * 60000 });
+    const plan = planEventPropagation(project, event.id, { time: event.time + command.minutes * 60000 });
+    const audiences = audiencesForTimelineEvents(project, plan.affectedEventIds);
+    const addressable = audiences.filter(audience => audience.email).length;
     return { command, mutation: true, title: `Décaler « ${event.title} » de ${command.minutes} min`, impact: [
       `${impact.relations.length} entité(s) liée(s)`, `${impact.dependents.length} dépendance(s)`,
       ...impact.conflicts.map(conflict => `Conflit : ${conflict.message}`),
-    ], requiresConfirmation: true };
+      `${audiences.length} personne(s) concernée(s), ${addressable} adresse(s) prête(s) à vérifier`,
+    ], requiresConfirmation: true, communication: {
+      eventId: event.id,
+      eventTitle: event.title,
+      audiences,
+      subject: `Mise à jour du programme · ${event.title}`,
+      body: `Bonjour,\n\nLe programme évolue : « ${event.title} » est décalé de ${command.minutes} minutes.\n\nMerci de prendre en compte ce nouvel horaire.\n\nÀ bientôt,`,
+    } };
   }
   if (command.kind === "add-guests") {
     if (!Number.isInteger(command.count) || command.count < 1 || command.count > 100) throw new Error("Le nombre d’invités doit être compris entre 1 et 100.");

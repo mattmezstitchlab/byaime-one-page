@@ -284,6 +284,45 @@ export interface InvitationInput {
   role: InvitationInputRole;
 }
 
+export type MessageInputKind = typeof MessageInputKind[keyof typeof MessageInputKind];
+
+
+export const MessageInputKind = {
+  invitation: 'invitation',
+  rsvp_reminder: 'rsvp_reminder',
+  practical_info: 'practical_info',
+  provider_follow_up: 'provider_follow_up',
+  thank_you: 'thank_you',
+  event_change: 'event_change',
+} as const;
+
+export interface MessageInput {
+  kind: MessageInputKind;
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  recipients: string[];
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  subject: string;
+  /**
+     * @minLength 1
+     * @maxLength 20000
+     */
+  body: string;
+  confirmed: true;
+  /** @maxLength 200 */
+  timelineEventId?: string;
+  scheduledAt?: string;
+}
+
+export interface MessageScheduleInput {
+  scheduledAt: string;
+}
+
 export interface UploadInput {
   projectId: string;
   /**
@@ -308,9 +347,11 @@ export type MessageStatus = typeof MessageStatus[keyof typeof MessageStatus];
 
 
 export const MessageStatus = {
+  scheduled: 'scheduled',
   pending: 'pending',
   sent: 'sent',
   failed: 'failed',
+  cancelled: 'cancelled',
 } as const;
 
 export interface Message {
@@ -322,6 +363,9 @@ export interface Message {
   body: string;
   status: MessageStatus;
   providerError?: string | null;
+  timelineEventId?: string | null;
+  scheduledAt?: string | null;
+  cancelledAt?: string | null;
   createdBy: string;
   createdAt: string;
 }

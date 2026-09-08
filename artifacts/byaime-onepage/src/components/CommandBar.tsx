@@ -9,6 +9,10 @@ export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: "tout"|
   const [proposal, setProposal] = useState<CommandProposal>();
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
+  const [notification, setNotification] = useState<NonNullable<CommandProposal["communication"]>>();
+  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [notificationBusy, setNotificationBusy] = useState(false);
   const { project, updateProject, canEdit } = useProject();
   useEffect(() => {
     const listener = (event: KeyboardEvent) => { if (event.key === "k" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); setOpen(value => !value); } };
@@ -29,7 +33,51 @@ export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: "tout"|
   };
   const execute = () => {
     if (!proposal || (proposal.mutation && !canEdit)) return;
-    try { const output = executeCommand(project, proposal, true); updateProject(output.project); setResult(output.message); setProposal(undefined); } catch (reason) { setError(reason instanceof Error ? reason.message : "Cette action n’a pas pu être réalisée."); }
+    try {
+      const output = executeCommand(project, proposal, true);
+      updateProject(output.project);
+      setResult(output.message);
+      if (proposal.communication) {
+        setNotification(proposal.communication);
+        setSelectedRecipients(proposal.communication.audiences.flatMap(audience => audience.email ? [audience.email] : []));
+      }
+      setProposal(undefined);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Cette action n’a pas pu être réalisée."); }
+  };
+  const sendNotification = async () => {
+    if (!notification || !project || !selectedRecipients.length || !notification.subject.trim() || !notification.body.trim()) return;
+    setNotificationBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/projects/${project.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "event_change",
+          timelineEventId: notification.eventId,
+          recipients: selectedRecipients,
+          subject: notification.subject.trim(),
+          body: notification.body.trim(),
+          ...(scheduleAt ? { scheduledAt: new Date(scheduleAt).toISOString() } : {}),
+          confirmed: true,
+        }),
+      });
+      const delivery = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(delivery?.providerError || delivery?.error || "Le message n’a pas pu être enregistré.");
+        return;
+      }
+      setResult(delivery.status === "scheduled"
+        ? `Rappel programmé pour ${new Date(delivery.scheduledAt).toLocaleString("fr-FR")}. Vous pourrez l’annuler ou le replanifier dans Messages.`
+        : `Message confirmé et envoyé à ${selectedRecipients.length} destinataire${selectedRecipients.length > 1 ? "s" : ""}.`);
+      setNotification(undefined);
+      setSelectedRecipients([]);
+      setScheduleAt("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Le message n’a pas pu être envoyé.");
+    } finally {
+      setNotificationBusy(false);
+    }
   };
   return <>
     {open && <CenteredBlock eyebrow="AIME" title="Que souhaitez-vous faire ?" description="AIME vérifie votre demande et vous demande votre accord avant tout changement." onClose={() => setOpen(false)} size="lg">
@@ -40,6 +88,26 @@ export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: "tout"|
         {proposal && <div className="mt-4 rounded-xl border border-border bg-foreground/5 p-4"><p className="font-medium text-foreground">{proposal.title}</p><ul className="mt-3 space-y-1 text-xs text-foreground/60">{proposal.impact.length ? proposal.impact.map((line, index) => <li key={index}>• {line}</li>) : <li>Aucun élément concerné.</li>}</ul>
           {proposal.mutation ? <div className="mt-4"><p className="mb-2 text-xs text-foreground/50">Rien ne changera sans votre accord.</p><button disabled={!canEdit} onClick={execute} className="rounded-full bg-foreground px-4 py-2 text-xs text-background disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50">{canEdit ? "Oui, faire ce changement" : "Vous pouvez consulter, mais pas modifier"}</button></div> : <p className="mt-4 text-xs text-foreground/40">Aucune information n’a été modifiée.</p>}
         </div>}
+         {notification && <div className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-4">
+           <p className="font-medium text-foreground">Prévenir les personnes concernées</p>
+           <p className="mt-1 text-xs leading-relaxed text-foreground/55">Le changement est enregistré. Vérifiez maintenant le contenu et les destinataires : aucun message ne partira sans cette seconde confirmation.</p>
+           <div className="mt-4 space-y-2">
+             {notification.audiences.map(audience => audience.email
+               ? <label key={`${audience.kind}:${audience.id}:${audience.email}`} className="flex items-start gap-2 rounded-lg border border-foreground/10 px-3 py-2 text-xs">
+                   <input type="checkbox" checked={selectedRecipients.includes(audience.email)} onChange={() => setSelectedRecipients(current => current.includes(audience.email!) ? current.filter(email => email !== audience.email) : [...current, audience.email!])} className="mt-0.5 accent-white" />
+                   <span><span className="block text-foreground/80">{audience.label}</span><span className="block text-foreground/45">{audience.email} · {audience.reason}</span></span>
+                 </label>
+               : <div key={`${audience.kind}:${audience.id}`} className="rounded-lg border border-amber-300/15 px-3 py-2 text-xs text-amber-100/70">{audience.label} · aucune adresse e-mail vérifiable ({audience.reason})</div>)}
+             {!notification.audiences.length && <p className="text-xs text-foreground/45">Aucune personne reliée avec un contact vérifiable. Le changement reste enregistré, mais aucun envoi n’est proposé.</p>}
+           </div>
+           <label className="mt-4 block text-[10px] uppercase tracking-[.12em] text-foreground/45">Objet<input value={notification.subject} onChange={event => setNotification(current => current ? { ...current, subject: event.target.value } : current)} className="mt-2 w-full rounded-lg border border-foreground/10 bg-background/20 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-foreground/30" /></label>
+           <label className="mt-3 block text-[10px] uppercase tracking-[.12em] text-foreground/45">Message<textarea value={notification.body} onChange={event => setNotification(current => current ? { ...current, body: event.target.value } : current)} rows={5} className="mt-2 w-full resize-y rounded-lg border border-foreground/10 bg-background/20 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-foreground/30" /></label>
+           <label className="mt-3 block text-[10px] uppercase tracking-[.12em] text-foreground/45">Programmer (facultatif)<input type="datetime-local" value={scheduleAt} onChange={event => setScheduleAt(event.target.value)} min={new Date().toISOString().slice(0, 16)} className="mt-2 rounded-lg border border-foreground/10 bg-background/20 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-foreground/30" /></label>
+           <div className="mt-4 flex flex-wrap gap-2">
+             <button type="button" disabled={notificationBusy} onClick={() => { setNotification(undefined); setSelectedRecipients([]); setScheduleAt(""); }} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Pas maintenant</button>
+             <button type="button" disabled={notificationBusy || !selectedRecipients.length || !notification.subject.trim() || !notification.body.trim()} onClick={() => void sendNotification()} className="rounded-full bg-foreground px-4 py-2 text-xs text-background disabled:opacity-35">{notificationBusy ? "Enregistrement…" : scheduleAt ? "Confirmer et programmer" : "Confirmer et envoyer"}</button>
+           </div>
+         </div>}
         {setPhase && setLayers && <div className="mt-4 flex gap-2 border-t border-foreground/50 pt-3"><button onClick={() => { setPhase("pendant"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir le Jour J</button><button onClick={() => { setPhase("tout"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir toute la timeline</button></div>}
     </CenteredBlock>}
   </>;

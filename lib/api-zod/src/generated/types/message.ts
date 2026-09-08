@@ -16,6 +16,9 @@ export interface Message {
   body: string;
   status: MessageStatus;
   providerError?: string | null;
+  timelineEventId?: string | null;
+  scheduledAt?: Date | null;
+  cancelledAt?: Date | null;
   createdBy: string;
   createdAt: Date;
 }

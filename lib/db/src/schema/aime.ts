@@ -12,7 +12,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 
 export const memberRole = pgEnum("aime_member_role", ["owner", "planner", "family", "viewer"]);
-export const deliveryStatus = pgEnum("aime_delivery_status", ["pending", "sent", "failed"]);
+export const deliveryStatus = pgEnum("aime_delivery_status", ["scheduled", "pending", "sent", "failed", "cancelled"]);
 
 export const projectsTable = pgTable("aime_projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -65,6 +65,9 @@ export const messagesTable = pgTable("aime_messages", {
   body: text("body").notNull(),
   status: deliveryStatus("status").notNull().default("pending"),
   providerError: text("provider_error"),
+  timelineEventId: text("timeline_event_id"),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
   createdBy: text("created_by").notNull(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
