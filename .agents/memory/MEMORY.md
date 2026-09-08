@@ -11,3 +11,4 @@
 - [Partition vivante mondiale](world-heartbeat.md) — Le Monde AIME observe des événements sourcés sur une Timeline commune, avec démo explicite et providers remplaçables.
 - [Grille universelle des vivants](universal-living-grid.md) — centrer le réseau sur le Profil, avec cases X/Y stables, profondeurs Z et actions autorisées.
 - [Timeline sonore relationnelle](relational-sound-timeline.md) — le Moment garde le sens; fournisseurs, lecture, droits et consentements restent des couches remplaçables.
+- [Fil vivant](living-fil.md) — projeter les Moments en cinéma direct ou replay; Profil cockpit, Monde collectif, transformations non destructives.

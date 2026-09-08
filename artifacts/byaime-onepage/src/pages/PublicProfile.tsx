@@ -8,11 +8,17 @@ import {
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useParams, Link } from "wouter";
-import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicProfile, type PublicTimelineEvent } from "@workspace/api-client-react";
+import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicProfile } from "@workspace/api-client-react";
 import { CenteredBlock } from "@/components/CenteredBlock";
 import { ProfileNervousSystem } from "@/components/ProfileNervousSystem";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/store/project-store";
+
+import { ProfileFeed, type ProfileTimelineEvent } from "@/components/ProfileFeed";
+
+type ProfileView = Omit<PublicProfile, "timeline"> & {
+  timeline: ProfileTimelineEvent[];
+};
 
 function EventIcon({ kind }: { kind?: string }) {
   switch (kind) {
@@ -76,7 +82,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
     query: { queryKey: getGetPublicProfileQueryKey(profileId), retry: false, enabled: !forcePrivatePreview && Boolean(profileId) },
   });
 
-  const privatePreview = useMemo<PublicProfile | undefined>(() => {
+  const privatePreview = useMemo<ProfileView | undefined>(() => {
     if (!project || (!forcePrivatePreview && project.id !== params.projectId)) return undefined;
     return {
       id: project.id,
@@ -102,14 +108,15 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
           phase: event.phase,
           universe: event.universe,
           ...(event.provenance ? { provenance: event.provenance } : {}),
-          visibility: "audience" as const,
+          visibility: event.visibility || "prive",
+          relations: event.relations,
         })),
     };
   }, [forcePrivatePreview, params.projectId, project]);
 
-  const profile = forcePrivatePreview ? privatePreview : publishedProfile;
+  const profile: ProfileView | undefined = forcePrivatePreview ? privatePreview : publishedProfile;
   const isPrivatePreview = forcePrivatePreview && Boolean(privatePreview);
-  const [selectedEvent, setSelectedEvent] = useState<PublicTimelineEvent | undefined>();
+  const [selectedEvent, setSelectedEvent] = useState<ProfileTimelineEvent | undefined>();
   const [selectedRepere, setSelectedRepere] = useState<(typeof REPERES)[number] | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -176,7 +183,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
            phase: document.at < Date.now() ? "avant" : "apres",
            universe: "Archives",
            provenance: "real",
-           visibility: "audience" as const,
+            visibility: "prive" as const,
+            relations: [{ kind: "document" as const, id: document.id }],
          })),
          ...project.payments.map(payment => ({
            id: `profile-payment-${payment.id}`,
@@ -189,7 +197,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
            phase: payment.at < Date.now() ? "avant" : "apres",
            universe: "Finances",
            provenance: "real",
-           visibility: "audience" as const,
+            visibility: "prive" as const,
+            relations: [{ kind: "payment" as const, id: payment.id }],
          })),
        );
      }
@@ -346,6 +355,23 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
             {displaySubtitle}
           </h2>
         )}
+
+        {isPrivatePreview && <section aria-labelledby="profile-feed-title" className="w-full max-w-7xl mx-auto mb-16 px-4 md:px-8">
+          <div className="mb-5 flex flex-col items-center justify-between gap-3 text-center md:flex-row md:text-left">
+            <div>
+              <p className="text-[9px] uppercase tracking-[.32em] text-foreground/35">Fil AIME</p>
+              <h2 id="profile-feed-title" className="mt-2 text-xl font-light text-foreground/80 md:text-2xl">Vos Moments, dans une lecture vivante</h2>
+            </div>
+            <p className="max-w-md text-xs font-light leading-relaxed text-foreground/40">
+              Une projection de votre Timeline — chaque histoire reste reliée à son Monde, ses personnes et ses droits.
+            </p>
+          </div>
+          <ProfileFeed
+            events={sortedEvents}
+            project={project}
+            onSelect={setSelectedEvent}
+          />
+        </section>}
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
           {displayCity ? (
