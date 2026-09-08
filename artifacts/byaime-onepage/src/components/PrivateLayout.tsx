@@ -90,7 +90,7 @@ function NavItem({
       aria-current={active ? "page" : undefined}
       className={cn(
         "group relative flex w-full items-center rounded-xl transition-all motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        active ? "bg-foreground/10 text-foreground" : "text-foreground/65 hover:bg-foreground/[.07] hover:text-foreground",
+        active ? "text-foreground" : "text-foreground/65 hover:bg-foreground/[.07] hover:text-foreground",
         !isDesktopRail && "px-3 py-2.5 gap-3"
       )}
     >
@@ -180,7 +180,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const mobileDrawerRef = useRef<HTMLDivElement>(null);
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
-  const logoUrl = `${basePath === '/' ? '' : basePath}/logo.svg`;
+
   const activeDestination = getPrivateDestinationId(location);
   const activeItem = PRIVATE_PRIMARY_NAVIGATION.find(item => item.id === activeDestination)!;
   const icons = { profile: User, world: Globe2, network: Map } satisfies Record<PrivateDestinationId, ComponentType<{ className?: string }>>;
@@ -315,15 +315,15 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
       {/* Desktop Logo - Fixed top left */}
       <div className="fixed left-6 top-6 z-[80] hidden md:block">
         <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <img src={logoUrl} alt="" className="h-6 w-auto rounded-md opacity-80 shadow-sm transition-opacity hover:opacity-100" />
+          <span className="font-display font-light text-xl tracking-[0.3em] text-foreground">AIME</span>
         </Link>
       </div>
 
-      {/* Desktop Rail Visual - Floating Capsule */}
+      {/* Desktop Rail Visual - Transparent Floating Rail */}
       <aside
         className={cn(
-          "fixed left-4 top-20 z-[70] hidden flex-col overflow-hidden rounded-[2rem] border border-border/40 bg-background/80 shadow-2xl backdrop-blur-3xl transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none md:flex",
-          isPinned ? "w-[240px] h-[calc(100dvh-6.5rem)]" : "w-[64px] h-[calc(100dvh-6.5rem)] hover:w-[240px] focus-within:w-[240px] group/rail hover:border-border/60"
+          "fixed left-0 top-20 z-[70] hidden flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none md:flex",
+          isPinned ? "w-[240px] h-[calc(100dvh-6.5rem)]" : "w-[64px] h-[calc(100dvh-6.5rem)] hover:w-[240px] focus-within:w-[240px] group/rail"
         )}
       >
         <div className="flex w-[240px] flex-col h-full py-4">
@@ -349,7 +349,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
             <NavItems isPinnedContext={isPinned} />
           </nav>
 
-          <div className="mt-auto space-y-1 border-t border-border/30 p-2 pt-4">
+          <div className="mt-auto space-y-1 border-t border-border/30 p-2 pt-4 mx-2">
             <BottomItems isPinnedContext={isPinned} />
           </div>
         </div>
@@ -357,20 +357,14 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content Area */}
       <div className="relative flex h-full min-w-0 flex-1 flex-col">
-        {/* Header */}
-        <header className="z-[60] grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur-xl sm:px-4">
+        {/* Header - Mobile only visual, completely empty on desktop */}
+        <header className="z-[60] grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur-xl sm:px-4 md:border-none md:bg-transparent">
           <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-md md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <img src={logoUrl} alt="" className="h-6 w-auto rounded-md shadow-sm" />
+            <span className="font-display font-light text-lg tracking-[0.3em] text-foreground">AIME</span>
           </Link>
-          <div className="hidden min-w-0 md:block">
-            <p className="truncate text-sm font-medium text-foreground">{activeItem.label}</p>
-            <p className="truncate text-[9px] uppercase tracking-[.15em] text-foreground/40">
-              {activeDestination === "world" && project?.title ? project.title : activeItem.description}
-            </p>
-          </div>
-          <span className="min-w-0 truncate text-center text-[10px] uppercase tracking-[.16em] text-foreground/45 md:hidden">
-            {activeItem.label}
-          </span>
+
+          <div className="flex-1" />
+
           <div className="flex items-center justify-end gap-1.5">
             <PortalControls embedded openMeSignal={openMeSignal} />
             <button
@@ -410,7 +404,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
           >
             <div className="mb-8 flex items-center justify-between px-2">
               <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <img src={logoUrl} alt="" className="h-6 w-auto rounded-md shadow-sm" />
+                <span className="font-display font-light text-lg tracking-[0.3em] text-foreground">AIME</span>
               </Link>
               <button data-drawer-autofocus type="button" onClick={() => closeMobileMenu(true)} aria-label="Fermer la navigation" className="-mr-2 rounded-full p-2 text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <X className="h-5 w-5" />
