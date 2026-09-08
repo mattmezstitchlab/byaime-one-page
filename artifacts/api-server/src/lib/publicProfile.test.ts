@@ -51,4 +51,25 @@ describe("public profile projection", () => {
     expect(profile).not.toHaveProperty("guests");
     expect(profile).not.toHaveProperty("documents");
   });
+
+  it("never publishes financial events even when marked for the audience", () => {
+    const profile = projectToPublicProfile({
+      id: "project",
+      title: "Camille",
+      data: {
+        publicProfile: { published: true },
+        timeline: [
+          event("memory", "audience", 1),
+          { ...event("payment", "audience", 2), kind: "paiement", detail: "Acompte 2 000 €" },
+          { ...event("invoice", "audience", 3), kind: "facture", detail: "Facture 5 000 €" },
+          { ...event("quote", "audience", 4), kind: "devis", detail: "Devis 7 000 €" },
+        ],
+      },
+    });
+
+    expect(profile?.timeline.map(item => item.id)).toEqual(["memory"]);
+    expect(JSON.stringify(profile)).not.toContain("2 000");
+    expect(JSON.stringify(profile)).not.toContain("5 000");
+    expect(JSON.stringify(profile)).not.toContain("7 000");
+  });
 });

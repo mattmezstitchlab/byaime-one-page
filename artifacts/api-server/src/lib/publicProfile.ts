@@ -16,6 +16,7 @@ const publicEventFields = [
   "provenance",
   "visibility",
 ] as const;
+const privateFinancialEventKinds = new Set(["paiement", "facture", "devis"]);
 
 function record(value: unknown): UnknownRecord | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -26,6 +27,7 @@ function record(value: unknown): UnknownRecord | null {
 function publicEvent(value: unknown): UnknownRecord | null {
   const event = record(value);
   if (!event || event.visibility !== "audience" || typeof event.id !== "string" || typeof event.time !== "number") return null;
+  if (privateFinancialEventKinds.has(String(event.kind ?? ""))) return null;
   return Object.fromEntries(
     publicEventFields
       .filter((field) => event[field] !== undefined)

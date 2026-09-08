@@ -81,6 +81,37 @@ paths:
             schema: { $ref: "#/components/schemas/DeleteConfirmation" }
       responses:
         "204": { description: Deleted }
+  /projects/{id}/brief:
+    get:
+      operationId: getWeddingBrief
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "200":
+          description: Role-filtered, sourced wedding progress narrative
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WeddingBrief" }
+        "404": { description: Unknown or inaccessible project }
+  /projects/{id}/brief/nearby:
+    post:
+      operationId: getWeddingBriefNearby
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorldLocationConsent" }
+      responses:
+        "200":
+          description: Owner-authorized nearby categories derived from the confirmed World location
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WeddingBrief" }
+        "404": { description: Unknown or inaccessible project }
   /projects/{id}/invitations:
     post:
       operationId: inviteProjectMember
@@ -210,6 +241,63 @@ components:
           required: [updatedAt]
           properties:
             updatedAt: { type: string, format: date-time }
+    WeddingBriefSource:
+      type: object
+      required: [collection, id, label]
+      properties:
+        collection: { type: string, enum: [project, timeline, task, payment] }
+        id: { type: string }
+        label: { type: string }
+        amountCents: { type: number }
+        paymentState: { type: string, enum: [paye, du] }
+        recordedAt: { type: number }
+    WeddingBriefSegment:
+      type: object
+      required: [id, kind, title, narration, source, supportingSources, evidenceStatus]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [transition, fact, calculation, alert, suggestion] }
+        title: { type: string }
+        narration: { type: string }
+        source: { $ref: "#/components/schemas/WeddingBriefSource" }
+        supportingSources:
+          type: array
+          items: { $ref: "#/components/schemas/WeddingBriefSource" }
+        at: { type: number }
+        evidenceStatus: { type: string, enum: [verified, unverified] }
+    NearbyCategorySuggestion:
+      type: object
+      required: [id, label, reason, evidenceStatus]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        reason: { type: string }
+        evidenceStatus: { type: string, enum: [unverified] }
+    WeddingBriefLocation:
+      type: object
+      required: [available]
+      properties:
+        available: { type: boolean }
+        label: { type: string }
+    WeddingBrief:
+      type: object
+      required: [projectId, role, generatedAt, segments, location, nearbyCategories]
+      properties:
+        projectId: { type: string }
+        role: { type: string, enum: [owner, planner, family, viewer] }
+        generatedAt: { type: number }
+        segments:
+          type: array
+          items: { $ref: "#/components/schemas/WeddingBriefSegment" }
+        location: { $ref: "#/components/schemas/WeddingBriefLocation" }
+        nearbyCategories:
+          type: array
+          items: { $ref: "#/components/schemas/NearbyCategorySuggestion" }
+    WorldLocationConsent:
+      type: object
+      required: [consent]
+      properties:
+        consent: { type: boolean, const: true }
     DeleteConfirmation:
       type: object
       required: [confirmation]

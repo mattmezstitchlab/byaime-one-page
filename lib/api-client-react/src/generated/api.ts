@@ -30,7 +30,9 @@ import type {
   PublicProfile,
   RsvpInput,
   UploadInput,
-  UploadTicket
+  UploadTicket,
+  WeddingBrief,
+  WorldLocationConsent
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -131,12 +133,6 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
   return withQueryKey(query, queryOptions.queryKey);
 }
-
-
-
-
-
-
 
 export const getListProjectsUrl = () => {
 
@@ -404,6 +400,143 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeleteProjectMutationOptions(options));
+    }
+
+export const getGetWeddingBriefUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/brief`
+}
+
+export const getWeddingBrief = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<WeddingBrief> => {
+
+  return customFetch<WeddingBrief>(getGetWeddingBriefUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWeddingBriefQueryKey = (id: string,) => {
+    return [
+    `/api/projects/${id}/brief`
+    ] as const;
+    }
+
+
+export const getGetWeddingBriefQueryOptions = <TData = Awaited<ReturnType<typeof getWeddingBrief>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeddingBrief>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWeddingBriefQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWeddingBrief>>> = ({ signal }) => getWeddingBrief(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWeddingBrief>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWeddingBriefQueryResult = NonNullable<Awaited<ReturnType<typeof getWeddingBrief>>>
+export type GetWeddingBriefQueryError = ErrorType<void>
+
+
+
+export function useGetWeddingBrief<TData = Awaited<ReturnType<typeof getWeddingBrief>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWeddingBrief>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWeddingBriefQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetWeddingBriefNearbyUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/brief/nearby`
+}
+
+export const getWeddingBriefNearby = async (id: string,
+    worldLocationConsent: WorldLocationConsent, options?: Parameters<typeof customFetch>[1]): Promise<WeddingBrief> => {
+
+  return customFetch<WeddingBrief>(getGetWeddingBriefNearbyUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(worldLocationConsent)
+  }
+);}
+
+
+
+
+
+export const getGetWeddingBriefNearbyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getWeddingBriefNearby>>, TError,{id: string;data: BodyType<WorldLocationConsent>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof getWeddingBriefNearby>>, TError,{id: string;data: BodyType<WorldLocationConsent>}, TContext> => {
+
+const mutationKey = ['getWeddingBriefNearby'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getWeddingBriefNearby>>, {id: string;data: BodyType<WorldLocationConsent>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  getWeddingBriefNearby(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetWeddingBriefNearbyMutationResult = NonNullable<Awaited<ReturnType<typeof getWeddingBriefNearby>>>
+    export type GetWeddingBriefNearbyMutationBody = BodyType<WorldLocationConsent>
+    export type GetWeddingBriefNearbyMutationError = ErrorType<void>
+
+    export const useGetWeddingBriefNearby = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getWeddingBriefNearby>>, TError,{id: string;data: BodyType<WorldLocationConsent>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof getWeddingBriefNearby>>,
+        TError,
+        {id: string;data: BodyType<WorldLocationConsent>},
+        TContext
+      > => {
+      return useMutation(getGetWeddingBriefNearbyMutationOptions(options));
     }
 
 export const getInviteProjectMemberUrl = (id: string,) => {

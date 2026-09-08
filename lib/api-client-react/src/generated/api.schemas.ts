@@ -44,6 +44,106 @@ export type ProjectUpdate = ProjectInput & {
   updatedAt: string;
 };
 
+export type WeddingBriefSourceCollection = typeof WeddingBriefSourceCollection[keyof typeof WeddingBriefSourceCollection];
+
+
+export const WeddingBriefSourceCollection = {
+  project: 'project',
+  timeline: 'timeline',
+  task: 'task',
+  payment: 'payment',
+} as const;
+
+export type WeddingBriefSourcePaymentState = typeof WeddingBriefSourcePaymentState[keyof typeof WeddingBriefSourcePaymentState];
+
+
+export const WeddingBriefSourcePaymentState = {
+  paye: 'paye',
+  du: 'du',
+} as const;
+
+export interface WeddingBriefSource {
+  collection: WeddingBriefSourceCollection;
+  id: string;
+  label: string;
+  amountCents?: number;
+  paymentState?: WeddingBriefSourcePaymentState;
+  recordedAt?: number;
+}
+
+export type WeddingBriefSegmentKind = typeof WeddingBriefSegmentKind[keyof typeof WeddingBriefSegmentKind];
+
+
+export const WeddingBriefSegmentKind = {
+  transition: 'transition',
+  fact: 'fact',
+  calculation: 'calculation',
+  alert: 'alert',
+  suggestion: 'suggestion',
+} as const;
+
+export type WeddingBriefSegmentEvidenceStatus = typeof WeddingBriefSegmentEvidenceStatus[keyof typeof WeddingBriefSegmentEvidenceStatus];
+
+
+export const WeddingBriefSegmentEvidenceStatus = {
+  verified: 'verified',
+  unverified: 'unverified',
+} as const;
+
+export interface WeddingBriefSegment {
+  id: string;
+  kind: WeddingBriefSegmentKind;
+  title: string;
+  narration: string;
+  source: WeddingBriefSource;
+  supportingSources: WeddingBriefSource[];
+  at?: number;
+  evidenceStatus: WeddingBriefSegmentEvidenceStatus;
+}
+
+export type NearbyCategorySuggestionEvidenceStatus = typeof NearbyCategorySuggestionEvidenceStatus[keyof typeof NearbyCategorySuggestionEvidenceStatus];
+
+
+export const NearbyCategorySuggestionEvidenceStatus = {
+  unverified: 'unverified',
+} as const;
+
+export interface NearbyCategorySuggestion {
+  id: string;
+  label: string;
+  reason: string;
+  evidenceStatus: NearbyCategorySuggestionEvidenceStatus;
+}
+
+export interface WeddingBriefLocation {
+  available: boolean;
+  label?: string;
+}
+
+export type WeddingBriefRole = typeof WeddingBriefRole[keyof typeof WeddingBriefRole];
+
+
+export const WeddingBriefRole = {
+  owner: 'owner',
+  planner: 'planner',
+  family: 'family',
+  viewer: 'viewer',
+} as const;
+
+export interface WeddingBrief {
+  projectId: string;
+  role: WeddingBriefRole;
+  generatedAt: number;
+  segments: WeddingBriefSegment[];
+  location: WeddingBriefLocation;
+  nearbyCategories: NearbyCategorySuggestion[];
+}
+
+export const WorldLocationConsentValue = {
+  consent: true,
+} as const;
+export type WorldLocationConsent = typeof WorldLocationConsentValue;
+
 export const DeleteConfirmationValue = {
   confirmation: 'SUPPRIMER',
 } as const;

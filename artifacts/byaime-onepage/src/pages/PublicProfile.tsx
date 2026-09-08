@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { useProject } from "@/store/project-store";
 
 import { ProfileFeed, type ProfileTimelineEvent } from "@/components/ProfileFeed";
+import { WeddingBrief } from "@/components/WeddingBrief";
+import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
 
 type ProfileView = Omit<PublicProfile, "timeline"> & {
   timeline: ProfileTimelineEvent[];
@@ -76,7 +78,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const params = useParams<{ projectId: string }>();
   const { user } = useUser();
   const { openUserProfile } = useClerk();
-  const { project, isHydrated, canEdit, addEntity } = useProject();
+  const { project, isHydrated, canEdit, addEntity, currentRole } = useProject();
   const profileId = forcePrivatePreview ? project?.id || "" : params.projectId || "";
   const { data: publishedProfile, isLoading, error } = useGetPublicProfile(profileId, {
     query: { queryKey: getGetPublicProfileQueryKey(profileId), retry: false, enabled: !forcePrivatePreview && Boolean(profileId) },
@@ -92,7 +94,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       ...(project.city.value?.trim() ? { city: project.city.value.trim() } : {}),
       pivot: project.pivot.value,
       timeline: project.timeline
-        .filter(event => forcePrivatePreview || event.visibility === "audience")
+        .filter(event => forcePrivatePreview ? canRoleSeeTimelineEvent(event, currentRole) : event.visibility === "audience")
         .sort((a, b) => a.time - b.time)
         .map(event => ({
           id: event.id,
@@ -112,7 +114,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
           relations: event.relations,
         })),
     };
-  }, [forcePrivatePreview, params.projectId, project]);
+  }, [currentRole, forcePrivatePreview, params.projectId, project]);
 
   const profile: ProfileView | undefined = forcePrivatePreview ? privatePreview : publishedProfile;
   const isPrivatePreview = forcePrivatePreview && Boolean(privatePreview);
@@ -172,7 +174,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
      const events = [...(profile?.timeline || [])];
      if (isPrivatePreview && project) {
        events.push(
-         ...project.documents.map(document => ({
+          ...(currentRole === "owner" ? project.documents.map(document => ({
            id: `profile-document-${document.id}`,
            time: document.at,
            kind: "document",
@@ -185,8 +187,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
            provenance: "real",
             visibility: "prive" as const,
             relations: [{ kind: "document" as const, id: document.id }],
-         })),
-         ...project.payments.map(payment => ({
+          })) : []),
+          ...(currentRole === "owner" ? project.payments.map(payment => ({
            id: `profile-payment-${payment.id}`,
            time: payment.at,
            kind: "paiement",
@@ -199,11 +201,11 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
            provenance: "real",
             visibility: "prive" as const,
             relations: [{ kind: "payment" as const, id: payment.id }],
-         })),
+          })) : []),
        );
      }
      return events.sort((a, b) => a.time - b.time);
-  }, [isPrivatePreview, profile?.timeline, project]);
+   }, [currentRole, isPrivatePreview, profile?.timeline, project]);
 
   const filteredEvents = useMemo(() => {
     if (!activeCategory) return sortedEvents;
@@ -371,6 +373,30 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
             project={project}
             onSelect={setSelectedEvent}
           />
+          {project && (
+            <div className="mt-6">
+              <WeddingBrief
+                project={project}
+                onOpenMoment={event => setSelectedEvent({
+                  id: event.id,
+                  time: event.time,
+                  ...(event.endTime === undefined ? {} : { endTime: event.endTime }),
+                  ...(event.durationMinutes === undefined ? {} : { durationMinutes: event.durationMinutes }),
+                  kind: event.kind,
+                  title: event.title,
+                  ...(event.detail ? { detail: event.detail } : {}),
+                  ...(event.location ? { location: event.location } : {}),
+                  status: event.status,
+                  confidence: event.confidence,
+                  phase: event.phase,
+                  universe: event.universe,
+                  ...(event.provenance ? { provenance: event.provenance } : {}),
+                  visibility: event.visibility || "prive",
+                  relations: event.relations,
+                })}
+              />
+            </div>
+          )}
         </section>}
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">

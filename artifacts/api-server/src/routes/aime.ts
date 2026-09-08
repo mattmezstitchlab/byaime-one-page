@@ -16,6 +16,8 @@ import { z } from "zod";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { authenticatedUserId, can, type ProjectRole } from "../lib/permissions";
 import { projectToPublicProfile } from "../lib/publicProfile";
+import { buildAuthorizedWeddingBrief } from "../lib/weddingBrief";
+import { mergeProtectedProjectData, projectDataForRole } from "../lib/projectDataPolicy";
 import {
   configuredAppOrigin,
   createRateLimit,
@@ -146,7 +148,57 @@ router.get("/projects", auth, async (req: AuthedRequest, res): Promise<void> => 
   const rows = await db.select({ project: projectsTable, role: membershipsTable.role })
     .from(membershipsTable).innerJoin(projectsTable, eq(projectsTable.id, membershipsTable.projectId))
     .where(eq(membershipsTable.userId, req.userId!));
-  res.json(rows.map(({ project, role }) => ({ ...project, role })));
+  res.json(rows.map(({ project, role }) => ({ ...project, data: projectDataForRole(project.data, role), role })));
+});
+
+router.get("/projects/:id/brief", auth, async (req: AuthedRequest, res): Promise<void> => {
+  const member = await membership(String(req.params.id), req.userId!);
+  if (!member) {
+    res.status(404).json({ error: "Monde introuvable" });
+    return;
+  }
+  const [project] = await db.select({
+    id: projectsTable.id,
+    title: projectsTable.title,
+    data: projectsTable.data,
+  }).from(projectsTable).where(eq(projectsTable.id, String(req.params.id)));
+  if (!project) {
+    res.status(404).json({ error: "Monde introuvable" });
+    return;
+  }
+  res.json(buildAuthorizedWeddingBrief({
+    projectId: project.id,
+    title: project.title,
+    data: project.data,
+    role: member.role,
+    useWorldLocation: false,
+  }));
+});
+
+router.post("/projects/:id/brief/nearby", auth, async (req: AuthedRequest, res): Promise<void> => {
+  const consent = parseBody(z.object({ consent: z.literal(true) }), req, res);
+  if (!consent) return;
+  const member = await membership(String(req.params.id), req.userId!);
+  if (!member) {
+    res.status(404).json({ error: "Monde introuvable" });
+    return;
+  }
+  const [project] = await db.select({
+    id: projectsTable.id,
+    title: projectsTable.title,
+    data: projectsTable.data,
+  }).from(projectsTable).where(eq(projectsTable.id, String(req.params.id)));
+  if (!project) {
+    res.status(404).json({ error: "Monde introuvable" });
+    return;
+  }
+  res.json(buildAuthorizedWeddingBrief({
+    projectId: project.id,
+    title: project.title,
+    data: project.data,
+    role: member.role,
+    useWorldLocation: true,
+  }));
 });
 
 router.get("/account/export", auth, createRateLimit({ windowMs: 60 * 60 * 1000, max: 5, key: (req) => `account-export:${(req as AuthedRequest).userId}` }), async (req: AuthedRequest, res): Promise<void> => {
@@ -255,14 +307,15 @@ router.put("/projects/:id", auth, async (req: AuthedRequest, res): Promise<void>
     return;
   }
   if (current.updatedAt.toISOString() !== input.updatedAt) {
-    res.status(409).json({ error: "Le projet a été modifié ailleurs", project: current });
+    res.status(409).json({ error: "Le projet a été modifié ailleurs", project: { ...current, data: projectDataForRole(current.data, member.role) } });
     return;
   }
+  const nextData = mergeProtectedProjectData(current.data, input.data, member.role);
   const [updated] = await db.update(projectsTable)
-    .set({ title: input.title, data: input.data, updatedAt: new Date() })
+    .set({ title: input.title, data: nextData, updatedAt: new Date() })
     .where(and(eq(projectsTable.id, current.id), eq(projectsTable.updatedAt, current.updatedAt))).returning();
   if (!updated) { res.status(409).json({ error: "Conflit de version" }); return; }
-  res.json({ ...updated, role: member.role });
+  res.json({ ...updated, data: projectDataForRole(updated.data, member.role), role: member.role });
 });
 
 router.delete("/projects/:id", auth, async (req: AuthedRequest, res): Promise<void> => {

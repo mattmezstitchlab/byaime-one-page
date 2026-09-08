@@ -80,6 +80,98 @@ export const DeleteProjectBody = zod.object({
 export const DeleteProjectResponse = zod.void()
 
 
+export const GetWeddingBriefParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetWeddingBriefResponse = zod.object({
+  "projectId": zod.string(),
+  "role": zod.enum(['owner', 'planner', 'family', 'viewer']),
+  "generatedAt": zod.number(),
+  "segments": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['transition', 'fact', 'calculation', 'alert', 'suggestion']),
+  "title": zod.string(),
+  "narration": zod.string(),
+  "source": zod.object({
+  "collection": zod.enum(['project', 'timeline', 'task', 'payment']),
+  "id": zod.string(),
+  "label": zod.string(),
+  "amountCents": zod.number().optional(),
+  "paymentState": zod.enum(['paye', 'du']).optional(),
+  "recordedAt": zod.number().optional()
+}),
+  "supportingSources": zod.array(zod.object({
+  "collection": zod.enum(['project', 'timeline', 'task', 'payment']),
+  "id": zod.string(),
+  "label": zod.string(),
+  "amountCents": zod.number().optional(),
+  "paymentState": zod.enum(['paye', 'du']).optional(),
+  "recordedAt": zod.number().optional()
+})),
+  "at": zod.number().optional(),
+  "evidenceStatus": zod.enum(['verified', 'unverified'])
+})),
+  "location": zod.object({
+  "available": zod.boolean(),
+  "label": zod.string().optional()
+}),
+  "nearbyCategories": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "reason": zod.string(),
+  "evidenceStatus": zod.enum(['unverified'])
+}))
+})
+
+export const GetWeddingBriefNearbyParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetWeddingBriefNearbyBody = zod.object({
+  "consent": zod.literal(true)
+})
+
+export const GetWeddingBriefNearbyResponse = zod.object({
+  "projectId": zod.string(),
+  "role": zod.enum(['owner', 'planner', 'family', 'viewer']),
+  "generatedAt": zod.number(),
+  "segments": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['transition', 'fact', 'calculation', 'alert', 'suggestion']),
+  "title": zod.string(),
+  "narration": zod.string(),
+  "source": zod.object({
+  "collection": zod.enum(['project', 'timeline', 'task', 'payment']),
+  "id": zod.string(),
+  "label": zod.string(),
+  "amountCents": zod.number().optional(),
+  "paymentState": zod.enum(['paye', 'du']).optional(),
+  "recordedAt": zod.number().optional()
+}),
+  "supportingSources": zod.array(zod.object({
+  "collection": zod.enum(['project', 'timeline', 'task', 'payment']),
+  "id": zod.string(),
+  "label": zod.string(),
+  "amountCents": zod.number().optional(),
+  "paymentState": zod.enum(['paye', 'du']).optional(),
+  "recordedAt": zod.number().optional()
+})),
+  "at": zod.number().optional(),
+  "evidenceStatus": zod.enum(['verified', 'unverified'])
+})),
+  "location": zod.object({
+  "available": zod.boolean(),
+  "label": zod.string().optional()
+}),
+  "nearbyCategories": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "reason": zod.string(),
+  "evidenceStatus": zod.enum(['unverified'])
+}))
+})
+
 export const InviteProjectMemberParams = zod.object({
   "id": zod.coerce.string().uuid()
 })
