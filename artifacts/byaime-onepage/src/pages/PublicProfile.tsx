@@ -17,7 +17,6 @@ import { useProject } from "@/store/project-store";
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
 import { ProfileFil } from "@/components/ProfileFil";
-import { UniversalTimeline } from "@/components/UniversalTimeline";
 
 type ProfileView = Omit<PublicProfile, "timeline"> & {
   timeline: ProfileTimelineEvent[];
@@ -222,15 +221,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
     });
   }, [sortedEvents, activeCategory]);
 
-  const privateTimelineEvents = useMemo(
-    () => project && isPrivatePreview
-      ? project.timeline
-        .filter(event => canRoleSeeTimelineEvent(event, currentRole))
-        .sort((a, b) => a.time - b.time)
-      : [],
-    [currentRole, isPrivatePreview, project],
-  );
-
   const { getPosition } = useMemo(() => {
     const minTime = sortedEvents.length > 0 ? sortedEvents[0].time : 0;
     const maxTime = sortedEvents.length > 0 ? sortedEvents[sortedEvents.length - 1].time : 0;
@@ -411,7 +401,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
               aria-pressed={viewMode === "timeline"}
               className={cn("px-8 py-3 rounded-full text-[10px] font-medium uppercase tracking-[0.2em] transition-all", viewMode === "timeline" ? "bg-foreground text-background shadow-md" : "text-foreground/50 hover:text-foreground hover:bg-foreground/5")}
             >
-              TOUT
+              Timeline
             </button>
             <button
               type="button"
@@ -437,14 +427,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                }
              }} />
           </div>
-         ) : isPrivatePreview ? (
-           <section aria-label="Timeline du Profil" className="animate-in fade-in duration-500 pb-24">
-             <div className="mx-auto mb-8 max-w-5xl px-6 text-center">
-               <p className="text-[9px] uppercase tracking-[.3em] text-foreground/35">Timeline du Profil</p>
-               <h2 className="mt-3 font-display text-2xl font-light md:text-3xl">Tous vos Moments, dans leur ordre vivant</h2>
-             </div>
-             {project && <UniversalTimeline events={privateTimelineEvents} />}
-           </section>
          ) : (
           <div className="animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row items-center justify-between px-6 md:px-12 gap-6 mb-12 max-w-7xl mx-auto">
