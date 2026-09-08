@@ -5,13 +5,19 @@ import { parseIntention, createInitialProject } from '../lib/parser';
 import { normalizeProject } from '../lib/project-migration';
 import { trackEvent } from '@/lib/analytics';
 import { isCurrentRevision } from '@/lib/project-sync';
+import {
+  projectCatalogFromRows,
+  roleForActiveProject,
+  shouldCreateProject,
+  type ProjectCatalogItem,
+} from '@/lib/project-catalog';
 
 type ProjectStore = {
   project: WorldProject | null;
   draft: Partial<WorldProject> | null;
   intentionText: string;
   hasProject: boolean;
-  projects: { id: string; title: string; role: string }[];
+  projects: ProjectCatalogItem[];
   isHydrated: boolean;
   syncStatus: 'local' | 'loading' | 'saving' | 'saved' | 'error' | 'conflict';
   syncError?: string;
@@ -22,7 +28,7 @@ type ProjectStore = {
   commitDraft: () => void;
   createWeddingDemo: () => void;
   clearProject: () => void;
-  selectProject: (id: string) => Promise<void>;
+  selectProject: (id: string) => Promise<boolean>;
   importBackup: (value: unknown) => void;
   
   updateProject: (updates: Partial<WorldProject>) => void;
@@ -41,7 +47,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const [intentionText, setIntentionTextState] = useState('');
   const [draft, setDraft] = useState<Partial<WorldProject> | null>(null);
-  const [projects, setProjects] = useState<{ id: string; title: string; role: string }[]>([]);
+  const [projects, setProjects] = useState<ProjectCatalogItem[]>([]);
+  const [pendingOwnedProjectId, setPendingOwnedProjectId] = useState<string>();
   const [isHydrated, setIsHydrated] = useState(false);
   const [syncStatus, setSyncStatus] = useState<ProjectStore['syncStatus']>('local');
   const [syncError, setSyncError] = useState<string>();
@@ -70,6 +77,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const row = list.find((item: any) => item.id === id);
       if (!row) throw new Error('Projet introuvable');
       const selectedProject = normalizeStoredProject({ ...(row.data as WorldProject), id: row.id, title: row.title });
+      setProjects(projectCatalogFromRows(list));
+      setPendingOwnedProjectId(undefined);
       serverSyncedProjectRef.current = selectedProject;
       setProject(selectedProject);
       versionRef.current = row.updatedAt;
@@ -77,9 +86,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(`aime-project:${userId}`, JSON.stringify(row.data));
       if (userId) localStorage.setItem(`aime-active-project:${userId}`, row.id);
       setSyncStatus('saved');
+      return true;
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : 'Chargement impossible');
       setSyncStatus('error');
+      return false;
     }
   }, [request, userId]);
 
@@ -92,6 +103,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       }
       setProject(null);
       setProjects([]);
+      setPendingOwnedProjectId(undefined);
       setIsHydrated(false);
       versionRef.current = undefined;
       hydratedRef.current = false;
@@ -118,7 +130,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('aime-project');
       }
       if (cancelled) return;
-      setProjects(available.map(row => ({ id: row.id, title: row.title, role: row.role })));
+      setProjects(projectCatalogFromRows(available));
+      setPendingOwnedProjectId(undefined);
       if (available[0]) {
         const activeProjectId = localStorage.getItem(`aime-active-project:${userId}`);
         const row = available.find(item => item.id === activeProjectId) ?? available[0];
@@ -168,7 +181,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         if (userId !== userAtSchedule || !isSignedIn) return;
       setSyncStatus('saving');
       try {
-        if (!versionRef.current || !projects.some(item => item.id === project.id)) {
+        if (shouldCreateProject(project.id, projects, versionRef.current)) {
           const created = await request('/projects', { method: 'POST', body: JSON.stringify({ title: project.title, data: project }) });
           versionRef.current = created.updatedAt;
           setProject(prev => {
@@ -178,6 +191,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             return withServerId;
           });
           setProjects(prev => [...prev, { id: created.id, title: created.title, role: 'owner' }]);
+          setPendingOwnedProjectId(undefined);
           if (userId) localStorage.setItem(`aime-active-project:${userId}`, created.id);
            trackEvent(projectCreationSourceRef.current === 'imported' ? 'project_imported' : 'project_created');
         } else {
@@ -217,6 +231,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     if (draft && intentionText) {
       projectCreationSourceRef.current = 'created';
       const newProject = createInitialProject(draft, intentionText);
+      setPendingOwnedProjectId(newProject.id);
       setProject(newProject);
       setDraft(null);
       setIntentionTextState('');
@@ -227,13 +242,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     projectCreationSourceRef.current = 'created';
     const example = "On se marie le 14 août 2027 près de Lille, 120 invités, ambiance champêtre avec un budget de 20 000€";
     const exampleDraft = parseIntention(example);
-    setProject(createInitialProject(exampleDraft, example));
+    const newProject = createInitialProject(exampleDraft, example);
+    setPendingOwnedProjectId(newProject.id);
+    setProject(newProject);
     setDraft(null);
     setIntentionTextState('');
   }, []);
 
   const clearProject = useCallback(() => {
     setProject(null);
+    setPendingOwnedProjectId(undefined);
     setDraft(null);
     setIntentionTextState('');
   }, []);
@@ -245,7 +263,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
     versionRef.current = undefined;
     projectCreationSourceRef.current = 'imported';
-    setProject(normalizeStoredProject(candidate as WorldProject));
+    const importedProject = normalizeStoredProject(candidate as WorldProject);
+    setPendingOwnedProjectId(importedProject.id);
+    setProject(importedProject);
   }, []);
 
   const updateProject = useCallback((updates: Partial<WorldProject>) => {
@@ -288,7 +308,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       };
     });
   }, []);
-  const currentRole = projects.find(item => item.id === project?.id)?.role || 'owner';
+  const currentRole = roleForActiveProject(project?.id, projects, pendingOwnedProjectId);
   const canEdit = currentRole !== 'viewer';
 
   return (

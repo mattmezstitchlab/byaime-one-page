@@ -37,6 +37,7 @@ import {
   verifyUploadAuthorization,
 } from "../lib/security";
 import { logger } from "../lib/logger";
+import { buildNetworkProjection } from "../lib/networkProjection";
 
 type AuthedRequest = Parameters<RequestHandler>[0] & { userId?: string };
 const router: IRouter = Router();
@@ -286,6 +287,28 @@ function parseBody<T>(
   }
   return result.data;
 }
+
+router.get(
+  "/network/subjects",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const rows = await db
+      .select({
+        id: projectsTable.id,
+        title: projectsTable.title,
+        data: projectsTable.data,
+        role: membershipsTable.role,
+      })
+      .from(membershipsTable)
+      .innerJoin(
+        projectsTable,
+        eq(projectsTable.id, membershipsTable.projectId),
+      )
+      .where(eq(membershipsTable.userId, req.userId!));
+    res.setHeader("Cache-Control", "private, no-store");
+    res.json(buildNetworkProjection(rows));
+  },
+);
 
 router.get(
   "/projects",

@@ -5,6 +5,122 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type UniversalReferenceKind = typeof UniversalReferenceKind[keyof typeof UniversalReferenceKind];
+
+
+export const UniversalReferenceKind = {
+  card: 'card',
+  world: 'world',
+  place: 'place',
+  moment: 'moment',
+  resource: 'resource',
+} as const;
+
+export interface UniversalReference {
+  kind: UniversalReferenceKind;
+  id: string;
+}
+
+export interface CapabilityDecision {
+  allowed: boolean;
+  reason: string;
+  requiresAuthentication?: boolean;
+  requiresConfirmation?: boolean;
+}
+
+export type NetworkCapability = typeof NetworkCapability[keyof typeof NetworkCapability];
+
+
+export const NetworkCapability = {
+  cardview: 'card.view',
+  cardcontact: 'card.contact',
+  worldview: 'world.view',
+  worldedit: 'world.edit',
+  momentedit: 'moment.edit',
+} as const;
+
+export type LegacyTraceSource = typeof LegacyTraceSource[keyof typeof LegacyTraceSource];
+
+
+export const LegacyTraceSource = {
+  world_project_json: 'world_project_json',
+  supabase: 'supabase',
+} as const;
+
+/**
+ * Auditable source identifier; never the canonical subject key
+ */
+export interface LegacyTrace {
+  source: LegacyTraceSource;
+  entityKind: string;
+  legacyId: string;
+}
+
+export type NetworkSubjectLocationLevel = typeof NetworkSubjectLocationLevel[keyof typeof NetworkSubjectLocationLevel];
+
+
+export const NetworkSubjectLocationLevel = {
+  public: 'public',
+  network: 'network',
+  world: 'world',
+  operations: 'operations',
+  private: 'private',
+  exact_location: 'exact_location',
+} as const;
+
+export type NetworkSubjectCapabilities = {[key: string]: CapabilityDecision};
+
+export interface NetworkSubject {
+  ref: UniversalReference;
+  worldRef: UniversalReference;
+  label: string;
+  summary?: string;
+  imageUrl?: string;
+  locationLevel: NetworkSubjectLocationLevel;
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude?: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude?: number;
+  city?: string;
+  primaryCapability?: NetworkCapability;
+  legacy?: LegacyTrace;
+  capabilities: NetworkSubjectCapabilities;
+}
+
+export type NetworkRelationVisibility = typeof NetworkRelationVisibility[keyof typeof NetworkRelationVisibility];
+
+
+export const NetworkRelationVisibility = {
+  public: 'public',
+  network: 'network',
+  world: 'world',
+  operations: 'operations',
+  financial: 'financial',
+  private: 'private',
+  exact_location: 'exact_location',
+  moderation: 'moderation',
+} as const;
+
+export interface NetworkRelation {
+  id: string;
+  from: UniversalReference;
+  to: UniversalReference;
+  kind: string;
+  visibility: NetworkRelationVisibility;
+}
+
+export interface NetworkProjection {
+  generatedAt: string;
+  subjects: NetworkSubject[];
+  relations: NetworkRelation[];
+}
+
 export interface HealthStatus {
   status: string;
 }

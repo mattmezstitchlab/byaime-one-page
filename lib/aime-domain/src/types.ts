@@ -204,3 +204,25 @@ export type MapSubject = {
   city?: string;
   primaryCapability?: Capability;
 };
+
+/**
+ * Trace left by a read adapter. The legacy identifier is searchable and
+ * auditable, but must never be used as the canonical entity reference.
+ */
+export type LegacyTrace = {
+  source: "world_project_json" | "supabase";
+  entityKind: string;
+  legacyId: EntityId;
+};
+
+export type AuthorizedMapSubject = MapSubject & {
+  worldRef: UniversalReference<"world">;
+  legacy?: LegacyTrace;
+  capabilities: Partial<Record<Capability, CapabilityDecision>>;
+};
+
+export type NetworkProjection = {
+  generatedAt: string;
+  subjects: AuthorizedMapSubject[];
+  relations: UniversalRelation[];
+};

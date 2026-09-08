@@ -26,6 +26,7 @@ import type {
   Message,
   MessageInput,
   MessageScheduleInput,
+  NetworkProjection,
   ProfileFil,
   Project,
   ProjectInput,
@@ -131,6 +132,83 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListNetworkSubjectsUrl = () => {
+
+
+
+
+  return `/api/network/subjects`
+}
+
+/**
+ * @summary Read the authorized multi-World network projection
+ */
+export const listNetworkSubjects = async ( options?: Parameters<typeof customFetch>[1]): Promise<NetworkProjection> => {
+
+  return customFetch<NetworkProjection>(getListNetworkSubjectsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListNetworkSubjectsQueryKey = () => {
+    return [
+    `/api/network/subjects`
+    ] as const;
+    }
+
+
+export const getListNetworkSubjectsQueryOptions = <TData = Awaited<ReturnType<typeof listNetworkSubjects>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNetworkSubjects>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListNetworkSubjectsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listNetworkSubjects>>> = ({ signal }) => listNetworkSubjects({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listNetworkSubjects>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListNetworkSubjectsQueryResult = NonNullable<Awaited<ReturnType<typeof listNetworkSubjects>>>
+export type ListNetworkSubjectsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read the authorized multi-World network projection
+ */
+
+export function useListNetworkSubjects<TData = Awaited<ReturnType<typeof listNetworkSubjects>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNetworkSubjects>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListNetworkSubjectsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

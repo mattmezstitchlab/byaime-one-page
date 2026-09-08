@@ -6,10 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './capabilityDecision';
 export * from './deleteConfirmation';
 export * from './healthStatus';
 export * from './invitationInput';
 export * from './invitationInputRole';
+export * from './legacyTrace';
+export * from './legacyTraceSource';
 export * from './message';
 export * from './messageInput';
 export * from './messageInputKind';
@@ -17,6 +20,13 @@ export * from './messageScheduleInput';
 export * from './messageStatus';
 export * from './nearbyCategorySuggestion';
 export * from './nearbyCategorySuggestionEvidenceStatus';
+export * from './networkCapability';
+export * from './networkProjection';
+export * from './networkRelation';
+export * from './networkRelationVisibility';
+export * from './networkSubject';
+export * from './networkSubjectCapabilities';
+export * from './networkSubjectLocationLevel';
 export * from './profileFil';
 export * from './profileFilAction';
 export * from './profileFilActionKind';
@@ -41,6 +51,8 @@ export * from './publicTimelineEvent';
 export * from './rsvpInput';
 export * from './rsvpInputAttendance';
 export * from './rsvpInputStatus';
+export * from './universalReference';
+export * from './universalReferenceKind';
 export * from './uploadInput';
 export * from './uploadTicket';
 export * from './weddingBrief';

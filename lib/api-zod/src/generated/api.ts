@@ -17,6 +17,64 @@ export const HealthCheckResponse = zod.object({
 })
 
 
+/**
+ * @summary Read the authorized multi-World network projection
+ */
+export const listNetworkSubjectsResponseSubjectsItemLatitudeMin = -90;
+export const listNetworkSubjectsResponseSubjectsItemLatitudeMax = 90;
+
+export const listNetworkSubjectsResponseSubjectsItemLongitudeMin = -180;
+export const listNetworkSubjectsResponseSubjectsItemLongitudeMax = 180;
+
+
+
+export const ListNetworkSubjectsResponse = zod.object({
+  "generatedAt": zod.coerce.date(),
+  "subjects": zod.array(zod.object({
+  "ref": zod.object({
+  "kind": zod.enum(['card', 'world', 'place', 'moment', 'resource']),
+  "id": zod.string()
+}),
+  "worldRef": zod.object({
+  "kind": zod.enum(['card', 'world', 'place', 'moment', 'resource']),
+  "id": zod.string()
+}),
+  "label": zod.string(),
+  "summary": zod.string().optional(),
+  "imageUrl": zod.string().url().optional(),
+  "locationLevel": zod.enum(['public', 'network', 'world', 'operations', 'private', 'exact_location']),
+  "latitude": zod.number().min(listNetworkSubjectsResponseSubjectsItemLatitudeMin).max(listNetworkSubjectsResponseSubjectsItemLatitudeMax).optional(),
+  "longitude": zod.number().min(listNetworkSubjectsResponseSubjectsItemLongitudeMin).max(listNetworkSubjectsResponseSubjectsItemLongitudeMax).optional(),
+  "city": zod.string().optional(),
+  "primaryCapability": zod.enum(['card.view', 'card.contact', 'world.view', 'world.edit', 'moment.edit']).optional(),
+  "legacy": zod.object({
+  "source": zod.enum(['world_project_json', 'supabase']),
+  "entityKind": zod.string(),
+  "legacyId": zod.string()
+}).optional().describe('Auditable source identifier; never the canonical subject key'),
+  "capabilities": zod.record(zod.string(), zod.object({
+  "allowed": zod.boolean(),
+  "reason": zod.string(),
+  "requiresAuthentication": zod.boolean().optional(),
+  "requiresConfirmation": zod.boolean().optional()
+}))
+})),
+  "relations": zod.array(zod.object({
+  "id": zod.string(),
+  "from": zod.object({
+  "kind": zod.enum(['card', 'world', 'place', 'moment', 'resource']),
+  "id": zod.string()
+}),
+  "to": zod.object({
+  "kind": zod.enum(['card', 'world', 'place', 'moment', 'resource']),
+  "id": zod.string()
+}),
+  "kind": zod.string(),
+  "visibility": zod.enum(['public', 'network', 'world', 'operations', 'financial', 'private', 'exact_location', 'moderation'])
+}))
+})
+
+
 export const ListProjectsResponseItem = zod.object({
   "id": zod.string().uuid(),
   "title": zod.string(),

@@ -24,6 +24,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /network/subjects:
+    get:
+      operationId: listNetworkSubjects
+      tags: [network]
+      summary: Read the authorized multi-World network projection
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Server-redacted subjects and relations for the Map and List
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NetworkProjection" }
+        "401": { description: Authentication required }
   /projects:
     get:
       operationId: listProjects
@@ -264,6 +278,11 @@ paths:
         "404":
           description: Unknown or unpublished profile
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Clerk session token
   parameters:
     ProjectId:
       name: id
@@ -281,6 +300,69 @@ components:
       required: true
       schema: { type: string, format: uuid }
   schemas:
+    UniversalReference:
+      type: object
+      required: [kind, id]
+      properties:
+        kind: { type: string, enum: [card, world, place, moment, resource] }
+        id: { type: string }
+    CapabilityDecision:
+      type: object
+      required: [allowed, reason]
+      properties:
+        allowed: { type: boolean }
+        reason: { type: string }
+        requiresAuthentication: { type: boolean }
+        requiresConfirmation: { type: boolean }
+    NetworkCapability:
+      type: string
+      enum: [card.view, card.contact, world.view, world.edit, moment.edit]
+    LegacyTrace:
+      type: object
+      description: Auditable source identifier; never the canonical subject key
+      required: [source, entityKind, legacyId]
+      properties:
+        source: { type: string, enum: [world_project_json, supabase] }
+        entityKind: { type: string }
+        legacyId: { type: string }
+    NetworkSubject:
+      type: object
+      required: [ref, worldRef, label, locationLevel, capabilities]
+      properties:
+        ref: { $ref: "#/components/schemas/UniversalReference" }
+        worldRef: { $ref: "#/components/schemas/UniversalReference" }
+        label: { type: string }
+        summary: { type: string }
+        imageUrl: { type: string, format: uri }
+        locationLevel: { type: string, enum: [public, network, world, operations, private, exact_location] }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        city: { type: string }
+        primaryCapability: { $ref: "#/components/schemas/NetworkCapability" }
+        legacy: { $ref: "#/components/schemas/LegacyTrace" }
+        capabilities:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/CapabilityDecision" }
+    NetworkRelation:
+      type: object
+      required: [id, from, to, kind, visibility]
+      properties:
+        id: { type: string }
+        from: { $ref: "#/components/schemas/UniversalReference" }
+        to: { $ref: "#/components/schemas/UniversalReference" }
+        kind: { type: string }
+        visibility: { type: string, enum: [public, network, world, operations, financial, private, exact_location, moderation] }
+    NetworkProjection:
+      type: object
+      required: [generatedAt, subjects, relations]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        subjects:
+          type: array
+          items: { $ref: "#/components/schemas/NetworkSubject" }
+        relations:
+          type: array
+          items: { $ref: "#/components/schemas/NetworkRelation" }
     HealthStatus:
       type: object
       properties:
