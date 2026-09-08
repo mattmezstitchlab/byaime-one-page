@@ -14,9 +14,10 @@ import { ProfileNervousSystem } from "@/components/ProfileNervousSystem";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/store/project-store";
 
-import { ProfileFeed, type ProfileTimelineEvent } from "@/components/ProfileFeed";
-import { WeddingBrief } from "@/components/WeddingBrief";
+import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
+import { ProfileFil } from "@/components/ProfileFil";
+import { UniversalTimeline } from "@/components/UniversalTimeline";
 
 type ProfileView = Omit<PublicProfile, "timeline"> & {
   timeline: ProfileTimelineEvent[];
@@ -124,6 +125,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const [zoom, setZoom] = useState(1);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [viewMode, setViewMode] = useState<"timeline" | "fil">("timeline");
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -219,6 +221,15 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         return true;
     });
   }, [sortedEvents, activeCategory]);
+
+  const privateTimelineEvents = useMemo(
+    () => project && isPrivatePreview
+      ? project.timeline
+        .filter(event => canRoleSeeTimelineEvent(event, currentRole))
+        .sort((a, b) => a.time - b.time)
+      : [],
+    [currentRole, isPrivatePreview, project],
+  );
 
   const { getPosition } = useMemo(() => {
     const minTime = sortedEvents.length > 0 ? sortedEvents[0].time : 0;
@@ -333,8 +344,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
            <div className="flex-1 w-full relative min-h-0">
              <ProfileNervousSystem />
            </div>
-        </div>
-      ) : (
+         </div>
+       ) : (
         <>
           {/* Hero Section */}
           <div className="relative z-10 pt-24 pb-12 flex flex-col items-center px-6 text-center">
@@ -357,47 +368,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
             {displaySubtitle}
           </h2>
         )}
-
-        {isPrivatePreview && <section aria-labelledby="profile-feed-title" className="w-full max-w-7xl mx-auto mb-16 px-4 md:px-8">
-          <div className="mb-5 flex flex-col items-center justify-between gap-3 text-center md:flex-row md:text-left">
-            <div>
-              <p className="text-[9px] uppercase tracking-[.32em] text-foreground/35">Fil AIME</p>
-              <h2 id="profile-feed-title" className="mt-2 text-xl font-light text-foreground/80 md:text-2xl">Vos Moments, dans une lecture vivante</h2>
-            </div>
-            <p className="max-w-md text-xs font-light leading-relaxed text-foreground/40">
-              Une projection de votre Timeline — chaque histoire reste reliée à son Monde, ses personnes et ses droits.
-            </p>
-          </div>
-          <ProfileFeed
-            events={sortedEvents}
-            project={project}
-            onSelect={setSelectedEvent}
-          />
-          {project && (
-            <div className="mt-6">
-              <WeddingBrief
-                project={project}
-                onOpenMoment={event => setSelectedEvent({
-                  id: event.id,
-                  time: event.time,
-                  ...(event.endTime === undefined ? {} : { endTime: event.endTime }),
-                  ...(event.durationMinutes === undefined ? {} : { durationMinutes: event.durationMinutes }),
-                  kind: event.kind,
-                  title: event.title,
-                  ...(event.detail ? { detail: event.detail } : {}),
-                  ...(event.location ? { location: event.location } : {}),
-                  status: event.status,
-                  confidence: event.confidence,
-                  phase: event.phase,
-                  universe: event.universe,
-                  ...(event.provenance ? { provenance: event.provenance } : {}),
-                  visibility: event.visibility || "prive",
-                  relations: event.relations,
-                })}
-              />
-            </div>
-          )}
-        </section>}
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
           {displayCity ? (
@@ -431,9 +401,53 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         )}
       </div>
 
-      {/* Timeline Section */}
-      <div className="relative z-10 w-full mt-8 border-t border-foreground/5 pt-8">
-        <div className="flex flex-col md:flex-row items-center justify-between px-6 md:px-12 gap-6 mb-12 max-w-7xl mx-auto">
+      {/* View Toggle */}
+      {isPrivatePreview && (
+        <div className="relative z-10 flex justify-center mb-2 mt-16 px-6">
+          <div className="flex p-1.5 bg-background/80 rounded-full border border-foreground/10 shadow-2xl backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={() => setViewMode("timeline")}
+              aria-pressed={viewMode === "timeline"}
+              className={cn("px-8 py-3 rounded-full text-[10px] font-medium uppercase tracking-[0.2em] transition-all", viewMode === "timeline" ? "bg-foreground text-background shadow-md" : "text-foreground/50 hover:text-foreground hover:bg-foreground/5")}
+            >
+              TOUT
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("fil")}
+              aria-pressed={viewMode === "fil"}
+              className={cn("px-8 py-3 rounded-full text-[10px] font-medium uppercase tracking-[0.2em] transition-all", viewMode === "fil" ? "bg-foreground text-background shadow-md" : "text-foreground/50 hover:text-foreground hover:bg-foreground/5")}
+            >
+              Le Fil
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="relative z-10 w-full mt-8 border-t border-foreground/5 pt-8 min-h-[500px]">
+        {viewMode === "fil" ? (
+          <div className="animate-in fade-in duration-500 pb-20">
+             <ProfileFil projectId={profileId} onOpenMoment={(id) => {
+               const ev = sortedEvents.find(e => e.id === id);
+               if (ev) {
+                 setSelectedEvent(ev);
+                 setViewMode("timeline");
+               }
+             }} />
+          </div>
+         ) : isPrivatePreview ? (
+           <section aria-label="Timeline du Profil" className="animate-in fade-in duration-500 pb-24">
+             <div className="mx-auto mb-8 max-w-5xl px-6 text-center">
+               <p className="text-[9px] uppercase tracking-[.3em] text-foreground/35">Timeline du Profil</p>
+               <h2 className="mt-3 font-display text-2xl font-light md:text-3xl">Tous vos Moments, dans leur ordre vivant</h2>
+             </div>
+             {project && <UniversalTimeline events={privateTimelineEvents} />}
+           </section>
+         ) : (
+          <div className="animate-in fade-in duration-500">
+            <div className="flex flex-col md:flex-row items-center justify-between px-6 md:px-12 gap-6 mb-12 max-w-7xl mx-auto">
           <div className="flex items-center gap-2 bg-foreground/[0.02] rounded-full border border-foreground/5 p-1 shrink-0">
              <button onClick={() => setZoom(z => Math.max(1, z - 0.5))} className="p-2 rounded-full hover:bg-foreground/10 text-foreground/40 hover:text-foreground transition-colors" aria-label="Dézoomer">
                <ZoomOut className="w-4 h-4" />
@@ -531,6 +545,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
             })}
           </div>
         </div>
+          </div>
+        )}
       </div>
       </>)}
 

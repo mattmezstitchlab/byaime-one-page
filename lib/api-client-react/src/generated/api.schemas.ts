@@ -139,6 +139,127 @@ export interface WeddingBrief {
   nearbyCategories: NearbyCategorySuggestion[];
 }
 
+export type ProfileFilSourceCollection = typeof ProfileFilSourceCollection[keyof typeof ProfileFilSourceCollection];
+
+
+export const ProfileFilSourceCollection = {
+  project: 'project',
+  timeline: 'timeline',
+  task: 'task',
+  payment: 'payment',
+  guide: 'guide',
+  public_aggregate: 'public_aggregate',
+} as const;
+
+export interface ProfileFilSource {
+  collection: ProfileFilSourceCollection;
+  id: string;
+  label: string;
+}
+
+export type ProfileFilActionKind = typeof ProfileFilActionKind[keyof typeof ProfileFilActionKind];
+
+
+export const ProfileFilActionKind = {
+  open_timeline: 'open_timeline',
+  open_world: 'open_world',
+  none: 'none',
+} as const;
+
+export interface ProfileFilAction {
+  kind: ProfileFilActionKind;
+  label: string;
+  targetId?: string;
+}
+
+export type ProfileFilCardCategory = typeof ProfileFilCardCategory[keyof typeof ProfileFilCardCategory];
+
+
+export const ProfileFilCardCategory = {
+  now: 'now',
+  world: 'world',
+  learn: 'learn',
+  inspiration: 'inspiration',
+} as const;
+
+export type ProfileFilCardType = typeof ProfileFilCardType[keyof typeof ProfileFilCardType];
+
+
+export const ProfileFilCardType = {
+  task: 'task',
+  fact: 'fact',
+  alert: 'alert',
+  suggestion: 'suggestion',
+  tutorial: 'tutorial',
+  inspiration: 'inspiration',
+} as const;
+
+export type ProfileFilCardPriority = typeof ProfileFilCardPriority[keyof typeof ProfileFilCardPriority];
+
+
+export const ProfileFilCardPriority = {
+  urgent: 'urgent',
+  high: 'high',
+  normal: 'normal',
+  low: 'low',
+} as const;
+
+export type ProfileFilCardVisibility = typeof ProfileFilCardVisibility[keyof typeof ProfileFilCardVisibility];
+
+
+export const ProfileFilCardVisibility = {
+  prive: 'prive',
+  equipe: 'equipe',
+  audience: 'audience',
+} as const;
+
+export type ProfileFilCardStatus = typeof ProfileFilCardStatus[keyof typeof ProfileFilCardStatus];
+
+
+export const ProfileFilCardStatus = {
+  active: 'active',
+} as const;
+
+export type ProfileFilCardEvidenceStatus = typeof ProfileFilCardEvidenceStatus[keyof typeof ProfileFilCardEvidenceStatus];
+
+
+export const ProfileFilCardEvidenceStatus = {
+  verified: 'verified',
+  unverified: 'unverified',
+} as const;
+
+export interface ProfileFilCard {
+  id: string;
+  category: ProfileFilCardCategory;
+  type: ProfileFilCardType;
+  title: string;
+  summary: string;
+  priority: ProfileFilCardPriority;
+  reason: string;
+  source: ProfileFilSource;
+  action: ProfileFilAction;
+  visibility: ProfileFilCardVisibility;
+  status: ProfileFilCardStatus;
+  evidenceStatus: ProfileFilCardEvidenceStatus;
+}
+
+export type ProfileFilRole = typeof ProfileFilRole[keyof typeof ProfileFilRole];
+
+
+export const ProfileFilRole = {
+  owner: 'owner',
+  planner: 'planner',
+  family: 'family',
+  viewer: 'viewer',
+} as const;
+
+export interface ProfileFil {
+  projectId: string;
+  role: ProfileFilRole;
+  generatedAt: number;
+  cards: ProfileFilCard[];
+}
+
 export const WorldLocationConsentValue = {
   consent: true,
 } as const;

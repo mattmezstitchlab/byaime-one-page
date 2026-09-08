@@ -94,6 +94,19 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/WeddingBrief" }
         "404": { description: Unknown or inaccessible project }
+  /projects/{id}/fil:
+    get:
+      operationId: getProfileFil
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "200":
+          description: Role-filtered, sourced cards for the private Profile Fil
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfileFil" }
+        "404": { description: Unknown or inaccessible project }
   /projects/{id}/brief/nearby:
     post:
       operationId: getWeddingBriefNearby
@@ -293,6 +306,46 @@ components:
         nearbyCategories:
           type: array
           items: { $ref: "#/components/schemas/NearbyCategorySuggestion" }
+    ProfileFilSource:
+      type: object
+      required: [collection, id, label]
+      properties:
+        collection: { type: string, enum: [project, timeline, task, payment, guide, public_aggregate] }
+        id: { type: string }
+        label: { type: string }
+    ProfileFilAction:
+      type: object
+      required: [kind, label]
+      properties:
+        kind: { type: string, enum: [open_timeline, open_world, none] }
+        label: { type: string }
+        targetId: { type: string }
+    ProfileFilCard:
+      type: object
+      required: [id, category, type, title, summary, priority, reason, source, action, visibility, status, evidenceStatus]
+      properties:
+        id: { type: string }
+        category: { type: string, enum: [now, world, learn, inspiration] }
+        type: { type: string, enum: [task, fact, alert, suggestion, tutorial, inspiration] }
+        title: { type: string }
+        summary: { type: string }
+        priority: { type: string, enum: [urgent, high, normal, low] }
+        reason: { type: string }
+        source: { $ref: "#/components/schemas/ProfileFilSource" }
+        action: { $ref: "#/components/schemas/ProfileFilAction" }
+        visibility: { type: string, enum: [prive, equipe, audience] }
+        status: { type: string, enum: [active] }
+        evidenceStatus: { type: string, enum: [verified, unverified] }
+    ProfileFil:
+      type: object
+      required: [projectId, role, generatedAt, cards]
+      properties:
+        projectId: { type: string }
+        role: { type: string, enum: [owner, planner, family, viewer] }
+        generatedAt: { type: number }
+        cards:
+          type: array
+          items: { $ref: "#/components/schemas/ProfileFilCard" }
     WorldLocationConsent:
       type: object
       required: [consent]

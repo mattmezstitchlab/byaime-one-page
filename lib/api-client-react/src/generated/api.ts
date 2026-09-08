@@ -24,6 +24,7 @@ import type {
   HealthStatus,
   InvitationInput,
   Message,
+  ProfileFil,
   Project,
   ProjectInput,
   ProjectUpdate,
@@ -133,6 +134,12 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
 
 export const getListProjectsUrl = () => {
 
@@ -461,6 +468,77 @@ export function useGetWeddingBrief<TData = Awaited<ReturnType<typeof getWeddingB
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetWeddingBriefQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetProfileFilUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/fil`
+}
+
+export const getProfileFil = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<ProfileFil> => {
+
+  return customFetch<ProfileFil>(getGetProfileFilUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileFilQueryKey = (id: string,) => {
+    return [
+    `/api/projects/${id}/fil`
+    ] as const;
+    }
+
+
+export const getGetProfileFilQueryOptions = <TData = Awaited<ReturnType<typeof getProfileFil>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfileFil>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileFilQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileFil>>> = ({ signal }) => getProfileFil(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileFil>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProfileFilQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileFil>>>
+export type GetProfileFilQueryError = ErrorType<void>
+
+
+
+export function useGetProfileFil<TData = Awaited<ReturnType<typeof getProfileFil>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProfileFil>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProfileFilQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1015,3 +1093,10 @@ export function useGetPublicProfile<TData = Awaited<ReturnType<typeof getPublicP
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
+

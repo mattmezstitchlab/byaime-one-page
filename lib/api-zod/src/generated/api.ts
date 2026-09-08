@@ -124,6 +124,40 @@ export const GetWeddingBriefResponse = zod.object({
 }))
 })
 
+
+export const GetProfileFilParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetProfileFilResponse = zod.object({
+  "projectId": zod.string(),
+  "role": zod.enum(['owner', 'planner', 'family', 'viewer']),
+  "generatedAt": zod.number(),
+  "cards": zod.array(zod.object({
+  "id": zod.string(),
+  "category": zod.enum(['now', 'world', 'learn', 'inspiration']),
+  "type": zod.enum(['task', 'fact', 'alert', 'suggestion', 'tutorial', 'inspiration']),
+  "title": zod.string(),
+  "summary": zod.string(),
+  "priority": zod.enum(['urgent', 'high', 'normal', 'low']),
+  "reason": zod.string(),
+  "source": zod.object({
+  "collection": zod.enum(['project', 'timeline', 'task', 'payment', 'guide', 'public_aggregate']),
+  "id": zod.string(),
+  "label": zod.string()
+}),
+  "action": zod.object({
+  "kind": zod.enum(['open_timeline', 'open_world', 'none']),
+  "label": zod.string(),
+  "targetId": zod.string().optional()
+}),
+  "visibility": zod.enum(['prive', 'equipe', 'audience']),
+  "status": zod.enum(['active']),
+  "evidenceStatus": zod.enum(['verified', 'unverified'])
+}))
+})
+
+
 export const GetWeddingBriefNearbyParams = zod.object({
   "id": zod.coerce.string().uuid()
 })
@@ -171,6 +205,7 @@ export const GetWeddingBriefNearbyResponse = zod.object({
   "evidenceStatus": zod.enum(['unverified'])
 }))
 })
+
 
 export const InviteProjectMemberParams = zod.object({
   "id": zod.coerce.string().uuid()
@@ -294,3 +329,5 @@ export const GetPublicProfileResponse = zod.object({
   "visibility": zod.literal("audience")
 }))
 })
+
+

@@ -2,6 +2,7 @@ import { Router, type IRouter, type RequestHandler } from "express";
 import { Readable } from "node:stream";
 import { clerkClient, getAuth } from "@clerk/express";
 import { ReplitConnectors } from "@replit/connectors-sdk";
+import { GetProfileFilResponse } from "@workspace/api-zod";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   db,
@@ -20,6 +21,7 @@ import {
 import { authenticatedUserId, can, type ProjectRole } from "../lib/permissions";
 import { projectToPublicProfile } from "../lib/publicProfile";
 import { buildAuthorizedWeddingBrief } from "../lib/weddingBrief";
+import { buildAuthorizedProfileFil } from "../lib/profileFil";
 import {
   mergeProtectedProjectData,
   projectDataForRole,
@@ -263,6 +265,36 @@ router.get(
         useWorldLocation: false,
       }),
     );
+  },
+);
+
+router.get(
+  "/projects/:id/fil",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const member = await membership(String(req.params.id), req.userId!);
+    if (!member) {
+      res.status(404).json({ error: "Monde introuvable" });
+      return;
+    }
+    const [project] = await db
+      .select({
+        id: projectsTable.id,
+        title: projectsTable.title,
+        data: projectsTable.data,
+      })
+      .from(projectsTable)
+      .where(eq(projectsTable.id, String(req.params.id)));
+    if (!project) {
+      res.status(404).json({ error: "Monde introuvable" });
+      return;
+    }
+    res.json(GetProfileFilResponse.parse(buildAuthorizedProfileFil({
+      projectId: project.id,
+      title: project.title,
+      data: project.data,
+      role: member.role,
+    })));
   },
 );
 
