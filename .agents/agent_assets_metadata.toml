@@ -42,3 +42,17 @@ mtime_ms = 1788828442218
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:8f4454b7-0c88-4db5-80bf-a605d8648db6/5f8ebbf1-790e-41ae-8802-11cef5eb8f6f/cbba8204-6adb-41c8-853f-0e529ae40b99"
 storage_version_token = "1788828490366429"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "t9s-jbVy50TdcAl5cZRT2"
+uri = "file://research/audit-musique-actuelle-aime.md"
+type = "text"
+title = "Audit de la musique actuelle d’AIME"
+description = "Audit factuel de l’application active et de l’ancienne référence, avec matrice des capacités, risques et ordre de migration vers la recherche, la lecture et la Timeline sonore universelle."
+logical_id = "f3e00863-dd72-44e6-84de-1a43adff7715"
+content_hash = "sha256:0762f52005c69fecdb5a9e7266e8faf554a029bf67d2491c41d3a2d6093ec2d5"
+size = 29785
+mtime_ms = 1788828777094
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:8f4454b7-0c88-4db5-80bf-a605d8648db6/f3e00863-dd72-44e6-84de-1a43adff7715/69779173-f87f-42c2-8949-c383fc1f22e0"
+storage_version_token = "1788828805448658"
+content_type = "text/markdown"
