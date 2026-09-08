@@ -24,6 +24,14 @@ describe("wedding navigation", () => {
     expect(WEDDING_SECONDARY_NAVIGATION.every(item => !primaryLabels.has(item.label))).toBe(true);
   });
 
+  it("keeps People operational inside the World instead of treating the Carte as a guest list", () => {
+    expect(WEDDING_PRIMARY_NAVIGATION.find(item => item.id === "people")?.destination).toEqual({
+      kind: "panel",
+      panel: "guests",
+    });
+    expect(WEDDING_SECONDARY_NAVIGATION.some(item => item.id === "guest-list")).toBe(false);
+  });
+
   it("keeps the music destination active while its linked-track tool is open", () => {
     const music = WEDDING_PRIMARY_NAVIGATION.find(item => item.id === "music");
     expect(music).toBeDefined();

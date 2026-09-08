@@ -44,6 +44,19 @@ export type Guest = {
   notes?: string;
 };
 
+export type ParticipantLink = {
+  guestId: string;
+  token: string;
+  revoked: boolean;
+  response?: {
+    status?: "confirmed" | "declined";
+    attendance?: Guest["attendance"];
+    dietary?: string;
+    plusOne?: boolean;
+  } | null;
+  respondedAt?: string | null;
+};
+
 export type Table = {
   id: string;
   name: string;

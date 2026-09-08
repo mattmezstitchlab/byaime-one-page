@@ -22,6 +22,10 @@ export const PRIVATE_PRIMARY_NAVIGATION = [
 export type PrivateDestinationId =
   (typeof PRIVATE_PRIMARY_NAVIGATION)[number]["id"];
 
+export function getDesktopRailReservedWidth(isPinned: boolean): 64 | 260 {
+  return isPinned ? 260 : 64;
+}
+
 export function getPrivateDestinationId(pathname: string): PrivateDestinationId {
   if (pathname.startsWith("/user-portal")) return "world";
   if (pathname.startsWith("/network")) return "network";

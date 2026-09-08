@@ -12,21 +12,171 @@ import {
   Sun,
   User,
   X,
+  Plus,
+  Pin,
+  PinOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CommandBar } from '@/components/CommandBar';
+import { GlobalCreateCenter } from '@/components/GlobalCreateCenter';
 import { PortalControls } from '@/components/PortalControls';
 import { useProject } from '@/store/project-store';
 import {
   getPrivateDestinationId,
+  getDesktopRailReservedWidth,
   PRIVATE_PRIMARY_NAVIGATION,
   type PrivateDestinationId,
 } from '@/lib/private-navigation';
+
+export function ActionCenter({ destination, onOpenMe }: { destination: PrivateDestinationId; onOpenMe: () => void }) {
+  return (
+    <nav
+      aria-label="Centre d’action AI plus ME"
+      className={cn(
+        "fixed left-1/2 z-[65] flex h-12 -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/40 bg-background/80 p-1 shadow-xl backdrop-blur-xl",
+        destination === "world" ? "bottom-[8.5rem] md:bottom-8 md:left-auto md:right-8 md:translate-x-0" : "bottom-6 md:bottom-8",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event("aime:open-ai"))}
+        className="flex h-full items-center justify-center rounded-full px-5 text-sm font-display font-medium tracking-wide text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Ouvrir l’aide contextuelle AI"
+      >
+        AI
+      </button>
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event("aime:open-create"))}
+        className="flex h-full w-12 items-center justify-center rounded-full bg-brand-accent text-brand-accent-foreground shadow-[0_0_15px_hsl(var(--brand-accent)/0.4)] transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+        aria-label="Créer ou relier"
+      >
+        <Plus className="h-5 w-5" />
+      </button>
+      <button
+        type="button"
+        onClick={onOpenMe}
+        className="flex h-full items-center justify-center rounded-full px-5 text-sm font-display font-medium tracking-wide text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label="Ouvrir mon espace ME"
+      >
+        ME
+      </button>
+    </nav>
+  );
+}
+
+function NavItem({
+  href,
+  icon: Icon,
+  label,
+  description,
+  active,
+  onClick,
+  isPinned,
+}: {
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  description: string;
+  active: boolean;
+  onClick?: () => void;
+  isPinned?: boolean;
+}) {
+  const isDesktopRail = isPinned !== undefined;
+
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group relative flex w-full items-center rounded-xl transition-all motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        active ? "bg-foreground/10 text-foreground" : "text-foreground/65 hover:bg-foreground/[.07] hover:text-foreground",
+        !isDesktopRail && "px-3 py-2.5 gap-3"
+      )}
+    >
+      {isDesktopRail ? (
+        <div className="flex h-12 w-[64px] shrink-0 items-center justify-center">
+          <Icon className="h-[20px] w-[20px]" />
+        </div>
+      ) : (
+        <Icon className="h-[20px] w-[20px] shrink-0" />
+      )}
+
+      <span className={cn(
+        "min-w-0 flex-1 truncate transition-opacity duration-200",
+        isDesktopRail ? "pr-4" : "",
+        isPinned === false ? "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100" : ""
+      )}>
+        <span className={cn("block text-sm font-medium", active && "text-foreground")}>{label}</span>
+        <span className={cn(
+          "mt-0.5 block truncate text-[9px] uppercase tracking-wider",
+          active ? "text-foreground/60" : "text-foreground/35 group-hover:text-foreground/50"
+        )}>{description}</span>
+      </span>
+
+      {active && isDesktopRail && (
+        <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-brand-accent shadow-[0_0_8px_hsl(var(--brand-accent)/0.6)]" />
+      )}
+    </Link>
+  );
+}
+
+function BottomActionButton({
+  onClick, icon: Icon, label, description, title, disabled, isPinned, href
+}: {
+  onClick?: () => void;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  description?: string;
+  title?: string;
+  disabled?: boolean;
+  isPinned?: boolean;
+  href?: string;
+}) {
+  const isDesktopRail = isPinned !== undefined;
+  const content = (
+    <>
+      {isDesktopRail ? (
+        <div className="flex h-11 w-[64px] shrink-0 items-center justify-center">
+          <Icon className="h-[18px] w-[18px]" />
+        </div>
+      ) : (
+        <Icon className="h-[18px] w-[18px] shrink-0" />
+      )}
+      <span className={cn(
+        "min-w-0 flex-1 truncate text-left transition-opacity duration-200",
+        isDesktopRail ? "pr-4" : "",
+        isPinned === false ? "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100" : ""
+      )}>
+        <span className="block text-sm">{label}</span>
+        {description && <span className="mt-0.5 block text-[8px] uppercase tracking-wider">{description}</span>}
+      </span>
+    </>
+  );
+
+  const className = cn(
+    "group flex w-full items-center rounded-xl text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-foreground/60",
+    !isDesktopRail && "px-3 py-2.5 gap-3"
+  );
+
+  if (href) {
+    return <a href={href} title={title} className={className}>{content}</a>;
+  }
+
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} title={title} className={className}>
+      {content}
+    </button>
+  );
+}
 
 export function PrivateLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { openUserProfile } = useClerk();
   const { project } = useProject();
   const [appearance, setAppearance] = useState<"dark" | "light">(() => localStorage.getItem("aime-appearance") === "light" ? "light" : "dark");
+  const [isPinned, setIsPinned] = useState(() => localStorage.getItem("aime-rail-pinned") === "true");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const mobileDrawerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +203,13 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   }, [location]);
 
   const toggleAppearance = () => setAppearance(a => a === "dark" ? "light" : "dark");
+  const togglePin = () => {
+    setIsPinned(p => {
+      const next = !p;
+      localStorage.setItem("aime-rail-pinned", next ? "true" : "false");
+      return next;
+    });
+  };
   const closeMobileMenu = (restoreFocus = false) => {
     setMobileMenuOpen(false);
     if (restoreFocus) {
@@ -63,6 +220,13 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
     if (!project) return;
     window.dispatchEvent(new Event("aime:open-me"));
     closeMobileMenu();
+  };
+  const openMe = () => {
+    if (project) {
+      window.dispatchEvent(new Event("aime:open-me"));
+    } else {
+      openUserProfile();
+    }
   };
 
   const openAccount = () => {
@@ -95,7 +259,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
     }
   };
 
-  const NavItems = () => (
+  const NavItems = ({ isPinnedContext }: { isPinnedContext?: boolean }) => (
     <>
       {PRIVATE_PRIMARY_NAVIGATION.map(item => (
         <NavItem
@@ -106,55 +270,99 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
           description={item.id === "world" && project?.title ? project.title : item.description}
           active={activeDestination === item.id}
           onClick={() => closeMobileMenu()}
+          isPinned={isPinnedContext}
         />
       ))}
     </>
   );
 
-  const BottomItems = () => (
+  const BottomItems = ({ isPinnedContext }: { isPinnedContext?: boolean }) => (
     <>
-      <a href={`${basePath === "/" ? "" : basePath}/concept#guides`} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <HelpCircle className="h-[18px] w-[18px]" /> Aide & guides
-      </a>
-      <button type="button" onClick={toggleAppearance} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        {appearance === 'dark' ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-        {appearance === 'dark' ? 'Mode clair' : 'Mode sombre'}
-      </button>
-      <button
-        type="button"
+      <BottomActionButton
+        href={`${basePath === "/" ? "" : basePath}/concept#guides`}
+        icon={HelpCircle}
+        label="Aide & guides"
+        isPinned={isPinnedContext}
+      />
+      <BottomActionButton
+        onClick={toggleAppearance}
+        icon={appearance === 'dark' ? Sun : Moon}
+        label={appearance === 'dark' ? 'Mode clair' : 'Mode sombre'}
+        isPinned={isPinnedContext}
+      />
+      <BottomActionButton
         onClick={openSettings}
         disabled={!project}
+        icon={Settings}
+        label="Réglages"
+        description={!project ? "Après création" : undefined}
         title={project ? "Ouvrir les réglages" : "Disponible après la création du premier Monde"}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-foreground/60"
-      >
-        <Settings className="h-[18px] w-[18px] shrink-0" />
-        <span className="min-w-0 flex-1 text-left">Réglages</span>
-        {!project && <span className="text-[8px] uppercase tracking-[.1em]">Après création</span>}
-      </button>
-      <button type="button" onClick={openAccount} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <CircleUserRound className="h-[18px] w-[18px]" /> Mon compte
-      </button>
+        isPinned={isPinnedContext}
+      />
+      <BottomActionButton
+        onClick={openAccount}
+        icon={CircleUserRound}
+        label="Mon compte"
+        isPinned={isPinnedContext}
+      />
     </>
   );
 
   return (
     <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
-      <aside className="relative z-[70] hidden w-[232px] shrink-0 flex-col border-r border-border bg-card/40 px-3 py-6 md:flex">
-        <div className="mb-8 px-3">
-          <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <img src={logoUrl} alt="" className="h-7 w-auto rounded-lg opacity-80 shadow-sm transition-opacity hover:opacity-100" />
-          </Link>
-          <p className="mt-3 text-[9px] uppercase tracking-[.2em] text-foreground/35">Espace privé</p>
-        </div>
-        <nav aria-label="Navigation globale" className="flex-1 space-y-1.5">
-          <NavItems />
-        </nav>
-        <div className="mt-auto space-y-1 border-t border-border/50 pt-4">
-          <BottomItems />
+      {/* Desktop Rail Spacer */}
+      <div
+        data-testid="desktop-rail-spacer"
+        className="hidden shrink-0 transition-[width] duration-300 motion-reduce:transition-none md:block"
+        style={{ width: getDesktopRailReservedWidth(isPinned) }}
+        aria-hidden="true"
+      />
+
+      {/* Desktop Rail Visual */}
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-[70] hidden h-[100dvh] flex-col overflow-hidden border-r border-border/20 bg-background/70 backdrop-blur-2xl transition-[width] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none md:flex",
+          isPinned ? "w-[260px]" : "w-[64px] hover:w-[260px] focus-within:w-[260px] group/rail hover:shadow-[1px_0_20px_rgba(0,0,0,0.1)] hover:border-border/40"
+        )}
+      >
+        <div className="flex w-[260px] flex-col h-full">
+          <div className="flex h-16 shrink-0 items-center justify-between pr-4 pl-[20px]">
+            <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <img src={logoUrl} alt="" className="h-6 w-auto rounded-md opacity-80 shadow-sm transition-opacity hover:opacity-100" />
+            </Link>
+            <button
+              onClick={togglePin}
+              className={cn(
+                "grid h-8 w-8 place-items-center rounded-lg text-foreground/40 transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                !isPinned && "opacity-0 group-hover/rail:opacity-100 focus-visible:opacity-100"
+              )}
+              aria-label={isPinned ? "Détacher la barre" : "Épingler la barre"}
+              title={isPinned ? "Détacher" : "Épingler"}
+            >
+              {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+            </button>
+          </div>
+
+          <div className="mb-4 px-2 pt-2">
+            <p className={cn(
+              "pl-[20px] text-[9px] uppercase tracking-[.2em] text-foreground/35 transition-opacity duration-200",
+              !isPinned && "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100"
+            )}>Espace privé</p>
+          </div>
+
+          <nav aria-label="Navigation globale" className="flex-1 space-y-1.5 px-2">
+            <NavItems isPinnedContext={isPinned} />
+          </nav>
+
+          <div className="mt-auto space-y-1 border-t border-border/50 p-2 pb-6">
+            <BottomItems isPinnedContext={isPinned} />
+          </div>
         </div>
       </aside>
 
+      {/* Main Content Area */}
       <div className="relative flex h-full min-w-0 flex-1 flex-col">
+        {/* Header */}
         <header className="z-[60] grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur-xl sm:px-4">
           <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-md md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <img src={logoUrl} alt="" className="h-6 w-auto rounded-md shadow-sm" />
@@ -183,11 +391,19 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
-        <div className="relative flex-1 overflow-x-hidden overflow-y-auto">
+
+        {/* Scrollable Content */}
+        <div className="relative flex-1 overflow-x-hidden overflow-y-auto pb-24">
           {children}
         </div>
+
+        {/* Action Center - Floating Pill */}
+        <ActionCenter destination={activeDestination} onOpenMe={openMe} />
+        <CommandBar context={activeDestination} />
+        <GlobalCreateCenter destination={activeDestination} />
       </div>
 
+      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[100] flex md:hidden" role="dialog" aria-modal="true" aria-label="Navigation globale">
           <button type="button" className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => closeMobileMenu(true)} aria-label="Fermer la navigation" tabIndex={-1} />
@@ -215,39 +431,5 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         </div>
       )}
     </div>
-  );
-}
-
-function NavItem({
-  href,
-  icon: Icon,
-  label,
-  description,
-  active,
-  onClick,
-}: {
-  href: string;
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  description: string;
-  active: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        active ? "bg-foreground text-background shadow-sm" : "text-foreground/65 hover:bg-foreground/[.07] hover:text-foreground",
-      )}
-    >
-      <Icon className="h-[18px] w-[18px] shrink-0" />
-      <span className="min-w-0">
-        <span className="block text-sm font-medium">{label}</span>
-        <span className={cn("mt-0.5 block truncate text-[9px]", active ? "text-background/60" : "text-foreground/35 group-hover:text-foreground/50")}>{description}</span>
-      </span>
-    </Link>
   );
 }

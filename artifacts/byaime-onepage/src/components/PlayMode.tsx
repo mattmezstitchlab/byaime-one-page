@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TimelineEvent } from '@/lib/types';
 import { X, Play, Pause, FastForward, Rewind } from 'lucide-react';
@@ -8,7 +8,10 @@ export function PlayMode({ events, onClose }: { events: TimelineEvent[], onClose
   const [playing, setPlaying] = useState(true);
 
   // Filter out non-visual events if necessary, but we'll show everything in play mode
-  const playableEvents = events.sort((a, b) => a.time - b.time);
+  const playableEvents = useMemo(
+    () => [...events].sort((a, b) => a.time - b.time),
+    [events],
+  );
 
   useEffect(() => {
     let timer: number;
@@ -32,6 +35,9 @@ export function PlayMode({ events, onClose }: { events: TimelineEvent[], onClose
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] bg-black text-white flex flex-col"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Lecture de la Timeline"
     >
       {/* Visual background related to event if we had images, fallback to a dark gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-black opacity-80" />
@@ -43,6 +49,7 @@ export function PlayMode({ events, onClose }: { events: TimelineEvent[], onClose
         </div>
         <button 
           onClick={onClose}
+          aria-label="Fermer la lecture de la Timeline"
           className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
         >
           <X className="w-5 h-5" />
@@ -97,18 +104,21 @@ export function PlayMode({ events, onClose }: { events: TimelineEvent[], onClose
       <div className="relative z-10 flex items-center justify-center gap-6 p-8 pb-12">
         <button 
           onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+          aria-label="Moment précédent"
           className="p-3 text-white/50 hover:text-white transition-colors"
         >
           <Rewind className="w-6 h-6" />
         </button>
         <button 
           onClick={() => setPlaying(!playing)}
+          aria-label={playing ? "Mettre la lecture en pause" : "Reprendre la lecture"}
           className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform"
         >
           {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
         </button>
         <button 
           onClick={() => setCurrentIndex(Math.min(playableEvents.length - 1, currentIndex + 1))}
+          aria-label="Moment suivant"
           className="p-3 text-white/50 hover:text-white transition-colors"
         >
           <FastForward className="w-6 h-6" />

@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  MapPin, Clock3, CalendarDays, User, Plus, FileText, Folder, Wallet, Plane,
+  MapPin, Clock3, CalendarDays, User, FileText, Folder, Wallet,
   Calendar, Users, Image as ImageIcon, ZoomIn, ZoomOut, Network, BookOpen, Fingerprint, Pencil, Globe2
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
@@ -42,20 +42,10 @@ function EventIcon({ kind }: { kind?: string }) {
   }
 }
 
-const CATEGORIES = [
-  { id: 'documents', label: 'Documents', icon: FileText },
-  { id: 'dossiers', label: 'Dossiers', icon: Folder },
-  { id: 'finances', label: 'Finances', icon: Wallet },
-  { id: 'voyages', label: 'Voyages', icon: Plane },
-  { id: 'evenements', label: 'Événements', icon: Calendar },
-  { id: 'personnes', label: 'Personnes', icon: Users },
-  { id: 'medias', label: 'Médias', icon: ImageIcon },
-];
-
 const REPERES = [
   { id: "identity", label: "Identité", left: 12.5, icon: Fingerprint, description: "Noms, naissance, villes vécues et informations que vous choisissez de relier à votre identité." },
   { id: "history", label: "Histoire", left: 37.5, icon: BookOpen, description: "Moments, voyages, rencontres et événements qui composent votre histoire." },
-  { id: "archives", label: "Archives", left: 62.5, icon: Folder, description: "Documents, dossiers, contrats et finances conservés avec leurs droits d’accès." },
+  { id: "archives", label: "Archives", left: 62.5, icon: Folder, description: "Les Moments et traces que vous choisissez de conserver ou de publier depuis les Mondes reliés." },
   { id: "network", label: "Réseau", left: 87.5, icon: Network, description: "Personnes, organisations et Mondes reliés à votre Profil." },
 ];
 
@@ -78,7 +68,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const params = useParams<{ projectId: string }>();
   const { user } = useUser();
   const { openUserProfile } = useClerk();
-  const { project, isHydrated, canEdit, addEntity, currentRole } = useProject();
+  const { project, isHydrated, currentRole } = useProject();
   const profileId = forcePrivatePreview ? project?.id || "" : params.projectId || "";
   const { data: publishedProfile, isLoading, error } = useGetPublicProfile(profileId, {
     query: { queryKey: getGetPublicProfileQueryKey(profileId), retry: false, enabled: !forcePrivatePreview && Boolean(profileId) },
@@ -120,9 +110,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const isPrivatePreview = forcePrivatePreview && Boolean(privatePreview);
   const [selectedEvent, setSelectedEvent] = useState<ProfileTimelineEvent | undefined>();
   const [selectedRepere, setSelectedRepere] = useState<(typeof REPERES)[number] | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<"timeline" | "fil">("timeline");
 
@@ -172,54 +160,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   }, [isPrivatePreview]);
 
   const sortedEvents = useMemo(() => {
-     const events = [...(profile?.timeline || [])];
-     if (isPrivatePreview && project) {
-       events.push(
-          ...(currentRole === "owner" ? project.documents.map(document => ({
-           id: `profile-document-${document.id}`,
-           time: document.at,
-           kind: "document",
-           title: document.title,
-           detail: `${document.kind === "autre" ? "Document" : document.kind} conservé dans les Archives de ${project.title}.`,
-           status: "execute",
-           confidence: "confirme",
-           phase: document.at < Date.now() ? "avant" : "apres",
-           universe: "Archives",
-           provenance: "real",
-            visibility: "prive" as const,
-            relations: [{ kind: "document" as const, id: document.id }],
-          })) : []),
-          ...(currentRole === "owner" ? project.payments.map(payment => ({
-           id: `profile-payment-${payment.id}`,
-           time: payment.at,
-           kind: "paiement",
-           title: payment.label,
-           detail: `${(payment.amountCents / 100).toLocaleString("fr-FR")} € · ${payment.state === "paye" ? "Payé" : "À régler"} · ${project.title}`,
-           status: payment.state === "paye" ? "execute" : "prepare",
-           confidence: "confirme",
-           phase: payment.at < Date.now() ? "avant" : "apres",
-           universe: "Finances",
-           provenance: "real",
-            visibility: "prive" as const,
-            relations: [{ kind: "payment" as const, id: payment.id }],
-          })) : []),
-       );
-     }
-     return events.sort((a, b) => a.time - b.time);
-   }, [currentRole, isPrivatePreview, profile?.timeline, project]);
-
-  const filteredEvents = useMemo(() => {
-    if (!activeCategory) return sortedEvents;
-    return sortedEvents.filter(e => {
-        if (activeCategory === 'documents' || activeCategory === 'dossiers') return ['document', 'devis', 'facture'].includes(e.kind);
-        if (activeCategory === 'finances') return e.kind === 'paiement';
-        if (activeCategory === 'voyages') return /voyage|lune de miel|déplacement|séjour/i.test(`${e.title} ${e.detail || ""}`);
-        if (activeCategory === 'evenements') return ['evenement', 'jalon'].includes(e.kind);
-        if (activeCategory === 'personnes') return e.kind === 'message' || e.kind === 'intention';
-        if (activeCategory === 'medias') return e.kind === 'souvenir';
-        return true;
-    });
-  }, [sortedEvents, activeCategory]);
+     return [...(profile?.timeline || [])].sort((a, b) => a.time - b.time);
+  }, [profile?.timeline]);
 
   const { getPosition } = useMemo(() => {
     const minTime = sortedEvents.length > 0 ? sortedEvents[0].time : 0;
@@ -268,38 +210,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const displayCity = isPrivatePreview ? undefined : profile.city;
   const profileImage = isPrivatePreview ? user?.imageUrl : undefined;
   const requestIdentityEdit = () => openUserProfile();
-  const createProfileItem = (category: string) => {
-    if (!project || !canEdit) return;
-    const now = Date.now();
-    if (category === "documents") {
-      addEntity("documents", { title: "Nouveau document", kind: "autre", at: now });
-    } else if (category === "finances") {
-      addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: now, state: "du" });
-    } else if (category === "personnes") {
-      addEntity("guests", { name: "Nouvelle personne", role: "invite", rsvp: "en_attente", attendance: { ceremony: false, cocktail: false, dinner: false, brunch: false } });
-    } else if (category === "medias") {
-      addEntity("memories", { kind: "media", title: "Nouveau média", status: "a_faire" });
-    } else {
-      const title = category === "voyages" ? "Nouveau voyage" : category === "dossiers" ? "Nouveau dossier" : "Nouveau Moment";
-      addEntity("timeline", {
-        time: now,
-        kind: category === "dossiers" ? "intention" : "evenement",
-        title,
-        status: "prepare",
-        confidence: "confirme",
-        phase: now < project.pivot.value ? "avant" : "apres",
-        universe: project.universe,
-        provenance: "real",
-        visibility: "prive",
-        relations: [],
-        dependencyIds: [],
-        resources: [],
-      });
-    }
-    setCreateOpen(false);
-    setIsEditMode(true);
-  };
-
   return (
     <main data-testid="public-profile-page" className={cn("min-h-[100dvh] overflow-x-hidden bg-background text-foreground", isEditMode ? "h-[100dvh] overflow-y-hidden" : "pb-40")}>
       {!isPrivatePreview && (
@@ -396,7 +306,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
           {isPrivatePreview && <>
             <span className="w-1 h-1 rounded-full bg-foreground/10 hidden sm:block" />
-            <MissingDataHint icon={Plus} label="Statut à relier" />
+             <MissingDataHint icon={Fingerprint} label="Statut à relier" />
           </>}
         </div>
         {isPrivatePreview && sortedEvents.length > 0 && (
@@ -438,23 +348,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
              </button>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar max-w-full pb-2 md:pb-0 w-full md:w-auto">
-            {CATEGORIES.map(cat => (
-               <button
-                 key={cat.id}
-                 onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
-                 className={cn(
-                   "flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all shrink-0",
-                   activeCategory === cat.id
-                     ? "bg-foreground/15 border-foreground/30 text-foreground"
-                     : "bg-foreground/[0.02] border-foreground/5 hover:border-foreground/20 text-foreground/40 hover:text-foreground"
-                 )}
-               >
-                 <cat.icon className="w-3.5 h-3.5" />
-                 <span className="text-[9px] uppercase tracking-widest">{cat.label}</span>
-               </button>
-            ))}
-          </div>
         </div>
 
         <div
@@ -480,7 +373,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
               </div>
             ))}
 
-            {filteredEvents.map((event, i) => {
+            {sortedEvents.map((event, i) => {
               const left = getPosition(event.time);
               const yOffset = yOffsets[i % 4];
               const isTop = yOffset < 0;
@@ -528,16 +421,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       </div>
       </>)}
 
-      {isPrivatePreview && <nav aria-label="Centre AI plus ME" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 text-foreground">
-        <div className="flex h-[72px] w-[min(320px,calc(100vw-1rem))] shrink-0 items-center justify-between rounded-full border border-foreground/[.08] bg-background/90 p-2 shadow-2xl backdrop-blur-xl sm:w-[360px]">
-          <button onClick={() => window.dispatchEvent(new Event("aime:open-ai"))} className="h-14 flex-1 rounded-full text-[11px] font-medium tracking-[0.2em] text-foreground/50 hover:bg-foreground/10 hover:text-foreground transition-colors" aria-label="Demander à AIME">AI</button>
-          <button type="button" disabled={!canEdit} onClick={() => setCreateOpen(true)} className="h-[56px] w-[56px] shrink-0 rounded-full bg-[conic-gradient(from_180deg,#ff5b79,#ffb44a,#f6f06a,#50e3a4,#4cc9ff,#8b7cff,#e26cff,#ff5b79)] p-[2px] transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-35" aria-label={canEdit ? "Ajouter" : "Consultation uniquement"}>
-            <span className="flex h-full w-full items-center justify-center rounded-full bg-background"><Plus className="h-6 w-6 stroke-[1.5]" /></span>
-          </button>
-          <button onClick={() => window.dispatchEvent(new Event("aime:open-me"))} className="h-14 flex-1 rounded-full text-[11px] font-medium tracking-[0.2em] text-foreground/50 hover:bg-foreground/10 hover:text-foreground transition-colors" aria-label="Ouvrir mon espace">ME</button>
-        </div>
-      </nav>}
-
       <AnimatePresence>
         {selectedRepere && (
           <CenteredBlock eyebrow="Repère du Profil" title={selectedRepere.label} description={selectedRepere.description} onClose={() => setSelectedRepere(null)} leading={<selectedRepere.icon className="mt-4 h-6 w-6 shrink-0 text-foreground/55" />}>
@@ -550,18 +433,11 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                     <span className="mt-2 block text-xs font-light leading-relaxed text-foreground/35">Votre Profil devient le point zéro ; les personnes et les professionnels occupent les cases reliées.</span>
                   </span>
                 </Link>
-              ) : (selectedRepere.id === "archives" ? CATEGORIES.slice(0, 3) : selectedRepere.id === "history" ? CATEGORIES.slice(3) : [{ id: "identity", label: "Naissance et identité", icon: Fingerprint }]).map(item => (
-                <button key={item.id} type="button" onClick={() => { setSelectedRepere(null); setActiveCategory(item.id === "identity" ? null : item.id); }} className="flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-left transition hover:border-foreground/25 hover:bg-foreground/[.06]">
-                  <item.icon className="h-5 w-5 text-foreground/45" /><span className="text-xs uppercase tracking-[.16em] text-foreground/75">{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </CenteredBlock>
-        )}
-        {createOpen && (
-          <CenteredBlock eyebrow="Ajouter au Profil" title="Que voulez-vous relier ?" description="Chaque ajout rejoint la Timeline, le bon Repère et les Mondes autorisés après votre confirmation." onClose={() => setCreateOpen(false)}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {CATEGORIES.map(item => <button key={item.id} type="button" onClick={() => createProfileItem(item.id)} className="flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-left transition hover:border-foreground/25 hover:bg-foreground/[.06]"><item.icon className="h-5 w-5 text-foreground/45" /><span className="text-xs uppercase tracking-[.16em] text-foreground/75">{item.label}</span></button>)}
+              ) : (
+                <p className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-sm font-light leading-relaxed text-foreground/60">
+                  {selectedRepere.description}
+                </p>
+              )}
             </div>
           </CenteredBlock>
         )}

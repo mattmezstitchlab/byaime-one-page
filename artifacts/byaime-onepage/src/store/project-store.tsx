@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useAuth } from '@clerk/react';
-import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication } from '../lib/types';
+import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication, type ParticipantLink } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
 import { normalizeProject } from '../lib/project-migration';
 import { trackEvent } from '@/lib/analytics';
@@ -23,12 +23,14 @@ type ProjectStore = {
   syncError?: string;
   currentRole: string;
   canEdit: boolean;
+  participantLinks: Record<string, ParticipantLink>;
   
   setIntentionText: (text: string) => void;
   commitDraft: () => void;
   createWeddingDemo: () => void;
   clearProject: () => void;
   selectProject: (id: string) => Promise<boolean>;
+  refreshParticipantLinks: () => Promise<Record<string, ParticipantLink>>;
   importBackup: (value: unknown) => void;
   
   updateProject: (updates: Partial<WorldProject>) => void;
@@ -44,6 +46,10 @@ const normalizeStoredProject = normalizeProject;
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, userId } = useAuth();
   const [project, setProject] = useState<WorldProject | null>(null);
+  const [participantLinkState, setParticipantLinkState] = useState<{
+    contextKey: string;
+    links: Record<string, ParticipantLink>;
+  }>({ contextKey: "", links: {} });
 
   const [intentionText, setIntentionTextState] = useState('');
   const [draft, setDraft] = useState<Partial<WorldProject> | null>(null);
@@ -57,8 +63,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const previousUserRef = useRef<string | null | undefined>(undefined);
   const saveChainRef = useRef(Promise.resolve());
   const localRevisionRef = useRef(0);
+  const participantRequestGenerationRef = useRef(0);
   const serverSyncedProjectRef = useRef<WorldProject | null>(null);
   const projectCreationSourceRef = useRef<'created' | 'imported'>('created');
+  const participantContextKey = `${userId ?? "signed-out"}:${project?.id ?? "no-project"}`;
+  const participantContextRef = useRef(participantContextKey);
+  if (participantContextRef.current !== participantContextKey) {
+    participantContextRef.current = participantContextKey;
+    participantRequestGenerationRef.current += 1;
+  }
+  const participantLinks = participantLinkState.contextKey === participantContextKey
+    ? participantLinkState.links
+    : {};
 
   const request = useCallback(async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, {
@@ -69,6 +85,34 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     if (!response.ok) throw Object.assign(new Error(body?.error || `Erreur ${response.status}`), { status: response.status, body });
     return body;
   }, []);
+
+  const refreshParticipantLinks = useCallback(async () => {
+    if (!project?.id) {
+      setParticipantLinkState({ contextKey: participantContextKey, links: {} });
+      return {};
+    }
+    const requestContext = participantContextKey;
+    const requestGeneration = ++participantRequestGenerationRef.current;
+    const items = await request(`/projects/${project.id}/rsvp-links`) as ParticipantLink[];
+    if (
+      participantContextRef.current !== requestContext
+      || participantRequestGenerationRef.current !== requestGeneration
+    ) {
+      return {};
+    }
+    const scopedLinks = Object.fromEntries(
+      items.map(item => [
+        item.guestId,
+        item.revoked ? { ...item, token: "" } : item,
+      ]),
+    );
+    setParticipantLinkState({ contextKey: requestContext, links: scopedLinks });
+    return scopedLinks;
+  }, [participantContextKey, project?.id, request]);
+
+  useEffect(() => {
+    setParticipantLinkState({ contextKey: participantContextKey, links: {} });
+  }, [participantContextKey]);
 
   const selectProject = useCallback(async (id: string) => {
     setSyncStatus('loading');
@@ -323,11 +367,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       syncError,
       currentRole,
       canEdit,
+      participantLinks,
       setIntentionText,
       commitDraft,
       createWeddingDemo,
       clearProject,
       selectProject,
+      refreshParticipantLinks,
       importBackup,
       updateProject,
       updateEntity,

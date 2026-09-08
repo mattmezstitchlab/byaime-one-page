@@ -5,11 +5,10 @@ import { getAssetUrl } from '@/lib/assets';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Link } from 'wouter';
-import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
-import { PlayMode } from './PlayMode';
+import { TimelinePlayback } from './TimelinePlayback';
 import { BottomDock } from './BottomDock';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Grid2X2, UserCheck, Waves } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Grid2X2, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -19,11 +18,18 @@ import {
   isWeddingDestinationActive,
   getInitialWorldPhase,
   WEDDING_PRIMARY_NAVIGATION,
-  WORLD_PHASES,
   type WorldPhase,
   type WeddingDestination,
   type WeddingPanelId,
 } from '@/lib/wedding-navigation';
+import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
+
+const CREATE_PANEL_TARGETS: Partial<Record<UniversalCreateActionId, WeddingPanelId>> = {
+  person: "guests",
+  moment: "dayof",
+  task: "planning",
+  "document-media": "documents",
+};
 
 const providerImages: Partial<Record<Provider['category'], string>> = {
   lieu: 'images/visual-venue-kJsZKZPp.jpg',
@@ -84,10 +90,7 @@ export function ProjectStage() {
   const { project, projects, selectProject, updateProject, canEdit } = useProject();
   const pivotDate = project?.pivot.value ?? Date.now();
   const [phase, setPhase] = useState<WorldPhase>(() => getInitialWorldPhase(pivotDate));
-  const [playMode, setPlayMode] = useState(false);
-  const [layers, setLayers] = useState<string[]>([]);
   const [view, setView] = useState<TimelineView>("chronological");
-  const [rsvpOpen, setRsvpOpen] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -116,6 +119,27 @@ export function ProjectStage() {
     setPhase(getInitialWorldPhase(project.pivot.value));
   }, [project?.id]);
 
+  useEffect(() => {
+    const openCreateTarget = (action: UniversalCreateActionId | undefined) => {
+      if (!action) return;
+      const panel = CREATE_PANEL_TARGETS[action];
+      if (panel) setActivePanel(panel);
+    };
+    const listener = (event: Event) => openCreateTarget((event as CustomEvent<UniversalCreateActionId>).detail);
+    const closeWorldPanel = () => setActivePanel(null);
+    window.addEventListener("aime:open-create-target", listener);
+    window.addEventListener("aime:close-world-panel", closeWorldPanel);
+    const requestedAction = new URLSearchParams(window.location.search).get("create") as UniversalCreateActionId | null;
+    if (requestedAction && CREATE_PANEL_TARGETS[requestedAction]) {
+      openCreateTarget(requestedAction);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    return () => {
+      window.removeEventListener("aime:open-create-target", listener);
+      window.removeEventListener("aime:close-world-panel", closeWorldPanel);
+    };
+  }, []);
+
   const visibleEvents = useMemo(() => {
     if (!project) return [];
     return filterTimeline(project, view).filter(e => {
@@ -124,12 +148,9 @@ export function ProjectStage() {
       if (phase === 'pendant' && e.phase !== 'pendant') return false;
       if (phase === 'apres' && e.phase !== 'apres') return false;
 
-      // Layer filtering
-      if (layers.length > 0 && !layers.includes(e.kind)) return false;
-
       return true;
     });
-  }, [project, phase, layers, view]);
+  }, [project, phase, view]);
 
   const countdownTargets = useMemo(() => {
     if (!project) return [];
@@ -239,29 +260,6 @@ export function ProjectStage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
-      {/* The temporal capsule changes the whole World, not only the Timeline. */}
-      <header data-testid="world-context-header" className="sticky top-0 z-50 flex h-14 items-center justify-center border-b border-border bg-background/88 px-3 backdrop-blur-xl">
-        <div className="flex max-w-full overflow-x-auto rounded-full bg-foreground/5 p-1 hide-scrollbar" role="tablist" aria-label="Période du Monde">
-          {WORLD_PHASES.map(item => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setPhase(item.id);
-                if (view === "public-info") setView("chronological");
-              }}
-              role="tab"
-              aria-selected={phase === item.id}
-              className={cn(
-                "whitespace-nowrap rounded-full px-5 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
-                phase === item.id ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground"
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </header>
-
       {/* Cinematic Header */}
       <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
         <div
@@ -457,12 +455,10 @@ export function ProjectStage() {
           <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
             <Grid2X2 className="h-3.5 w-3.5" /> Sections
           </button>
-          <button type="button" onClick={() => setRsvpOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground">
-            Je participe
-          </button>
           <button type="button" onClick={() => setFundOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground">
             Cagnotte
           </button>
+          <TimelinePlayback events={visibleEvents} />
         </div>
       </nav>
 
@@ -517,28 +513,14 @@ export function ProjectStage() {
         </div>
       </main>
 
-      <CommandBar setPhase={setPhase} setLayers={setLayers} />
       <BottomDock phase={phase} view={view} activePanel={activePanel} onPanelChange={setActivePanel} onViewChange={nextView => {
         setActivePanel(null);
         setView(nextView);
       }} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
-      }} onPlay={() => setPlayMode(true)} />
+      }} />
 
-      {playMode && <PlayMode events={visibleEvents} onClose={() => setPlayMode(false)} />}
-      {rsvpOpen && (
-        <CenteredBlock eyebrow="Présence" title="Est-ce que vous participez ?" description="La réponse appartient à la personne et peut s’appliquer au Monde entier ou à certains Moments." onClose={() => setRsvpOpen(false)}>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {["Je participe", "Peut-être", "Je ne participe pas"].map((label, index) => (
-              <button key={label} type="button" className="rounded-2xl border border-foreground/10 bg-foreground/5 px-4 py-6 text-sm text-foreground/80 transition hover:border-foreground/30 hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
-                <UserCheck className={cn("mx-auto mb-3 h-5 w-5", index === 1 ? "text-amber-500" : "text-foreground/50")} />{label}
-              </button>
-            ))}
-          </div>
-          <p className="mt-5 text-xs font-light leading-relaxed text-foreground/50">Une invitation personnelle reliera ensuite cette réponse au bon Profil et aux Moments auxquels il est invité.</p>
-        </CenteredBlock>
-      )}
       {fundOpen && (
         <CenteredBlock eyebrow="Soutenir ce Monde" title="Cagnotte" description="Un même espace pour contribuer à un projet, faire un don à une association ou rémunérer une personne depuis son Profil." onClose={() => setFundOpen(false)} leading={<span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-foreground/5"><Gift className="h-5 w-5 text-foreground/70" /></span>}>
           <div className="rounded-2xl border border-dashed border-foreground/20 px-6 py-10 text-center">
@@ -586,7 +568,7 @@ export function ProjectStage() {
         </CenteredBlock>
       )}
       {worldMenuOpen && (
-        <CenteredBlock eyebrow="Monde" title="Choisir un Monde" description="Chaque Monde organise une réalité différente tout en partageant votre Profil et vos relations." onClose={() => setWorldMenuOpen(false)} size="lg">
+        <CenteredBlock eyebrow="Mariage" title="Choisir un mariage" description="Chaque mariage garde ses invités, ses Moments et son organisation dans un Monde dédié." onClose={() => setWorldMenuOpen(false)} size="lg">
           <div className="divide-y divide-border">
             {projects.map(item => (
               <button
@@ -600,13 +582,13 @@ export function ProjectStage() {
                 <span className={cn("h-2.5 w-2.5 rounded-full border", item.id === project.id ? "border-foreground bg-foreground" : "border-foreground/25")} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-display text-xl font-light text-foreground/90">{item.title}</span>
-                  <span className="mt-1 block text-[9px] uppercase tracking-[.18em] text-foreground/50">{item.id === project.id ? `${project.universe} · Monde actif` : item.role}</span>
+                   <span className="mt-1 block text-[9px] uppercase tracking-[.18em] text-foreground/50">{item.id === project.id ? "Mariage · Monde actif" : item.role}</span>
                 </span>
                 <ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1 group-hover:text-foreground/60" />
               </button>
             ))}
           </div>
-          <p className="mt-6 text-xs font-light leading-relaxed text-foreground/40">Le + universel accueillera ensuite la création de nouveaux Mondes et le choix de leur Kit.</p>
+          <p className="mt-6 text-xs font-light leading-relaxed text-foreground/40">Le + crée les éléments de ce mariage : personnes, Moments, tâches et documents.</p>
         </CenteredBlock>
       )}
       {calendarOpen && (

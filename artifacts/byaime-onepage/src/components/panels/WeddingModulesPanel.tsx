@@ -4,6 +4,7 @@ import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck } from "lucide-react";
 import type { MemoryItem, MusicSearchResult, MusicTrack, Payment } from "@/lib/types";
+import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import type { WeddingModule } from "@/lib/wedding-navigation";
 
@@ -56,7 +57,7 @@ function Empty({ children }: { children: string }) {
 }
 
 export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
-  const { project, currentRole, syncStatus, syncError, updateProject, updateEntity, addEntity, removeEntity } = useProject();
+  const { project, currentRole, syncStatus, syncError, participantLinks, refreshParticipantLinks, updateProject, updateEntity, addEntity, removeEntity } = useProject();
   const [query, setQuery] = useState("");
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [messages, setMessages] = useState<SentMessage[]>([]);
@@ -74,6 +75,11 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const canManage = currentRole === "owner" || currentRole === "planner";
   const projectId = project?.id;
+
+  useEffect(() => {
+    if (module !== "seating" || !canManage || !projectId) return;
+    void refreshParticipantLinks().catch(() => undefined);
+  }, [canManage, module, projectId, refreshParticipantLinks]);
 
   useEffect(() => {
     if (!projectId || module !== "documents") return;
@@ -185,11 +191,11 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   };
 
   if (module === "seating") {
-    const unassigned = project.guests.filter(g => g.rsvp !== "decline" && !g.tableId);
+    const unassigned = project.guests.filter(g => effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline" && !g.tableId);
     return <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between"><div><p className="text-sm text-foreground/50">{unassigned.length} invité{unassigned.length > 1 ? "s" : ""} sans table</p></div><AddBar label="Ajouter une table" onAdd={() => addEntity("tables", { name: `Table ${project.tables.length + 1}`, capacity: 8 })} /></div>
       {unassigned.length > 0 && <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-widest text-amber-300"><AlertTriangle className="w-3.5 h-3.5" /> À placer</div><div className="mt-3 grid gap-2 sm:grid-cols-2">{unassigned.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div>}
-      <div className="grid gap-3 md:grid-cols-2">{project.tables.map(table => { const guests = project.guests.filter(g => g.tableId === table.id); return <div key={table.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{table.name}</h4><p className={cn("text-xs mt-1", guests.length > table.capacity ? "text-rose-300" : "text-foreground/40")}>{guests.length} / {table.capacity} places</p></div><button onClick={() => { guests.forEach(g => updateEntity("guests", g.id, { tableId: undefined })); removeEntity("tables", table.id); }} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div><div className="mt-4 space-y-2">{guests.length === 0 ? <p className="text-xs text-foreground/30">Aucun invité assigné</p> : guests.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div> })}</div>
+      <div className="grid gap-3 md:grid-cols-2">{project.tables.map(table => { const guests = project.guests.filter(g => g.tableId === table.id && effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline"); return <div key={table.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{table.name}</h4><p className={cn("text-xs mt-1", guests.length > table.capacity ? "text-rose-300" : "text-foreground/40")}>{guests.length} / {table.capacity} places</p></div><button onClick={() => { guests.forEach(g => updateEntity("guests", g.id, { tableId: undefined })); removeEntity("tables", table.id); }} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div><div className="mt-4 space-y-2">{guests.length === 0 ? <p className="text-xs text-foreground/30">Aucun invité assigné</p> : guests.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div> })}</div>
     </div>;
   }
 

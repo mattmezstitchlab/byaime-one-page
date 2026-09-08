@@ -77,8 +77,8 @@ export const WEDDING_PRIMARY_NAVIGATION: WeddingNavigationItem[] = [
   {
     id: "people",
     label: "Personnes",
-    description: "Le réseau réel des invités, proches et professionnels.",
-    destination: { kind: "route", href: "/network" },
+    description: "Invités, réponses RSVP et besoins des personnes concernées.",
+    destination: { kind: "panel", panel: "guests" },
   },
   {
     id: "documents",
@@ -100,12 +100,6 @@ export const WEDDING_SECONDARY_NAVIGATION: WeddingNavigationItem[] = [
     label: "Tâches",
     description: "Ce qu’il reste à préparer et à valider.",
     destination: { kind: "panel", panel: "planning" },
-  },
-  {
-    id: "guest-list",
-    label: "Liste des invités",
-    description: "Présences, réponses et besoins des invités.",
-    destination: { kind: "panel", panel: "guests" },
   },
   {
     id: "providers",

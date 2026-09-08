@@ -1,4 +1,5 @@
 import { Router, type IRouter, type RequestHandler } from "express";
+import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { clerkClient, getAuth } from "@clerk/express";
 import { ReplitConnectors } from "@replit/connectors-sdk";
@@ -1200,6 +1201,25 @@ router.post(
   },
 );
 
+router.get(
+  "/projects/:id/rsvp-links",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (
+      !managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")
+    ) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const links = await db
+      .select()
+      .from(rsvpsTable)
+      .where(eq(rsvpsTable.projectId, projectId));
+    res.json(links);
+  },
+);
+
 router.post(
   "/projects/:id/rsvp-links/:guestId",
   auth,
@@ -1229,7 +1249,7 @@ router.post(
       .values({ projectId, guestId: String(req.params.guestId) })
       .onConflictDoUpdate({
         target: [rsvpsTable.projectId, rsvpsTable.guestId],
-        set: { revoked: false, response: null, respondedAt: null },
+        set: { revoked: false, token: randomUUID() },
       })
       .returning();
     res.status(201).json(link);
@@ -1308,16 +1328,51 @@ router.put(
     }
     const input = parseBody(rsvpInput, req, res);
     if (!input) return;
-    const [updated] = await db
-      .update(rsvpsTable)
-      .set({ response: input, respondedAt: new Date() })
-      .where(
-        and(
-          eq(rsvpsTable.token, String(req.params.token)),
-          eq(rsvpsTable.revoked, false),
-        ),
-      )
-      .returning();
+    const projectGuestPatch = JSON.stringify({
+      rsvp: input.status === "confirmed" ? "confirme" : "decline",
+      attendance: input.attendance,
+      dietary: input.dietary ?? "",
+      plusOne: input.plusOne,
+    });
+    const updated = await db.transaction(async (tx) => {
+      const respondedAt = new Date();
+      const [saved] = await tx
+        .update(rsvpsTable)
+        .set({ response: input, respondedAt })
+        .where(
+          and(
+            eq(rsvpsTable.token, String(req.params.token)),
+            eq(rsvpsTable.revoked, false),
+          ),
+        )
+        .returning();
+      if (!saved) return undefined;
+      await tx
+        .update(projectsTable)
+        .set({
+          data: sql`jsonb_set(
+            ${projectsTable.data},
+            '{guests}',
+            COALESCE((
+              SELECT jsonb_agg(
+                CASE
+                  WHEN guest ->> 'id' = ${saved.guestId}
+                    THEN guest || ${projectGuestPatch}::jsonb
+                  ELSE guest
+                END
+                ORDER BY position
+              )
+              FROM jsonb_array_elements(
+                COALESCE(${projectsTable.data} -> 'guests', '[]'::jsonb)
+              ) WITH ORDINALITY AS entries(guest, position)
+            ), '[]'::jsonb),
+            true
+          )`,
+          updatedAt: respondedAt,
+        })
+        .where(eq(projectsTable.id, saved.projectId));
+      return saved;
+    });
     if (!updated) {
       res.status(404).json({ error: "Lien RSVP invalide ou révoqué" });
       return;

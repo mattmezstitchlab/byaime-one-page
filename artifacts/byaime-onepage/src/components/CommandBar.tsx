@@ -2,9 +2,24 @@ import { useEffect, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { executeCommand, parseFrenchCommand, proposeCommand, type CommandProposal } from "@/lib/command-agent";
 import { CenteredBlock } from "@/components/CenteredBlock";
-import type { WorldPhase } from "@/lib/wedding-navigation";
+import type { PrivateDestinationId } from "@/lib/private-navigation";
 
-export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: WorldPhase) => void; setLayers?: (layers: string[]) => void }) {
+const contextCopy: Record<PrivateDestinationId, { label: string; description: string }> = {
+  profile: {
+    label: "Profil",
+    description: "AIME comprend votre Profil comme une projection du Monde actif. Elle peut vérifier les informations reliées sans transformer le Profil en espace d’organisation.",
+  },
+  world: {
+    label: "Monde",
+    description: "AIME comprend le Monde actif, vérifie votre demande et demande votre accord avant tout changement.",
+  },
+  network: {
+    label: "Carte",
+    description: "AIME garde le contexte des personnes et des Mondes reliés. Elle n’invente ni relation ni localisation et agit seulement sur les données confirmées du Monde actif.",
+  },
+};
+
+export function CommandBar({ context = "world" }: { context?: PrivateDestinationId }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [proposal, setProposal] = useState<CommandProposal>();
@@ -25,15 +40,15 @@ export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: WorldPh
       window.removeEventListener("aime:open-ai", openAI);
     };
   }, []);
-  if (!project) return null;
   const inspect = () => {
+    if (!project) return;
     setError(""); setResult(""); setProposal(undefined);
     const command = parseFrenchCommand(input);
     if (!command) { setError("AIME n’a pas compris cette demande. Rien n’a été modifié."); return; }
     try { setProposal(proposeCommand(project, command)); } catch (reason) { setError(reason instanceof Error ? reason.message : "AIME ne peut pas vérifier cette demande pour le moment."); }
   };
   const execute = () => {
-    if (!proposal || (proposal.mutation && !canEdit)) return;
+    if (!project || !proposal || (proposal.mutation && !canEdit)) return;
     try {
       const output = executeCommand(project, proposal, true);
       updateProject(output.project);
@@ -80,8 +95,15 @@ export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: WorldPh
       setNotificationBusy(false);
     }
   };
+  if (!open) return null;
+  const currentContext = contextCopy[context];
+  if (!project) {
+    return <CenteredBlock eyebrow={`AI · ${currentContext.label}`} title="Commençons par un Monde" description="AIME pourra vous aider dès qu’un Monde réunira les informations à comprendre, vérifier ou transformer." onClose={() => setOpen(false)}>
+      <p className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-sm font-light leading-relaxed text-foreground/60">Utilisez le + permanent pour commencer votre premier Monde. Rien ne sera créé ni modifié sans une action explicite de votre part.</p>
+    </CenteredBlock>;
+  }
   return <>
-    {open && <CenteredBlock eyebrow="AIME" title="Que souhaitez-vous faire ?" description="AIME vérifie votre demande et vous demande votre accord avant tout changement." onClose={() => setOpen(false)} size="lg">
+    <CenteredBlock eyebrow={`AI · ${currentContext.label}`} title="Que souhaitez-vous faire ?" description={currentContext.description} onClose={() => setOpen(false)} size="lg">
         <form onSubmit={event => { event.preventDefault(); inspect(); }} className="mt-5 flex gap-2"><input autoFocus value={input} onChange={event => setInput(event.target.value)} placeholder="Décaler la cérémonie de 15 minutes…" className="min-w-0 flex-1 rounded-xl border border-border bg-foreground/5 px-4 py-3 text-sm outline-none focus:border-foreground/30 focus:ring-1 focus:ring-foreground/30" /><button className="rounded-xl bg-foreground px-4 text-sm text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50">Vérifier</button></form>
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">{["Voir les tâches restantes", "Repérer les horaires qui se chevauchent", "Vérifier les besoins alimentaires", "Préparer le programme des professionnels", "Ajouter 2 invités"].map(example => <button key={example} onClick={() => setInput(example)} className="text-[10px] uppercase tracking-[.12em] text-foreground/40 transition hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50 rounded px-1">{example}</button>)}</div>
         {error && <p className="mt-4 border-l border-destructive/50 py-1 pl-3 text-sm text-destructive/90">{error}</p>}
@@ -109,7 +131,6 @@ export function CommandBar({ setPhase, setLayers }: { setPhase?: (phase: WorldPh
              <button type="button" disabled={notificationBusy || !selectedRecipients.length || !notification.subject.trim() || !notification.body.trim()} onClick={() => void sendNotification()} className="rounded-full bg-foreground px-4 py-2 text-xs text-background disabled:opacity-35">{notificationBusy ? "Enregistrement…" : scheduleAt ? "Confirmer et programmer" : "Confirmer et envoyer"}</button>
            </div>
          </div>}
-        {setPhase && setLayers && <div className="mt-4 flex gap-3 border-t border-foreground/50 pt-3"><button onClick={() => { setPhase("avant"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir Avant</button><button onClick={() => { setPhase("pendant"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir Le Jour J</button><button onClick={() => { setPhase("apres"); setLayers([]); setOpen(false); }} className="text-xs text-foreground/60 hover:text-foreground">Voir Après</button></div>}
-    </CenteredBlock>}
+    </CenteredBlock>
   </>;
 }

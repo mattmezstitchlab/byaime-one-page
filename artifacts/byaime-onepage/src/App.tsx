@@ -12,7 +12,6 @@ import { NetworkPage } from '@/pages/Network';
 import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LeMondeAimePage } from '@/pages/LeMondeAime';
 import { LegalPage } from '@/pages/Legal';
-import { CommandBar } from '@/components/CommandBar';
 import { ComposerHero } from '@/components/ComposerHero';
 import { ProjectProvider, useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
@@ -190,14 +189,21 @@ function ProfilePageWrapper() {
   if (!hasProject) return <ComposerHero />;
 
   return (
-    <>
-      <PublicProfilePage privatePreview />
-      <CommandBar />
-    </>
+    <PublicProfilePage privatePreview />
   );
 }
 
-function SignUpPage() {
+function authPath(path: "/sign-in" | "/sign-up", returnTo?: string) {
+  const destination = `${basePath}${path}`;
+  return returnTo ? `${destination}?returnTo=${encodeURIComponent(returnTo)}` : destination;
+}
+
+function invitationReturnPath() {
+  const value = new URLSearchParams(window.location.search).get("returnTo");
+  return value && /^\/invite\/[0-9a-f-]{36}$/i.test(value) ? value : undefined;
+}
+
+function SignUpPage({ returnTo }: { returnTo?: string }) {
   const { isLoaded, isSignedIn } = useAuth();
   const tracked = useRef(false);
   useEffect(() => {
@@ -206,30 +212,39 @@ function SignUpPage() {
       trackEvent('account_created');
     }
   }, [isLoaded, isSignedIn]);
-  return <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />;
+  return <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={authPath("/sign-in", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />;
 }
 function AuthPage({ signup = false }: { signup?: boolean }) {
+  const returnTo = invitationReturnPath();
   return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="relative min-h-[100dvh] bg-background flex items-center justify-center px-4 pb-20"><img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />{signup
-    ? <SignUpPage />
-    : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />}<p className="absolute bottom-6 text-center text-[11px] text-foreground/40"><a href={`${basePath}/conditions`} className="hover:text-foreground">Conditions</a><span className="mx-2">·</span><a href={`${basePath}/confidentialite`} className="hover:text-foreground">Confidentialité</a></p></div>;
+    ? <SignUpPage returnTo={returnTo} />
+    : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={authPath("/sign-up", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />}<p className="absolute bottom-6 text-center text-[11px] text-foreground/40"><a href={`${basePath}/conditions`} className="hover:text-foreground">Conditions</a><span className="mx-2">·</span><a href={`${basePath}/confidentialite`} className="hover:text-foreground">Confidentialité</a></p></div>;
 }
 function InvitePage({ params }: { params: { token: string } }) {
-  const [, navigate] = useLocation();
+  const { isLoaded, isSignedIn } = useAuth();
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
-  return <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6"><div className="text-center">
-    <button data-testid="invite-accept" disabled={pending} className="rounded-full bg-foreground text-background px-6 py-3 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={async () => {
+  const returnTo = `/invite/${params.token}`;
+  return <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6"><div className="max-w-md text-center">
+    <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Droit · Collaboration</p>
+    <h1 className="mt-4 font-display text-3xl font-light">Invitation à collaborer</h1>
+    <p className="mb-7 mt-3 text-sm font-light leading-relaxed text-foreground/55">En acceptant, vous rejoignez ce Monde avec un compte et un rôle. Cette invitation n’est pas une réponse RSVP à l’événement.</p>
+    {!isLoaded ? <p className="text-sm text-foreground/45">Vérification de votre compte…</p> : !isSignedIn ? <div className="flex flex-col items-center gap-3">
+      <a data-testid="invite-sign-in" href={authPath("/sign-in", returnTo)} className="rounded-full bg-foreground px-6 py-3 text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Se connecter pour accepter</a>
+      <a data-testid="invite-sign-up" href={authPath("/sign-up", returnTo)} className="text-sm text-foreground/55 underline decoration-foreground/20 underline-offset-4 hover:text-foreground">Créer un compte avec l’adresse invitée</a>
+      <p className="mt-2 text-xs font-light leading-relaxed text-foreground/40">Après la connexion, vous reviendrez ici pour confirmer l’accès. Utilisez la même adresse e-mail vérifiée que celle ayant reçu l’invitation.</p>
+    </div> : <button data-testid="invite-accept" disabled={pending} className="rounded-full bg-foreground text-background px-6 py-3 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={async () => {
       setPending(true); setError('');
       try {
         const response = await fetch(`/api/invitations/${params.token}/accept`, { method: 'POST' });
         if (!response.ok) throw new Error((await response.json()).error);
-        navigate('/user-portal');
+        window.location.assign(`${basePath}/user-portal`);
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Invitation impossible à accepter');
       } finally {
         setPending(false);
       }
-    }}>{pending ? 'Acceptation…' : "Accepter l'invitation"}</button>
+    }}>{pending ? 'Acceptation…' : "Accepter l’accès au Monde"}</button>}
     {error && <p data-testid="invite-error" className="mt-4 text-sm text-destructive">{error}</p>}
   </div></div>;
 }
@@ -261,7 +276,7 @@ function RsvpPage({ params }: { params: { token: string } }) {
     });
     return () => { active = false; };
   }, [params.token]);
-  if (done) return <main data-testid="rsvp-success" className="min-h-screen bg-background text-foreground grid place-items-center p-6 text-center"><div><h1 className="text-4xl mb-3">Merci</h1><p className="text-foreground/60">Votre réponse a bien été enregistrée.</p></div></main>;
+  if (done) return <main data-testid="rsvp-success" className="min-h-screen bg-background text-foreground grid place-items-center p-6 text-center"><div><p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Participation · {projectTitle}</p><h1 className="mb-3 mt-4 text-4xl">Merci</h1><p className="text-foreground/60">Votre réponse a bien été enregistrée.</p></div></main>;
   if (status === 'error') return <main data-testid="rsvp-page" data-rsvp-state="error" className="min-h-screen bg-background text-foreground grid place-items-center p-6 text-center"><div className="max-w-sm"><p data-testid="rsvp-error" className="text-destructive">{error}</p><button type="button" className="mt-5 rounded-full border border-foreground/20 px-5 py-3 hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => window.location.reload()}>Réessayer</button></div></main>;
   return <main data-testid="rsvp-page" data-rsvp-state={status} className="min-h-screen bg-background text-foreground grid place-items-center p-5"><form data-testid="rsvp-form" className="w-full max-w-lg rounded-3xl border border-border bg-card p-7 space-y-5" onSubmit={async event => {
      event.preventDefault(); if (status !== 'ready') return;
@@ -279,7 +294,7 @@ function RsvpPage({ params }: { params: { token: string } }) {
        setStatus('error');
      }
    }}>
-     <p className="text-xs tracking-[.3em] text-foreground/50">AIME · RSVP</p><h1 data-testid="rsvp-title" className="text-3xl">{projectTitle}</h1>
+      <div><p className="text-xs tracking-[.3em] text-foreground/50">AIME · RSVP</p><h1 data-testid="rsvp-title" className="mt-2 text-3xl">{projectTitle}</h1><p className="mt-2 text-xs font-light leading-relaxed text-foreground/45">Invitation personnelle à participer · aucun accès au Monde</p></div>
      <div className="grid grid-cols-2 gap-2"><button data-testid="rsvp-confirmed" type="button" disabled={status !== 'ready'} onClick={() => setState(s => ({ ...s, status: 'confirmed' }))} className={`rounded-xl p-3 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${state.status === 'confirmed' ? 'bg-foreground text-background border-foreground' : 'border-foreground/20 hover:bg-foreground/5'}`}>Je serai présent·e</button><button data-testid="rsvp-declined" type="button" disabled={status !== 'ready'} onClick={() => setState(s => ({ ...s, status: 'declined' }))} className={`rounded-xl p-3 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${state.status === 'declined' ? 'bg-foreground text-background border-foreground' : 'border-foreground/20 hover:bg-foreground/5'}`}>Je décline</button></div>
      {state.status === 'confirmed' && <div className="grid grid-cols-2 gap-3 text-sm">{(['ceremony', 'cocktail', 'dinner', 'brunch'] as const).map(key => <label key={key} className="flex gap-2 capitalize"><input aria-label={key} name={`rsvp-${key}`} type="checkbox" checked={state[key]} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, [key]: e.target.checked }))} className="accent-foreground" />{key}</label>)}<label className="flex gap-2 col-span-2"><input aria-label="plus-one" name="rsvp-plus-one" type="checkbox" checked={state.plusOne} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, plusOne: e.target.checked }))} className="accent-foreground" />Je viens accompagné·e</label></div>}
      <input aria-label="dietary" name="rsvp-dietary" className="w-full rounded-xl border border-border bg-background p-3 focus:outline-none focus:ring-1 focus:ring-foreground/30" placeholder="Allergies ou régime alimentaire" value={state.dietary} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, dietary: e.target.value }))} />

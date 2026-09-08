@@ -17,6 +17,7 @@ import {
   auditTimelineConnections,
   buildTimelineIndex,
 } from "@/lib/timeline-graph";
+import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
 
 const labels = {
   local: "Local",
@@ -38,6 +39,8 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
     syncError,
     currentRole,
     canEdit,
+    participantLinks,
+    refreshParticipantLinks,
     updateProject,
     importBackup,
     clearProject,
@@ -75,8 +78,13 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
   const canManage = currentRole === "owner" || currentRole === "planner";
   useEffect(() => {
     const openMe = () => setPanel("settings");
+    const openCollaborationInvite = () => setPanel("invite");
     window.addEventListener("aime:open-me", openMe);
-    return () => window.removeEventListener("aime:open-me", openMe);
+    window.addEventListener("aime:open-collaboration-invite", openCollaborationInvite);
+    return () => {
+      window.removeEventListener("aime:open-me", openMe);
+      window.removeEventListener("aime:open-collaboration-invite", openCollaborationInvite);
+    };
   }, []);
   const api = async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, {
@@ -144,14 +152,17 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
     }).click();
     URL.revokeObjectURL(url);
   };
-  const exportCsv = () => {
+  const exportCsv = async () => {
+    const latestLinks = canManage
+      ? await refreshParticipantLinks().catch(() => participantLinks)
+      : participantLinks;
     const quote = (value: unknown) =>
       `"${String(value ?? "").replaceAll('"', '""')}"`;
     download(
       [
         "Nom,Contact,RSVP,Régime,Table",
         ...project.guests.map((g) =>
-          [g.name, g.contact, g.rsvp, g.dietary, g.tableId]
+          [g.name, g.contact, effectiveGuestRsvp(g, latestLinks[g.id]), effectiveGuestDietary(g, latestLinks[g.id]), g.tableId]
             .map(quote)
             .join(","),
         ),
@@ -526,7 +537,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
                 onClick={() => setPanel("invite")}
                 className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Inviter l'équipe
+                Inviter à collaborer
               </button>
             )}
             {canManage && (
@@ -772,9 +783,9 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
       )}
       {panel === "invite" && (
         <CenteredBlock
-          eyebrow="ME · Équipe"
-          title="Inviter une personne"
-          description="Choisissez qui peut rejoindre ce Monde et ce qu’elle pourra y faire."
+          eyebrow="ME · Droit de collaboration"
+          title="Inviter à collaborer"
+          description="Cette invitation crée un accès authentifié au Monde. La personne pourra agir selon le rôle choisi ; ce n’est pas une invitation RSVP à l’événement."
           onClose={() => setPanel("settings")}
         >
           <form
@@ -811,7 +822,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
             </Field>
             <Actions
               onBack={() => setPanel("settings")}
-              submitLabel={submitting ? "Envoi…" : "Envoyer l’invitation"}
+              submitLabel={submitting ? "Envoi…" : "Envoyer l’accès au Monde"}
               disabled={submitting || !inviteEmail.trim()}
             />
           </form>
