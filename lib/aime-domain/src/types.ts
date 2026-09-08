@@ -5,9 +5,35 @@ export type EntityKind =
   | "world"
   | "place"
   | "moment"
+  | "emotion"
   | "resource"
   | "document"
   | "media"
+  | "sound_item"
+  | "sound_sequence"
+  | "sound_sequence_entry"
+  | "sound_folder"
+  | "sound_folder_membership"
+  | "sound_tag"
+  | "sound_tag_membership"
+  | "sound_media_asset"
+  | "sound_media_binding"
+  | "sound_provider_mapping"
+  | "sound_provider_policy"
+  | "sound_rights_statement"
+  | "sound_consent_statement"
+  | "sound_usage_decision"
+  | "sound_publication_record"
+  | "sound_space"
+  | "sound_space_member"
+  | "sound_contribution"
+  | "sound_decision"
+  | "sound_partition"
+  | "sound_playback_plan"
+  | "sound_playback_grant"
+  | "sound_playback_session"
+  | "sound_playback_command"
+  | "sound_playback_event"
   | "proposal"
   | "lab_board";
 
@@ -28,6 +54,16 @@ export type WorldAccessRole =
   | "editor"
   | "contributor"
   | "commenter"
+  | "viewer";
+
+export type SoundAccessRole =
+  | "owner"
+  | "curator"
+  | "contributor"
+  | "commenter"
+  | "reviewer"
+  | "moderator"
+  | "operator"
   | "viewer";
 
 export type LegacyProjectRole = "owner" | "planner" | "family" | "viewer";
@@ -78,6 +114,16 @@ export type Capability =
   | "payment.read"
   | "payment.manage"
   | "media.publish"
+  | "sound.view"
+  | "sound.contribute"
+  | "sound.comment"
+  | "sound.vote"
+  | "sound.review"
+  | "sound.decide"
+  | "sound.publish"
+  | "sound.control_session"
+  | "sound.manage_rights"
+  | "sound.moderate"
   | "moderation.review";
 
 export type SpecializedPermission =
@@ -94,11 +140,17 @@ export type SpecializedPermission =
   | "locations.exact.read"
   | "locations.exact.edit"
   | "media.publish"
+  | "sound.decide"
+  | "sound.publish"
+  | "sound.control_session"
+  | "sound.manage_rights"
+  | "sound.moderate"
   | "moderation.review";
 
 export type CapabilityContext = {
   authenticated: boolean;
   worldRole?: WorldAccessRole;
+  soundRole?: SoundAccessRole;
   socialRelation?: SocialRelation;
   subjectOwned?: boolean;
   ownsContribution?: boolean;
@@ -116,8 +168,8 @@ export type CapabilityDecision = {
   requiresConfirmation?: boolean;
 };
 
-export type UniversalReference = {
-  kind: EntityKind;
+export type UniversalReference<K extends EntityKind = EntityKind> = {
+  kind: K;
   id: EntityId;
 };
 

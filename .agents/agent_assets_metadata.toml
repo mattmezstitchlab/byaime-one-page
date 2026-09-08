@@ -56,3 +56,17 @@ mtime_ms = 1788828777094
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:8f4454b7-0c88-4db5-80bf-a605d8648db6/f3e00863-dd72-44e6-84de-1a43adff7715/69779173-f87f-42c2-8949-c383fc1f22e0"
 storage_version_token = "1788828805448658"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "W2N3shjc_3o7GdZjvRawE"
+uri = "file://research/architecture-timeline-sonore-universelle.md"
+type = "text"
+title = "Architecture de la Timeline sonore universelle"
+description = "Spécification AIME MUSIC : Sound Item, Moments, séquences, collaboration, fournisseurs, droits, lecture future et migration depuis MusicTrack."
+logical_id = "7ea332f1-5cc8-4ff3-ba2b-3075bee10c09"
+content_hash = "sha256:55950260d057f34dfe1dd6d8026a01d2e5dad437d21f99d173a4fbe468462a90"
+size = 40999
+mtime_ms = 1788829640557
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:8f4454b7-0c88-4db5-80bf-a605d8648db6/7ea332f1-5cc8-4ff3-ba2b-3075bee10c09/a4b56b6d-c3ed-40ef-a5a2-c3b74bdce96e"
+storage_version_token = "1788829708883928"
+content_type = "text/markdown"

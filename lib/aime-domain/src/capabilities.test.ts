@@ -108,4 +108,40 @@ describe("universal capability registry", () => {
       }),
     ).toMatchObject({ allowed: true, requiresConfirmation: true });
   });
+
+  it("keeps sound contribution, decision, and session control separate", () => {
+    const contributor = {
+      authenticated: true,
+      soundRole: "contributor" as const,
+    };
+    expect(evaluateCapability("sound.contribute", contributor).allowed).toBe(true);
+    expect(evaluateCapability("sound.decide", contributor).allowed).toBe(false);
+    expect(
+      evaluateCapability("sound.control_session", {
+        authenticated: true,
+        soundRole: "operator",
+      }).allowed,
+    ).toBe(true);
+    expect(
+      evaluateCapability("sound.publish", {
+        authenticated: true,
+        soundRole: "operator",
+      }).allowed,
+    ).toBe(false);
+  });
+
+  it("requires confirmation for sound decisions and publication", () => {
+    expect(
+      evaluateCapability("sound.decide", {
+        authenticated: true,
+        soundRole: "reviewer",
+      }),
+    ).toMatchObject({ allowed: true, requiresConfirmation: true });
+    expect(
+      evaluateCapability("sound.publish", {
+        authenticated: true,
+        soundRole: "moderator",
+      }),
+    ).toMatchObject({ allowed: true, requiresConfirmation: true });
+  });
 });

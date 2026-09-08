@@ -5,6 +5,7 @@ import type {
   DataLevel,
   LegacyProjectRole,
   SpecializedPermission,
+  SoundAccessRole,
   WorldAccessRole,
 } from "./types";
 
@@ -14,6 +15,23 @@ const CONTRIBUTING_ROLES = new Set<WorldAccessRole>([
   "admin",
   "editor",
   "contributor",
+]);
+const SOUND_CONTRIBUTING_ROLES = new Set<SoundAccessRole>([
+  "owner",
+  "curator",
+  "contributor",
+]);
+const SOUND_DISCUSSION_ROLES = new Set<SoundAccessRole>([
+  ...SOUND_CONTRIBUTING_ROLES,
+  "commenter",
+  "reviewer",
+  "moderator",
+]);
+const SOUND_REVIEWING_ROLES = new Set<SoundAccessRole>([
+  "owner",
+  "curator",
+  "reviewer",
+  "moderator",
 ]);
 
 const permission = (
@@ -114,6 +132,9 @@ export function evaluateCapability(
     return context.socialRelation && context.socialRelation !== "visitor"
       ? allow("Relation autorisée avec cette Carte.")
       : deny("Cette Carte n’est pas visible dans ce contexte.");
+  }
+  if (capability === "sound.view") {
+    return canReadDataLevel(context.dataLevel ?? "world", context);
   }
 
   if (!context.authenticated) {
@@ -246,6 +267,57 @@ export function evaluateCapability(
       permission(context, "media.publish")
       ? allow("Publication média autorisée.", true)
       : deny("Les droits de publication du média sont requis.");
+  }
+  if (capability === "sound.contribute") {
+    return context.soundRole &&
+      SOUND_CONTRIBUTING_ROLES.has(context.soundRole)
+      ? allow("Contribution sonore autorisée dans cet espace.")
+      : deny("Un rôle sonore de contribution est requis.");
+  }
+  if (capability === "sound.comment" || capability === "sound.vote") {
+    return context.soundRole &&
+      SOUND_DISCUSSION_ROLES.has(context.soundRole)
+      ? allow("Participation à la discussion sonore autorisée.")
+      : deny("Un rôle sonore de discussion est requis.");
+  }
+  if (capability === "sound.review") {
+    return context.soundRole &&
+      SOUND_REVIEWING_ROLES.has(context.soundRole)
+      ? allow("Revue sonore autorisée.")
+      : deny("Un rôle sonore de revue est requis.");
+  }
+  if (capability === "sound.decide") {
+    return context.soundRole === "owner" ||
+      context.soundRole === "reviewer" ||
+      permission(context, "sound.decide")
+      ? allow("Décision sonore autorisée.", true)
+      : deny("Une autorité sonore de décision est requise.");
+  }
+  if (capability === "sound.publish") {
+    return context.soundRole === "owner" ||
+      context.soundRole === "moderator" ||
+      permission(context, "sound.publish")
+      ? allow("Publication sonore autorisée.", true)
+      : deny("Une autorité sonore de publication est requise.");
+  }
+  if (capability === "sound.control_session") {
+    return context.soundRole === "owner" ||
+      context.soundRole === "operator" ||
+      permission(context, "sound.control_session")
+      ? allow("Contrôle de session sonore autorisé.")
+      : deny("Un rôle de régie sonore est requis.");
+  }
+  if (capability === "sound.manage_rights") {
+    return context.soundRole === "owner" ||
+      permission(context, "sound.manage_rights")
+      ? allow("Gestion des déclarations de droits autorisée.", true)
+      : deny("Une délégation explicite est requise pour gérer les droits.");
+  }
+  if (capability === "sound.moderate") {
+    return context.soundRole === "moderator" ||
+      permission(context, "sound.moderate")
+      ? allow("Modération sonore autorisée.")
+      : deny("Une capacité de modération sonore est requise.");
   }
   if (capability === "moderation.review") {
     return permission(context, "moderation.review")
