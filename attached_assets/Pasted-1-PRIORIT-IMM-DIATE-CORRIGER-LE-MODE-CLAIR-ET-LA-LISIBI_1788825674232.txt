@@ -1,0 +1,616 @@
+1. PRIORITÉ IMMÉDIATE — CORRIGER LE MODE CLAIR ET LA LISIBILITÉ
+
+Avant d’aller plus loin sur les nouvelles fonctionnalités, il faut stabiliser parfaitement le comportement visuel du mode Clair.
+
+Conservation intégrale des visuels
+
+Actuellement, lors du passage en mode Clair, certains visuels semblent être transformés, altérés ou perdre leur rendu initial.
+
+Il faut appliquer une règle stricte :
+
+Le changement de thème ne doit jamais modifier, recolorer, filtrer ou dégrader les médias et visuels originaux.
+
+Les images, pochettes, vidéos, illustrations et visuels doivent donc rester strictement identiques, quel que soit le thème.
+
+Le système de thème doit uniquement agir sur :
+
+* les fonds de l’interface ;
+* les surfaces UI ;
+* les bordures ;
+* les textes ;
+* les icônes ;
+* les ombres ;
+* les composants d’interface.
+
+Les médias doivent rester une source visuelle indépendante du thème.
+
+⸻
+
+2. RÈGLE AUTOMATIQUE DE CONTRASTE SUR LES VISUELS
+
+Il faut également mettre en place une véritable logique de lisibilité.
+
+Lorsqu’un texte est affiché sur un visuel, une image, une couverture ou une vidéo, sa couleur ne doit pas simplement dépendre du mode Clair ou Sombre global.
+
+La règle doit être contextuelle.
+
+Principe
+
+La couleur du texte doit dépendre de son arrière-plan réel, et non uniquement du thème de l’application.
+
+Par exemple :
+
+* fond UI clair → texte sombre ;
+* fond UI sombre → texte clair ;
+* texte superposé à une image sombre → texte blanc ;
+* texte superposé à une image claire → texte sombre ;
+* image avec contraste complexe → ajout automatique d’un gradient, d’un voile ou d’une surface de protection.
+
+Il faut donc créer une couche de contraste intelligente.
+
+Exemple de logique
+
+Lorsqu’un texte est positionné sur un média :
+
+1. analyser ou estimer la luminosité de la zone ;
+2. choisir automatiquement la couleur optimale ;
+3. si le contraste reste insuffisant :
+    * appliquer un léger overlay ;
+    * ou un gradient local derrière le texte ;
+    * sans dénaturer l’image originale.
+
+Objectif :
+
+Toujours garantir une excellente lisibilité sans jamais sacrifier la qualité du visuel.
+
+⸻
+
+3. CAPSULE « AI + ME » — VÉRIFIER SA PERSISTANCE
+
+En mode Clair, la capsule AI + ME disparaît actuellement.
+
+C’est un bug à corriger.
+
+Cette capsule doit être considérée comme un élément important de l’identité et du fonctionnement de l’application.
+
+Il faut vérifier :
+
+* son affichage en mode Clair ;
+* son affichage en mode Sombre ;
+* son contraste ;
+* son responsive ;
+* son z-index ;
+* les éventuels conflits de couleurs ;
+* les éventuelles conditions CSS qui la masquent ;
+* les problèmes liés aux variables de thème.
+
+La règle doit être simple :
+
+AI + ME doit toujours être visible et parfaitement lisible, quel que soit le thème ou la page.
+
+⸻
+
+4. HEADER — BOUTONS « À VÉRIFIER » ET « ÉDITER »
+
+Les boutons actuellement présents dans le header, notamment :
+
+* À vérifier ;
+* Éditer ;
+
+semblent trop imposants.
+
+Ils dépassent visuellement du header ou perturbent son équilibre.
+
+Il faut revoir :
+
+* leur hauteur ;
+* leur padding ;
+* leur taille typographique ;
+* leur largeur ;
+* leur alignement vertical ;
+* leur comportement responsive.
+
+L’objectif est de conserver la fonctionnalité tout en donnant une impression plus précise et plus haut de gamme.
+
+Ils doivent fonctionner davantage comme des actions contextuelles compactes.
+
+Le header doit rester :
+
+* calme ;
+* horizontal ;
+* lisible ;
+* élégant ;
+* sans débordement ;
+* parfaitement aligné.
+
+À vérifier si ces boutons doivent être :
+
+* des capsules compactes ;
+* des boutons icon + texte ;
+* ou des actions secondaires regroupées dans un menu contextuel lorsque l’espace devient insuffisant.
+
+⸻
+
+5. NAVIGATION DU MONDE MARIAGE — SE METTRE D’ACCORD SUR LA STRUCTURE
+
+Il faut maintenant clarifier définitivement la navigation du Monde Mariage.
+
+Une chose est certaine :
+
+MUSIQUE doit rester une entrée majeure du Monde Mariage.
+
+Mais il ne faut surtout pas créer une simple page « Playlist ».
+
+La musique doit devenir un véritable module universel, dont le Mariage est seulement l’une des premières applications.
+
+Cela signifie que l’architecture doit être pensée dès maintenant pour pouvoir servir plus tard :
+
+* un mariage ;
+* une soirée ;
+* une fête ;
+* une émission radio ;
+* une histoire sonore ;
+* un récit vocal ;
+* une expérience artistique ;
+* une installation ;
+* un podcast collaboratif ;
+* une chronologie musicale ;
+* une performance ;
+* un événement collectif.
+
+⸻
+
+6. VISION — LA PLAYLIST UNIVERSELLE AIME
+
+Je veux que l’on commence à considérer la playlist comme un nouvel objet numérique.
+
+Pas simplement :
+
+une liste de morceaux.
+
+Mais :
+
+une ligne du temps sonore vivante.
+
+Chaque élément de cette playlist pourrait être :
+
+* une chanson ;
+* un extrait ;
+* une voix ;
+* un message vocal ;
+* un discours ;
+* un bruit ;
+* une ambiance ;
+* une archive sonore ;
+* une intervention en direct ;
+* un silence ;
+* une transition.
+
+La playlist devient donc un système générique capable de raconter quelque chose dans le temps.
+
+⸻
+
+7. LA PLAYLIST COMME TIMELINE SONORE
+
+Chaque élément doit posséder une position dans le temps.
+
+On pourrait avoir une structure du type :
+
+Timeline
+
+18:00 — Accueil
+18:15 — Musique
+18:22 — Message vocal
+18:24 — Transition
+18:30 — Discours
+18:40 — Musique
+19:00 — Dîner
+21:30 — Ouverture de bal
+23:00 — Set DJ
+02:00 — Fin progressive
+
+Mais cette même structure pourrait fonctionner pour :
+
+Mode Mariage
+
+Musique liée aux moments réels.
+
+Mode Radio
+
+Programmation d’une émission.
+
+Mode Récit
+
+Construction d’une histoire sonore.
+
+Mode Mémoire
+
+Chronologie sonore d’une personne ou d’une famille.
+
+Mode Événement
+
+Coordination musicale d’une soirée.
+
+⸻
+
+8. INNOVATION MAJEURE — LA PLAYLIST COMME UN DJ CONTROLLER INTELLIGENT
+
+C’est là que le concept peut devenir extrêmement puissant.
+
+La playlist ne devrait pas seulement jouer des morceaux l’un après l’autre.
+
+Elle pourrait gérer les transitions entre les contenus.
+
+Par exemple :
+
+* fondu entrant ;
+* fondu sortant ;
+* crossfade ;
+* synchronisation BPM ;
+* transition automatique ;
+* réduction progressive ;
+* silence programmé ;
+* superposition de voix ;
+* ambiance sous une voix ;
+* enchaînement intelligent.
+
+On pourrait donc imaginer une interface inspirée d’un contrôleur DJ, mais beaucoup plus simple et accessible.
+
+Chaque transition pourrait avoir des paramètres :
+
+* durée ;
+* type de fondu ;
+* synchronisation ;
+* volume entrant ;
+* volume sortant ;
+* priorité ;
+* déclenchement automatique ou manuel.
+
+Exemple :
+
+Morceau A
+
+↓ Crossfade 8 secondes
+
+Message vocal de la mariée
+
+↓ Fondu 3 secondes
+
+Morceau B
+
+La playlist devient alors un véritable outil de composition temporelle.
+
+⸻
+
+9. MODE COLLABORATIF
+
+La playlist pourrait également être collaborative.
+
+Mais il faudrait aller plus loin que les playlists collaboratives classiques.
+
+Chaque personne peut :
+
+* proposer un morceau ;
+* ajouter un contenu ;
+* voter ;
+* commenter ;
+* expliquer son choix ;
+* associer un souvenir ;
+* associer une personne ;
+* proposer un moment dans la timeline.
+
+Par exemple :
+
+« Cette chanson représente notre rencontre. »
+
+La chanson devient alors connectée à :
+
+* une personne ;
+* une relation ;
+* un souvenir ;
+* un lieu ;
+* une date ;
+* un événement.
+
+C’est là que la logique AIME devient particulièrement intéressante.
+
+La musique n’est plus isolée.
+
+Elle devient connectée au World Model.
+
+⸻
+
+10. MODE « MONDE ENTIER »
+
+Il faudrait imaginer un mode beaucoup plus ambitieux.
+
+Une playlist peut être locale, privée, collaborative ou mondiale.
+
+Playlist privée
+
+Pour un individu ou un projet.
+
+Playlist événement
+
+Pour un mariage, une soirée ou un événement.
+
+Playlist collaborative
+
+Pour un groupe de personnes.
+
+Playlist mondiale
+
+Des personnes du monde entier peuvent contribuer.
+
+Exemple :
+
+« Quelle chanson représente votre journée aujourd’hui ? »
+
+Chaque personne peut contribuer à une grande playlist mondiale.
+
+Ensuite, le système pourrait visualiser :
+
+* les pays ;
+* les villes ;
+* les tendances ;
+* les genres ;
+* les émotions ;
+* les moments de la journée.
+
+La playlist devient potentiellement une représentation sonore du monde.
+
+⸻
+
+11. DOSSIERS ET UNIVERS MUSICAUX
+
+La playlist ne doit pas être uniquement linéaire.
+
+Il faudrait également pouvoir créer des espaces et dossiers.
+
+Par exemple :
+
+Mariage
+
+* Accueil
+* Cérémonie
+* Cocktail
+* Dîner
+* Ouverture de bal
+* Dancefloor
+* Fin de soirée
+
+Mais également :
+
+Styles
+
+* Jazz
+* House
+* Soul
+* Pop
+* Rock
+* Disco
+* Chill
+* Classique
+
+Et ces deux systèmes doivent pouvoir coexister.
+
+Un morceau peut donc appartenir simultanément à :
+
+* un moment ;
+* un style ;
+* une émotion ;
+* une personne ;
+* une histoire.
+
+⸻
+
+12. LA MUSIQUE COMME DÉCLENCHEUR D’ACTIONS
+
+La playlist pourrait également devenir un moteur d’automatisation.
+
+Par exemple :
+
+À 22:00 :
+
+La playlist déclenche une notification.
+
+« L’ouverture de bal commence dans 10 minutes. »
+
+Ou :
+
+Le morceau suivant approche.
+
+Notification envoyée à :
+
+* les mariés ;
+* le DJ ;
+* le photographe ;
+* le vidéaste ;
+* les invités concernés.
+
+La musique devient alors connectée à l’orchestration réelle de l’événement.
+
+⸻
+
+13. EXEMPLE D’UNE FONCTION TRÈS PUISSANTE
+
+Imaginons :
+
+21:55
+
+La Timeline détecte :
+
+Ouverture de bal à 22:00.
+
+Le système peut automatiquement :
+
+* prévenir les personnes concernées ;
+* préparer le morceau ;
+* afficher une alerte ;
+* prévenir le photographe ;
+* prévenir le vidéaste ;
+* prévenir le DJ ;
+* préparer le prochain événement de la Timeline.
+
+À 22:00 :
+
+lecture du morceau.
+
+À 22:03 :
+
+préparation automatique de la transition suivante.
+
+La playlist devient donc une interface de coordination du réel.
+
+⸻
+
+14. LA PLAYLIST UNIVERSELLE COMME FUTUR MODULE CENTRAL
+
+Je pense qu’il faut architecturer ce module de manière indépendante du Monde Mariage.
+
+Conceptuellement :
+
+AIME MUSIC / SOUND ENGINE
+
+Puis :
+
+Applications
+
+* Mariage
+* Radio
+* Récit
+* Podcast
+* Événement
+* Art
+* Mémoire
+* Monde collaboratif
+
+Le Monde Mariage utilise ce moteur, mais ne le possède pas entièrement.
+
+Cela permettra de faire évoluer la fonctionnalité sans devoir la reconstruire pour chaque univers.
+
+⸻
+
+15. STRUCTURE À ENVISAGER
+
+Chaque élément sonore pourrait être un objet universel.
+
+Sound Item
+
+Avec par exemple :
+
+* ID
+* titre
+* type
+* source
+* durée
+* média
+* auteur
+* contributeur
+* moment dans la Timeline
+* tags
+* style
+* émotion
+* relations
+* transition suivante
+* paramètres audio
+* visibilité
+* permissions
+
+Type :
+
+* musique ;
+* voix ;
+* message ;
+* ambiance ;
+* silence ;
+* live ;
+* archive ;
+* transition.
+
+Cela donnerait à AIME une véritable base pour construire des expériences sonores beaucoup plus ambitieuses.
+
+⸻
+
+16. CE QUE JE VEUX MAINTENANT
+
+Je voudrais donc que l’on procède dans cet ordre :
+
+PRIORITÉ 1 — Stabilisation UI
+
+Corriger parfaitement :
+
+* mode Clair ;
+* conservation des visuels ;
+* contraste automatique des textes sur visuels ;
+* capsule AI + ME ;
+* boutons À vérifier ;
+* boutons Éditer ;
+* header ;
+* responsive.
+
+PRIORITÉ 2 — Architecture Navigation Mariage
+
+Valider définitivement la place de :
+
+* Musique ;
+* Timeline ;
+* Personnes ;
+* Documents ;
+* Finances ;
+* autres modules.
+
+PRIORITÉ 3 — Audit de l’actuelle Playlist
+
+Faire un audit de l’existant :
+
+* composants ;
+* données ;
+* modèle ;
+* interactions ;
+* Timeline ;
+* fournisseurs média ;
+* lecture audio ;
+* collaboration.
+
+PRIORITÉ 4 — Concevoir « Playlist Universelle »
+
+Préparer une architecture capable d’évoluer vers :
+
+une ligne du temps sonore collaborative, synchronisée et connectée au réel.
+
+L’objectif n’est pas d’implémenter immédiatement toutes ces fonctionnalités.
+
+L’objectif est surtout de ne pas enfermer l’actuelle playlist dans une simple logique de « liste de chansons ».
+
+⸻
+
+VISION FINALE
+
+La playlist pourrait devenir l’un des objets les plus puissants de l’écosystème AIME.
+
+Au départ :
+
+Une playlist de mariage.
+
+Puis :
+
+Une playlist événementielle.
+
+Puis :
+
+Une Timeline sonore collaborative.
+
+Puis :
+
+Un système capable de synchroniser des personnes, des histoires, des voix, des musiques et des événements.
+
+Et potentiellement :
+
+Une manière d’écouter et de raconter le monde dans le temps.
+
+La musique devient alors un prétexte pour inventer une nouvelle interface temporelle et collaborative, capable de relier :
+
+LE SON → LE TEMPS → LES PERSONNES → LES ÉMOTIONS → LES ÉVÉNEMENTS → LE MONDE.
+
+C’est cette direction qu’il faut commencer à préparer dans l’architecture actuelle.
