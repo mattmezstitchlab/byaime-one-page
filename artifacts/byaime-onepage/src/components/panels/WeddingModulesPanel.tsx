@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle } from "lucide-react";
-import type { MemoryItem, Payment } from "@/lib/types";
+import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck } from "lucide-react";
+import type { MemoryItem, MusicSearchResult, MusicTrack, Payment } from "@/lib/types";
+import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import type { WeddingModule } from "@/lib/wedding-navigation";
 
 export type { WeddingModule } from "@/lib/wedding-navigation";
@@ -12,6 +13,27 @@ const euro = (cents: number) => `${(cents / 100).toLocaleString("fr-FR")} €`;
 const newId = () => Math.random().toString(36).slice(2, 9);
 type StoredFile = { id: string; name: string; contentType: string; size: number; createdAt?: string };
 type SentMessage = { id: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; sentAt?: string | null; createdAt: string };
+const MUSIC_SOURCE = "Apple Music / iTunes";
+
+async function searchAppleMusic(term: string, signal: AbortSignal): Promise<MusicSearchResult[]> {
+  const params = new URLSearchParams({ term, country: "fr", media: "music", entity: "song", limit: "12" });
+  const response = await fetch(`https://itunes.apple.com/search?${params.toString()}`, { signal });
+  if (!response.ok) throw new Error("Le catalogue musical n’est pas disponible pour le moment.");
+  const body = await response.json() as { results?: Array<Record<string, unknown>> };
+  return (body.results || [])
+    .filter(result => typeof result.trackId === "number" && typeof result.trackName === "string" && typeof result.artistName === "string")
+    .map(result => ({
+      provider: "apple_music" as const,
+      externalId: String(result.trackId),
+      title: String(result.trackName),
+      artist: String(result.artistName),
+      collectionName: typeof result.collectionName === "string" ? result.collectionName : undefined,
+      artworkUrl: typeof result.artworkUrl100 === "string" ? result.artworkUrl100.replace("100x100", "300x300") : undefined,
+      durationMs: typeof result.trackTimeMillis === "number" ? result.trackTimeMillis : undefined,
+      previewUrl: typeof result.previewUrl === "string" ? result.previewUrl : undefined,
+      trackUrl: typeof result.trackViewUrl === "string" ? result.trackViewUrl : undefined,
+    }));
+}
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
@@ -42,6 +64,12 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [busy, setBusy] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [recipients, setRecipients] = useState("");
+  const [musicQuery, setMusicQuery] = useState("");
+  const [musicResults, setMusicResults] = useState<MusicSearchResult[]>([]);
+  const [musicSearchBusy, setMusicSearchBusy] = useState(false);
+  const [musicSearchError, setMusicSearchError] = useState("");
+  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
+  const musicSearchAbortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const canManage = currentRole === "owner" || currentRole === "planner";
   const projectId = project?.id;
@@ -161,7 +189,82 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     return <div className="max-w-3xl mx-auto space-y-5"><EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={notes => updateProject({ ceremony: { ...c, notes } })} /><div className="grid gap-3 sm:grid-cols-2"><EditableArea label="Menu" value={c.menu} onChange={menu => updateProject({ ceremony: { ...c, menu } })} /><EditableArea label="Boissons" value={c.drinks} onChange={drinks => updateProject({ ceremony: { ...c, drinks } })} /><EditableArea label="Gâteau" value={c.cake} onChange={cake => updateProject({ ceremony: { ...c, cake } })} /><EditableArea label="Première danse" value={c.firstDance} onChange={firstDance => updateProject({ ceremony: { ...c, firstDance } })} /></div><div className="rounded-2xl border border-foreground/10 p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Structure</p>{c.structure.map((item, i) => <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm"><span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>{item}</div>)}</div><div className="rounded-2xl border border-foreground/10 p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Lectures et vœux</p>{c.readings.map(r => <div key={r.id} className="mb-3"><p className="text-sm">{r.title} <span className="text-foreground/40">· {r.reader}</span></p><p className="text-xs text-foreground/45 mt-1">{r.text}</p></div>)}{c.vows.map(v => <EditableArea key={v.id} label={`Vœux de ${v.person}`} value={v.text} onChange={text => updateProject({ ceremony: { ...c, vows: c.vows.map(x => x.id === v.id ? { ...x, text } : x) } })} />)}</div></div>;
   }
 
-  if (module === "music") return <CollectionPanel title="Morceaux reliés aux Moments" addLabel="Relier un morceau" onAdd={() => addEntity("music", { moment: "Nouveau Moment", title: "À choisir", artist: "", status: "a_choisir" })}>{project.music.length === 0 ? <Empty>Aucun morceau n’est encore relié à un Moment.</Empty> : project.music.map(track => <div key={track.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4 flex gap-4 items-center"><button onClick={() => updateEntity("music", track.id, { status: track.status === "valide" ? "a_choisir" : "valide" })} className={cn("w-7 h-7 rounded-full border flex items-center justify-center", track.status === "valide" ? "border-emerald-400 text-emerald-300" : "border-foreground/20 text-foreground/30")}>{track.status === "valide" && <Check className="w-3.5 h-3.5" />}</button><div className="grid flex-1 gap-2 sm:grid-cols-3"><input value={track.moment} onChange={e => updateEntity("music", track.id, { moment: e.target.value })} className="bg-transparent text-xs text-foreground/50 outline-none" /><input value={track.title} onChange={e => updateEntity("music", track.id, { title: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={track.artist} onChange={e => updateEntity("music", track.id, { artist: e.target.value })} placeholder="Artiste" className="bg-transparent text-sm text-foreground/60 outline-none placeholder:text-foreground/25" /></div><button onClick={() => removeEntity("music", track.id)} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>)}</CollectionPanel>;
+  if (module === "music") {
+    const timelineMusicEvents = [...project.timeline].sort((a, b) => a.time - b.time);
+    const selectedTrack = project.music.find(track => track.id === selectedMusicId) || project.music[0];
+    const runMusicSearch = async () => {
+      const term = musicQuery.trim();
+      if (term.length < 2) {
+        setMusicSearchError("Saisissez au moins deux caractères.");
+        setMusicResults([]);
+        return;
+      }
+      setMusicSearchBusy(true);
+      setMusicSearchError("");
+      musicSearchAbortRef.current?.abort();
+      const controller = new AbortController();
+      musicSearchAbortRef.current = controller;
+      try {
+        setMusicResults(await searchAppleMusic(term, controller.signal));
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setMusicSearchError(error instanceof Error ? error.message : "Recherche impossible.");
+      } finally {
+        setMusicSearchBusy(false);
+      }
+    };
+    const selectMusicResult = (result: MusicSearchResult) => {
+      if (!selectedTrack) return;
+      const currentEventIds = musicEventIdsForTrack(project, selectedTrack.id);
+      const nextProject = linkMusicTrackToEvents({
+        ...project,
+        music: project.music.map(track => track.id === selectedTrack.id ? {
+          ...track,
+          title: result.title,
+          artist: result.artist,
+          status: "valide" as const,
+          provenance: "integration" as const,
+          metadataStatus: "verified" as const,
+          external: {
+            provider: result.provider,
+            externalId: result.externalId,
+            verifiedAt: Date.now(),
+            artworkUrl: result.artworkUrl,
+            durationMs: result.durationMs,
+            previewUrl: result.previewUrl,
+            trackUrl: result.trackUrl,
+            collectionName: result.collectionName,
+          },
+        } : track),
+      }, selectedTrack.id, currentEventIds);
+      updateProject(nextProject);
+    };
+    const toggleTrackEvent = (track: MusicTrack, eventId: string) => {
+      const current = musicEventIdsForTrack(project, track.id);
+      const next = current.includes(eventId) ? current.filter(id => id !== eventId) : [...current, eventId];
+      updateProject(linkMusicTrackToEvents(project, track.id, next));
+    };
+    return <div className="max-w-4xl mx-auto space-y-5">
+      <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <ShieldCheck className="h-4 w-4 text-emerald-300" />
+          <span className="font-medium text-emerald-200">Source autorisée connectée</span>
+          <span className="text-foreground/40">· {MUSIC_SOURCE}</span>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-foreground/55">Les métadonnées et les pochettes viennent du catalogue Apple. Un aperçu audio est affiché uniquement quand Apple fournit un extrait légal pour ce morceau.</p>
+      </div>
+      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.025] p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="min-w-[220px] flex-1"><span className="mb-2 block text-[10px] uppercase tracking-widest text-foreground/40">Rechercher dans {MUSIC_SOURCE}</span><input value={musicQuery} onChange={event => setMusicQuery(event.target.value)} onKeyDown={event => { if (event.key === "Enter") void runMusicSearch(); }} placeholder="Titre ou artiste" className="w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-sm outline-none focus:border-foreground/30" /></label>
+          <button type="button" disabled={musicSearchBusy} onClick={() => void runMusicSearch()} className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-medium text-black disabled:opacity-40">{musicSearchBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}Rechercher</button>
+        </div>
+        {musicSearchError && <p role="alert" className="mt-3 text-xs text-rose-200">{musicSearchError}</p>}
+        {musicResults.length > 0 && <div className="mt-4 space-y-2 border-t border-foreground/10 pt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Résultats réels</p>{selectedTrack && <label className="flex items-center gap-2 text-xs text-foreground/55">Relier à<select value={selectedTrack.id} onChange={event => setSelectedMusicId(event.target.value)} className="rounded-lg bg-foreground/10 px-2 py-1 text-xs text-foreground outline-none">{project.music.map(track => <option key={track.id} value={track.id}>{track.moment}</option>)}</select></label>}</div>{musicResults.map(result => <MusicSearchResultRow key={`${result.provider}:${result.externalId}`} result={result} disabled={!selectedTrack} onSelect={() => selectMusicResult(result)} />)}</div>}
+      </div>
+      <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Morceaux reliés aux Moments</h4><p className="mt-1 text-xs text-foreground/40">Chaque morceau peut être relié à un ou plusieurs événements de la Timeline.</p></div><AddBar label="Saisie manuelle" onAdd={() => addEntity("music", { moment: "Nouveau Moment", title: "À choisir", artist: "", status: "a_choisir", metadataStatus: "manual", provenance: "real", timelineEventIds: [] })} /></div>
+      {project.music.length === 0 ? <Empty>Aucun morceau n’est encore relié à un Moment.</Empty> : project.music.map(track => <MusicTrackRow key={track.id} track={track} timelineEvents={timelineMusicEvents} linkedEventIds={musicEventIdsForTrack(project, track.id)} onToggleEvent={eventId => toggleTrackEvent(track, eventId)} onUpdate={updates => updateEntity("music", track.id, updates)} onDelete={() => removeEntity("music", track.id)} />)}
+    </div>;
+  }
 
   if (module === "logistics") {
     const l = project.logistics;
@@ -189,6 +292,87 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
 function GuestSeat({ guest, tables, onChange }: { guest: { name: string; tableId?: string; dietary?: string }; tables: { id: string; name: string }[]; onChange: (value: string) => void }) {
   return <div className="flex items-center gap-2 rounded-xl bg-background/20 px-3 py-2"><span className="text-sm flex-1 truncate">{guest.name}{guest.dietary && <span className="text-[10px] text-amber-300 ml-2">{guest.dietary}</span>}</span><select value={guest.tableId || ""} onChange={e => onChange(e.target.value)} className="max-w-[130px] rounded-lg bg-foreground/10 px-2 py-1.5 text-xs outline-none"><option value="">Sans table</option>{tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>;
+}
+
+function formatTrackDuration(durationMs?: number) {
+  if (!durationMs || durationMs <= 0) return null;
+  const totalSeconds = Math.round(durationMs / 1000);
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+function TrackArtwork({ track, size = "md" }: { track: Pick<MusicTrack, "external">; size?: "sm" | "md" }) {
+  const artwork = track.external?.artworkUrl;
+  const className = size === "sm" ? "h-12 w-12 rounded-lg" : "h-16 w-16 rounded-xl";
+  return artwork
+    ? <img src={artwork} alt="" className={`${className} shrink-0 object-cover`} />
+    : <div className={`${className} flex shrink-0 items-center justify-center border border-foreground/10 bg-foreground/[.06] px-1 text-center text-[9px] uppercase leading-tight tracking-wider text-foreground/35`}>Cover indisponible</div>;
+}
+
+function MusicSearchResultRow({ result, disabled, onSelect }: { result: MusicSearchResult; disabled: boolean; onSelect: () => void }) {
+  return <div className="flex flex-wrap items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/[.025] p-3">
+    {result.artworkUrl ? <img src={result.artworkUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-foreground/10 text-[9px] uppercase leading-tight tracking-wider text-foreground/35">Cover indisponible</div>}
+    <div className="min-w-[160px] flex-1">
+      <p className="truncate text-sm">{result.title}</p>
+      <p className="mt-1 truncate text-xs text-foreground/50">{result.artist}{result.collectionName ? ` · ${result.collectionName}` : ""}</p>
+      <p className="mt-1 text-[10px] text-emerald-300/80">Métadonnées vérifiées · {formatTrackDuration(result.durationMs) || "durée indisponible"}{result.previewUrl ? " · aperçu disponible" : " · aperçu indisponible"}</p>
+    </div>
+    {result.previewUrl && <audio controls preload="none" src={result.previewUrl} className="h-8 max-w-[190px]" aria-label={`Écouter un aperçu de ${result.title}`} />}
+    {result.trackUrl && <a href={result.trackUrl} target="_blank" rel="noreferrer" aria-label={`Ouvrir ${result.title} dans ${MUSIC_SOURCE}`} className="p-2 text-foreground/40 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a>}
+    <button type="button" disabled={disabled} onClick={onSelect} className="rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/70 transition hover:border-foreground/40 hover:text-foreground disabled:opacity-35">Relier</button>
+  </div>;
+}
+
+function MusicTrackRow({
+  track,
+  timelineEvents,
+  linkedEventIds,
+  onToggleEvent,
+  onUpdate,
+  onDelete,
+}: {
+  track: MusicTrack;
+  timelineEvents: { id: string; title: string; time: number }[];
+  linkedEventIds: string[];
+  onToggleEvent: (eventId: string) => void;
+  onUpdate: (updates: Partial<MusicTrack>) => void;
+  onDelete: () => void;
+}) {
+  const verified = Boolean(track.external);
+  const duration = formatTrackDuration(track.external?.durationMs);
+  return <div className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4">
+    <div className="flex items-start gap-3">
+      <TrackArtwork track={track} />
+      <button type="button" onClick={() => onUpdate({ status: track.status === "valide" ? "a_choisir" : "valide" })} aria-label={track.status === "valide" ? `Marquer ${track.title} à choisir` : `Valider ${track.title}`} className={cn("mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border", track.status === "valide" ? "border-emerald-400 text-emerald-300" : "border-foreground/20 text-foreground/30")}>{track.status === "valide" && <Check className="h-3.5 w-3.5" />}</button>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={cn("rounded-full border px-2 py-1 text-[10px]", verified ? "border-emerald-300/20 text-emerald-200" : "border-amber-300/20 text-amber-200")}>{verified ? `Métadonnées vérifiées · ${MUSIC_SOURCE}` : "Saisie manuelle · non vérifiée"}</span>
+          {track.provenance === "demo" && <span className="text-[10px] text-foreground/35">Exemple initial</span>}
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <input value={track.moment} onChange={event => onUpdate({ moment: event.target.value })} placeholder="Moment" className="bg-transparent text-xs text-foreground/55 outline-none" />
+          <input value={track.title} disabled={verified} onChange={event => onUpdate({ title: event.target.value })} className="bg-transparent text-sm outline-none disabled:text-foreground/80" />
+          <input value={track.artist} disabled={verified} onChange={event => onUpdate({ artist: event.target.value })} placeholder="Artiste" className="bg-transparent text-sm text-foreground/60 outline-none placeholder:text-foreground/25 disabled:text-foreground/60" />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
+          {duration && <span>{duration}</span>}
+          {verified && track.external?.previewUrl
+            ? <audio controls preload="none" src={track.external.previewUrl} className="h-8 max-w-[220px]" aria-label={`Écouter un aperçu de ${track.title}`} />
+            : <span className={cn(verified ? "text-amber-200/80" : "text-foreground/35")}>{verified ? "Lecture indisponible pour ce titre" : "Aucun aperçu : morceau saisi manuellement"}</span>}
+          {verified && track.external?.trackUrl && <a href={track.external.trackUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-foreground"><ExternalLink className="h-3.5 w-3.5" />Ouvrir dans Apple Music</a>}
+        </div>
+      </div>
+      <button type="button" onClick={onDelete} aria-label={`Supprimer ${track.title}`} className="text-foreground/30 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button>
+    </div>
+    <div className="mt-4 border-t border-foreground/10 pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[10px] uppercase tracking-widest text-foreground/40">Moments de la Timeline</p>
+        <span className="text-[10px] text-foreground/35">{linkedEventIds.length} lié{linkedEventIds.length > 1 ? "s" : ""}</span>
+      </div>
+      {timelineEvents.length === 0
+        ? <p className="mt-2 text-xs text-foreground/35">Aucun événement disponible.</p>
+        : <div className="mt-2 grid max-h-44 gap-1 overflow-y-auto pr-1 sm:grid-cols-2">{timelineEvents.map(event => <label key={event.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-foreground/60 hover:bg-foreground/5"><input type="checkbox" checked={linkedEventIds.includes(event.id)} onChange={() => onToggleEvent(event.id)} className="accent-white" /><span className="truncate">{event.title}</span></label>)}</div>}
+    </div>
+  </div>;
 }
 
 function PaymentRow({ payment, onToggle, onDelete, onEdit }: { payment: Payment; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {

@@ -44,6 +44,35 @@ export function eventsForEntity(project: WorldProject, kind: TimelineEntityKind,
   return buildTimelineIndex(project).reverse.get(key(kind, id)) || [];
 }
 
+export function musicEventIdsForTrack(project: WorldProject, trackId: string): string[] {
+  const track = project.music.find(item => item.id === trackId);
+  const ids = [
+    ...(track?.timelineEventIds || []),
+    ...project.timeline
+      .filter(event => event.relations?.some(relation => relation.kind === "music" && relation.id === trackId))
+      .map(event => event.id),
+  ];
+  return [...new Set(ids)].filter(id => project.timeline.some(event => event.id === id));
+}
+
+export function linkMusicTrackToEvents(project: WorldProject, trackId: string, eventIds: string[]): WorldProject {
+  const track = project.music.find(item => item.id === trackId);
+  if (!track) throw new Error("Morceau introuvable");
+  const selectedIds = new Set(eventIds.filter(id => project.timeline.some(event => event.id === id)));
+  return {
+    ...project,
+    music: project.music.map(item => item.id === trackId
+      ? { ...item, timelineEventIds: [...selectedIds] }
+      : item),
+    timeline: project.timeline.map(event => {
+      const relations = (event.relations || []).filter(relation => !(relation.kind === "music" && relation.id === trackId));
+      return selectedIds.has(event.id)
+        ? { ...event, relations: [...relations, { kind: "music" as const, id: trackId, role: "bande-son" }] }
+        : { ...event, relations };
+    }),
+  };
+}
+
 export type TimelineConflict = { eventIds: [string, string]; type: "resource" | "person" | "provider"; message: string };
 export function findTimelineConflicts(events: TimelineEvent[]): TimelineConflict[] {
   const sorted = [...events].sort((a, b) => a.time - b.time);

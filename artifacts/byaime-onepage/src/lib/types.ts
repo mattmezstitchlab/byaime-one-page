@@ -118,6 +118,19 @@ export type CeremonyContent = {
   firstDance: string;
 };
 
+export type MusicProvider = "apple_music";
+export type MusicMetadataStatus = "verified" | "manual";
+export type MusicTrackExternal = {
+  provider: MusicProvider;
+  externalId: string;
+  verifiedAt: number;
+  artworkUrl?: string;
+  durationMs?: number;
+  previewUrl?: string;
+  trackUrl?: string;
+  collectionName?: string;
+};
+
 export type MusicTrack = {
   id: string;
   moment: string;
@@ -127,7 +140,20 @@ export type MusicTrack = {
   notes?: string;
   timelineEventIds?: string[];
   provenance?: TimelineProvenance;
-  external?: { provider: string; externalId: string; verifiedAt: number };
+  metadataStatus?: MusicMetadataStatus;
+  external?: MusicTrackExternal;
+};
+
+export type MusicSearchResult = {
+  provider: MusicProvider;
+  externalId: string;
+  title: string;
+  artist: string;
+  collectionName?: string;
+  artworkUrl?: string;
+  durationMs?: number;
+  previewUrl?: string;
+  trackUrl?: string;
 };
 
 export type TeamRole = {

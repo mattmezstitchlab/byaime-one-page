@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInitialProject, parseIntention } from "./parser";
-import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, findTimelineConflicts, planEventPropagation } from "./timeline-graph";
+import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, findTimelineConflicts, linkMusicTrackToEvents, musicEventIdsForTrack, planEventPropagation } from "./timeline-graph";
 import { normalizeProject } from "./project-migration";
 
 const project = () => createInitialProject(parseIntention("Mariage le 14 août 2027 à Lille"), "Mariage le 14 août 2027 à Lille");
@@ -44,5 +44,18 @@ describe("timeline graph", () => {
     expect(applied.timeline.find(event => event.id === "dj3")?.time).toBe(source.time + 30 * 60000);
     expect(applied.timeline.find(event => event.id === "after-dj")?.time).toBe(source.time + 90 * 60000);
     expect(applied.timeline.find(event => event.id === "unrelated")?.time).toBe(source.time + 7200000);
+  });
+  it("keeps music links synchronized in both directions", () => {
+    const value = project();
+    const linked = linkMusicTrackToEvents(value, "m2", ["dj3", "dj6"]);
+    expect(linked.music.find(track => track.id === "m2")?.timelineEventIds).toEqual(["dj3", "dj6"]);
+    expect(linked.timeline.find(event => event.id === "dj3")?.relations?.some(relation => relation.kind === "music" && relation.id === "m2")).toBe(true);
+    expect(linked.timeline.find(event => event.id === "dj6")?.relations?.some(relation => relation.kind === "music" && relation.id === "m2")).toBe(true);
+    expect(musicEventIdsForTrack(linked, "m2")).toEqual(["dj3", "dj6"]);
+
+    const unlinked = linkMusicTrackToEvents(linked, "m2", ["dj6"]);
+    expect(unlinked.music.find(track => track.id === "m2")?.timelineEventIds).toEqual(["dj6"]);
+    expect(unlinked.timeline.find(event => event.id === "dj3")?.relations?.some(relation => relation.kind === "music" && relation.id === "m2")).toBe(false);
+    expect(unlinked.timeline.find(event => event.id === "dj6")?.relations?.some(relation => relation.kind === "music" && relation.id === "m2")).toBe(true);
   });
 });
