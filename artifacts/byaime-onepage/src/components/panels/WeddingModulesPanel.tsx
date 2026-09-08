@@ -61,11 +61,29 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers },
   });
   const body = response.status === 204 ? null : await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body?.error || `Erreur ${response.status}`);
+  if (!response.ok) throw new Error(body?.error || body?.providerError || `Erreur ${response.status}`);
   return body as T;
 }
 
 const fileSize = (bytes: number) => bytes < 1_000_000 ? `${Math.max(1, Math.round(bytes / 1_000))} Ko` : `${(bytes / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
+
+function putFile(uploadURL: string, file: File, onProgress: (progress: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", uploadURL);
+    request.setRequestHeader("Content-Type", file.type);
+    request.upload.addEventListener("progress", event => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    });
+    request.addEventListener("load", () => {
+      if (request.status >= 200 && request.status < 300) resolve();
+      else reject(new Error("Échec du transfert vers le stockage privé"));
+    });
+    request.addEventListener("error", () => reject(new Error("Le transfert a été interrompu par le réseau")));
+    request.addEventListener("abort", () => reject(new Error("Le transfert a été annulé")));
+    request.send(file);
+  });
+}
 
 function AddBar({ label, onAdd }: { label: string; onAdd: () => void }) {
   return <button onClick={onAdd} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 hover:bg-white hover:text-black transition-colors"><Plus className="w-3.5 h-3.5" />{label}</button>;
@@ -82,6 +100,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [messages, setMessages] = useState<SentMessage[]>([]);
   const [remoteError, setRemoteError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [recipients, setRecipients] = useState("");
   const [rescheduleAt, setRescheduleAt] = useState<Record<string, string>>({});
@@ -132,14 +151,14 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const addPayment = () => addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
   const uploadFile = async (file: File) => {
     setBusy(true);
+    setUploadProgress(0);
     setRemoteError("");
     try {
       const request = await api<{ uploadURL: string; objectPath: string; finalizeToken: string }>("/storage/uploads/request-url", {
         method: "POST",
         body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type }),
       });
-      const uploaded = await fetch(request.uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-      if (!uploaded.ok) throw new Error("Échec du transfert vers le stockage privé");
+      await putFile(request.uploadURL, file, setUploadProgress);
       await api("/storage/files", {
         method: "POST",
         body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath, finalizeToken: request.finalizeToken }),
@@ -149,6 +168,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       setRemoteError(error instanceof Error ? error.message : "Ajout impossible");
     } finally {
       setBusy(false);
+      setUploadProgress(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
@@ -307,6 +327,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     <PersistenceState status={syncStatus} error={syncError} />
     <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-foreground/70">Documents & médias privés</p><p className="mt-1 text-xs text-foreground/40">Stockés dans l’espace sécurisé de ce Monde.</p></div>{canManage && <><button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter un fichier</button><input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => event.target.files?.[0] && void uploadFile(event.target.files[0])} /></>}</div>
     {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
+    {uploadProgress !== null && <div role="status" aria-live="polite" className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3"><div className="flex justify-between text-xs text-amber-100"><span>Transfert vers l’espace privé</span><span>{uploadProgress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10"><div className="h-full rounded-full bg-amber-200 transition-[width]" style={{ width: `${uploadProgress}%` }} /></div></div>}
     {files.length === 0 ? <Empty>Aucun document stocké.</Empty> : <div className="space-y-2">{files.map(file => <div key={file.id} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="min-w-0 flex-1"><p className="truncate text-sm">{file.name}</p><p className="mt-1 text-xs text-foreground/35">{fileSize(file.size)} · {file.contentType || "fichier"}</p></div><a aria-label={`Aperçu de ${file.name}`} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="p-2 text-foreground/45 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a><a aria-label={`Télécharger ${file.name}`} href={`/api/storage/files/${file.id}?download=1`} className="p-2 text-foreground/45 hover:text-foreground"><Download className="h-4 w-4" /></a>{canManage && <button disabled={busy} aria-label={`Supprimer ${file.name}`} onClick={() => void deleteFile(file)} className="p-2 text-foreground/30 hover:text-rose-300 disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>}
     {!canManage && <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent consulter ou modifier ces documents privés.</p>}
   </div>;

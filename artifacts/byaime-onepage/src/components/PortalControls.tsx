@@ -28,6 +28,24 @@ const labels = {
   conflict: "À vérifier",
 };
 
+function putFile(uploadURL: string, file: File, onProgress: (progress: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", uploadURL);
+    request.setRequestHeader("Content-Type", file.type);
+    request.upload.addEventListener("progress", event => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    });
+    request.addEventListener("load", () => {
+      if (request.status >= 200 && request.status < 300) resolve();
+      else reject(new Error("Échec du transfert vers l’espace privé"));
+    });
+    request.addEventListener("error", () => reject(new Error("Le transfert a été interrompu par le réseau")));
+    request.addEventListener("abort", () => reject(new Error("Le transfert a été annulé")));
+    request.send(file);
+  });
+}
+
 export function PortalControls({ embedded = false }: { embedded?: boolean }) {
   const { signOut } = useClerk();
   const { user } = useUser();
@@ -73,6 +91,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
   const [deleteAccountConfirmation, setDeleteAccountConfirmation] =
     useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingSaveSeenRef = useRef(false);
   const canManage = currentRole === "owner" || currentRole === "planner";
@@ -226,6 +245,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
   };
   const upload = async (file: File) => {
     setSubmitting(true);
+    setUploadProgress(0);
     setNotice(`Transfert de ${file.name} en cours…`);
     try {
       const request = await api("/storage/uploads/request-url", {
@@ -237,12 +257,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
           contentType: file.type,
         }),
       });
-      const uploaded = await fetch(request.uploadURL, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!uploaded.ok) throw new Error("Échec du transfert vers App Storage");
+      await putFile(request.uploadURL, file, setUploadProgress);
       await api("/storage/files", {
         method: "POST",
         body: JSON.stringify({
@@ -259,6 +274,7 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
       setNotice(`${file.name} est enregistré dans l’espace privé`);
     } finally {
       setSubmitting(false);
+      setUploadProgress(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
@@ -530,6 +546,17 @@ export function PortalControls({ embedded = false }: { embedded?: boolean }) {
             <p className="mb-5 border-l border-foreground/30 py-1 pl-3 text-sm text-foreground/60">
               {notice}
             </p>
+          )}
+          {uploadProgress !== null && (
+            <div role="status" aria-live="polite" className="mb-5 rounded-xl border border-border bg-card p-3">
+              <div className="flex justify-between text-xs text-foreground/60">
+                <span>Transfert vers l’espace privé</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10">
+                <div className="h-full rounded-full bg-foreground transition-[width]" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            </div>
           )}
           <div className="grid grid-cols-2 gap-2">
             {canManage && (
