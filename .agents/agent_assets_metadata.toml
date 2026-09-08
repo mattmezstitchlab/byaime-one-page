@@ -14,3 +14,31 @@ mtime_ms = 1788823155645
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:8f4454b7-0c88-4db5-80bf-a605d8648db6/2577f0e9-f550-4f68-afba-e0de57f19874/2545cab5-4e00-4385-86ce-0967958a8957"
 storage_version_token = "1788823182969467"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "RnAPgbS8MSnyI9qkkWT5u"
+uri = "file://research/notes.md"
+type = "text"
+title = "Notes de recherche — Timeline sonore mondiale"
+description = "Plan, couverture et constats en cours pour l’étude approfondie d’AIME."
+logical_id = "b5c4446c-f210-4d03-b84c-b6a9bbf371cb"
+content_hash = "sha256:bdd8ea8305ea9f44e9641039164fe13aae38a9bfeab1b8aa6747703d9d9ff33f"
+size = 3141
+mtime_ms = 1788827701006
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:8f4454b7-0c88-4db5-80bf-a605d8648db6/b5c4446c-f210-4d03-b84c-b6a9bbf371cb/e3c3c637-617f-43f8-bbfa-434c134c94e7"
+storage_version_token = "1788827701567548"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "0EFfEFYdBL8M8TBhFMa4G"
+uri = "file://research/timeline-sonore-mondiale-aime.md"
+type = "text"
+title = "Recherche mondiale — Timeline sonore d’AIME"
+description = "Rapport approfondi : plateformes, droits, collaboration, standards, mémoire culturelle et ordre de migration recommandé."
+logical_id = "5f8ebbf1-790e-41ae-8802-11cef5eb8f6f"
+content_hash = "sha256:3ecc14dac683f3ee785d13e9a91387efbc92bb38e786418cc81b4234386f41b5"
+size = 53004
+mtime_ms = 1788828442218
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:8f4454b7-0c88-4db5-80bf-a605d8648db6/5f8ebbf1-790e-41ae-8802-11cef5eb8f6f/cbba8204-6adb-41c8-853f-0e529ae40b99"
+storage_version_token = "1788828490366429"
+content_type = "text/markdown"

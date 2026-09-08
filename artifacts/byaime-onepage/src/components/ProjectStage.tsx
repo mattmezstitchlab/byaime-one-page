@@ -9,12 +9,18 @@ import { CommandBar } from './CommandBar';
 import { UniversalTimeline } from './UniversalTimeline';
 import { PlayMode } from './PlayMode';
 import { BottomDock } from './BottomDock';
-import { BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Moon, Settings, Sun, UserCheck, UserRound } from 'lucide-react';
+import { BookOpen, Bug, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Grid2X2, Moon, Settings, Sun, UserCheck, UserRound, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import type { Guest, Provider } from '@/lib/types';
+import {
+  isWeddingDestinationActive,
+  WEDDING_PRIMARY_NAVIGATION,
+  type WeddingDestination,
+  type WeddingPanelId,
+} from '@/lib/wedding-navigation';
 
 const providerImages: Partial<Record<Provider['category'], string>> = {
   lieu: 'images/visual-venue-kJsZKZPp.jpg',
@@ -84,6 +90,7 @@ export function ProjectStage() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
   const [aimeMenuOpen, setAimeMenuOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<WeddingPanelId | null>(null);
   const [countdownsOpen, setCountdownsOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -221,6 +228,20 @@ export function ProjectStage() {
     const minutes = Math.floor((distance % 3600000) / 60000);
     return days > 0 ? `${days} j · ${hours} h` : hours > 0 ? `${hours} h · ${minutes} min` : `${minutes} min`;
   };
+  const openWeddingDestination = (destination: WeddingDestination) => {
+    if (destination.kind === "panel") {
+      setActivePanel(destination.panel);
+      return;
+    }
+    if (destination.kind === "view") {
+      setActivePanel(null);
+      setView(destination.view);
+      if (destination.view === "public-info") setPhase("tout");
+    }
+  };
+  const sectionsAreActive = activePanel === "sections"
+    || (activePanel !== null && !["documents", "budget", "music"].includes(activePanel))
+    || view === "public-info";
 
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
@@ -427,38 +448,42 @@ export function ProjectStage() {
         </div>
       </header>
 
-      <nav aria-label="Vues du Monde" className="border-y border-border bg-card">
-        <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 py-4 hide-scrollbar">
-          {([
-            ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["map", "Grille"], ["day-of", "Jour J"], ["person", "Invités"], ["provider", "Professionnels"],
-            ["music", "Musique"], ["logistics", "Organisation"], ["collaborative", "En équipe"], ["memories", "Souvenirs"],
-          ] as Array<[TimelineView, string]>).map(([id, label]) => id === "map" ? (
+      <nav aria-label="Navigation principale du Mariage" className="sticky top-[57px] z-40 border-y border-border bg-card/95 backdrop-blur-xl sm:top-[61px]">
+        <div className="mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-3 hide-scrollbar sm:px-6">
+          {WEDDING_PRIMARY_NAVIGATION.map(item => item.destination.kind === "route" ? (
             <Link
-              key={id}
-              href="/network"
-              className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-foreground/60 transition-colors hover:border-foreground/30 hover:text-foreground"
+              key={item.id}
+              href={item.destination.href}
+              title={item.description}
+              className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {label}
+              {item.label}
             </Link>
           ) : (
-              <button
-                key={id}
-                onClick={() => {
-                  setView(id);
-                  if (id === "public-info") setPhase("tout");
-                }}
-                className={cn(
-                  "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
-                  view === id ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/60 hover:border-foreground/30 hover:text-foreground"
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          <button type="button" onClick={() => setRsvpOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-foreground/60 transition-colors hover:border-foreground/30 hover:text-foreground">
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => openWeddingDestination(item.destination)}
+              aria-current={isWeddingDestinationActive(item.destination, view, activePanel) ? "page" : undefined}
+              aria-label={`${item.label} — ${item.description}`}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isWeddingDestinationActive(item.destination, view, activePanel)
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground"
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+          <span className="mx-1 h-5 w-px shrink-0 bg-border" />
+          <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
+            <Grid2X2 className="h-3.5 w-3.5" /> Sections
+          </button>
+          <button type="button" onClick={() => setRsvpOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground">
             Je participe
           </button>
-          <button type="button" onClick={() => setFundOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-foreground/60 transition-colors hover:border-foreground/30 hover:text-foreground">
+          <button type="button" onClick={() => setFundOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground">
             Cagnotte
           </button>
         </div>
@@ -466,6 +491,20 @@ export function ProjectStage() {
 
       {/* Main Content Area */}
       <main className="w-full">
+        {view === "music" && (
+          <section className="border-b border-border bg-card px-6 py-16">
+            <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[1fr_auto] md:items-end">
+              <div className="max-w-2xl">
+                <p className="flex items-center gap-2 text-[10px] uppercase tracking-[.24em] text-foreground/45"><Waves className="h-4 w-4" /> Projection sonore</p>
+                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">La musique suit les Moments.</h2>
+                <p className="mt-5 text-sm font-light leading-relaxed text-foreground/60">Ici, la musique n’est pas une playlist isolée : elle révèle les morceaux, les silences et les intentions reliés à la Timeline du mariage.</p>
+              </div>
+              <button type="button" onClick={() => setActivePanel("music")} className="w-fit rounded-full border border-foreground/15 px-5 py-3 text-[10px] uppercase tracking-[.16em] text-foreground/75 transition hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Gérer les morceaux reliés
+              </button>
+            </div>
+          </section>
+        )}
         {view === "person" && (
           <section className="overflow-hidden border-b border-border bg-card px-6 py-20">
             <div className="mx-auto max-w-5xl">
@@ -502,7 +541,11 @@ export function ProjectStage() {
       </main>
 
       <CommandBar setPhase={setPhase} setLayers={setLayers} />
-      <BottomDock phase={phase} view={view} onPhaseChange={nextPhase => {
+      <BottomDock phase={phase} view={view} activePanel={activePanel} onPanelChange={setActivePanel} onViewChange={nextView => {
+        setActivePanel(null);
+        setView(nextView);
+        if (nextView === "public-info") setPhase("tout");
+      }} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
       }} onPlay={() => setPlayMode(true)} />

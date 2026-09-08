@@ -88,10 +88,10 @@ export function NetworkPage() {
           <div className="flex items-center justify-between border-b border-foreground/10 px-6 py-5 mt-14 md:mt-0">
              <div>
                <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="AIME" className="mb-3 h-9 w-auto rounded-xl" />
-               <h1 className="font-display text-xl font-medium tracking-tight">Réseau AIME</h1>
-               <p className="text-[10px] text-foreground/50 tracking-widest uppercase mt-1">Personnes et professionnels</p>
+               <h1 className="font-display text-xl font-medium tracking-tight">Personnes</h1>
+               <p className="mt-1 text-[10px] uppercase tracking-widest text-foreground/50">Réseau du Monde</p>
              </div>
-             <Link href="/user-portal" className="flex h-10 w-10 items-center justify-center rounded-full border border-foreground/15 bg-foreground/5 hover:bg-foreground/10 hover:text-foreground text-foreground/70 transition-colors">
+             <Link href="/user-portal" aria-label="Retour au Monde Mariage" title="Retour au Monde Mariage" className="flex h-10 w-10 items-center justify-center rounded-full border border-foreground/15 bg-foreground/5 hover:bg-foreground/10 hover:text-foreground text-foreground/70 transition-colors">
                <ArrowLeft className="h-4 w-4" />
              </Link>
           </div>

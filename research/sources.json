@@ -1,0 +1,464 @@
+{
+  "platforms-01": {
+    "title": "Spotify, Web Playback SDK Reference",
+    "url": "https://developer.spotify.com/documentation/web-playback-sdk/reference",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-01-spotify-web-playback-reference.md"
+  },
+  "platforms-02": {
+    "title": "Apple, Apple Music API",
+    "url": "https://developer.apple.com/documentation/applemusicapi",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-02-apple-music-api.md"
+  },
+  "platforms-03": {
+    "title": "Google/YouTube, YouTube API Services — Developer Policies",
+    "url": "https://developers.google.com/youtube/terms/developer-policies",
+    "publicationDate": "2026-06-24",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-03-youtube-developer-policies.md"
+  },
+  "platforms-04": {
+    "title": "MusicBrainz, MusicBrainz Identifier",
+    "url": "https://musicbrainz.org/doc/MusicBrainz_Identifier",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-05": {
+    "title": "MusicBrainz, MusicBrainz API / Search",
+    "url": "https://musicbrainz.org/doc/MusicBrainz_API/Search",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-06": {
+    "title": "MusicBrainz, MusicBrainz API",
+    "url": "https://musicbrainz.org/doc/MusicBrainz_API",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-07": {
+    "title": "ListenBrainz, ListenBrainz API",
+    "url": "https://listenbrainz.readthedocs.io/en/latest/users/api/index.html",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-08": {
+    "title": "ListenBrainz, Metadata",
+    "url": "https://listenbrainz.readthedocs.io/en/latest/users/api/metadata.html",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-09": {
+    "title": "SoundCloud, API Guide",
+    "url": "https://developers.soundcloud.com/docs/api",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-10": {
+    "title": "SoundCloud, Developer prerequisites",
+    "url": "https://developers.soundcloud.com/docs",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-11": {
+    "title": "Deezer, FAQs For Developers",
+    "url": "https://support.deezer.com/hc/en-gb/articles/360011538897-Deezer-FAQs-For-Developers",
+    "publicationDate": "2025-05-14",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-12": {
+    "title": "TIDAL, Developer Platform Overview",
+    "url": "https://developer.tidal.com/documentation",
+    "publicationDate": "date non affichée",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-13": {
+    "title": "ISO, ISO 3901:2019 — International Standard Recording Code",
+    "url": "https://www.iso.org/standard/64817.html",
+    "publicationDate": "2019-02",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "platforms-14": {
+    "title": "IFPI, International Standard Recording Code Handbook",
+    "url": "https://isrc.ifpi.org/images/downloads/ISRC_Handbook.pdf",
+    "publicationDate": "2021",
+    "tier": 1,
+    "evidencePath": "research/sources/platforms-snippets.md"
+  },
+  "rights-01": {
+    "title": "EU copyright law",
+    "url": "https://digital-strategy.ec.europa.eu/en/policies/copyright-legislation",
+    "publicationDate": "22 juin 2026",
+    "tier": 1,
+    "evidencePath": "research/sources/rights-01-eu-copyright-legislation.md"
+  },
+  "rights-02": {
+    "title": "New EU copyright rules",
+    "url": "https://ec.europa.eu/commission/presscorner/detail/en/ip_21_1807",
+    "publicationDate": "4 juin 2021",
+    "tier": 1,
+    "evidencePath": "research/sources/rights-snippets.md"
+  },
+  "rights-03": {
+    "title": "Copyright and the Music Marketplace: Executive Summary",
+    "url": "https://www.copyright.gov/policy/musiclicensingstudy/executive-summary.pdf",
+    "publicationDate": "février 2015, 2e impression mai 2016",
+    "tier": 1,
+    "evidencePath": "research/sources/rights-02b-usco-music-marketplace-summary.md"
+  },
+  "rights-04": {
+    "title": "Droits des mineurs",
+    "url": "https://www.cnil.fr/fr/cnil-droits/droits-des-mineurs?page=1",
+    "publicationDate": "recommandations de juin 2021",
+    "tier": 1,
+    "evidencePath": "research/sources/rights-03-cnil-droits-mineurs.md"
+  },
+  "rights-05": {
+    "title": "Droit à l’effacement",
+    "url": "https://www.autoriteprotectiondonnees.be/professionnel/rgpd-/droits-des-citoyens/droit-a-l-effacement",
+    "publicationDate": "date non indiquée; consulté le 8 septembre 2026",
+    "tier": 1,
+    "evidencePath": "research/sources/rights-snippets.md"
+  },
+  "rights-06": {
+    "title": "Intellectual Property and Music",
+    "url": "https://www.wipo.int/en/web/music",
+    "publicationDate": "date non indiquée; consulté le 8 septembre 2026",
+    "tier": 1,
+    "evidencePath": "research/sources/rights-snippets.md"
+  },
+  "rights-07": {
+    "title": "DSA Transparency Database",
+    "url": "https://transparency.dsa.ec.europa.eu/",
+    "publicationDate": "base dynamique; consultée le 8 septembre 2026",
+    "tier": 1,
+    "evidencePath": "research/sources/rights-snippets.md"
+  },
+  "rights-08": {
+    "title": "Event Music: Music Licensing Facts",
+    "url": "https://tseentertainment.com/event-music-music-licensing-facts",
+    "publicationDate": "date non indiquée; consulté le 8 septembre 2026",
+    "tier": 2,
+    "evidencePath": "research/sources/rights-snippets.md"
+  },
+  "collaboration-01": {
+    "title": "Start or join a Jam — Spotify Support",
+    "url": "https://support.spotify.com/us/article/jam",
+    "publicationDate": "date non indiquée (consulté le 8 septembre 2026)",
+    "tier": 1,
+    "evidencePath": "research/sources/collaboration-01-spotify-jam.md"
+  },
+  "collaboration-02": {
+    "title": "Collaborate on a playlist in Music on iPhone — Apple Support",
+    "url": "https://support.apple.com/guide/iphone/collaborate-on-a-playlist-iphcbe62053f/ios",
+    "publicationDate": "guide iOS 18/26; date éditoriale non indiquée (consulté le 8 septembre 2026)",
+    "tier": 1,
+    "evidencePath": "research/sources/collaboration-02-apple-collaborative-playlists.md"
+  },
+  "collaboration-03": {
+    "title": "Conformity Behavior in Music Playlist Creation in a Group — Christine Bauer et Bruce Ferwerda",
+    "url": "http://diva-portal.org/smash/get/diva2:1393660/FULLTEXT01.pdf",
+    "publicationDate": "25–30 avril 2020",
+    "tier": 1,
+    "evidencePath": "research/sources/collaboration-03-conformity-group-playlists.md"
+  },
+  "collaboration-04": {
+    "title": "Guest Music Requests at Wedding - Interactive Playlist via QR Code — Weddie.app",
+    "url": "https://www.weddie.app/en/music",
+    "publicationDate": "date non indiquée (consulté le 8 septembre 2026)",
+    "tier": 3,
+    "evidencePath": "research/sources/collaboration-snippets.md"
+  },
+  "collaboration-05": {
+    "title": "Shared Wedding Playlist with QR Code | Crowdsource Your Music — Wedibox",
+    "url": "https://www.wedibox.com/features/shared-playlist",
+    "publicationDate": "date non indiquée (consulté le 8 septembre 2026)",
+    "tier": 3,
+    "evidencePath": "research/sources/collaboration-snippets.md"
+  },
+  "standards-01": {
+    "title": "Web Annotation Data Model",
+    "url": "https://www.w3.org/TR/annotation-model/",
+    "publicationDate": "2017-02-23",
+    "tier": 1,
+    "evidencePath": "research/sources/standards-01-w3c-web-annotation.md"
+  },
+  "standards-02": {
+    "title": "IIIF Presentation API 3.0",
+    "url": "https://iiif.io/api/presentation/3.0/",
+    "publicationDate": "2020-06-03",
+    "tier": 1,
+    "evidencePath": "research/sources/standards-02-iiif-presentation-3.md"
+  },
+  "standards-03": {
+    "title": "EBUCore Ontology Documentation",
+    "url": "https://www.ebu.ch/metadata/ontologies/ebucore/",
+    "publicationDate": "2020/version 1.10",
+    "tier": 1,
+    "evidencePath": "research/sources/standards-03-ebucore-ontology.md"
+  },
+  "standards-04": {
+    "title": "Media Fragments URI 1.0",
+    "url": "https://www.w3.org/TR/media-frags",
+    "publicationDate": "2012-09-25",
+    "tier": 1,
+    "evidencePath": "research/sources/standards-snippets.md"
+  },
+  "standards-05": {
+    "title": "PROV-O",
+    "url": "https://www.w3.org/TR/prov-o",
+    "publicationDate": "2013-04-30",
+    "tier": 1,
+    "evidencePath": "research/sources/standards-snippets.md"
+  },
+  "standards-06": {
+    "title": "WebVTT",
+    "url": "https://www.w3.org/TR/webvtt1",
+    "publicationDate": "2026-05-20",
+    "tier": 1,
+    "evidencePath": "research/sources/standards-snippets.md"
+  },
+  "standards-07": {
+    "title": "IPTC Photo Metadata Standard",
+    "url": "https://iptc.org/standards/photo-metadata/iptc-standard",
+    "publicationDate": "non daté",
+    "tier": 1,
+    "evidencePath": "research/sources/standards-snippets.md"
+  },
+  "standards-08": {
+    "title": "MusicRecording",
+    "url": "https://schema.org/MusicRecording",
+    "publicationDate": "version développement observée juillet 2026",
+    "tier": 2,
+    "evidencePath": "research/sources/standards-snippets.md"
+  },
+  "human-world-01": {
+    "title": "UNESCO, Oral traditions and expressions including language…",
+    "url": "https://ich.unesco.org/en/oral-traditions-and-expressions-00053",
+    "publicationDate": "date non indiquée",
+    "tier": 1,
+    "evidencePath": "research/sources/human-world-01-unesco-oral-traditions.md"
+  },
+  "human-world-02": {
+    "title": "Oral History Association, OHA Statement on Ethics",
+    "url": "https://oralhistory.org/oha-statement-on-ethics/",
+    "publicationDate": "2025",
+    "tier": 2,
+    "evidencePath": "research/sources/human-world-02-oha-ethics.md"
+  },
+  "human-world-03": {
+    "title": "W3C WAI, Transcripts",
+    "url": "https://www.w3.org/WAI/media/av/transcripts",
+    "publicationDate": "date non indiquée",
+    "tier": 1,
+    "evidencePath": "research/sources/human-world-03-w3c-transcripts.md"
+  },
+  "human-world-04": {
+    "title": "OHA, Rolling Consent",
+    "url": "https://oralhistory.org/rolling-consent/",
+    "publicationDate": "date non indiquée",
+    "tier": 2,
+    "evidencePath": "research/sources/human-world-snippets.md"
+  },
+  "human-world-05": {
+    "title": "WIPO, Traditional Cultural Expressions",
+    "url": "https://www.wipo.int/en/web/traditional-knowledge/traditional-cultural-expressions/index",
+    "publicationDate": "date non indiquée",
+    "tier": 1,
+    "evidencePath": "research/sources/human-world-snippets.md"
+  },
+  "human-world-06": {
+    "title": "WIPO, Digitizing Traditional Culture",
+    "url": "https://www.wipo.int/en/web/traditional-knowledge/traditional-cultural-expressions/digitizing-traditional-culture",
+    "publicationDate": "date non indiquée",
+    "tier": 1,
+    "evidencePath": "research/sources/human-world-snippets.md"
+  },
+  "human-world-07": {
+    "title": "Cities and Memory, Global sound map",
+    "url": "https://citiesandmemory.com/",
+    "publicationDate": "date non indiquée",
+    "tier": 2,
+    "evidencePath": "research/sources/human-world-snippets.md"
+  },
+  "human-world-08": {
+    "title": "Springer, Supporting intergenerational memento storytelling…",
+    "url": "https://link.springer.com/article/10.1007/s00779-020-01364-9",
+    "publicationDate": "25 janvier 2020",
+    "tier": 1,
+    "evidencePath": "research/sources/human-world-snippets.md"
+  },
+  "human-world-09": {
+    "title": "UBC School of Music, Hungry Listening",
+    "url": "https://music.ubc.ca/publications/hungry-listening/",
+    "publicationDate": "ouvrage 2020",
+    "tier": 1,
+    "evidencePath": "research/sources/human-world-snippets.md"
+  },
+  "human-world-10": {
+    "title": "IASA, Guidelines on the Production and Preservation of Digital Audio Objects",
+    "url": "https://www.iasa-web.org/tc04/audio-preservation",
+    "publicationDate": "2009",
+    "tier": 2,
+    "evidencePath": "research/sources/human-world-snippets.md"
+  },
+  "gap-rights-01": {
+    "title": "La SACEM et la diffusion d'œuvres musicales",
+    "url": "https://associations.gouv.fr/la-sacem-et-la-diffusion-doeuvres-musicales",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-rights-01-france-sacem-evenements.md"
+  },
+  "gap-rights-02": {
+    "title": "Autorisation diffusion de musique — La Sacem",
+    "url": "https://clients.sacem.fr/autorisations",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 2,
+    "evidencePath": "research/sources/gap-rights-snippets.md"
+  },
+  "gap-rights-03": {
+    "title": "Community Building Music Licence",
+    "url": "https://pplprs.co.uk/themusiclicence/sectors/community",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 2,
+    "evidencePath": "research/sources/gap-rights-02-uk-ppl-prs-community.md"
+  },
+  "gap-rights-04": {
+    "title": "About PPL PRS",
+    "url": "https://pplprs.co.uk/about-pplprs",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 2,
+    "evidencePath": "research/sources/gap-rights-snippets.md"
+  },
+  "gap-rights-05": {
+    "title": "Why ASCAP Licenses Bars, Restaurants & Music Venues",
+    "url": "https://www.ascap.com/help/ascap-licensing/why-ascap-licenses-bars-restaurants-music-venues",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 2,
+    "evidencePath": "research/sources/gap-rights-03-us-ascap-venues.md"
+  },
+  "gap-rights-06": {
+    "title": "The Digital Millennium Copyright Act",
+    "url": "https://www.copyright.gov/dmca",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-rights-snippets.md"
+  },
+  "gap-rights-07": {
+    "title": "DMCA Designated Agent Directory",
+    "url": "https://www.copyright.gov/dmca-directory",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-rights-snippets.md"
+  },
+  "gap-rights-08": {
+    "title": "Guidance on Article 17 of Directive 2019/790",
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML?uri=CELEX%3A52021DC0288",
+    "publicationDate": "2021-06-04",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-rights-snippets.md"
+  },
+  "gap-rights-09": {
+    "title": "Directive 2014/26/EU",
+    "url": "https://eur-lex.europa.eu/eli/dir/2014/26/oj/eng",
+    "publicationDate": "2014-02-26",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-rights-snippets.md"
+  },
+  "gap-rights-10": {
+    "title": "Online Music Licensing — A Way Out of the Maze",
+    "url": "https://www.wipo.int/en/web/wipo-magazine/articles/online-music-licensing-a-way-out-of-the-maze-37595",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 2,
+    "evidencePath": "research/sources/gap-rights-snippets.md"
+  },
+  "gap-governance-01": {
+    "title": "The CARE Principles for Indigenous Data Governance",
+    "url": "https://www.gida-global.org/careprinciples",
+    "publicationDate": "2019",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-governance-01-care-principles.md"
+  },
+  "gap-governance-02": {
+    "title": "Traditional Knowledge Labels",
+    "url": "https://localcontexts.org/labels/traditional-knowledge-labels",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-governance-snippets.md"
+  },
+  "gap-governance-03": {
+    "title": "Recommended Formats Statement — Audio Works",
+    "url": "https://www.loc.gov/preservation/resources/rfs/audio.html",
+    "publicationDate": "édition 2025–2026",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-governance-02-loc-audio-formats.md"
+  },
+  "gap-governance-04": {
+    "title": "Activity Vocabulary",
+    "url": "https://www.w3.org/TR/activitystreams-vocabulary",
+    "publicationDate": "2017-05-23",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-governance-03-activitystreams-vocabulary.md"
+  },
+  "gap-governance-05": {
+    "title": "PROV-Overview",
+    "url": "https://www.w3.org/TR/prov-overview",
+    "publicationDate": "2013-04-30",
+    "tier": 1,
+    "evidencePath": "research/sources/gap-governance-snippets.md"
+  },
+  "gap-governance-06": {
+    "title": "Guidelines for Social Justice Oral History Work",
+    "url": "https://oralhistory.org/guidelines-for-social-justice-oral-history-work/",
+    "publicationDate": "2022",
+    "tier": 2,
+    "evidencePath": "research/sources/gap-governance-snippets.md"
+  },
+  "gap-governance-07": {
+    "title": "Ethics of Care: Applying Cultural Protocols to Indigenous Sound Recordings",
+    "url": "https://digitalcommons.usu.edu/westernarchives/vol16/iss1/1/",
+    "publicationDate": "2025",
+    "tier": 2,
+    "evidencePath": "research/sources/gap-governance-snippets.md"
+  },
+  "gap-governance-08": {
+    "title": "Oral-history ethics and withdrawal",
+    "url": "https://storytelling.concordia.ca/resources/ethics",
+    "publicationDate": "non indiquée ; consulté 2026-09-08",
+    "tier": 2,
+    "evidencePath": "research/sources/gap-governance-snippets.md"
+  },
+  "freshness-01": {
+    "title": "February 2026 Web API Dev Mode Changes — Migration Guide",
+    "url": "https://developer.spotify.com/documentation/web-api/tutorials/february-2026-migration-guide",
+    "publicationDate": "février 2026",
+    "tier": 1,
+    "evidencePath": "research/sources/freshness-01-spotify-february-2026.md"
+  },
+  "freshness-02": {
+    "title": "Integrate MusicKit into your app — WWDC26",
+    "url": "https://developer.apple.com/videos/play/wwdc2026/254",
+    "publicationDate": "2026",
+    "tier": 1,
+    "evidencePath": "research/sources/freshness-02-apple-musickit-wwdc26.md"
+  },
+  "freshness-03": {
+    "title": "YouTube Data API Revision History",
+    "url": "https://developers.google.com/youtube/v3/revision_history",
+    "publicationDate": "mis à jour 2026-07-08",
+    "tier": 1,
+    "evidencePath": "research/sources/freshness-03-youtube-revision-2026.md"
+  }
+}
