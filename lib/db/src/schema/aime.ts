@@ -53,6 +53,11 @@ export const filesTable = pgTable("aime_files", {
   name: text("name").notNull(),
   contentType: text("content_type").notNull(),
   size: integer("size").notNull(),
+  guestId: text("guest_id"),
+  moderationStatus: text("moderation_status").notNull().default("approved"),
+  visibility: text("visibility").notNull().default("private"),
+  caption: text("caption"),
+  consent: boolean("consent").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -84,12 +89,26 @@ export const rsvpsTable = pgTable("aime_rsvps", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [uniqueIndex("aime_rsvp_project_guest").on(table.projectId, table.guestId)]);
 
+export const songRequestsTable = pgTable("aime_song_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  guestId: text("guest_id").notNull(),
+  title: text("title").notNull(),
+  artist: text("artist").notNull(),
+  message: text("message"),
+  status: text("status").notNull().default("new"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertProjectSchema = createInsertSchema(projectsTable);
 export const insertMembershipSchema = createInsertSchema(membershipsTable);
 export const insertInvitationSchema = createInsertSchema(invitationsTable);
 export const insertFileSchema = createInsertSchema(filesTable);
 export const insertMessageSchema = createInsertSchema(messagesTable);
 export const insertRsvpSchema = createInsertSchema(rsvpsTable);
+export const insertSongRequestSchema = createInsertSchema(songRequestsTable);
 
 export type Project = typeof projectsTable.$inferSelect;
 export type Membership = typeof membershipsTable.$inferSelect;
+export type SongRequest = typeof songRequestsTable.$inferSelect;

@@ -8,7 +8,7 @@ import { Link } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
 import { BottomDock } from './BottomDock';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Gift, Grid2X2, Waves } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Grid2X2, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { TimelineAudit } from './TimelineAudit';
@@ -16,8 +16,9 @@ import { CenteredBlock } from './CenteredBlock';
 import type { Guest, Provider } from '@/lib/types';
 import {
   isWeddingDestinationActive,
+  getWeddingCapabilities,
+  getWeddingNavigation,
   getInitialWorldPhase,
-  WEDDING_PRIMARY_NAVIGATION,
   type WorldPhase,
   type WeddingDestination,
   type WeddingPanelId,
@@ -87,11 +88,10 @@ function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; inde
 }
 
 export function ProjectStage() {
-  const { project, projects, selectProject, updateProject, canEdit } = useProject();
+  const { project, projects, selectProject, updateProject, canEdit, currentRole } = useProject();
   const pivotDate = project?.pivot.value ?? Date.now();
   const [phase, setPhase] = useState<WorldPhase>(() => getInitialWorldPhase(pivotDate));
   const [view, setView] = useState<TimelineView>("chronological");
-  const [fundOpen, setFundOpen] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
@@ -118,6 +118,19 @@ export function ProjectStage() {
     if (!project) return;
     setPhase(getInitialWorldPhase(project.pivot.value));
   }, [project?.id]);
+
+  const navigation = useMemo(
+    () => getWeddingNavigation(phase, getWeddingCapabilities(currentRole)),
+    [phase, currentRole],
+  );
+
+  useEffect(() => {
+    if (!activePanel) return;
+    const available = [...navigation.primary, ...navigation.secondary].some(
+      item => item.destination.kind === "panel" && item.destination.panel === activePanel,
+    );
+    if (activePanel !== "sections" && !available) setActivePanel(null);
+  }, [activePanel, navigation]);
 
   useEffect(() => {
     const openCreateTarget = (action: UniversalCreateActionId | undefined) => {
@@ -425,7 +438,7 @@ export function ProjectStage() {
 
       <nav aria-label="Navigation principale du Mariage" className="sticky top-[57px] z-40 border-y border-border bg-card/95 backdrop-blur-xl sm:top-[61px]">
         <div className="mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-3 hide-scrollbar sm:px-6">
-          {WEDDING_PRIMARY_NAVIGATION.map(item => item.destination.kind === "route" ? (
+          {navigation.primary.map(item => item.destination.kind === "route" ? (
             <Link
               key={item.id}
               href={item.destination.href}
@@ -454,9 +467,6 @@ export function ProjectStage() {
           <span className="mx-1 h-5 w-px shrink-0 bg-border" />
           <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
             <Grid2X2 className="h-3.5 w-3.5" /> Sections
-          </button>
-          <button type="button" onClick={() => setFundOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground">
-            Cagnotte
           </button>
           <TimelinePlayback events={visibleEvents} />
         </div>
@@ -513,22 +523,13 @@ export function ProjectStage() {
         </div>
       </main>
 
-      <BottomDock phase={phase} view={view} activePanel={activePanel} onPanelChange={setActivePanel} onViewChange={nextView => {
+      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} onPanelChange={setActivePanel} onViewChange={nextView => {
         setActivePanel(null);
         setView(nextView);
       }} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
       }} />
-
-      {fundOpen && (
-        <CenteredBlock eyebrow="Soutenir ce Monde" title="Cagnotte" description="Un même espace pour contribuer à un projet, faire un don à une association ou rémunérer une personne depuis son Profil." onClose={() => setFundOpen(false)} leading={<span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-foreground/5"><Gift className="h-5 w-5 text-foreground/70" /></span>}>
-          <div className="rounded-2xl border border-dashed border-foreground/20 px-6 py-10 text-center">
-            <p className="text-sm text-foreground/70">Aucune cagnotte n’est ouverte pour le moment.</p>
-            <p className="mt-2 text-xs font-light leading-relaxed text-foreground/50">Les montants, bénéficiaires, frais et conditions devront être affichés clairement avant d’activer un paiement réel.</p>
-          </div>
-        </CenteredBlock>
-      )}
       {tasksOpen && (
         <CenteredBlock
           eyebrow="Progression du Monde"

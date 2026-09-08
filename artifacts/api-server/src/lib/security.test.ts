@@ -3,6 +3,7 @@ import {
   configuredAppOrigin,
   safeDownloadName,
   signUploadAuthorization,
+  uploadedObjectMetadataMatches,
   verifyUploadAuthorization,
 } from "./security";
 
@@ -49,5 +50,13 @@ describe("security helpers", () => {
     expect(configuredAppOrigin("aime.example,other.example", "production")).toBe("https://aime.example");
     expect(() => configuredAppOrigin(undefined, "production")).toThrow();
     expect(configuredAppOrigin(undefined, "development")).toBe("http://localhost");
+  });
+
+  it("rejects uploaded objects whose real type or size differs from the signed claims", () => {
+    const expected = { contentType: "image/jpeg", size: 42 };
+    expect(uploadedObjectMetadataMatches(expected, { contentType: "image/jpeg", size: "42" })).toBe(true);
+    expect(uploadedObjectMetadataMatches(expected, { contentType: "text/html", size: "42" })).toBe(false);
+    expect(uploadedObjectMetadataMatches(expected, { contentType: "image/jpeg", size: "42000" })).toBe(false);
+    expect(uploadedObjectMetadataMatches(expected, { contentType: "image/jpeg; charset=utf-8", size: "42" })).toBe(true);
   });
 });

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { clerkClient, getAuth } from "@clerk/express";
 import { ReplitConnectors } from "@replit/connectors-sdk";
-import { and, eq, isNull, lte, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import {
   db,
   filesTable,
@@ -12,6 +12,7 @@ import {
   messagesTable,
   projectsTable,
   rsvpsTable,
+  songRequestsTable,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -19,6 +20,7 @@ import {
   ObjectStorageService,
 } from "../lib/objectStorage";
 import { authenticatedUserId, can, type ProjectRole } from "../lib/permissions";
+import { buildParticipantProjection, participantNameById } from "../lib/participantProjection";
 import { projectToPublicProfile } from "../lib/publicProfile";
 import { buildAuthorizedWeddingBrief } from "../lib/weddingBrief";
 import {
@@ -35,6 +37,7 @@ import {
   createRateLimit,
   safeDownloadName,
   signUploadAuthorization,
+  uploadedObjectMetadataMatches,
   verifyUploadAuthorization,
 } from "../lib/security";
 import { logger } from "../lib/logger";
@@ -194,6 +197,40 @@ const rsvpInput = z.object({
   plusOne: z.boolean(),
   notes: z.string().max(2000).optional(),
 });
+const participantUploadInput = z.object({
+  name: z.string().trim().min(1).max(240),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "video/mp4"]),
+  size: z.number().int().positive().max(MAX_FILE_SIZE),
+});
+const participantMediaFinalize = participantUploadInput.extend({
+  objectPath: z.string().regex(/^\/objects\/uploads\/[a-f0-9-]+$/i),
+  finalizeToken: z.string().min(32).max(4096),
+  caption: z.string().trim().max(1_000).optional(),
+  visibility: z.enum(["couple", "guests"]),
+  consent: z.literal(true),
+});
+const songRequestInput = z.object({
+  title: z.string().trim().min(1).max(200),
+  artist: z.string().trim().min(1).max(200),
+  message: z.string().trim().max(1_000).optional(),
+});
+
+type RsvpLink = { id: string; projectId: string; guestId: string; token: string; revoked: boolean };
+
+async function activeRsvp(token: string): Promise<RsvpLink | undefined> {
+  if (!uuid.safeParse(token).success) return undefined;
+  const [link] = await db
+    .select({
+      id: rsvpsTable.id,
+      projectId: rsvpsTable.projectId,
+      guestId: rsvpsTable.guestId,
+      token: rsvpsTable.token,
+      revoked: rsvpsTable.revoked,
+    })
+    .from(rsvpsTable)
+    .where(and(eq(rsvpsTable.token, token), eq(rsvpsTable.revoked, false)));
+  return link;
+}
 
 function escapeHtml(value: string): string {
   return value.replace(
@@ -987,15 +1024,16 @@ router.get(
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
-    if (!(await membership(projectId, req.userId!))) {
-      res.status(404).json({ error: "Projet introuvable" });
+    const member = await membership(projectId, req.userId!);
+    if (!managedRoles.has(member?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
       return;
     }
     res.json(
       await db
         .select()
         .from(filesTable)
-        .where(eq(filesTable.projectId, projectId)),
+        .where(and(eq(filesTable.projectId, projectId), isNull(filesTable.guestId))),
     );
   },
 );
@@ -1008,8 +1046,9 @@ router.get(
       .select()
       .from(filesTable)
       .where(eq(filesTable.id, String(req.params.id)));
-    if (!meta || !(await membership(meta.projectId, req.userId!))) {
-      res.status(404).json({ error: "Fichier introuvable" });
+    const member = meta && (await membership(meta.projectId, req.userId!));
+    if (!meta || !managedRoles.has(member?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
       return;
     }
     const response = await storage.downloadObject(
@@ -1019,6 +1058,14 @@ router.get(
     response.headers.forEach((value, key) => res.setHeader(key, value));
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "private, no-store");
+    if (meta.guestId) {
+      res.setHeader("Content-Type", meta.contentType);
+      res.setHeader("Content-Security-Policy", "sandbox; default-src 'none'");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${safeDownloadName(meta.name)}"; filename*=UTF-8''${encodeURIComponent(meta.name)}`,
+      );
+    }
     if (req.query.download === "1")
       res.setHeader(
         "Content-Disposition",
@@ -1286,6 +1333,104 @@ router.delete(
 );
 
 router.get(
+  "/projects/:id/participant-media",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const media = await db.select({
+      id: filesTable.id, guestId: filesTable.guestId, name: filesTable.name,
+      contentType: filesTable.contentType, size: filesTable.size, caption: filesTable.caption,
+      consent: filesTable.consent, visibility: filesTable.visibility,
+      moderationStatus: filesTable.moderationStatus, createdAt: filesTable.createdAt,
+    }).from(filesTable).where(and(eq(filesTable.projectId, projectId), isNotNull(filesTable.guestId)));
+    const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    res.json(media.map((item) => ({
+      ...item,
+      guestName: participantNameById(project?.data, item.guestId),
+    })));
+  },
+);
+
+router.patch(
+  "/projects/:id/participant-media/:mediaId",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const input = parseBody(z.object({ status: z.enum(["pending", "approved", "rejected"]) }), req, res);
+    if (!input) return;
+    const projectId = String(req.params.id);
+    if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [existing] = await db.select({
+      id: filesTable.id,
+      consent: filesTable.consent,
+    }).from(filesTable).where(and(
+      eq(filesTable.id, String(req.params.mediaId)),
+      eq(filesTable.projectId, projectId),
+      isNotNull(filesTable.guestId),
+    ));
+    if (!existing) {
+      res.status(404).json({ error: "Média introuvable" });
+      return;
+    }
+    if (input.status === "approved" && !existing.consent) {
+      res.status(409).json({ error: "Ce média ne peut pas être partagé sans consentement" });
+      return;
+    }
+    const [media] = await db.update(filesTable).set({ moderationStatus: input.status })
+      .where(eq(filesTable.id, existing.id))
+      .returning();
+    res.json(media);
+  },
+);
+
+router.get(
+  "/projects/:id/song-requests",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    const requests = await db.select().from(songRequestsTable).where(eq(songRequestsTable.projectId, projectId));
+    res.json(requests.map((request) => ({
+      ...request,
+      guestName: participantNameById(project?.data, request.guestId),
+    })));
+  },
+);
+
+router.patch(
+  "/projects/:id/song-requests/:requestId",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const input = parseBody(z.object({ status: z.enum(["new", "seen", "accepted", "played", "rejected"]) }), req, res);
+    if (!input) return;
+    const projectId = String(req.params.id);
+    if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [request] = await db.update(songRequestsTable)
+      .set({ status: input.status, updatedAt: new Date() })
+      .where(and(eq(songRequestsTable.id, String(req.params.requestId)), eq(songRequestsTable.projectId, projectId)))
+      .returning();
+    if (!request) {
+      res.status(404).json({ error: "Demande musicale introuvable" });
+      return;
+    }
+    res.json(request);
+  },
+);
+
+router.get(
   "/rsvp/:token",
   createRateLimit({
     windowMs: 15 * 60 * 1000,
@@ -1307,10 +1452,199 @@ router.get(
       return;
     }
     res.setHeader("Cache-Control", "no-store");
+    const songRequests = await db.select({
+      id: songRequestsTable.id, title: songRequestsTable.title, artist: songRequestsTable.artist,
+      message: songRequestsTable.message, status: songRequestsTable.status, createdAt: songRequestsTable.createdAt,
+    }).from(songRequestsTable).where(and(
+      eq(songRequestsTable.projectId, link.rsvp.projectId),
+      eq(songRequestsTable.guestId, link.rsvp.guestId),
+    ));
+    const contributions = await db.select({
+      id: filesTable.id,
+      guestId: filesTable.guestId,
+      name: filesTable.name,
+      contentType: filesTable.contentType,
+      size: filesTable.size,
+      caption: filesTable.caption,
+      moderationStatus: filesTable.moderationStatus,
+      visibility: filesTable.visibility,
+      createdAt: filesTable.createdAt,
+    }).from(filesTable).where(and(
+      eq(filesTable.projectId, link.rsvp.projectId),
+      isNotNull(filesTable.guestId),
+      or(
+        eq(filesTable.guestId, link.rsvp.guestId),
+        and(eq(filesTable.moderationStatus, "approved"), eq(filesTable.visibility, "guests")),
+      ),
+    ));
     res.json({
       projectTitle: link.project.title,
       response: link.rsvp.response,
+      ...buildParticipantProjection(link.project.data, link.rsvp.guestId),
+      songRequests,
+      contributions: contributions.map((media) => ({
+        ...media,
+        canView: media.guestId === link.rsvp.guestId ||
+          (media.moderationStatus === "approved" && media.visibility === "guests"),
+      })),
     });
+  },
+);
+
+router.post(
+  "/rsvp/:token/media/uploads/request-url",
+  createRateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 12,
+    key: (req) => `rsvp-media-upload:${req.ip}:${String(req.params.token)}`,
+  }),
+  async (req, res): Promise<void> => {
+    const input = parseBody(participantUploadInput, req, res);
+    if (!input) return;
+    const link = await activeRsvp(String(req.params.token));
+    if (!link) {
+      res.status(404).json({ error: "Lien RSVP invalide ou révoqué" });
+      return;
+    }
+    const uploadURL = await storage.getObjectEntityUploadURL();
+    const objectPath = storage.normalizeObjectEntityPath(uploadURL.split("?")[0]);
+    const finalizeToken = signUploadAuthorization(
+      { ...input, objectPath, projectId: link.projectId, guestId: link.guestId, rsvpId: link.id, expiresAt: Date.now() + UPLOAD_TOKEN_TTL_MS },
+      uploadSecret(),
+    );
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ uploadURL, objectPath, finalizeToken });
+  },
+);
+
+router.post(
+  "/rsvp/:token/media",
+  createRateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 12,
+    key: (req) => `rsvp-media-finalize:${req.ip}:${String(req.params.token)}`,
+  }),
+  async (req, res): Promise<void> => {
+    const input = parseBody(participantMediaFinalize, req, res);
+    if (!input) return;
+    const link = await activeRsvp(String(req.params.token));
+    if (!link) {
+      res.status(404).json({ error: "Lien RSVP invalide ou révoqué" });
+      return;
+    }
+    const { finalizeToken, visibility, caption, consent, ...uploaded } = input;
+    if (!verifyUploadAuthorization(finalizeToken, {
+      ...uploaded, projectId: link.projectId, guestId: link.guestId, rsvpId: link.id,
+    }, uploadSecret())) {
+      res.status(403).json({ error: "Autorisation de finalisation invalide ou expirée" });
+      return;
+    }
+    let uploadedObject;
+    try {
+      uploadedObject = await storage.getObjectEntityFile(uploaded.objectPath);
+      const [metadata] = await uploadedObject.getMetadata();
+      if (!uploadedObjectMetadataMatches(uploaded, metadata)) {
+        await uploadedObject.delete().catch(() => undefined);
+        res.status(400).json({ error: "Le fichier reçu ne correspond pas au type ou à la taille autorisés" });
+        return;
+      }
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        res.status(400).json({ error: "Le fichier envoyé est introuvable" });
+        return;
+      }
+      throw error;
+    }
+    const path = await storage.trySetObjectEntityAclPolicy(uploaded.objectPath, {
+      owner: `rsvp:${link.guestId}`,
+      visibility: "private",
+    });
+    const [media] = await db.transaction(async (tx) => {
+      const [active] = await tx.select({ id: rsvpsTable.id })
+        .from(rsvpsTable)
+        .where(and(eq(rsvpsTable.id, link.id), eq(rsvpsTable.token, link.token), eq(rsvpsTable.revoked, false)));
+      if (!active) return [];
+      return tx.insert(filesTable).values({
+        ...uploaded,
+        objectPath: path,
+        projectId: link.projectId,
+        guestId: link.guestId,
+        uploaderUserId: `rsvp:${link.guestId}`,
+        moderationStatus: "pending",
+        visibility,
+        caption,
+        consent,
+      }).returning();
+    });
+    if (!media) {
+      res.status(404).json({ error: "Lien RSVP invalide ou révoqué" });
+      return;
+    }
+    res.status(201).json({
+      id: media.id, name: media.name, contentType: media.contentType, size: media.size,
+      caption: media.caption, visibility: media.visibility, moderationStatus: media.moderationStatus, createdAt: media.createdAt,
+    });
+  },
+);
+
+router.get(
+  "/rsvp/:token/media/:mediaId",
+  createRateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    key: (req) => `rsvp-media-read:${req.ip}:${String(req.params.token)}`,
+  }),
+  async (req, res): Promise<void> => {
+    const link = await activeRsvp(String(req.params.token));
+    if (!link || !uuid.safeParse(String(req.params.mediaId)).success) {
+      res.status(404).json({ error: "Média introuvable" });
+      return;
+    }
+    const [media] = await db.select().from(filesTable).where(and(
+      eq(filesTable.id, String(req.params.mediaId)),
+      eq(filesTable.projectId, link.projectId),
+      or(
+        eq(filesTable.guestId, link.guestId),
+        and(eq(filesTable.moderationStatus, "approved"), eq(filesTable.visibility, "guests")),
+      ),
+    ));
+    if (!media) {
+      res.status(404).json({ error: "Média introuvable" });
+      return;
+    }
+    const response = await storage.downloadObject(await storage.getObjectEntityFile(media.objectPath), 0);
+    response.headers.forEach((value, key) => res.setHeader(key, value));
+    res.setHeader("Content-Type", media.contentType);
+    res.setHeader("Content-Security-Policy", "sandbox; default-src 'none'");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${safeDownloadName(media.name)}"; filename*=UTF-8''${encodeURIComponent(media.name)}`,
+    );
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, no-store");
+    if (response.body) Readable.fromWeb(response.body as never).pipe(res);
+  },
+);
+
+router.post(
+  "/rsvp/:token/song-requests",
+  createRateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    key: (req) => `rsvp-song-request:${req.ip}:${String(req.params.token)}`,
+  }),
+  async (req, res): Promise<void> => {
+    const input = parseBody(songRequestInput, req, res);
+    if (!input) return;
+    const link = await activeRsvp(String(req.params.token));
+    if (!link) {
+      res.status(404).json({ error: "Lien RSVP invalide ou révoqué" });
+      return;
+    }
+    const [request] = await db.insert(songRequestsTable)
+      .values({ ...input, projectId: link.projectId, guestId: link.guestId, status: "new" })
+      .returning();
+    res.status(201).json(request);
   },
 );
 

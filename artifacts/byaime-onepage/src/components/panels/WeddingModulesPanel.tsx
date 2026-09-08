@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2 } from "lucide-react";
 import type { MemoryItem, MusicSearchResult, MusicTrack, Payment } from "@/lib/types";
 import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
@@ -12,8 +12,27 @@ export type { WeddingModule } from "@/lib/wedding-navigation";
 
 const euro = (cents: number) => `${(cents / 100).toLocaleString("fr-FR")} €`;
 const newId = () => Math.random().toString(36).slice(2, 9);
-type StoredFile = { id: string; name: string; contentType: string; size: number; createdAt?: string };
+type StoredFile = { id: string; name: string; contentType: string; size: number; guestId?: string | null; createdAt?: string };
 type SentMessage = { id: string; projectId: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; timelineEventId?: string | null; scheduledAt?: string | null; cancelledAt?: string | null; sentAt?: string | null; createdAt: string };
+type ParticipantMedia = StoredFile & {
+  guestId?: string | null;
+  guestName?: string | null;
+  caption?: string | null;
+  moderationStatus: "pending" | "approved" | "rejected";
+  visibility: "private" | "couple" | "guests";
+  consent?: boolean;
+};
+type SongRequest = {
+  id: string;
+  projectId: string;
+  guestId: string;
+  guestName?: string | null;
+  title: string;
+  artist: string;
+  message?: string | null;
+  status: "new" | "seen" | "accepted" | "played" | "rejected";
+  createdAt: string;
+};
 const MUSIC_SOURCE = "Apple Music / iTunes";
 
 async function searchAppleMusic(term: string, signal: AbortSignal): Promise<MusicSearchResult[]> {
@@ -71,9 +90,12 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [musicSearchBusy, setMusicSearchBusy] = useState(false);
   const [musicSearchError, setMusicSearchError] = useState("");
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
+  const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
+  const [songRequests, setSongRequests] = useState<SongRequest[]>([]);
   const musicSearchAbortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const canManage = currentRole === "owner" || currentRole === "planner";
+  const canEdit = canManage || currentRole === "family";
   const projectId = project?.id;
 
   useEffect(() => {
@@ -82,15 +104,27 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   }, [canManage, module, projectId, refreshParticipantLinks]);
 
   useEffect(() => {
-    if (!projectId || module !== "documents") return;
+    if (!projectId || !canManage || !["documents", "film"].includes(module)) return;
     setRemoteError("");
     void api<StoredFile[]>(`/projects/${projectId}/files`).then(setFiles).catch(error => setRemoteError(error.message));
-  }, [module, projectId]);
+  }, [canManage, module, projectId]);
 
   useEffect(() => {
-    if (!projectId || module !== "messages" || !canManage) return;
+    if (!projectId || !["messages", "thanks"].includes(module) || !canManage) return;
     setRemoteError("");
     void api<SentMessage[]>(`/projects/${projectId}/messages`).then(setMessages).catch(error => setRemoteError(error.message));
+  }, [canManage, module, projectId]);
+
+  useEffect(() => {
+    if (!projectId || !canManage || !["contributions", "film"].includes(module)) return;
+    setRemoteError("");
+    void api<ParticipantMedia[]>(`/projects/${projectId}/participant-media`).then(setParticipantMedia).catch(error => setRemoteError(error.message));
+  }, [canManage, module, projectId]);
+
+  useEffect(() => {
+    if (!projectId || !canManage || module !== "music") return;
+    setRemoteError("");
+    void api<SongRequest[]>(`/projects/${projectId}/song-requests`).then(setSongRequests).catch(error => setRemoteError(error.message));
   }, [canManage, module, projectId]);
 
   if (!project) return null;
@@ -189,6 +223,63 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       setBusy(false);
     }
   };
+  const moderateMedia = async (mediaId: string, moderationStatus: ParticipantMedia["moderationStatus"]) => {
+    setBusy(true);
+    setRemoteError("");
+    try {
+      const updated = await api<ParticipantMedia>(`/projects/${project.id}/participant-media/${mediaId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: moderationStatus }),
+      });
+      setParticipantMedia(current => current.map(item => item.id === updated.id ? updated : item));
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Modération impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const updateSongRequest = async (requestId: string, status: SongRequest["status"]) => {
+    setBusy(true);
+    setRemoteError("");
+    try {
+      const updated = await api<SongRequest>(`/projects/${project.id}/song-requests/${requestId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      setSongRequests(current => current.map(item => item.id === updated.id ? updated : item));
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Mise à jour impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const sendThankYou = async (recipient: string, name: string) => {
+    setBusy(true);
+    setRemoteError("");
+    try {
+      const delivery = await api<SentMessage>(`/projects/${project.id}/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "thank_you",
+          recipients: [recipient],
+          subject: `Merci d’avoir partagé ${project.title}`,
+          body: `Bonjour ${name},\n\nMerci d’avoir été à nos côtés et d’avoir partagé ce Moment avec nous.\n\nAvec toute notre affection.`,
+          confirmed: true,
+        }),
+      });
+      setMessages(current => [delivery, ...current]);
+      if (delivery.status !== "sent") setRemoteError(delivery.providerError || "L’envoi n’a pas été confirmé");
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Remerciement impossible à envoyer");
+      try {
+        setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
+      } catch {
+        // The delivery error remains visible if the journal cannot be refreshed.
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (module === "seating") {
     const unassigned = project.guests.filter(g => effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline" && !g.tableId);
@@ -217,7 +308,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-foreground/70">Documents & médias privés</p><p className="mt-1 text-xs text-foreground/40">Stockés dans l’espace sécurisé de ce Monde.</p></div>{canManage && <><button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter un fichier</button><input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => event.target.files?.[0] && void uploadFile(event.target.files[0])} /></>}</div>
     {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
     {files.length === 0 ? <Empty>Aucun document stocké.</Empty> : <div className="space-y-2">{files.map(file => <div key={file.id} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="min-w-0 flex-1"><p className="truncate text-sm">{file.name}</p><p className="mt-1 text-xs text-foreground/35">{fileSize(file.size)} · {file.contentType || "fichier"}</p></div><a aria-label={`Aperçu de ${file.name}`} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="p-2 text-foreground/45 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a><a aria-label={`Télécharger ${file.name}`} href={`/api/storage/files/${file.id}?download=1`} className="p-2 text-foreground/45 hover:text-foreground"><Download className="h-4 w-4" /></a>{canManage && <button disabled={busy} aria-label={`Supprimer ${file.name}`} onClick={() => void deleteFile(file)} className="p-2 text-foreground/30 hover:text-rose-300 disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>}
-    {!canManage && <p className="text-xs text-foreground/35">Vous pouvez consulter les documents, mais seuls les responsables du Monde peuvent les modifier.</p>}
+    {!canManage && <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent consulter ou modifier ces documents privés.</p>}
   </div>;
 
   if (module === "ceremony") {
@@ -228,6 +319,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   if (module === "music") {
     const timelineMusicEvents = [...project.timeline].sort((a, b) => a.time - b.time);
     const selectedTrack = project.music.find(track => track.id === selectedMusicId) || project.music[0];
+    if (!canEdit) return <div className="mx-auto max-w-4xl space-y-5">
+      <div><h4 className="text-sm font-medium">Musique reliée aux Moments</h4><p className="mt-1 text-xs text-foreground/45">Consultation seule : les responsables et la famille autorisée peuvent modifier cette sélection.</p></div>
+      {project.music.length === 0 ? <Empty>Aucun morceau n’est encore relié à un Moment.</Empty> : project.music.map(track => <div key={track.id} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><TrackArtwork track={track} size="sm" /><div className="min-w-0 flex-1"><p className="truncate text-sm">{track.title}</p><p className="mt-1 truncate text-xs text-foreground/45">{track.artist || "Artiste à préciser"} · {track.moment}</p></div><span className="text-[10px] uppercase tracking-wider text-foreground/35">{track.status === "valide" ? "Validé" : "À choisir"}</span></div>)}
+    </div>;
     const runMusicSearch = async () => {
       const term = musicQuery.trim();
       if (term.length < 2) {
@@ -281,6 +376,19 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       updateProject(linkMusicTrackToEvents(project, track.id, next));
     };
     return <div className="max-w-4xl mx-auto space-y-5">
+      {canManage && <section className="rounded-2xl border border-sky-300/20 bg-sky-300/5 p-4">
+        <div className="flex items-start gap-3">
+          <Music2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+          <div><h4 className="text-sm font-medium">Demandes reçues sans interrompre le DJ</h4><p className="mt-1 text-xs leading-relaxed text-foreground/50">Les demandes restent une file de souhaits. Elles ne lancent jamais un morceau et ne promettent pas sa diffusion.</p></div>
+        </div>
+        {songRequests.length === 0 ? <p className="mt-4 text-xs text-foreground/35">Aucune demande musicale reçue.</p> : <div className="mt-4 space-y-2">{songRequests.map(request => {
+          const labels: Record<SongRequest["status"], string> = { new: "Nouvelle", seen: "Vue", accepted: "Acceptée", played: "Jouée", rejected: "Refusée" };
+          return <div key={request.id} className="rounded-xl border border-foreground/10 bg-background/20 p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm">{request.title}</p><p className="mt-1 text-xs text-foreground/45">{request.artist || "Artiste non précisé"} · {request.guestName || "Invité"}</p>{request.message && <p className="mt-2 text-xs text-foreground/55">« {request.message} »</p>}</div><span className="rounded-full border border-foreground/10 px-2 py-1 text-[10px] uppercase tracking-wider text-foreground/55">{labels[request.status]}</span></div>
+            <div className="mt-3 flex flex-wrap gap-1.5">{(["seen", "accepted", "played", "rejected"] as const).map(status => <button key={status} disabled={busy || request.status === status} onClick={() => void updateSongRequest(request.id, status)} className="rounded-full border border-foreground/10 px-2.5 py-1.5 text-[10px] text-foreground/55 transition hover:border-foreground/30 hover:text-foreground disabled:opacity-30">{labels[status]}</button>)}</div>
+          </div>;
+        })}</div>}
+      </section>}
       <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-4">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <ShieldCheck className="h-4 w-4 text-emerald-300" />
@@ -325,6 +433,57 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
            {message.status === "scheduled" && <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-amber-300/10 bg-amber-300/5 p-3"><label className="flex-1 text-[10px] uppercase tracking-widest text-foreground/40">Nouvelle date<input type="datetime-local" value={rescheduleAt[message.id] || (message.scheduledAt ? new Date(message.scheduledAt).toISOString().slice(0, 16) : "")} min={new Date().toISOString().slice(0, 16)} onChange={event => setRescheduleAt(current => ({ ...current, [message.id]: event.target.value }))} className="mt-1 block w-full rounded-lg border border-foreground/10 bg-background/20 px-2 py-1.5 text-xs normal-case tracking-normal outline-none" /></label><button disabled={busy || !rescheduleAt[message.id]} onClick={() => void rescheduleMessage(message.id)} className="rounded-full border border-foreground/15 px-3 py-2 text-xs disabled:opacity-30">Replanifier</button><button disabled={busy} onClick={() => void cancelScheduledMessage(message.id)} className="rounded-full border border-rose-300/20 px-3 py-2 text-xs text-rose-200 disabled:opacity-30">Annuler le rappel</button></div>}
          </div>;
        })}</div>
+    </div>;
+  }
+
+  if (module === "contributions") {
+    return <div className="mx-auto max-w-4xl space-y-5">
+      <div><h4 className="text-sm font-medium">Photos et vidéos reçues</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Chaque contribution reste privée jusqu’à votre décision. Le consentement et la provenance restent attachés au fichier.</p></div>
+      {remoteError && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
+      {participantMedia.length === 0 ? <Empty>Aucune contribution invitée reçue.</Empty> : <div className="grid gap-3 sm:grid-cols-2">{participantMedia.map(media => <article key={media.id} className="overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[.035]">
+        <a href={`/api/storage/files/${media.id}`} target="_blank" rel="noreferrer" className="flex aspect-video items-center justify-center bg-foreground/5 text-foreground/30" aria-label={`Ouvrir ${media.name}`}>
+          {media.contentType.startsWith("image/") ? <Image className="h-8 w-8" /> : <Film className="h-8 w-8" />}
+        </a>
+        <div className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm">{media.caption || media.name}</p><p className="mt-1 text-xs text-foreground/40">{media.guestName || "Invité"} · {fileSize(media.size)}</p></div><span className={cn("rounded-full border px-2 py-1 text-[9px] uppercase tracking-wider", media.moderationStatus === "approved" ? "border-emerald-300/20 text-emerald-300" : media.moderationStatus === "rejected" ? "border-rose-300/20 text-rose-300" : "border-amber-300/20 text-amber-200")}>{media.moderationStatus === "approved" ? "Partagé" : media.moderationStatus === "rejected" ? "Refusé" : "À vérifier"}</span></div>
+          <p className="mt-2 text-[10px] text-foreground/35">{media.visibility === "guests" ? "Partage avec les invités demandé" : "Couple uniquement"} · consentement {media.consent ? "confirmé" : "absent"}</p>
+          {canManage && <div className="mt-3 flex gap-2"><button disabled={busy || media.moderationStatus === "approved" || !media.consent} onClick={() => void moderateMedia(media.id, "approved")} className="rounded-full bg-foreground px-3 py-1.5 text-xs text-background disabled:opacity-30">Valider</button><button disabled={busy || media.moderationStatus === "rejected"} onClick={() => void moderateMedia(media.id, "rejected")} className="rounded-full border border-rose-300/20 px-3 py-1.5 text-xs text-rose-200 disabled:opacity-30">Refuser</button></div>}
+        </div>
+      </article>)}</div>}
+    </div>;
+  }
+
+  if (module === "thanks") {
+    const thankYouMessages = messages.filter(message => message.kind === "thank_you");
+    return <div className="mx-auto max-w-4xl space-y-5">
+      <div><h4 className="text-sm font-medium">Remercier chaque personne réellement</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Le statut vient du journal d’envoi. Un clic seul ne transforme jamais un remerciement en message envoyé.</p></div>
+      {remoteError && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
+      <div className="space-y-2">{project.guests.map(guest => {
+        const deliveries = guest.contact ? thankYouMessages.filter(message => message.recipients.includes(guest.contact!)) : [];
+        const latest = [...deliveries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        const label = !guest.contact ? "Sans adresse" : latest?.status === "sent" ? "Envoyé" : latest?.status === "failed" ? "Erreur" : latest ? "En cours" : "À préparer";
+        return <div key={guest.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="min-w-0 flex-1"><p className="text-sm">{guest.name}</p><p className="mt-1 truncate text-xs text-foreground/40">{guest.contact || "Ajoutez une adresse dans Personnes"} · {label}</p>{latest?.providerError && <p className="mt-1 text-xs text-rose-300">{latest.providerError}</p>}</div>{canManage && guest.contact && latest?.status !== "sent" && <button disabled={busy} onClick={() => void sendThankYou(guest.contact!, guest.name)} className="rounded-full bg-foreground px-3 py-2 text-xs font-medium text-background disabled:opacity-30">{latest?.status === "failed" ? "Réessayer" : "Confirmer et envoyer"}</button>}</div>;
+      })}</div>
+    </div>;
+  }
+
+  if (module === "film") {
+    const videos = files.filter(file => file.contentType.startsWith("video/") && !file.guestId);
+    const approvedGuestVideos = participantMedia.filter(file => file.contentType.startsWith("video/") && file.moderationStatus === "approved");
+    return <div className="mx-auto max-w-4xl space-y-5">
+      <div><h4 className="text-sm font-medium">Film du Jour J</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">AIME ne simule aucun montage. Seules les vidéos réellement déposées dans l’espace privé ou validées depuis les invités apparaissent ici.</p></div>
+      {remoteError && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
+      {[...videos, ...approvedGuestVideos].length === 0 ? <Empty>Aucun film réel n’a encore été livré ou validé.</Empty> : <div className="space-y-2">{[...videos, ...approvedGuestVideos].map(file => <a key={file.id} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4 text-foreground/70 transition hover:text-foreground"><Film className="h-5 w-5" /><span className="min-w-0 flex-1 truncate text-sm">{file.name}</span><span className="text-xs text-foreground/35">{fileSize(file.size)}</span><ExternalLink className="h-4 w-4" /></a>)}</div>}
+      <p className="rounded-xl border border-foreground/10 p-3 text-xs text-foreground/40">Pour livrer le film final, ajoutez la vidéo depuis Documents. Le fichier reste privé tant que vous ne choisissez pas de le partager.</p>
+    </div>;
+  }
+
+  if (module === "honeymoon") {
+    const posts = project.timeline.filter(event => event.phase === "apres" && event.visibility === "audience").sort((a, b) => b.time - a.time);
+    return <div className="mx-auto max-w-4xl space-y-5">
+      <div><h4 className="text-sm font-medium">Actualités du voyage de noces</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Rien n’est publié par défaut. Chaque actualité devient un Moment Après destiné à l’audience, sans suivi continu de votre position.</p></div>
+      {canManage && <button onClick={() => addEntity("timeline", { time: Date.now(), durationMinutes: 0, kind: "souvenir", title: "Nouvelle du voyage", detail: "À compléter avant de partager.", status: "a_valider", confidence: "confirme", phase: "apres", universe: project.universe, provenance: "real", visibility: "prive", relations: [], dependencyIds: [], resources: [] })} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/70"><Plus className="h-3.5 w-3.5" />Préparer une actualité privée</button>}
+      {posts.length === 0 ? <Empty>Aucune actualité n’est partagée avec les invités.</Empty> : <div className="space-y-3">{posts.map(post => <article key={post.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/35">{new Date(post.time).toLocaleDateString("fr-FR")}{post.location ? ` · ${post.location}` : ""}</p><h5 className="mt-2 text-sm font-medium">{post.title}</h5>{post.detail && <p className="mt-2 text-xs leading-relaxed text-foreground/55">{post.detail}</p>}</article>)}</div>}
+      <p className="text-xs text-foreground/35">Pour publier une actualité préparée, ouvrez son Moment dans la Timeline et choisissez la visibilité Audience après validation.</p>
     </div>;
   }
 

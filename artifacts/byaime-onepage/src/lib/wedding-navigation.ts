@@ -5,191 +5,108 @@ export const WORLD_PHASES = [
   { id: "pendant", label: "Le Jour J" },
   { id: "apres", label: "Après" },
 ] as const;
-
 export type WorldPhase = (typeof WORLD_PHASES)[number]["id"];
+export type WeddingRole = "owner" | "planner" | "family" | "viewer";
 
-export function getInitialWorldPhase(
-  pivotTime: number,
-  currentTime = Date.now(),
-): WorldPhase {
+export type WeddingCapabilities = {
+  manage: boolean;
+  editOperational: boolean;
+  seeFinances: boolean;
+  managePrivateDocuments: boolean;
+};
+
+export function getWeddingCapabilities(role: string): WeddingCapabilities {
+  switch (role as WeddingRole) {
+    case "owner":
+    case "planner":
+      return { manage: true, editOperational: true, seeFinances: true, managePrivateDocuments: true };
+    case "family":
+      return { manage: false, editOperational: true, seeFinances: false, managePrivateDocuments: false };
+    default:
+      return { manage: false, editOperational: false, seeFinances: false, managePrivateDocuments: false };
+  }
+}
+
+export function getInitialWorldPhase(pivotTime: number, currentTime = Date.now()): WorldPhase {
   const pivot = new Date(pivotTime);
   const current = new Date(currentTime);
-  const isPivotDay =
-    pivot.getFullYear() === current.getFullYear() &&
-    pivot.getMonth() === current.getMonth() &&
-    pivot.getDate() === current.getDate();
-
-  if (isPivotDay) return "pendant";
+  if (pivot.getFullYear() === current.getFullYear() && pivot.getMonth() === current.getMonth() && pivot.getDate() === current.getDate()) return "pendant";
   return pivotTime > currentTime ? "avant" : "apres";
 }
 
 export const WEDDING_MODULE_IDS = [
-  "seating",
-  "budget",
-  "documents",
-  "ceremony",
-  "music",
-  "logistics",
-  "messages",
-  "team",
-  "memories",
+  "seating", "budget", "documents", "ceremony", "music", "logistics", "messages", "team", "memories",
+  "contributions", "thanks", "film", "honeymoon",
 ] as const;
-
 export type WeddingModule = (typeof WEDDING_MODULE_IDS)[number];
+export type WeddingPanelId = WeddingModule | "planning" | "guests" | "providers" | "dayof" | "sections";
+export type WeddingDestination = { kind: "view"; view: TimelineView } | { kind: "panel"; panel: WeddingPanelId } | { kind: "route"; href: string };
+export type WeddingNavigationItem = { id: string; label: string; description: string; destination: WeddingDestination };
+export type WeddingNavigation = { primary: WeddingNavigationItem[]; secondary: WeddingNavigationItem[] };
 
-export type WeddingPanelId =
-  | WeddingModule
-  | "planning"
-  | "guests"
-  | "providers"
-  | "dayof"
-  | "sections";
-
-export type WeddingDestination =
-  | { kind: "view"; view: TimelineView }
-  | { kind: "panel"; panel: WeddingPanelId }
-  | { kind: "route"; href: string };
-
-export type WeddingNavigationItem = {
-  id: string;
-  label: string;
-  description: string;
-  destination: WeddingDestination;
-};
-
-/**
- * Stable navigation hierarchy for the Wedding World.
- * Phases (Before, Wedding Day, After) filter the Timeline; they are not modules.
- */
-export const WEDDING_PRIMARY_NAVIGATION: WeddingNavigationItem[] = [
-  {
-    id: "timeline",
-    label: "Timeline",
-    description: "Tous les Moments du mariage dans leur ordre vivant.",
-    destination: { kind: "view", view: "chronological" },
-  },
-  {
-    id: "music",
-    label: "Musique",
-    description: "La projection sonore des Moments, avant, pendant et après.",
-    destination: { kind: "view", view: "music" },
-  },
-  {
-    id: "people",
-    label: "Personnes",
-    description: "Invités, réponses RSVP et besoins des personnes concernées.",
-    destination: { kind: "panel", panel: "guests" },
-  },
-  {
-    id: "documents",
-    label: "Documents",
-    description: "Les fichiers privés reliés à ce Monde.",
-    destination: { kind: "panel", panel: "documents" },
-  },
-  {
-    id: "finances",
-    label: "Finances",
-    description: "Budget, engagements, paiements et échéances.",
-    destination: { kind: "panel", panel: "budget" },
-  },
+const item = (id: string, label: string, description: string, destination: WeddingDestination): WeddingNavigationItem => ({ id, label, description, destination });
+const timeline = (label: string, description: string) => item("timeline", label, description, { kind: "view", view: "chronological" });
+const people = item("people", "Personnes", "Invités, réponses RSVP et besoins des personnes concernées.", { kind: "panel", panel: "guests" });
+const providers = item("providers", "Prestataires", "Les professionnels engagés ou encore recherchés.", { kind: "panel", panel: "providers" });
+const tasks = item("tasks", "Tâches", "Ce qu’il reste à préparer et à valider.", { kind: "panel", panel: "planning" });
+const documents = item("documents", "Documents", "Les fichiers privés reliés à ce Monde.", { kind: "panel", panel: "documents" });
+const finances = item("finances", "Finances", "Budget, engagements, paiements et échéances.", { kind: "panel", panel: "budget" });
+const music = (label = "Musique") => item("music", label, "La projection sonore des Moments du mariage.", { kind: "view", view: "music" });
+const dayof = item("day-of", "Régie du Jour J", "Le programme opérationnel du mariage en direct.", { kind: "panel", panel: "dayof" });
+const practical = item("public-info", "Infos pratiques", "Les informations utiles aux personnes concernées.", { kind: "view", view: "public-info" });
+const seating = item("seating", "Plan de table", "Les tables, capacités et placements.", { kind: "panel", panel: "seating" });
+const contributions = item("contributions", "Contributions", "Les contributions liées à cette célébration.", { kind: "panel", panel: "contributions" });
+const thanks = item("thanks", "Remerciements", "Les mots de remerciement après le mariage.", { kind: "panel", panel: "thanks" });
+const photos = item("memories", "Photos & vidéos", "Les images et vidéos à préserver.", { kind: "panel", panel: "memories" });
+const film = item("film", "Film du Jour J", "Le film et les séquences du mariage.", { kind: "panel", panel: "film" });
+const honeymoon = item("honeymoon", "Voyage de noces", "Les informations du voyage de noces.", { kind: "panel", panel: "honeymoon" });
+const extras = [
+  item("ceremony", "Cérémonie & réception", "Le déroulé, les lectures et le menu.", { kind: "panel", panel: "ceremony" }),
+  item("logistics", "Logistique", "Accès, transports et hébergements.", { kind: "panel", panel: "logistics" }),
+  item("messages", "Messages", "Les informations envoyées aux personnes concernées.", { kind: "panel", panel: "messages" }),
+  item("team", "Équipe", "Les responsabilités et la coordination.", { kind: "panel", panel: "team" }),
 ];
 
-export const WEDDING_SECONDARY_NAVIGATION: WeddingNavigationItem[] = [
-  {
-    id: "tasks",
-    label: "Tâches",
-    description: "Ce qu’il reste à préparer et à valider.",
-    destination: { kind: "panel", panel: "planning" },
-  },
-  {
-    id: "providers",
-    label: "Prestataires",
-    description: "Les professionnels engagés ou encore recherchés.",
-    destination: { kind: "panel", panel: "providers" },
-  },
-  {
-    id: "day-of",
-    label: "Régie du Jour J",
-    description: "Le programme opérationnel du mariage en direct.",
-    destination: { kind: "panel", panel: "dayof" },
-  },
-  {
-    id: "seating",
-    label: "Plan de table",
-    description: "Les tables, capacités et placements.",
-    destination: { kind: "panel", panel: "seating" },
-  },
-  {
-    id: "ceremony",
-    label: "Cérémonie & réception",
-    description: "Le déroulé, les lectures, le menu et les intentions.",
-    destination: { kind: "panel", panel: "ceremony" },
-  },
-  {
-    id: "logistics",
-    label: "Logistique",
-    description: "Accès, transports, hébergements et solutions de repli.",
-    destination: { kind: "panel", panel: "logistics" },
-  },
-  {
-    id: "messages",
-    label: "Messages",
-    description: "Les informations envoyées aux personnes concernées.",
-    destination: { kind: "panel", panel: "messages" },
-  },
-  {
-    id: "team",
-    label: "Équipe",
-    description: "Les responsabilités et la coordination du mariage.",
-    destination: { kind: "panel", panel: "team" },
-  },
-  {
-    id: "memories",
-    label: "Souvenirs",
-    description: "Les images, messages et éléments à préserver après.",
-    destination: { kind: "panel", panel: "memories" },
-  },
-  {
-    id: "public-info",
-    label: "Infos pratiques",
-    description: "Ce que le Monde rend visible aux personnes concernées.",
-    destination: { kind: "view", view: "public-info" },
-  },
-];
-
-export const WEDDING_PANEL_LABELS: Record<WeddingPanelId, string> = {
-  planning: "Tâches",
-  guests: "Liste des invités",
-  providers: "Prestataires",
-  dayof: "Régie du Jour J",
-  sections: "Toutes les sections",
-  seating: "Plan de table",
-  budget: "Finances",
-  documents: "Documents",
-  ceremony: "Cérémonie & réception",
-  music: "Morceaux reliés",
-  logistics: "Logistique",
-  messages: "Messages",
-  team: "Équipe",
-  memories: "Souvenirs",
-};
-
-export function isWeddingDestinationActive(
-  destination: WeddingDestination,
-  view: TimelineView,
-  panel: WeddingPanelId | null,
-) {
-  if (destination.kind === "view") {
-    if (destination.view === "music") return destination.view === view && (panel === null || panel === "music");
-    return panel === null && destination.view === view;
+/** Pure phase- and capability-aware private World navigation manifest. */
+export function getWeddingNavigation(phase: WorldPhase, capabilities: WeddingCapabilities): WeddingNavigation {
+  const full = capabilities.manage;
+  const operational = capabilities.editOperational;
+  let primary: WeddingNavigationItem[];
+  let secondary: WeddingNavigationItem[];
+  if (phase === "avant") {
+    primary = [timeline("Timeline", "Tous les Moments du mariage dans leur ordre vivant."), people, providers, tasks, documents, finances, music()];
+    secondary = [...extras, seating];
+  } else if (phase === "pendant") {
+    primary = [timeline("Timeline en direct", "Les Moments du Jour J, au fil de la journée."), dayof, practical, seating, contributions, music("Musique en direct")];
+    secondary = [people, providers, tasks, ...extras, documents, finances];
+  } else {
+    primary = [timeline("Timeline / Replay", "Le replay vivant des Moments du mariage."), people, thanks, photos, film, honeymoon];
+    secondary = [music(), practical, contributions, providers, tasks, ...extras, documents, finances];
   }
-  if (destination.kind === "panel") return destination.panel === panel;
-  return false;
+  const allowed = (entry: WeddingNavigationItem) => {
+    if (entry.id === "finances") return capabilities.seeFinances;
+    if (entry.id === "documents" || entry.id === "film") return capabilities.managePrivateDocuments;
+    if (full || operational) return true;
+    return ["timeline", "people", "public-info", "music", "contributions", "thanks", "memories", "film", "honeymoon"].includes(entry.id);
+  };
+  primary = primary.filter(allowed);
+  secondary = secondary.filter(allowed).filter(entry => !primary.some(primaryEntry => primaryEntry.id === entry.id || primaryEntry.label === entry.label));
+  return { primary, secondary };
 }
 
-export function getWeddingNavigationLabel(view: TimelineView, panel: WeddingPanelId | null) {
+export const WEDDING_PANEL_LABELS: Record<WeddingPanelId, string> = {
+  planning: "Tâches", guests: "Liste des invités", providers: "Prestataires", dayof: "Régie du Jour J", sections: "Toutes les sections",
+  seating: "Plan de table", budget: "Finances", documents: "Documents", ceremony: "Cérémonie & réception", music: "Morceaux reliés",
+  logistics: "Logistique", messages: "Messages", team: "Équipe", memories: "Photos & vidéos", contributions: "Contributions",
+  thanks: "Remerciements", film: "Film du Jour J", honeymoon: "Voyage de noces",
+};
+
+export function isWeddingDestinationActive(destination: WeddingDestination, view: TimelineView, panel: WeddingPanelId | null) {
+  if (destination.kind === "view") return destination.view === "music" ? destination.view === view && (panel === null || panel === "music") : panel === null && destination.view === view;
+  return destination.kind === "panel" ? destination.panel === panel : false;
+}
+
+export function getWeddingNavigationLabel(view: TimelineView, panel: WeddingPanelId | null, navigation?: WeddingNavigation) {
   if (panel) return WEDDING_PANEL_LABELS[panel];
-  const activeView = [...WEDDING_PRIMARY_NAVIGATION, ...WEDDING_SECONDARY_NAVIGATION]
-    .find(item => item.destination.kind === "view" && item.destination.view === view);
-  return activeView?.label ?? "Timeline";
+  return navigation?.primary.concat(navigation.secondary).find(entry => entry.destination.kind === "view" && entry.destination.view === view)?.label ?? "Timeline";
 }

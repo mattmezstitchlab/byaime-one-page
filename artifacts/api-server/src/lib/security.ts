@@ -50,6 +50,16 @@ export function safeDownloadName(name: string): string {
   return name.replace(/[\u0000-\u001f\u007f"\\]/g, "_").slice(0, 180) || "document";
 }
 
+export function uploadedObjectMetadataMatches(
+  expected: { contentType: string; size: number },
+  actual: { contentType?: unknown; size?: unknown },
+): boolean {
+  const actualType = String(actual.contentType || "").split(";", 1)[0].trim().toLowerCase();
+  const expectedType = expected.contentType.trim().toLowerCase();
+  const actualSize = Number(actual.size);
+  return actualType === expectedType && Number.isSafeInteger(actualSize) && actualSize === expected.size;
+}
+
 export function configuredAppOrigin(domains: string | undefined, environment: string | undefined): string {
   const domain = (domains ?? "").split(",").map((value) => value.trim()).find(Boolean);
   if (!domain) {

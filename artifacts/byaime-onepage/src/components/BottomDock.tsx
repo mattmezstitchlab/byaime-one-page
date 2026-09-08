@@ -14,10 +14,10 @@ import {
   isWeddingDestinationActive,
   WEDDING_MODULE_IDS,
   WEDDING_PANEL_LABELS,
-  WEDDING_SECONDARY_NAVIGATION,
   type WorldPhase,
   type WeddingDestination,
   type WeddingModule,
+  type WeddingNavigation,
   type WeddingPanelId,
 } from "@/lib/wedding-navigation";
 
@@ -25,6 +25,7 @@ export function BottomDock({
   phase,
   view,
   activePanel,
+  navigation,
   onPhaseChange,
   onViewChange,
   onPanelChange,
@@ -32,6 +33,7 @@ export function BottomDock({
   phase: WorldPhase;
   view: TimelineView;
   activePanel: WeddingPanelId | null;
+  navigation: WeddingNavigation;
   onPhaseChange: (phase: WorldPhase) => void;
   onViewChange: (view: TimelineView) => void;
   onPanelChange: (panel: WeddingPanelId | null) => void;
@@ -53,7 +55,7 @@ export function BottomDock({
   const previousPhase: WorldPhase | null = phase === "avant" ? null : phase === "pendant" ? "avant" : "pendant";
   const nextPhase: WorldPhase | null = phase === "avant" ? "pendant" : phase === "pendant" ? "apres" : null;
   const phaseLabel: Record<WorldPhase, string> = { avant: "Avant", pendant: "Le Jour J", apres: "Après" };
-  const currentLabel = getWeddingNavigationLabel(view, activePanel);
+  const currentLabel = getWeddingNavigationLabel(view, activePanel, navigation);
 
   return <><AnimatePresence>{activePanel && <CenteredBlock eyebrow={isSecondary ? "Toutes les sections" : "Navigation du Monde"} title={WEDDING_PANEL_LABELS[activePanel]} size="xl" onClose={() => onPanelChange(null)} leading={isSecondary ? <button onClick={() => onPanelChange("sections")} aria-label="Retour à toutes les sections" className="mt-5 rounded-full p-2 text-foreground/45 transition hover:bg-foreground/5 hover:text-foreground"><ChevronLeft className="h-4 w-4" /></button> : undefined}>
     <div className="mx-auto max-w-5xl">
@@ -61,7 +63,7 @@ export function BottomDock({
       {activePanel === "guests" && <GuestPanel />}
       {activePanel === "providers" && <ProviderPanel />}
       {activePanel === "dayof" && <DayOfPanel />}
-      {activePanel === "sections" && <div className="mx-auto max-w-3xl">{WEDDING_SECONDARY_NAVIGATION.map(item => item.destination.kind === "route" ? (
+      {activePanel === "sections" && <div className="mx-auto max-w-3xl">{navigation.secondary.map(item => item.destination.kind === "route" ? (
         <Link key={item.id} href={item.destination.href} onClick={() => onPanelChange(null)} className="group flex w-full items-center gap-4 border-b border-border py-5 text-left text-foreground/75 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Grid2X2 className="h-4 w-4 shrink-0 text-foreground/40" /><span className="min-w-0 flex-1"><span className="block text-xs uppercase tracking-[.18em]">{item.label}</span><span className="mt-1.5 block text-xs font-light text-foreground/45">{item.description}</span></span><ChevronRight className="h-4 w-4 shrink-0 text-foreground/25 transition group-hover:translate-x-1" />
         </Link>
