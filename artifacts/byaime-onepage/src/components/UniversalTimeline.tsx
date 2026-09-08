@@ -115,8 +115,8 @@ const AmbientBackground = ({ index }: { index: number }) => {
 
 function SubchapterTransition({ title }: { title: string }) {
   return (
-    <div className="w-full py-24 flex items-center justify-center bg-black text-white relative z-10 border-t border-white/5">
-       <h2 className="text-sm tracking-[0.4em] uppercase text-white/40">{title}</h2>
+    <div className="w-full py-24 flex items-center justify-center bg-background text-foreground relative z-10 border-t border-foreground/5">
+       <h2 className="text-sm tracking-[0.4em] uppercase text-foreground/40">{title}</h2>
     </div>
   );
 }
@@ -125,7 +125,7 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
   return (
     <button
       onClick={onClick}
-      className="relative w-full min-h-[60vh] flex items-center justify-center py-24 px-6 border-t border-white/5 overflow-hidden group text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+      className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-white/5 px-6 py-24 text-center text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 group"
     >
       <AmbientBackground index={index} />
 
@@ -135,9 +135,9 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="space-y-6 flex flex-col items-center rounded-3xl p-8 md:p-12 bg-black/20 backdrop-blur-sm border border-white/5 hover:bg-black/30 transition-colors"
+          className="space-y-6 flex flex-col items-center rounded-3xl p-8 md:p-12 bg-black/25 backdrop-blur-sm border border-white/10 hover:bg-black/40 transition-colors"
         >
-          <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-white/60 font-medium">
+          <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-white/65 font-medium">
             <CalendarDays className="w-4 h-4" />
             <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: fr })}</span>
             {event.durationMinutes && (
@@ -161,13 +161,13 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
 
           <div className="flex flex-wrap justify-center gap-x-7 gap-y-3 pt-8">
             {event.location && (
-              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
                 <MapPin className="w-3 h-3" />
                 {event.location}
               </span>
             )}
             {(event.relations?.length || 0) > 0 && (
-              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
                 <Link2 className="w-3 h-3" />
                 {event.relations!.length} liens
               </span>
@@ -196,9 +196,9 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
   const pivotTime = project.pivot.value;
 
   return (
-    <div className="w-full flex flex-col bg-black">
+    <div className="w-full flex flex-col bg-background">
       {events.length === 0 && (
-        <div className="py-32 text-center text-sm text-white/40">
+        <div className="py-32 text-center text-sm text-foreground/40">
           Aucun événement dans cette vue.
         </div>
       )}
@@ -217,18 +217,18 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
       })}
 
       {canEdit ? (
-        <div className="w-full py-32 flex justify-center bg-black border-t border-white/5">
+        <div className="w-full py-32 flex justify-center bg-background border-t border-foreground/5">
           <button
             onClick={add}
-            className="group relative flex items-center justify-center w-16 h-16 rounded-full border border-white/20 bg-[#050505] hover:bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="group relative flex h-16 w-16 items-center justify-center rounded-full border border-foreground/20 bg-card transition-colors hover:bg-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Ajouter un jalon"
           >
-            <Plus className="w-6 h-6 text-white group-hover:text-black transition-colors" />
+            <Plus className="h-6 w-6 text-foreground transition-colors group-hover:text-background" />
           </button>
         </div>
       ) : (
-        <div className="w-full py-20 flex justify-center bg-black border-t border-white/5">
-          <p className="text-xs text-white/40 tracking-widest uppercase">Lecture seule</p>
+        <div className="w-full py-20 flex justify-center bg-background border-t border-foreground/5">
+          <p className="text-xs text-foreground/40 tracking-widest uppercase">Lecture seule</p>
         </div>
       )}
 
@@ -247,7 +247,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
         />
       )}
       {undoTimeline && (
-        <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-3 rounded-full border border-white/10 bg-black/90 py-2 pl-4 pr-2 text-xs text-white shadow-xl backdrop-blur sm:left-6">
+        <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-3 rounded-full border border-foreground/10 bg-background/90 py-2 pl-4 pr-2 text-xs text-foreground shadow-xl backdrop-blur sm:left-6">
           <span>Changement appliqué</span>
           <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 font-medium text-black">
             <Undo2 className="h-3.5 w-3.5" /> Annuler
@@ -267,8 +267,8 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
     setSelectedDependents([]);
   }, [event.id, event.time]);
   const ripplePlan = useMemo(() => pendingTime === event.time ? undefined : planEventPropagation(project, event.id, { time: pendingTime }), [event.id, event.time, pendingTime, project]);
-  const input = "w-full rounded-none border-b border-white/20 bg-transparent py-2 text-sm text-white outline-none focus:border-white disabled:opacity-50 transition-colors placeholder:text-white/30";
-  const select = "w-full rounded-none border-b border-white/20 bg-[#0b0b0b] py-2 text-sm text-white outline-none focus:border-white disabled:opacity-50 transition-colors appearance-none";
+  const input = "w-full rounded-none border-b border-foreground/20 bg-transparent py-2 text-sm text-foreground outline-none focus:border-border disabled:opacity-50 transition-colors placeholder:text-foreground/30";
+  const select = "w-full appearance-none rounded-none border-b border-foreground/20 bg-background py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground disabled:opacity-50";
 
   return (
     <ContextPanel eyebrow="Votre contexte" title="Moment du calendrier" onClose={onClose}>
@@ -279,43 +279,43 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Heure</label>
+              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Heure</label>
               <input disabled={!canEdit} type="datetime-local" className={input} value={new Date(pendingTime - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setPendingTime(new Date(e.target.value).getTime())} />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Durée (min)</label>
+              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Durée (min)</label>
               <input disabled={!canEdit} type="number" min="0" className={input} value={event.durationMinutes || 0} onChange={e => onEdit({ durationMinutes: Number(e.target.value) })} />
             </div>
           </div>
 
           {ripplePlan && (
             <section className="overflow-hidden rounded-2xl border border-violet-300/20 bg-[linear-gradient(145deg,rgba(124,58,237,.14),rgba(14,165,233,.06))]">
-              <div className="flex items-start gap-3 border-b border-white/10 p-4">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-violet-200/25 bg-black/30">
+              <div className="flex items-start gap-3 border-b border-foreground/10 p-4">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-violet-200/25 bg-background/30">
                   <Waves className="h-4 w-4 text-violet-200" />
                 </span>
                 <div>
                   <p className="text-sm font-medium">Onde de changement</p>
-                  <p className="mt-1 text-xs leading-relaxed text-white/50">AIME a regardé ce que ce nouvel horaire peut modifier.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/50">AIME a regardé ce que ce nouvel horaire peut modifier.</p>
                 </div>
               </div>
               <div className="space-y-3 p-4">
-                <div className="rounded-xl bg-black/25 p-3 text-xs">
-                  <p className="text-white/40">Ce moment</p>
-                  <p className="mt-1 text-white/80">{format(event.time, "HH:mm", { locale: fr })} → {format(pendingTime, "HH:mm", { locale: fr })}</p>
+                <div className="rounded-xl bg-background/25 p-3 text-xs">
+                  <p className="text-foreground/40">Ce moment</p>
+                  <p className="mt-1 text-foreground/80">{format(event.time, "HH:mm", { locale: fr })} → {format(pendingTime, "HH:mm", { locale: fr })}</p>
                 </div>
-                {impact.relations.length > 0 && <p className="text-xs text-white/55">{impact.relations.length} personne{impact.relations.length > 1 ? "s ou élément sont liés" : " ou élément est lié"} à ce moment.</p>}
+                {impact.relations.length > 0 && <p className="text-xs text-foreground/55">{impact.relations.length} personne{impact.relations.length > 1 ? "s ou élément sont liés" : " ou élément est lié"} à ce moment.</p>}
                 {ripplePlan.dependentChanges.length > 0 && (
                   <div>
-                    <p className="mb-2 text-[10px] uppercase tracking-[.16em] text-white/35">Peut aussi être décalé</p>
+                    <p className="mb-2 text-[10px] uppercase tracking-[.16em] text-foreground/35">Peut aussi être décalé</p>
                     <div className="space-y-2">
                       {ripplePlan.dependentChanges.map(change => {
                         const checked = selectedDependents.includes(change.eventId);
-                        return <label key={change.eventId} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                        return <label key={change.eventId} className="flex cursor-pointer items-start gap-3 rounded-xl border border-foreground/10 bg-background/20 p-3">
                           <input type="checkbox" checked={checked} onChange={() => setSelectedDependents(value => checked ? value.filter(id => id !== change.eventId) : [...value, change.eventId])} className="mt-0.5 accent-white" />
                           <span className="min-w-0">
-                            <span className="block text-xs text-white/80">{change.title}</span>
-                            <span className="mt-1 block text-[10px] text-white/40">{format(change.currentTime, "HH:mm", { locale: fr })} → {format(change.nextTime, "HH:mm", { locale: fr })}</span>
+                            <span className="block text-xs text-foreground/80">{change.title}</span>
+                            <span className="mt-1 block text-[10px] text-foreground/40">{format(change.currentTime, "HH:mm", { locale: fr })} → {format(change.nextTime, "HH:mm", { locale: fr })}</span>
                           </span>
                         </label>;
                       })}
@@ -324,7 +324,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                 )}
                 {ripplePlan.warnings.map(warning => <p key={warning} className="rounded-xl border border-amber-300/15 bg-amber-300/5 p-3 text-xs text-amber-100/75">{warning}</p>)}
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-white/15 px-3 py-2.5 text-xs text-white/60 hover:text-white">Garder l’ancien horaire</button>
+                  <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-foreground/15 px-3 py-2.5 text-xs text-foreground/60 hover:text-foreground">Garder l’ancien horaire</button>
                   <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-white px-3 py-2.5 text-xs font-medium text-black">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
                 </div>
               </div>
@@ -332,13 +332,13 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
           )}
 
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Lieu</label>
+            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Lieu</label>
             <input disabled={!canEdit} className={input} placeholder="Où cela se passe-t-il ?" value={event.location || ""} onChange={e => onEdit({ location: e.target.value })} />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Statut</label>
+              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Statut</label>
               <select disabled={!canEdit} className={select} value={event.status} onChange={e => onEdit({ status: e.target.value as TimelineEvent["status"] })}>
                 <option value="prepare">Prévu</option>
                 <option value="execute">Terminé</option>
@@ -347,7 +347,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
               </select>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Source</label>
+              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Source</label>
               <select disabled={!canEdit} className={select} value={event.provenance || "real"} onChange={e => onEdit({ provenance: e.target.value as TimelineEvent["provenance"] })}>
                 <option value="real">Réel</option>
                 <option value="demo">Démo</option>
@@ -358,7 +358,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Visibilité</label>
+            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Visibilité</label>
             <select disabled={!canEdit} className={select} value={event.visibility || "equipe"} onChange={e => onEdit({ visibility: e.target.value as TimelineEvent["visibility"] })}>
               <option value="prive">Privé</option>
               <option value="equipe">Équipe</option>
@@ -367,17 +367,17 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Dépendances (IDs)</label>
+            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Dépendances (IDs)</label>
             <input disabled={!canEdit} className={input} placeholder="Ex: t1, t2" value={(event.dependencyIds || []).join(", ")} onChange={e => onEdit({ dependencyIds: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} />
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">Ressources</label>
+            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Ressources</label>
             <input disabled={!canEdit} className={input} placeholder="Ex: Salle, Micro" value={(event.resources || []).join(", ")} onChange={e => onEdit({ resources: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} />
           </div>
 
           <div className="pt-4">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-4">Liens Natifs</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-4">Liens Natifs</p>
             <div className="space-y-3">
               {(event.relations || []).map((relation, index) => (
                 <div key={`${relation.kind}-${relation.id}-${index}`} className="flex gap-3 items-end">
@@ -385,25 +385,25 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                     {kinds.map(kind => <option key={kind}>{kind}</option>)}
                   </select>
                   <input disabled={!canEdit} className={cn(input, "flex-1")} value={relation.id} onChange={e => onEdit({ relations: event.relations?.map((item, i) => i === index ? { ...item, id: e.target.value } : item) })} placeholder="ID" />
-                  <button disabled={!canEdit} onClick={() => onEdit({ relations: event.relations?.filter((_, i) => i !== index) })} className="pb-2 text-white/30 hover:text-white transition-colors">
+                  <button disabled={!canEdit} onClick={() => onEdit({ relations: event.relations?.filter((_, i) => i !== index) })} className="pb-2 text-foreground/30 hover:text-foreground transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ))}
             </div>
             {canEdit && (
-              <button onClick={() => onEdit({ relations: [...(event.relations || []), { kind: "guest", id: "" }] })} className="mt-4 text-[11px] uppercase tracking-widest text-white/50 hover:text-white transition-colors">
+              <button onClick={() => onEdit({ relations: [...(event.relations || []), { kind: "guest", id: "" }] })} className="mt-4 text-[11px] uppercase tracking-widest text-foreground/50 hover:text-foreground transition-colors">
                 + Ajouter un lien
               </button>
             )}
           </div>
 
-          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-[11px] leading-relaxed text-white/50">
+          <div className="rounded-xl border border-foreground/5 bg-foreground/[0.02] p-4 text-[11px] leading-relaxed text-foreground/50">
             {impact.relations.length} entité(s) résolue(s) · {impact.dependents.length} événement(s) dépendant(s).
           </div>
 
           {canEdit && (
-            <div className="pt-8 border-t border-white/10">
+            <div className="pt-8 border-t border-foreground/10">
               <button onClick={onDelete} className="w-full rounded-full border border-red-500/30 py-3 text-xs uppercase tracking-widest text-red-400 hover:bg-red-500/10 transition-colors">
                 Supprimer l'événement
               </button>

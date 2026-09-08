@@ -74,38 +74,38 @@ export function BottomDock({
   const phaseLabel: Record<WorldPhase, string> = { tout: "Tout", avant: "Avant", pendant: "Le Jour J", apres: "Après" };
   const playLabel = view === "music" ? "Lire la Timeline musicale" : phase === "pendant" || view === "day-of" ? "Lancer la régie" : "Lire la Timeline";
 
-  return <><AnimatePresence>{activePanel && <CenteredBlock eyebrow={isSecondary ? "Toutes les sections" : "Créer et organiser"} title={labels[activePanel]} size="xl" onClose={() => setActivePanel(null)} leading={isSecondary ? <button onClick={() => setActivePanel("plus")} aria-label="Retour aux sections" className="mt-5 rounded-full p-2 text-white/40 transition hover:text-white"><ChevronLeft className="h-4 w-4" /></button> : undefined}>
+  return <><AnimatePresence>{activePanel && <CenteredBlock eyebrow={isSecondary ? "Toutes les sections" : "Créer et organiser"} title={labels[activePanel]} size="xl" onClose={() => setActivePanel(null)} leading={isSecondary ? <button onClick={() => setActivePanel("plus")} aria-label="Retour aux sections" className="mt-5 rounded-full p-2 text-foreground/45 transition hover:bg-foreground/5 hover:text-foreground"><ChevronLeft className="h-4 w-4" /></button> : undefined}>
     <div className="mx-auto max-w-5xl">
       {activePanel === "planning" && <PlanningPanel />}
       {activePanel === "guests" && <GuestPanel />}
       {activePanel === "providers" && <ProviderPanel />}
       {activePanel === "dayof" && <DayOfPanel />}
-      {activePanel === "plus" && <div className="mx-auto max-w-3xl">{secondary.map(item => <button key={item.id} onClick={() => setActivePanel(item.id)} className="flex w-full items-center gap-4 border-b border-white/10 py-5 text-left text-white/75 transition hover:text-white"><Grid2X2 className="h-4 w-4 text-white/40" /><span className="flex-1 text-xs uppercase tracking-[.18em]">{item.label}</span><ChevronRight className="h-4 w-4 text-white/25" /></button>)}</div>}
+      {activePanel === "plus" && <div className="mx-auto max-w-3xl">{secondary.map(item => <button key={item.id} onClick={() => setActivePanel(item.id)} className="flex w-full items-center gap-4 border-b border-border py-5 text-left text-foreground/75 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Grid2X2 className="h-4 w-4 text-foreground/40" /><span className="flex-1 text-xs uppercase tracking-[.18em]">{item.label}</span><ChevronRight className="h-4 w-4 text-foreground/25" /></button>)}</div>}
       {isSecondary && <WeddingModulesPanel module={activePanel as WeddingModule} />}
     </div>
   </CenteredBlock>}</AnimatePresence>
   <AnimatePresence>{quickOpen && <CenteredBlock eyebrow="Créer et commander" title="Que voulez-vous faire ?" onClose={() => setQuickOpen(false)}>
-      <button onClick={() => { setQuickOpen(false); onPlay(); }} className="group flex w-full items-center gap-5 border-b border-white/10 py-5 text-left">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[.04]"><Play className="ml-0.5 h-4 w-4 stroke-[1.5] text-white/75" /></span>
-        <span className="min-w-0 flex-1"><span className="block text-[11px] uppercase tracking-[.2em] text-white/85">{playLabel}</span><span className="mt-1.5 block text-sm font-light text-white/38">Faire défiler les Moments visibles comme un récit.</span></span>
-        <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/60" />
+      <button onClick={() => { setQuickOpen(false); onPlay(); }} className="group flex w-full items-center gap-5 border-b border-border py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-foreground/15 bg-foreground/[.04]"><Play className="ml-0.5 h-4 w-4 stroke-[1.5] text-foreground/75" /></span>
+        <span className="min-w-0 flex-1"><span className="block text-[11px] uppercase tracking-[.2em] text-foreground/85">{playLabel}</span><span className="mt-1.5 block text-sm font-light text-foreground/55">Faire défiler les Moments visibles comme un récit.</span></span>
+        <ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1 group-hover:text-foreground/60" />
       </button>
       <div>{UNIVERSAL_CREATE_ACTIONS.map(item => {
         const Icon = icons[item.id];
-        return <button key={item.id} disabled={!item.availableInCurrentProject} onClick={() => openCreateAction(item.id)} className="group flex w-full items-center gap-5 border-b border-white/10 py-5 text-left disabled:cursor-default disabled:opacity-45">
-          <Icon className="h-5 w-5 shrink-0 stroke-[1.35] text-white/45 transition group-hover:text-white" />
-          <span className="min-w-0 flex-1"><span className="block text-[11px] uppercase tracking-[.2em] text-white/80">{item.label}</span><span className="mt-1.5 block text-sm font-light text-white/38">{item.description}</span>{!item.availableInCurrentProject && <span className="mt-2 block text-[9px] uppercase tracking-[.16em] text-white/30">Fondation universelle en construction</span>}</span>
-          {item.availableInCurrentProject && <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/60" />}
+        return <button key={item.id} disabled={!item.availableInCurrentProject} onClick={() => openCreateAction(item.id)} className="group flex w-full items-center gap-5 border-b border-border py-5 text-left disabled:cursor-default disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Icon className="h-5 w-5 shrink-0 stroke-[1.35] text-foreground/55 transition group-hover:text-foreground" />
+          <span className="min-w-0 flex-1"><span className="block text-[11px] uppercase tracking-[.2em] text-foreground/80">{item.label}</span><span className="mt-1.5 block text-sm font-light text-foreground/55">{item.description}</span>{!item.availableInCurrentProject && <span className="mt-2 block text-[9px] uppercase tracking-[.16em] text-foreground/45">Fondation universelle en construction</span>}</span>
+          {item.availableInCurrentProject && <ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1 group-hover:text-foreground/60" />}
         </button>;
       })}</div>
   </CenteredBlock>}</AnimatePresence>
-  <nav aria-label="Centre AI plus ME" className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 text-white">
-      <div className="flex h-[76px] w-[350px] shrink-0 items-center justify-between rounded-full border border-white/8 bg-black/88 p-2 shadow-2xl backdrop-blur-xl sm:w-[410px]">
-        <button disabled={!previousPhase} onClick={() => previousPhase && onPhaseChange(previousPhase)} className="grid h-11 w-10 shrink-0 place-items-center rounded-full text-white/45 transition hover:bg-white/[.06] hover:text-white disabled:opacity-15" aria-label={previousPhase ? `Aller vers ${phaseLabel[previousPhase]}` : "Aucune période précédente"}><ChevronLeft className="h-5 w-5" /></button>
-        <button onClick={() => window.dispatchEvent(new Event("aime:open-ai"))} className="h-14 flex-1 rounded-full text-sm font-semibold tracking-[.16em] text-white/70 hover:bg-white/[.06] hover:text-white" aria-label="Demander à AIME">AI</button>
-        <button onClick={() => setQuickOpen(true)} className="h-[62px] w-[62px] shrink-0 rounded-full bg-[conic-gradient(from_180deg,#ff5b79,#ffb44a,#f6f06a,#50e3a4,#4cc9ff,#8b7cff,#e26cff,#ff5b79)] p-[2px]" aria-label="Ajouter"><span className="flex h-full w-full items-center justify-center rounded-full bg-black"><Plus className="h-8 w-8 stroke-[1.35]" /></span></button>
-        <button onClick={() => window.dispatchEvent(new Event("aime:open-me"))} className="h-14 flex-1 rounded-full text-sm font-semibold tracking-[.16em] text-white/70 hover:bg-white/[.06] hover:text-white" aria-label="Ouvrir mon espace">ME</button>
-        <button disabled={!nextPhase} onClick={() => nextPhase && onPhaseChange(nextPhase)} className="grid h-11 w-10 shrink-0 place-items-center rounded-full text-white/45 transition hover:bg-white/[.06] hover:text-white disabled:opacity-15" aria-label={nextPhase ? `Aller vers ${phaseLabel[nextPhase]}` : "Aucune période suivante"}><ChevronRight className="h-5 w-5" /></button>
+  <nav aria-label="Centre AI plus ME" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-50 -translate-x-1/2 text-foreground">
+      <div className="flex h-[72px] w-[min(350px,calc(100vw-1rem))] shrink-0 items-center justify-between overflow-hidden rounded-full border border-card-border bg-card/95 p-1.5 shadow-2xl backdrop-blur-xl sm:h-[76px] sm:w-[410px] sm:p-2">
+        <button disabled={!previousPhase} onClick={() => previousPhase && onPhaseChange(previousPhase)} className="grid h-11 w-9 shrink-0 place-items-center rounded-full text-foreground/45 transition hover:bg-foreground/[.06] hover:text-foreground disabled:opacity-15 sm:w-10" aria-label={previousPhase ? `Aller vers ${phaseLabel[previousPhase]}` : "Aucune période précédente"}><ChevronLeft className="h-5 w-5" /></button>
+        <button onClick={() => window.dispatchEvent(new Event("aime:open-ai"))} className="h-14 min-w-0 flex-1 rounded-full text-xs font-semibold tracking-[.14em] text-foreground/75 hover:bg-foreground/[.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm sm:tracking-[.16em]" aria-label="Demander à AIME">AI</button>
+        <button data-preserve-color onClick={() => setQuickOpen(true)} className="h-[58px] w-[58px] shrink-0 rounded-full bg-[conic-gradient(from_180deg,#ff5b79,#ffb44a,#f6f06a,#50e3a4,#4cc9ff,#8b7cff,#e26cff,#ff5b79)] p-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-[62px] sm:w-[62px]" aria-label="Ajouter"><span className="flex h-full w-full items-center justify-center rounded-full bg-background text-foreground"><Plus className="h-7 w-7 stroke-[1.35] sm:h-8 sm:w-8" /></span></button>
+        <button onClick={() => window.dispatchEvent(new Event("aime:open-me"))} className="h-14 min-w-0 flex-1 rounded-full text-xs font-semibold tracking-[.14em] text-foreground/75 hover:bg-foreground/[.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm sm:tracking-[.16em]" aria-label="Ouvrir mon espace">ME</button>
+        <button disabled={!nextPhase} onClick={() => nextPhase && onPhaseChange(nextPhase)} className="grid h-11 w-9 shrink-0 place-items-center rounded-full text-foreground/45 transition hover:bg-foreground/[.06] hover:text-foreground disabled:opacity-15 sm:w-10" aria-label={nextPhase ? `Aller vers ${phaseLabel[nextPhase]}` : "Aucune période suivante"}><ChevronRight className="h-5 w-5" /></button>
       </div>
   </nav></>;
 }

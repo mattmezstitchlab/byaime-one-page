@@ -31,7 +31,7 @@ export function PlayMode({ events, onClose }: { events: TimelineEvent[], onClose
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-black flex flex-col"
+      className="fixed inset-0 z-[100] bg-black text-white flex flex-col"
     >
       {/* Visual background related to event if we had images, fallback to a dark gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-black opacity-80" />

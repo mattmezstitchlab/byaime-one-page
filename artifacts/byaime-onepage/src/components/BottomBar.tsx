@@ -30,12 +30,12 @@ export function BottomBar() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 bg-zinc-950 border-t border-white/10 shadow-2xl h-[60vh] max-h-[500px] rounded-t-3xl text-white"
+            className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 bg-zinc-950 border-t border-foreground/10 shadow-2xl h-[60vh] max-h-[500px] rounded-t-3xl text-foreground"
           >
             <div className="absolute top-6 right-6">
               <button 
                 onClick={() => setActivePanel(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-foreground/10 hover:bg-foreground/20 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -52,15 +52,15 @@ export function BottomBar() {
               {/* Mock Content */}
               <div className="grid gap-3 max-w-2xl mx-auto">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="p-4 rounded-xl border border-white/5 bg-white/5 flex items-center gap-4 group hover:bg-white/10 transition-colors cursor-pointer">
-                    <div className="w-10 h-10 rounded-lg bg-white/10 flex flex-shrink-0 items-center justify-center">
+                  <div key={i} className="p-4 rounded-xl border border-foreground/5 bg-foreground/5 flex items-center gap-4 group hover:bg-foreground/10 transition-colors cursor-pointer">
+                    <div className="w-10 h-10 rounded-lg bg-foreground/10 flex flex-shrink-0 items-center justify-center">
                       {activePanel === 'documents' ? <FileText className="w-4 h-4 opacity-50 group-hover:opacity-100" /> :
                        activePanel === 'chat' ? <MessageSquare className="w-4 h-4 opacity-50 group-hover:opacity-100" /> :
                        <Folder className="w-4 h-4 opacity-50 group-hover:opacity-100" />}
                     </div>
                     <div>
                       <div className="font-medium text-sm">Élément {i}</div>
-                      <div className="text-white/40 text-xs mt-0.5">Mis à jour récemment</div>
+                      <div className="text-foreground/40 text-xs mt-0.5">Mis à jour récemment</div>
                     </div>
                   </div>
                 ))}
@@ -77,7 +77,7 @@ export function BottomBar() {
       </AnimatePresence>
 
       {/* The Bottom Bar itself */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-black/10 flex justify-center pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] text-foreground backdrop-blur-xl">
         <div className="flex items-center justify-center gap-10 sm:gap-16 w-full max-w-3xl px-6 h-14">
           {navItems.map((item) => (
             <button
@@ -85,12 +85,12 @@ export function BottomBar() {
               onClick={() => togglePanel(item.id)}
               className={cn(
                 "p-2 flex items-center justify-center transition-colors relative group",
-                activePanel === item.id ? "text-black" : "text-black/40 hover:text-black/80"
+                activePanel === item.id ? "text-foreground" : "text-foreground/45 hover:text-foreground/80"
               )}
             >
               <item.icon className="w-[20px] h-[20px] stroke-[1.5]" />
               {activePanel === item.id && (
-                <motion.div layoutId="active-indicator" className="absolute -top-[15px] w-full h-[2px] bg-black" />
+                <motion.div layoutId="active-indicator" className="absolute -top-[15px] h-[2px] w-full bg-foreground" />
               )}
             </button>
           ))}

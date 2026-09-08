@@ -26,14 +26,14 @@ export function UniversesSection() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div>
-            <h2 className="text-sm font-medium tracking-[0.2em] text-white/50 uppercase mb-4">
+            <h2 className="text-sm font-medium tracking-[0.2em] text-foreground/50 uppercase mb-4">
               Les univers
             </h2>
-            <h3 className="text-4xl md:text-5xl font-display font-light text-white text-balance">
+            <h3 className="text-4xl md:text-5xl font-display font-light text-foreground text-balance">
               Douze mondes,<br />un seul calendrier.
             </h3>
           </div>
-          <div className="max-w-md text-white/60 text-sm md:text-base leading-relaxed">
+          <div className="max-w-md text-foreground/60 text-sm md:text-base leading-relaxed">
             Chaque univers est une porte d'entrée vers des possibilités infinies. 
             Sélectionnez celui qui résonne avec votre projet pour commencer à tisser des liens.
           </div>
@@ -53,7 +53,7 @@ export function UniversesSection() {
                 onClick={() => setSelectedUniverse(isSelected ? '' : universe.name)}
                 className={cn(
                   "group relative min-w-[280px] md:min-w-0 h-[400px] rounded-xl overflow-hidden cursor-pointer snap-center flex-shrink-0 border transition-all duration-500",
-                  isSelected ? "border-white" : "border-white/10 hover:border-white/30"
+                  isSelected ? "border-border" : "border-foreground/10 hover:border-foreground/30"
                 )}
               >
                 {/* Image Background */}
@@ -66,18 +66,18 @@ export function UniversesSection() {
                 />
                 
                 {/* Overlays */}
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-500" />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/25 transition-colors duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 
                 {/* Content */}
                 <div className="absolute inset-0 p-6 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-medium tracking-widest text-white/70">
+                    <span className="text-xs font-medium tracking-widest text-white/75">
                       0{i + 1}
                     </span>
                     <div className={cn(
                       "w-6 h-6 rounded-full border flex items-center justify-center transition-colors",
-                      isSelected ? "border-white bg-white text-black" : "border-white/30 text-transparent"
+                      isSelected ? "border-white bg-white text-black" : "border-white/35 text-transparent"
                     )}>
                       {isSelected && (
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -19,18 +19,18 @@ function EventIcon({ kind }: { kind?: string }) {
     case "document":
     case "devis":
     case "facture":
-      return <FileText className="w-5 h-5 text-white/60" />;
+      return <FileText className="w-5 h-5 text-foreground/60" />;
     case "paiement":
-      return <Wallet className="w-5 h-5 text-white/60" />;
+      return <Wallet className="w-5 h-5 text-foreground/60" />;
     case "evenement":
     case "jalon":
-      return <Calendar className="w-5 h-5 text-white/60" />;
+      return <Calendar className="w-5 h-5 text-foreground/60" />;
     case "souvenir":
-      return <ImageIcon className="w-5 h-5 text-white/60" />;
+      return <ImageIcon className="w-5 h-5 text-foreground/60" />;
     case "message":
-      return <Users className="w-5 h-5 text-white/60" />;
+      return <Users className="w-5 h-5 text-foreground/60" />;
     default:
-      return <Folder className="w-5 h-5 text-white/60" />;
+      return <Folder className="w-5 h-5 text-foreground/60" />;
   }
 }
 
@@ -60,7 +60,7 @@ const yOffsets = [
 
 function MissingDataHint({ icon: Icon, label }: { icon: any, label: string }) {
   return (
-    <span className="flex items-center gap-2 rounded-full border border-dashed border-white/10 bg-white/[0.02] px-4 py-2 text-[9px] uppercase tracking-widest text-white/32">
+    <span className="flex items-center gap-2 rounded-full border border-dashed border-foreground/10 bg-foreground/[0.02] px-4 py-2 text-[9px] uppercase tracking-widest text-foreground/32">
       <Icon className="w-3.5 h-3.5" /> {label}
     </span>
   );
@@ -223,12 +223,12 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
   if (isLoading || (!isHydrated && !profile)) {
     return (
-      <main data-testid="profile-loading" className="min-h-[100dvh] bg-[#020202] text-white flex items-center justify-center px-6">
+      <main data-testid="profile-loading" className="flex min-h-[100dvh] items-center justify-center bg-background px-6 text-foreground">
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          className="text-[10px] tracking-[.35em] uppercase text-white/30"
+          className="text-[10px] uppercase tracking-[.35em] text-muted-foreground"
         >
           AIME · Ouverture des archives
         </motion.p>
@@ -238,12 +238,12 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
   if (error || !profile) {
     return (
-      <main data-testid="profile-error" className="min-h-[100dvh] bg-[#020202] text-white flex flex-col items-center justify-center p-6 text-center">
+      <main data-testid="profile-error" className="flex min-h-[100dvh] flex-col items-center justify-center bg-background p-6 text-center text-foreground">
         <div className="max-w-md">
-          <p className="text-[10px] tracking-[.4em] uppercase text-white/30 mb-8">Erreur</p>
+          <p className="mb-8 text-[10px] uppercase tracking-[.4em] text-muted-foreground">Erreur</p>
           <h1 className="text-3xl font-display font-light mb-6">L'accès à cette histoire est impossible.</h1>
-          <p className="text-white/40 text-sm font-light mb-12">{error instanceof Error ? error.message : "Profil introuvable"}</p>
-          <Link href="/" className="text-[10px] uppercase tracking-widest text-white/50 hover:text-white transition-colors border-b border-white/10 pb-1">
+          <p className="mb-12 text-sm font-light text-muted-foreground">{error instanceof Error ? error.message : "Profil introuvable"}</p>
+          <Link href="/" className="border-b border-border pb-1 text-[10px] uppercase tracking-widest text-foreground/65 transition-colors hover:text-foreground">
             Retourner à l'accueil
           </Link>
         </div>
@@ -289,21 +289,21 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   };
 
   return (
-    <main data-testid="public-profile-page" className={cn("min-h-[100dvh] bg-[#020202] text-white overflow-x-hidden", isEditMode ? "h-[100dvh] overflow-y-hidden" : "pb-40")}>
+    <main data-testid="public-profile-page" className={cn("min-h-[100dvh] overflow-x-hidden bg-background text-foreground", isEditMode ? "h-[100dvh] overflow-y-hidden" : "pb-40")}>
       <Link href="/" className="fixed top-6 left-6 z-50 pointer-events-auto">
         <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="AIME" className="h-8 w-auto rounded-lg opacity-80 hover:opacity-100 transition-opacity" />
       </Link>
       {isPrivatePreview && (
         <div className="absolute top-20 right-6 z-40 pointer-events-auto">
-          <Link href="/le-monde-aime" className="flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-black/40 backdrop-blur-md text-white/50 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all group shadow-xl" title="Le Cœur Battant du Monde">
+          <Link href="/le-monde-aime" className="flex items-center justify-center w-12 h-12 rounded-full border border-foreground/10 bg-background/40 backdrop-blur-md text-foreground/50 hover:text-foreground hover:bg-foreground/10 hover:border-foreground/20 transition-all group shadow-xl" title="Le Cœur Battant du Monde">
             <Globe2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </Link>
         </div>
       )}
-      <div className="fixed inset-0 z-0 bg-[#020202] pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] to-[#020202] opacity-80" />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-background">
+        <div className="absolute inset-0 bg-gradient-to-b from-card to-background opacity-80" />
         <div
-          className="absolute inset-0 opacity-[0.02] mix-blend-screen"
+          className="absolute inset-0 opacity-[0.015]"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
         />
       </div>
@@ -312,10 +312,10 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         <div className="relative z-10 pt-24 px-6 w-full h-[100dvh] flex flex-col">
            <div className="mb-6 flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left shrink-0 max-w-[1200px] w-full mx-auto">
               <div>
-                <h2 className="text-3xl font-display font-light text-white mb-2">Architecture du Profil</h2>
-                <p className="text-sm font-light text-white/40">Gérez les connexions, les contenus et leur visibilité depuis une même carte vivante.</p>
+                <h2 className="text-3xl font-display font-light text-foreground mb-2">Architecture du Profil</h2>
+                <p className="text-sm font-light text-foreground/40">Gérez les connexions, les contenus et leur visibilité depuis une même carte vivante.</p>
               </div>
-              <button type="button" onClick={() => setIsEditMode(false)} className="flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-[9px] uppercase tracking-[.2em] text-white/70 transition hover:border-white/35 hover:bg-white/[.06] hover:text-white">
+              <button type="button" onClick={() => setIsEditMode(false)} className="flex items-center gap-2 rounded-full border border-foreground/15 px-5 py-2.5 text-[9px] uppercase tracking-[.2em] text-foreground/70 transition hover:border-foreground/35 hover:bg-foreground/[.06] hover:text-foreground">
                 <Pencil className="h-3 w-3" /> Terminer
               </button>
            </div>
@@ -327,51 +327,51 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         <>
           {/* Hero Section */}
           <div className="relative z-10 pt-24 pb-12 flex flex-col items-center px-6 text-center">
-        {!isPrivatePreview && <p className="mb-7 text-[9px] uppercase tracking-[.32em] text-white/35">Monde public</p>}
-        <div className="relative group w-32 h-32 rounded-full border border-white/10 bg-white/5 flex items-center justify-center overflow-hidden mb-8 shadow-2xl">
+        {!isPrivatePreview && <p className="mb-7 text-[9px] uppercase tracking-[.32em] text-foreground/35">Monde public</p>}
+        <div className="relative group w-32 h-32 rounded-full border border-foreground/10 bg-foreground/5 flex items-center justify-center overflow-hidden mb-8 shadow-2xl">
           {profileImage
             ? <img data-preserve-color src={profileImage} alt={`Portrait de ${displayName}`} className="h-full w-full object-cover" />
-            : isPrivatePreview ? <User className="w-10 h-10 text-white/20" /> : <Globe2 className="w-10 h-10 text-white/20" />}
-          {isPrivatePreview && <button type="button" onClick={requestIdentityEdit} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <span className="text-[9px] uppercase tracking-widest text-white">{profileImage ? "Gérer mon identité" : "Ajouter une photo"}</span>
+            : isPrivatePreview ? <User className="w-10 h-10 text-foreground/20" /> : <Globe2 className="w-10 h-10 text-foreground/20" />}
+          {isPrivatePreview && <button type="button" onClick={requestIdentityEdit} className="absolute inset-0 bg-background/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-[9px] uppercase tracking-widest text-foreground">{profileImage ? "Gérer mon identité" : "Ajouter une photo"}</span>
           </button>}
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-display font-light tracking-tight text-white mb-4">
+        <h1 className="text-5xl md:text-7xl font-display font-light tracking-tight text-foreground mb-4">
           {displayName}
         </h1>
 
         {displaySubtitle && (
-          <h2 className="text-lg md:text-xl font-light text-white/40 mb-8 max-w-2xl text-balance">
+          <h2 className="text-lg md:text-xl font-light text-foreground/40 mb-8 max-w-2xl text-balance">
             {displaySubtitle}
           </h2>
         )}
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
           {displayCity ? (
-            <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/40 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+            <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/40 bg-foreground/5 px-4 py-2 rounded-full border border-foreground/5">
               <MapPin className="w-3.5 h-3.5" /> Carte du Monde · {displayCity}
             </span>
           ) : isPrivatePreview ? <MissingDataHint icon={MapPin} label="Ville à relier" /> : null}
 
-          <span className="w-1 h-1 rounded-full bg-white/10 hidden sm:block" />
+          <span className="w-1 h-1 rounded-full bg-foreground/10 hidden sm:block" />
 
           {!isPrivatePreview && profile.pivot ? (
-            <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/40 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+            <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/40 bg-foreground/5 px-4 py-2 rounded-full border border-foreground/5">
               <CalendarDays className="w-3.5 h-3.5" /> Date du Monde · {profile.pivot > 10000 ? format(profile.pivot, "d MMM yyyy", { locale: fr }) : profile.pivot}
             </span>
           ) : isPrivatePreview ? <MissingDataHint icon={CalendarDays} label="Anniversaire à relier" /> : null}
 
           {isPrivatePreview && <>
-            <span className="w-1 h-1 rounded-full bg-white/10 hidden sm:block" />
+            <span className="w-1 h-1 rounded-full bg-foreground/10 hidden sm:block" />
             <MissingDataHint icon={Plus} label="Statut à relier" />
           </>}
         </div>
         {isPrivatePreview && sortedEvents.length > 0 && (
           <div className="mt-9 flex max-w-full items-center justify-center -space-x-2 overflow-x-auto px-4 py-2 hide-scrollbar" aria-label="Moments visuels du Profil">
-            {profileImage && <span className="relative z-10 h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-[#020202]"><img data-preserve-color src={profileImage} alt="" className="h-full w-full object-cover" /></span>}
+            {profileImage && <span className="relative z-10 h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-background"><img data-preserve-color src={profileImage} alt="" className="h-full w-full object-cover" /></span>}
             {sortedEvents.slice(-7).reverse().map((event, index) => (
-              <button key={event.id} type="button" onClick={() => setSelectedEvent(event)} title={event.title} className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-[#020202] bg-[#111] text-white shadow-xl transition hover:z-20 hover:-translate-y-1 hover:scale-110" style={{ zIndex: 9 - index }}>
+              <button key={event.id} type="button" onClick={() => setSelectedEvent(event)} title={event.title} className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-background bg-card text-foreground shadow-xl transition hover:z-20 hover:-translate-y-1 hover:scale-110" style={{ zIndex: 9 - index }}>
                 <EventIcon kind={event.kind} />
               </button>
             ))}
@@ -380,16 +380,16 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       </div>
 
       {/* Timeline Section */}
-      <div className="relative z-10 w-full mt-8 border-t border-white/5 pt-8">
+      <div className="relative z-10 w-full mt-8 border-t border-foreground/5 pt-8">
         <div className="flex flex-col md:flex-row items-center justify-between px-6 md:px-12 gap-6 mb-12 max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 bg-white/[0.02] rounded-full border border-white/5 p-1 shrink-0">
-             <button onClick={() => setZoom(z => Math.max(1, z - 0.5))} className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors" aria-label="Dézoomer">
+          <div className="flex items-center gap-2 bg-foreground/[0.02] rounded-full border border-foreground/5 p-1 shrink-0">
+             <button onClick={() => setZoom(z => Math.max(1, z - 0.5))} className="p-2 rounded-full hover:bg-foreground/10 text-foreground/40 hover:text-foreground transition-colors" aria-label="Dézoomer">
                <ZoomOut className="w-4 h-4" />
              </button>
-             <div className="w-12 text-center text-[9px] uppercase tracking-widest text-white/40 font-medium">
+             <div className="w-12 text-center text-[9px] uppercase tracking-widest text-foreground/40 font-medium">
                {Math.round(zoom * 100)}%
              </div>
-             <button onClick={() => setZoom(z => Math.min(5, z + 0.5))} className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors" aria-label="Zoomer">
+             <button onClick={() => setZoom(z => Math.min(5, z + 0.5))} className="p-2 rounded-full hover:bg-foreground/10 text-foreground/40 hover:text-foreground transition-colors" aria-label="Zoomer">
                <ZoomIn className="w-4 h-4" />
              </button>
           </div>
@@ -402,8 +402,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                  className={cn(
                    "flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all shrink-0",
                    activeCategory === cat.id
-                     ? "bg-white/15 border-white/30 text-white"
-                     : "bg-white/[0.02] border-white/5 hover:border-white/20 text-white/40 hover:text-white"
+                     ? "bg-foreground/15 border-foreground/30 text-foreground"
+                     : "bg-foreground/[0.02] border-foreground/5 hover:border-foreground/20 text-foreground/40 hover:text-foreground"
                  )}
                >
                  <cat.icon className="w-3.5 h-3.5" />
@@ -415,7 +415,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
         <div
           ref={scrollRef}
-          className="w-full overflow-x-auto hide-scrollbar cursor-grab active:cursor-grabbing border-y border-white/5 bg-[#050505]"
+          className="w-full cursor-grab overflow-x-auto border-y border-border bg-card active:cursor-grabbing hide-scrollbar"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -425,12 +425,12 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
             className="relative h-[440px] transition-all duration-300 ease-out"
             style={{ width: `${zoom * 100}%`, minWidth: '100%' }}
           >
-            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/15 shadow-[0_0_10px_rgba(255,255,255,0.1)]" />
+            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-foreground/15 shadow-[0_0_10px_rgba(255,255,255,0.1)]" />
 
             {REPERES.map(rep => (
               <div key={rep.label} className="absolute top-1/2" style={{ left: `${rep.left}%` }}>
-                <div className="absolute left-0 top-0 w-[1px] h-6 bg-white/20" />
-                <button type="button" onClick={() => setSelectedRepere(rep)} className="absolute top-8 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-2 text-[9px] uppercase tracking-[0.25em] text-white/30 transition hover:bg-white/[.06] hover:text-white">
+                <div className="absolute left-0 top-0 w-[1px] h-6 bg-foreground/20" />
+                <button type="button" onClick={() => setSelectedRepere(rep)} className="absolute top-8 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-2 text-[9px] uppercase tracking-[0.25em] text-foreground/30 transition hover:bg-foreground/[.06] hover:text-foreground">
                   {rep.label}
                 </button>
               </div>
@@ -448,7 +448,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                   style={{ left: `${left}%` }}
                 >
                    <div
-                      className="absolute left-0 w-[1px] bg-white/10"
+                      className="absolute left-0 w-[1px] bg-foreground/10"
                       style={{
                          height: `${Math.abs(yOffset)}px`,
                          top: isTop ? `${yOffset}px` : `0px`,
@@ -459,17 +459,17 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                       className="absolute group flex flex-col items-center justify-center w-14 h-14 -translate-x-1/2 -translate-y-1/2"
                       style={{ top: `${yOffset}px`, left: '0px' }}
                    >
-                      <div className="w-12 h-12 rounded-full border border-white/15 bg-[#0a0a0a] flex items-center justify-center group-hover:bg-white/10 group-hover:border-white/40 group-hover:scale-110 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+                       <div className="flex h-12 w-12 items-center justify-center rounded-full border border-foreground/15 bg-background shadow-[0_4px_20px_rgba(0,0,0,0.18)] transition-all group-hover:scale-110 group-hover:border-foreground/40 group-hover:bg-foreground/10">
                          <EventIcon kind={event.kind} />
                       </div>
                       <div className={cn(
                         "absolute flex flex-col items-center w-40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none",
                         isTop ? "bottom-full mb-3" : "top-full mt-3"
                       )}>
-                         <span className="text-[9px] uppercase tracking-widest text-white/80 text-center truncate w-full">
+                         <span className="text-[9px] uppercase tracking-widest text-foreground/80 text-center truncate w-full">
                            {event.title}
                          </span>
-                         <span className="text-[8px] text-white/40 mt-1">
+                         <span className="text-[8px] text-foreground/40 mt-1">
                            {format(event.time, "d MMM yyyy", { locale: fr })}
                          </span>
                       </div>
@@ -482,31 +482,31 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       </div>
       </>)}
 
-      {isPrivatePreview && <nav aria-label="Centre AI plus ME" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 text-white">
-        <div className="flex h-[72px] w-[320px] shrink-0 items-center justify-between rounded-full border border-white/8 bg-black/80 p-2 shadow-2xl backdrop-blur-xl sm:w-[360px]">
-          <button onClick={() => window.dispatchEvent(new Event("aime:open-ai"))} className="h-14 flex-1 rounded-full text-[11px] font-medium tracking-[0.2em] text-white/50 hover:bg-white/10 hover:text-white transition-colors" aria-label="Demander à AIME">AI</button>
+      {isPrivatePreview && <nav aria-label="Centre AI plus ME" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 text-foreground">
+        <div className="flex h-[72px] w-[min(320px,calc(100vw-1rem))] shrink-0 items-center justify-between rounded-full border border-foreground/[.08] bg-background/90 p-2 shadow-2xl backdrop-blur-xl sm:w-[360px]">
+          <button onClick={() => window.dispatchEvent(new Event("aime:open-ai"))} className="h-14 flex-1 rounded-full text-[11px] font-medium tracking-[0.2em] text-foreground/50 hover:bg-foreground/10 hover:text-foreground transition-colors" aria-label="Demander à AIME">AI</button>
           <button type="button" disabled={!canEdit} onClick={() => setCreateOpen(true)} className="h-[56px] w-[56px] shrink-0 rounded-full bg-[conic-gradient(from_180deg,#ff5b79,#ffb44a,#f6f06a,#50e3a4,#4cc9ff,#8b7cff,#e26cff,#ff5b79)] p-[2px] transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-35" aria-label={canEdit ? "Ajouter" : "Consultation uniquement"}>
-            <span className="flex h-full w-full items-center justify-center rounded-full bg-black"><Plus className="h-6 w-6 stroke-[1.5]" /></span>
+            <span className="flex h-full w-full items-center justify-center rounded-full bg-background"><Plus className="h-6 w-6 stroke-[1.5]" /></span>
           </button>
-          <button onClick={() => window.dispatchEvent(new Event("aime:open-me"))} className="h-14 flex-1 rounded-full text-[11px] font-medium tracking-[0.2em] text-white/50 hover:bg-white/10 hover:text-white transition-colors" aria-label="Ouvrir mon espace">ME</button>
+          <button onClick={() => window.dispatchEvent(new Event("aime:open-me"))} className="h-14 flex-1 rounded-full text-[11px] font-medium tracking-[0.2em] text-foreground/50 hover:bg-foreground/10 hover:text-foreground transition-colors" aria-label="Ouvrir mon espace">ME</button>
         </div>
       </nav>}
 
       <AnimatePresence>
         {selectedRepere && (
-          <CenteredBlock eyebrow="Repère du Profil" title={selectedRepere.label} description={selectedRepere.description} onClose={() => setSelectedRepere(null)} leading={<selectedRepere.icon className="mt-4 h-6 w-6 shrink-0 text-white/55" />}>
+          <CenteredBlock eyebrow="Repère du Profil" title={selectedRepere.label} description={selectedRepere.description} onClose={() => setSelectedRepere(null)} leading={<selectedRepere.icon className="mt-4 h-6 w-6 shrink-0 text-foreground/55" />}>
             <div className="grid gap-3 sm:grid-cols-2">
               {selectedRepere.id === "network" ? (
-                <Link href="/network" className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-5 text-left transition hover:border-white/25 hover:bg-white/[.06]">
-                  <Network className="h-5 w-5 text-white/45" />
+                <Link href="/network" className="flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-left transition hover:border-foreground/25 hover:bg-foreground/[.06]">
+                  <Network className="h-5 w-5 text-foreground/45" />
                   <span>
-                    <span className="block text-xs uppercase tracking-[.16em] text-white/75">Ouvrir la Grille universelle</span>
-                    <span className="mt-2 block text-xs font-light leading-relaxed text-white/35">Votre Profil devient le point zéro ; les personnes et les professionnels occupent les cases reliées.</span>
+                    <span className="block text-xs uppercase tracking-[.16em] text-foreground/75">Ouvrir la Grille universelle</span>
+                    <span className="mt-2 block text-xs font-light leading-relaxed text-foreground/35">Votre Profil devient le point zéro ; les personnes et les professionnels occupent les cases reliées.</span>
                   </span>
                 </Link>
               ) : (selectedRepere.id === "archives" ? CATEGORIES.slice(0, 3) : selectedRepere.id === "history" ? CATEGORIES.slice(3) : [{ id: "identity", label: "Naissance et identité", icon: Fingerprint }]).map(item => (
-                <button key={item.id} type="button" onClick={() => { setSelectedRepere(null); setActiveCategory(item.id === "identity" ? null : item.id); }} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-5 text-left transition hover:border-white/25 hover:bg-white/[.06]">
-                  <item.icon className="h-5 w-5 text-white/45" /><span className="text-xs uppercase tracking-[.16em] text-white/75">{item.label}</span>
+                <button key={item.id} type="button" onClick={() => { setSelectedRepere(null); setActiveCategory(item.id === "identity" ? null : item.id); }} className="flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-left transition hover:border-foreground/25 hover:bg-foreground/[.06]">
+                  <item.icon className="h-5 w-5 text-foreground/45" /><span className="text-xs uppercase tracking-[.16em] text-foreground/75">{item.label}</span>
                 </button>
               ))}
             </div>
@@ -515,7 +515,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         {createOpen && (
           <CenteredBlock eyebrow="Ajouter au Profil" title="Que voulez-vous relier ?" description="Chaque ajout rejoint la Timeline, le bon Repère et les Mondes autorisés après votre confirmation." onClose={() => setCreateOpen(false)}>
             <div className="grid gap-3 sm:grid-cols-2">
-              {CATEGORIES.map(item => <button key={item.id} type="button" onClick={() => createProfileItem(item.id)} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.035] p-5 text-left transition hover:border-white/25 hover:bg-white/[.06]"><item.icon className="h-5 w-5 text-white/45" /><span className="text-xs uppercase tracking-[.16em] text-white/75">{item.label}</span></button>)}
+              {CATEGORIES.map(item => <button key={item.id} type="button" onClick={() => createProfileItem(item.id)} className="flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-left transition hover:border-foreground/25 hover:bg-foreground/[.06]"><item.icon className="h-5 w-5 text-foreground/45" /><span className="text-xs uppercase tracking-[.16em] text-foreground/75">{item.label}</span></button>)}
             </div>
           </CenteredBlock>
         )}
@@ -528,13 +528,13 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
             onClose={() => setSelectedEvent(undefined)}
             size="lg"
             leading={
-               <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center bg-white/5 mb-4 sm:mb-0 shrink-0">
+               <div className="w-10 h-10 rounded-full border border-foreground/10 flex items-center justify-center bg-foreground/5 mb-4 sm:mb-0 shrink-0">
                   <EventIcon kind={selectedEvent.kind} />
                </div>
             }
           >
-            <div className="mt-6 space-y-8 text-white/70 font-light leading-relaxed">
-               <div className="flex flex-wrap gap-x-8 gap-y-4 text-[10px] uppercase tracking-[0.2em] text-white/40 pt-6 border-t border-white/10">
+            <div className="mt-6 space-y-8 text-foreground/70 font-light leading-relaxed">
+               <div className="flex flex-wrap gap-x-8 gap-y-4 text-[10px] uppercase tracking-[0.2em] text-foreground/40 pt-6 border-t border-foreground/10">
                  {selectedEvent.location && (
                    <span className="flex items-center gap-2">
                      <MapPin className="w-3.5 h-3.5" />

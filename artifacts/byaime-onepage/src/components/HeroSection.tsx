@@ -15,7 +15,7 @@ export function HeroSection() {
         style={{ backgroundImage: `url(${getAssetUrl('images/visual-event-D_L9Q-iW.jpg')})` }}
       />
       {/* Subtle overlay for text readability */}
-      <div className="absolute inset-0 z-0 bg-black/40" />
+      <div className="absolute inset-0 z-0 bg-black/45" />
       
       {/* Gradient overlay at bottom to blend with next section */}
       <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-background to-transparent z-0" />
@@ -33,7 +33,7 @@ export function HeroSection() {
           
           <div className="w-full flex justify-center px-2">
             {/* Pill shaped input container */}
-            <div className="w-full max-w-3xl glass-panel-dark rounded-[2rem] sm:rounded-full flex flex-col sm:flex-row items-center p-1.5 transition-all duration-300 hover:bg-black/30 border border-white/20 gap-2 sm:gap-0">
+            <div className="w-full max-w-3xl glass-panel-dark rounded-[2rem] sm:rounded-full flex flex-col sm:flex-row items-center gap-2 border border-white/20 bg-black/40 p-1.5 text-white transition-all duration-300 hover:bg-black/55 sm:gap-0">
               
               {/* Universe Selector Button */}
               <button 
@@ -55,19 +55,19 @@ export function HeroSection() {
               <input 
                 type="text"
                 placeholder="Choisissez un sujet, puis répondez à une question à la fois."
-                className="bg-transparent border-none outline-none w-full flex-1 px-5 py-3 text-sm placeholder:text-white/40 text-center sm:text-left min-w-0 text-white font-medium focus:placeholder:opacity-0 transition-opacity"
+                className="bg-transparent border-none outline-none w-full flex-1 px-5 py-3 text-sm placeholder:text-white/50 text-center sm:text-left min-w-0 text-white font-medium focus:placeholder:opacity-0 transition-opacity"
                 value={currentQuestion}
                 onChange={(e) => setCurrentQuestion(e.target.value)}
               />
               
-              <div className="hidden sm:block px-5 text-xs font-medium text-white/40">
+              <div className="hidden sm:block px-5 text-xs font-medium text-white/45">
                 1/8
               </div>
             </div>
           </div>
           
           <div className="pt-2">
-            <button className="text-white/60 text-xs tracking-wide hover:text-white transition-colors border-b border-white/20 pb-0.5 hover:border-white/50">
+            <button className="text-white/70 text-xs tracking-wide hover:text-white transition-colors border-b border-white/25 pb-0.5 hover:border-white/60">
               Décrire votre projet en une phrase
             </button>
           </div>
@@ -83,19 +83,19 @@ export function HeroSection() {
           className="flex flex-col items-center gap-3 cursor-pointer opacity-50 hover:opacity-100 transition-opacity w-full px-6"
           onClick={() => document.getElementById('timeline')?.scrollIntoView({ behavior: 'smooth' })}
         >
-          <div className="text-[10px] font-medium tracking-[0.2em] uppercase text-white/70 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+          <div className="text-[10px] font-medium tracking-[0.2em] uppercase text-white/75 bg-black/45 backdrop-blur-md px-3 py-1 rounded-full border border-white/15">
             Aujourd'hui
           </div>
-          <span className="text-[10px] sm:text-xs text-white/50 font-medium">Votre calendrier est prêt à être rempli</span>
+          <span className="text-[10px] sm:text-xs text-white/65 font-medium drop-shadow-md">Votre calendrier est prêt à être rempli</span>
           
           {/* Subtle timeline axis preview */}
           <div className="w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mt-4 sm:mt-6 relative">
-            <div className="absolute top-1/2 left-1/4 w-[1px] h-2 bg-white/30 -translate-y-1/2" />
+            <div className="absolute top-1/2 left-1/4 w-[1px] h-2 bg-foreground/30 -translate-y-1/2" />
             <div className="absolute top-1/2 left-1/2 w-[1px] h-3 bg-[#e53935] -translate-y-1/2 shadow-[0_0_10px_rgba(229,57,53,0.5)]" />
-            <div className="absolute top-1/2 left-3/4 w-[1px] h-2 bg-white/30 -translate-y-1/2" />
+            <div className="absolute top-1/2 left-3/4 w-[1px] h-2 bg-foreground/30 -translate-y-1/2" />
             
-            <span className="absolute top-4 left-1/4 -translate-x-1/2 text-[9px] sm:text-[10px] text-white/30">2026</span>
-            <span className="absolute top-4 left-3/4 -translate-x-1/2 text-[9px] sm:text-[10px] text-white/30">2028</span>
+            <span className="absolute top-4 left-1/4 -translate-x-1/2 text-[9px] sm:text-[10px] text-foreground/30">2026</span>
+            <span className="absolute top-4 left-3/4 -translate-x-1/2 text-[9px] sm:text-[10px] text-foreground/30">2028</span>
           </div>
         </motion.div>
       </div>

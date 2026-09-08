@@ -258,11 +258,11 @@ export function LeMondeAimePage() {
   }, [minTime, maxTime]);
 
   return (
-    <main className="fixed inset-0 overflow-hidden bg-[#020202] text-white flex flex-col font-sans">
+    <main className="aime-cinematic-surface fixed inset-0 flex flex-col overflow-hidden bg-[#020202] font-sans text-foreground">
       {/* HEADER */}
       <header className="absolute top-0 left-0 right-0 z-50 flex flex-col sm:flex-row items-center justify-between px-6 py-5 bg-gradient-to-b from-[#020202] to-transparent pointer-events-none gap-4">
         <div className="flex items-center gap-6 pointer-events-auto">
-          <Link href="/" className="text-sm font-medium tracking-[.32em] text-white/80 hover:text-white transition-colors">
+          <Link href="/" className="text-sm font-medium tracking-[.32em] text-foreground/80 hover:text-foreground transition-colors">
             AIME
           </Link>
           <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-yellow-500/30 bg-yellow-500/10" aria-label="Avertissement de simulation">
@@ -274,28 +274,28 @@ export function LeMondeAimePage() {
         </div>
         
         <div className="flex flex-col items-center pointer-events-auto text-center order-first sm:order-none">
-          <h1 className="text-lg md:text-xl font-display font-light tracking-[.15em] uppercase text-white/90">
+          <h1 className="text-lg md:text-xl font-display font-light tracking-[.15em] uppercase text-foreground/90">
             Le Cœur Battant du Monde
           </h1>
-          <p className="text-[9px] uppercase tracking-[.2em] text-white/40 mt-1">
+          <p className="text-[9px] uppercase tracking-[.2em] text-foreground/40 mt-1">
             Association LE MONDE AIME • Marraine : Sandrine Sarroche
           </p>
         </div>
 
         <div className="flex items-center gap-4 pointer-events-auto">
-          <button onClick={() => setEventsListOpen(true)} className="text-white/40 hover:text-white transition-colors" aria-label="Ouvrir la liste des événements">
+          <button onClick={() => setEventsListOpen(true)} className="text-foreground/40 hover:text-foreground transition-colors" aria-label="Ouvrir la liste des événements">
             <List className="w-4 h-4" />
           </button>
-          <button onClick={() => setSearchOpen(true)} className="text-white/40 hover:text-white transition-colors" aria-label="Rechercher">
+          <button onClick={() => setSearchOpen(true)} className="text-foreground/40 hover:text-foreground transition-colors" aria-label="Rechercher">
             <Search className="w-4 h-4" />
           </button>
           
-          <div className="hidden lg:flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/50 border border-white/10 rounded-full px-4 py-1.5 bg-white/5">
+          <div className="hidden lg:flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/50 border border-foreground/10 rounded-full px-4 py-1.5 bg-foreground/5">
             <Clock className="w-3 h-3" />
             {format(currentTime, "d MMM yyyy • HH:mm:ss", { locale: fr })}
           </div>
           
-          <button onClick={() => setSettingsOpen(true)} className="text-white/40 hover:text-white transition-colors" aria-label="Paramètres spatiaux et temporels">
+          <button onClick={() => setSettingsOpen(true)} className="text-foreground/40 hover:text-foreground transition-colors" aria-label="Paramètres spatiaux et temporels">
             <Settings className="w-4 h-4" />
           </button>
         </div>
@@ -303,11 +303,11 @@ export function LeMondeAimePage() {
 
       {/* TOP-LEFT REALTIME INDICATORS */}
       <div className="absolute top-[168px] sm:top-24 left-6 z-40 flex flex-col gap-2 pointer-events-auto">
-        <button onClick={() => setSyncsOpen(true)} className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/50 hover:text-white transition-colors px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+        <button onClick={() => setSyncsOpen(true)} className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/50 hover:text-foreground transition-colors px-3 py-1.5 bg-background/40 backdrop-blur-md rounded-full border border-foreground/10">
           <GitCommitHorizontal className="w-3 h-3" />
           Synchronisations ({synchronisations.length})
         </button>
-        <button onClick={() => setSummaryOpen(true)} className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/50 hover:text-white transition-colors px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+        <button onClick={() => setSummaryOpen(true)} className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/50 hover:text-foreground transition-colors px-3 py-1.5 bg-background/40 backdrop-blur-md rounded-full border border-foreground/10">
           <Eye className="w-3 h-3" />
           En ce moment ({currentSummary.count})
         </button>
@@ -326,13 +326,13 @@ export function LeMondeAimePage() {
                 className={cn(
                   "flex items-center gap-3 px-4 py-2.5 rounded-full border backdrop-blur-md transition-all text-left shrink-0",
                   isActive
-                    ? "bg-white/10 border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                    : "bg-black/40 border-white/5 text-white/40 hover:text-white hover:border-white/15"
+                    ? "bg-foreground/10 border-foreground/20 text-foreground shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                    : "bg-background/40 border-foreground/5 text-foreground/40 hover:text-foreground hover:border-foreground/15"
                 )}
               >
                 <div className={cn(
                   "w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]",
-                  isActive ? "bg-white" : "bg-white/20"
+                  isActive ? "bg-white" : "bg-foreground/20"
                 )} />
                 <span className="text-[10px] uppercase tracking-widest font-medium">
                   {dim}
@@ -346,7 +346,7 @@ export function LeMondeAimePage() {
         <div className="flex-1 relative">
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-[#020202]">
-              <p className="text-[10px] tracking-[.35em] uppercase text-white/30 animate-pulse">Initialisation du World Model...</p>
+              <p className="text-[10px] tracking-[.35em] uppercase text-foreground/30 animate-pulse">Initialisation du World Model...</p>
             </div>
           ) : error ? (
             <div className="absolute inset-0 flex items-center justify-center bg-[#020202]">
@@ -364,26 +364,26 @@ export function LeMondeAimePage() {
 
       {/* BOTTOM TIMELINE */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-5xl px-4 pointer-events-auto">
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-black/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-4 shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-background/60 backdrop-blur-xl border border-foreground/10 rounded-[2rem] p-4 shadow-2xl">
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setIsPlaying(!isPlaying)}
               aria-label={isPlaying ? "Mettre en pause" : "Jouer"}
-              className="flex items-center justify-center w-10 h-10 rounded-full border border-white/20 bg-white/5 text-white hover:bg-white/10 transition-colors shrink-0"
+              className="flex items-center justify-center w-10 h-10 rounded-full border border-foreground/20 bg-foreground/5 text-foreground hover:bg-foreground/10 transition-colors shrink-0"
             >
               {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
             </button>
             <button 
               onClick={() => setCurrentTime(t => t - timelineSpan / 4)}
               aria-label="Reculer dans le temps"
-              className="flex items-center justify-center w-8 h-8 rounded-full border border-white/10 text-white/50 hover:text-white transition-colors shrink-0"
+              className="flex items-center justify-center w-8 h-8 rounded-full border border-foreground/10 text-foreground/50 hover:text-foreground transition-colors shrink-0"
             >
               <SkipBack className="w-3 h-3" />
             </button>
             <button 
               onClick={() => setCurrentTime(t => t + timelineSpan / 4)}
               aria-label="Avancer dans le temps"
-              className="flex items-center justify-center w-8 h-8 rounded-full border border-white/10 text-white/50 hover:text-white transition-colors shrink-0"
+              className="flex items-center justify-center w-8 h-8 rounded-full border border-foreground/10 text-foreground/50 hover:text-foreground transition-colors shrink-0"
             >
               <SkipForward className="w-3 h-3" />
             </button>
@@ -402,7 +402,7 @@ export function LeMondeAimePage() {
               }}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
             />
-            <div className="absolute left-0 right-0 h-[1px] bg-white/10" />
+            <div className="absolute left-0 right-0 h-[1px] bg-foreground/10" />
             
             {filteredEvents.slice(0, 300).map(e => {
               const left = 50 + ((e.timestamp - currentTime) / timelineSpan) * 50; 
@@ -412,26 +412,26 @@ export function LeMondeAimePage() {
                   key={e.id}
                   aria-label={`Ouvrir l'événement: ${e.title}`}
                   onClick={() => setSelectedEventId(e.id)}
-                  className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full bg-white/30 hover:bg-white transition-colors z-20"
+                  className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full bg-foreground/30 hover:bg-white transition-colors z-20"
                   style={{ left: `${left}%` }}
                 />
               )
             })}
             
-            <div className="absolute left-1/2 -translate-x-1/2 w-[1px] h-full bg-white/30" />
+            <div className="absolute left-1/2 -translate-x-1/2 w-[1px] h-full bg-foreground/30" />
           </div>
           
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
             <div className="flex items-center gap-1">
-              <button onClick={() => setTimelineSpan(s => Math.min(s * 2, 86400000 * 365))} aria-label="Dézoomer la timeline" className="p-1.5 text-white/40 hover:text-white"><ZoomOut className="w-3 h-3" /></button>
-              <button onClick={() => setTimelineSpan(s => Math.max(s / 2, 3600000))} aria-label="Zoomer la timeline" className="p-1.5 text-white/40 hover:text-white"><ZoomIn className="w-3 h-3" /></button>
+              <button onClick={() => setTimelineSpan(s => Math.min(s * 2, 86400000 * 365))} aria-label="Dézoomer la timeline" className="p-1.5 text-foreground/40 hover:text-foreground"><ZoomOut className="w-3 h-3" /></button>
+              <button onClick={() => setTimelineSpan(s => Math.max(s / 2, 3600000))} aria-label="Zoomer la timeline" className="p-1.5 text-foreground/40 hover:text-foreground"><ZoomIn className="w-3 h-3" /></button>
             </div>
             <button 
               onClick={() => {
                 setCurrentTime(Date.now());
                 setIsPlaying(true);
               }}
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/20 bg-white/5 text-white text-[10px] tracking-widest uppercase hover:bg-white/10 transition-colors"
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full border border-foreground/20 bg-foreground/5 text-foreground text-[10px] tracking-widest uppercase hover:bg-foreground/10 transition-colors"
             >
               MAINTENANT
             </button>
@@ -448,32 +448,32 @@ export function LeMondeAimePage() {
             description={selectedEvent.description}
             onClose={() => setSelectedEventId(null)}
             size="lg"
-            leading={<div className="w-12 h-12 rounded-full border border-white/20 bg-white/5 flex items-center justify-center shrink-0"><Zap className="w-5 h-5 text-white/70" /></div>}
+            leading={<div className="w-12 h-12 rounded-full border border-foreground/20 bg-foreground/5 flex items-center justify-center shrink-0"><Zap className="w-5 h-5 text-foreground/70" /></div>}
           >
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 pt-6 border-t border-white/10">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 pt-6 border-t border-foreground/10">
               <div className="space-y-1">
-                <p className="text-[9px] uppercase tracking-widest text-white/40 flex items-center gap-2"><MapPin className="w-3 h-3" /> Lieu</p>
-                <p className="text-sm text-white/90">{selectedEvent.location}, {selectedEvent.country}</p>
+                <p className="text-[9px] uppercase tracking-widest text-foreground/40 flex items-center gap-2"><MapPin className="w-3 h-3" /> Lieu</p>
+                <p className="text-sm text-foreground/90">{selectedEvent.location}, {selectedEvent.country}</p>
               </div>
 
               <div className="space-y-1">
-                <p className="text-[9px] uppercase tracking-widest text-white/40 flex items-center gap-2"><Database className="w-3 h-3" /> Catégorie</p>
-                <p className="text-sm text-white/90">{selectedEvent.category}</p>
+                <p className="text-[9px] uppercase tracking-widest text-foreground/40 flex items-center gap-2"><Database className="w-3 h-3" /> Catégorie</p>
+                <p className="text-sm text-foreground/90">{selectedEvent.category}</p>
               </div>
 
               {selectedEvent.value !== undefined && (
                 <div className="space-y-1">
-                  <p className="text-[9px] uppercase tracking-widest text-white/40 flex items-center gap-2"><Activity className="w-3 h-3" /> Valeur</p>
-                  <p className="text-sm text-white/90 font-mono">
+                  <p className="text-[9px] uppercase tracking-widest text-foreground/40 flex items-center gap-2"><Activity className="w-3 h-3" /> Valeur</p>
+                  <p className="text-sm text-foreground/90 font-mono">
                     {selectedEvent.value.toLocaleString("fr-FR")} {selectedEvent.unit}
                   </p>
                 </div>
               )}
 
               <div className="space-y-1">
-                <p className="text-[9px] uppercase tracking-widest text-white/40 flex items-center gap-2"><Shield className="w-3 h-3" /> Source & Fiabilité</p>
+                <p className="text-[9px] uppercase tracking-widest text-foreground/40 flex items-center gap-2"><Shield className="w-3 h-3" /> Source & Fiabilité</p>
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm text-white/90">{selectedEvent.source}</p>
+                  <p className="text-sm text-foreground/90">{selectedEvent.source}</p>
                   <span className="inline-flex w-fit items-center px-2 py-0.5 rounded-full border border-yellow-500/30 bg-yellow-500/10 text-[9px] uppercase tracking-widest text-yellow-500">
                     Mode simulation
                   </span>
@@ -481,13 +481,13 @@ export function LeMondeAimePage() {
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row gap-8">
+            <div className="mt-8 pt-6 border-t border-foreground/10 flex flex-col sm:flex-row gap-8">
               {selectedEvent.relations && selectedEvent.relations.length > 0 && (
                 <div className="flex-1">
-                  <p className="text-[9px] uppercase tracking-widest text-white/40 mb-4">Relations du World Model</p>
+                  <p className="text-[9px] uppercase tracking-widest text-foreground/40 mb-4">Relations du World Model</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedEvent.relations.map(rel => (
-                      <span key={rel.id} className="px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-[10px] uppercase tracking-widest text-white/70">
+                      <span key={rel.id} className="px-3 py-1.5 rounded-full border border-foreground/10 bg-foreground/5 text-[10px] uppercase tracking-widest text-foreground/70">
                         {rel.label}
                       </span>
                     ))}
@@ -496,8 +496,8 @@ export function LeMondeAimePage() {
               )}
               
               <div className="sm:w-1/3">
-                <p className="text-[9px] uppercase tracking-widest text-white/40 mb-4">Horodatage</p>
-                <p className="text-xs text-white/60">
+                <p className="text-[9px] uppercase tracking-widest text-foreground/40 mb-4">Horodatage</p>
+                <p className="text-xs text-foreground/60">
                   Temps simulé :<br/>
                   {format(selectedEvent.timestamp, "d MMM yyyy à HH:mm:ss", { locale: fr })}
                 </p>
@@ -514,16 +514,16 @@ export function LeMondeAimePage() {
               placeholder="Chercher un événement, un lieu, une catégorie..." 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white text-lg font-light focus:outline-none focus:border-white/30"
+              className="w-full bg-background/50 border border-foreground/10 rounded-xl px-5 py-4 text-foreground text-lg font-light focus:outline-none focus:border-foreground/30"
             />
             <div className="mt-6 flex flex-col gap-2">
               {searchResults.length > 0 ? searchResults.map(e => (
-                <button key={e.id} onClick={() => { setSelectedEventId(e.id); setSearchOpen(false); }} className="flex flex-col text-left px-5 py-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/15 transition-colors">
-                  <span className="text-sm font-medium text-white">{e.title}</span>
-                  <span className="text-xs text-white/50">{e.location} • {format(e.timestamp, "d MMM yyyy", { locale: fr })}</span>
+                <button key={e.id} onClick={() => { setSelectedEventId(e.id); setSearchOpen(false); }} className="flex flex-col text-left px-5 py-3 rounded-xl border border-foreground/5 bg-foreground/[0.02] hover:bg-foreground/[0.06] hover:border-foreground/15 transition-colors">
+                  <span className="text-sm font-medium text-foreground">{e.title}</span>
+                  <span className="text-xs text-foreground/50">{e.location} • {format(e.timestamp, "d MMM yyyy", { locale: fr })}</span>
                 </button>
               )) : searchQuery.trim() ? (
-                <p className="text-white/40 text-sm py-4">Aucun événement simulé trouvé.</p>
+                <p className="text-foreground/40 text-sm py-4">Aucun événement simulé trouvé.</p>
               ) : null}
             </div>
           </CenteredBlock>
@@ -532,11 +532,11 @@ export function LeMondeAimePage() {
         {eventsListOpen && (
           <CenteredBlock eyebrow="Index" title="Liste des Événements Simulés" description="Tous les événements du filtre actuel" onClose={() => setEventsListOpen(false)}>
             <div className="flex flex-col gap-2">
-              {filteredEvents.length === 0 ? <p className="text-white/40 text-sm">Aucun événement dans le scope actuel.</p> : null}
+              {filteredEvents.length === 0 ? <p className="text-foreground/40 text-sm">Aucun événement dans le scope actuel.</p> : null}
               {filteredEvents.map(e => (
-                <button key={e.id} onClick={() => { setSelectedEventId(e.id); setEventsListOpen(false); }} className="flex flex-col text-left px-5 py-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/15 transition-colors">
-                  <span className="text-sm font-medium text-white">{e.title}</span>
-                  <span className="text-xs text-white/50">{e.location} • {format(e.timestamp, "d MMM yyyy", { locale: fr })}</span>
+                <button key={e.id} onClick={() => { setSelectedEventId(e.id); setEventsListOpen(false); }} className="flex flex-col text-left px-5 py-3 rounded-xl border border-foreground/5 bg-foreground/[0.02] hover:bg-foreground/[0.06] hover:border-foreground/15 transition-colors">
+                  <span className="text-sm font-medium text-foreground">{e.title}</span>
+                  <span className="text-xs text-foreground/50">{e.location} • {format(e.timestamp, "d MMM yyyy", { locale: fr })}</span>
                 </button>
               ))}
             </div>
@@ -547,36 +547,36 @@ export function LeMondeAimePage() {
           <CenteredBlock eyebrow="Configuration" title="Filtres Spatiaux et Temporels" onClose={() => setSettingsOpen(false)}>
             <div className="grid sm:grid-cols-2 gap-10">
               <div className="space-y-5">
-                <p className="text-[10px] uppercase tracking-widest text-white/50 border-b border-white/10 pb-2">Scope Spatial</p>
+                <p className="text-[10px] uppercase tracking-widest text-foreground/50 border-b border-foreground/10 pb-2">Scope Spatial</p>
                 <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto hide-scrollbar pr-2">
-                  <button onClick={() => setSpatialScope("monde")} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", spatialScope === "monde" ? "bg-white/10 border-white/30 text-white" : "bg-black/30 border-white/5 text-white/60 hover:text-white")}>
+                  <button onClick={() => setSpatialScope("monde")} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", spatialScope === "monde" ? "bg-foreground/10 border-foreground/30 text-foreground" : "bg-background/30 border-foreground/5 text-foreground/60 hover:text-foreground")}>
                     Monde Entier
                   </button>
-                  <p className="text-[9px] uppercase tracking-widest text-white/30 mt-2">Continents</p>
+                  <p className="text-[9px] uppercase tracking-widest text-foreground/30 mt-2">Continents</p>
                   {CONTINENTS.map(c => (
-                    <button key={c} onClick={() => setSpatialScope(c)} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", spatialScope === c ? "bg-white/10 border-white/30 text-white" : "bg-black/30 border-white/5 text-white/60 hover:text-white")}>
+                    <button key={c} onClick={() => setSpatialScope(c)} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", spatialScope === c ? "bg-foreground/10 border-foreground/30 text-foreground" : "bg-background/30 border-foreground/5 text-foreground/60 hover:text-foreground")}>
                       {c}
                     </button>
                   ))}
-                  <p className="text-[9px] uppercase tracking-widest text-white/30 mt-2">Pays</p>
+                  <p className="text-[9px] uppercase tracking-widest text-foreground/30 mt-2">Pays</p>
                   {COUNTRIES.map(c => (
-                    <button key={c} onClick={() => setSpatialScope(c)} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", spatialScope === c ? "bg-white/10 border-white/30 text-white" : "bg-black/30 border-white/5 text-white/60 hover:text-white")}>
+                    <button key={c} onClick={() => setSpatialScope(c)} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", spatialScope === c ? "bg-foreground/10 border-foreground/30 text-foreground" : "bg-background/30 border-foreground/5 text-foreground/60 hover:text-foreground")}>
                       {c}
                     </button>
                   ))}
-                  <p className="text-[9px] uppercase tracking-widest text-white/30 mt-2">Villes Simulées</p>
+                  <p className="text-[9px] uppercase tracking-widest text-foreground/30 mt-2">Villes Simulées</p>
                   {CITIES.map(c => (
-                    <button key={c.name} onClick={() => setSpatialScope(c.name)} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", spatialScope === c.name ? "bg-white/10 border-white/30 text-white" : "bg-black/30 border-white/5 text-white/60 hover:text-white")}>
+                    <button key={c.name} onClick={() => setSpatialScope(c.name)} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", spatialScope === c.name ? "bg-foreground/10 border-foreground/30 text-foreground" : "bg-background/30 border-foreground/5 text-foreground/60 hover:text-foreground")}>
                       {c.name}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="space-y-5">
-                <p className="text-[10px] uppercase tracking-widest text-white/50 border-b border-white/10 pb-2">Scope Temporel</p>
+                <p className="text-[10px] uppercase tracking-widest text-foreground/50 border-b border-foreground/10 pb-2">Scope Temporel</p>
                 <div className="flex flex-col gap-2">
                   {(Object.entries(TEMPORAL_LABELS) as [TemporalScope, string][]).map(([key, label]) => (
-                    <button key={key} onClick={() => setTemporalScope(key)} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", temporalScope === key ? "bg-white/10 border-white/30 text-white" : "bg-black/30 border-white/5 text-white/60 hover:text-white")}>
+                    <button key={key} onClick={() => setTemporalScope(key)} className={cn("text-left px-4 py-3 rounded-xl border text-sm transition-colors", temporalScope === key ? "bg-foreground/10 border-foreground/30 text-foreground" : "bg-background/30 border-foreground/5 text-foreground/60 hover:text-foreground")}>
                       {label}
                     </button>
                   ))}
@@ -589,15 +589,15 @@ export function LeMondeAimePage() {
         {syncsOpen && (
           <CenteredBlock eyebrow="Analyse Temporelle" title="Synchronisations Détectées" description="Grappes d'événements de même nature se produisant dans un intervalle de 5 minutes sur des lieux distincts." onClose={() => setSyncsOpen(false)}>
             <div className="flex flex-col gap-4">
-              {synchronisations.length === 0 ? <p className="text-white/50 text-sm">Aucune synchronisation dans le scope actuel.</p> : null}
+              {synchronisations.length === 0 ? <p className="text-foreground/50 text-sm">Aucune synchronisation dans le scope actuel.</p> : null}
               {synchronisations.map((sync, idx) => (
-                <div key={idx} className="bg-white/5 border border-white/10 rounded-xl p-5">
-                  <p className="text-[10px] uppercase tracking-widest text-white/50 mb-3">{sync.category} (Cluster de {sync.events.length})</p>
+                <div key={idx} className="bg-foreground/5 border border-foreground/10 rounded-xl p-5">
+                  <p className="text-[10px] uppercase tracking-widest text-foreground/50 mb-3">{sync.category} (Cluster de {sync.events.length})</p>
                   <div className="grid sm:grid-cols-2 gap-4">
                     {sync.events.map(e => (
-                      <button key={e.id} onClick={() => { setSelectedEventId(e.id); setSyncsOpen(false); }} className="text-left bg-black/40 border border-white/5 p-3 rounded-lg hover:bg-white/10 transition-colors">
-                        <p className="text-sm text-white">{e.title}</p>
-                        <p className="text-xs text-white/40 mt-1">{e.location} • Diff: {Math.abs(differenceInMinutes(e.timestamp, sync.events[0].timestamp))} min</p>
+                      <button key={e.id} onClick={() => { setSelectedEventId(e.id); setSyncsOpen(false); }} className="text-left bg-background/40 border border-foreground/5 p-3 rounded-lg hover:bg-foreground/10 transition-colors">
+                        <p className="text-sm text-foreground">{e.title}</p>
+                        <p className="text-xs text-foreground/40 mt-1">{e.location} • Diff: {Math.abs(differenceInMinutes(e.timestamp, sync.events[0].timestamp))} min</p>
                       </button>
                     ))}
                   </div>
@@ -611,9 +611,9 @@ export function LeMondeAimePage() {
           <CenteredBlock eyebrow="Volume" title="En ce moment (24h)" description="Activité simulée observée dans le périmètre spatial et dimensionnel actuel." onClose={() => setSummaryOpen(false)}>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(currentSummary.byDim).map(([dim, count]) => (
-                <div key={dim} className="bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col justify-between">
-                  <p className="text-[10px] uppercase tracking-widest text-white/50 mb-3">{dim}</p>
-                  <p className="text-3xl font-display font-light text-white">{count}</p>
+                <div key={dim} className="bg-foreground/5 border border-foreground/10 rounded-xl p-5 flex flex-col justify-between">
+                  <p className="text-[10px] uppercase tracking-widest text-foreground/50 mb-3">{dim}</p>
+                  <p className="text-3xl font-display font-light text-foreground">{count}</p>
                 </div>
               ))}
             </div>

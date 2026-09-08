@@ -223,23 +223,23 @@ export function ProjectStage() {
   };
 
   return (
-    <div className="aime-page-shell relative min-h-screen bg-black text-white selection:bg-white/20 pb-32">
+    <div className="relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
       {/* The temporal capsule changes the whole World, not only the Timeline. */}
-      <div className="sticky top-0 z-50 border-b border-white/10 bg-black/88 backdrop-blur-xl">
-        <div className="relative mx-auto flex max-w-5xl items-center justify-center px-6 py-3">
-          <div className="absolute left-4 flex items-center gap-3 sm:left-6">
-            <button type="button" onClick={() => setAimeMenuOpen(true)} className="text-xs font-medium tracking-[.32em] text-white/80 transition hover:text-white" aria-label="Ouvrir le menu AIME">AIME</button>
+      <div className="sticky top-0 z-50 border-b border-border bg-background/88 backdrop-blur-xl">
+        <div className="relative mx-auto flex max-w-5xl items-center justify-end px-3 py-3 sm:justify-center sm:px-6">
+          <div className="absolute left-3 flex items-center gap-2 sm:left-6 sm:gap-3">
+            <button type="button" onClick={() => setAimeMenuOpen(true)} className="rounded px-1 text-[11px] font-medium tracking-[.28em] text-foreground/80 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Ouvrir le menu AIME">AIME</button>
             <button
               type="button"
               onClick={() => setAppearance(value => value === "dark" ? "light" : "dark")}
-              className="flex items-center gap-1.5 rounded-full border border-white/12 px-2.5 py-1.5 text-[8px] uppercase tracking-[.12em] text-white/50 transition hover:border-white/30 hover:text-white"
+              className="flex items-center gap-1.5 rounded-full border border-foreground/[.12] px-2.5 py-1.5 text-[8px] uppercase tracking-[.12em] text-foreground/55 transition hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
               aria-label={`Activer le mode ${appearance === "dark" ? "clair" : "sombre"}`}
             >
               {appearance === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
               <span className="hidden sm:inline">{appearance === "dark" ? "Clair" : "Sombre"}</span>
             </button>
           </div>
-          <div className="flex max-w-full overflow-x-auto rounded-full bg-white/10 p-1 hide-scrollbar">
+          <div className="flex max-w-[calc(100%-7.5rem)] overflow-x-auto rounded-full bg-foreground/5 p-1 hide-scrollbar sm:max-w-full">
             {[
               { id: 'tout', label: 'Tout' },
               { id: 'avant', label: 'Avant' },
@@ -253,8 +253,8 @@ export function ProjectStage() {
                    if (view === "public-info") setView("chronological");
                 }}
                 className={cn(
-                  "whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors",
-                  phase === item.id ? "bg-white text-black" : "text-white/60 hover:bg-white/5 hover:text-white"
+                  "whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
+                  phase === item.id ? "bg-foreground text-background" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -271,8 +271,8 @@ export function ProjectStage() {
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
         />
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/60 to-[#050505]" />
-        <div className="relative z-20 mx-auto w-full max-w-5xl space-y-6">
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/60 to-background" />
+        <div className="aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6">
           <motion.button
             type="button"
             onClick={() => setWorldMenuOpen(true)}
@@ -427,7 +427,7 @@ export function ProjectStage() {
         </div>
       </header>
 
-      <nav aria-label="Vues du Monde" className="border-y border-white/8 bg-[#050505]">
+      <nav aria-label="Vues du Monde" className="border-y border-border bg-card">
         <div className="mx-auto flex max-w-5xl gap-2 overflow-x-auto px-6 py-4 hide-scrollbar">
           {([
             ["chronological", "Dans l’ordre"], ["public-info", "Infos pratiques"], ["map", "Grille"], ["day-of", "Jour J"], ["person", "Invités"], ["provider", "Professionnels"],
@@ -436,7 +436,7 @@ export function ProjectStage() {
             <Link
               key={id}
               href="/network"
-              className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-white/55 transition-colors hover:border-white/25 hover:text-white"
+              className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-foreground/60 transition-colors hover:border-foreground/30 hover:text-foreground"
             >
               {label}
             </Link>
@@ -448,17 +448,17 @@ export function ProjectStage() {
                   if (id === "public-info") setPhase("tout");
                 }}
                 className={cn(
-                  "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors",
-                  view === id ? "border-white bg-white text-black" : "border-white/10 text-white/55 hover:border-white/25 hover:text-white"
+                  "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
+                  view === id ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/60 hover:border-foreground/30 hover:text-foreground"
                 )}
               >
                 {label}
               </button>
             ))}
-          <button type="button" onClick={() => setRsvpOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-white/55 transition-colors hover:border-white/25 hover:text-white">
+          <button type="button" onClick={() => setRsvpOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-foreground/60 transition-colors hover:border-foreground/30 hover:text-foreground">
             Je participe
           </button>
-          <button type="button" onClick={() => setFundOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-white/55 transition-colors hover:border-white/25 hover:text-white">
+          <button type="button" onClick={() => setFundOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-3 py-1.5 text-[9px] uppercase tracking-[.13em] text-foreground/60 transition-colors hover:border-foreground/30 hover:text-foreground">
             Cagnotte
           </button>
         </div>
@@ -467,12 +467,12 @@ export function ProjectStage() {
       {/* Main Content Area */}
       <main className="w-full">
         {view === "person" && (
-          <section className="overflow-hidden border-b border-white/8 bg-[#080808] px-6 py-20">
+          <section className="overflow-hidden border-b border-border bg-card px-6 py-20">
             <div className="mx-auto max-w-5xl">
               <div className="max-w-2xl">
-                <p className="text-[10px] uppercase tracking-[.24em] text-white/32">Les personnes de ce Monde</p>
-                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-white sm:text-6xl">Celles et ceux qui en font partie.</h2>
-                <p className="mt-5 max-w-xl text-sm font-light leading-relaxed text-white/42">Invités pour un mariage, artistes pour un spectacle, membres pour une association ou collaborateurs pour une entreprise : le Kit adapte les rôles, pas les personnes.</p>
+                <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Les personnes de ce Monde</p>
+                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">Celles et ceux qui en font partie.</h2>
+                <p className="mt-5 max-w-xl text-sm font-light leading-relaxed text-foreground/60">Invités pour un mariage, artistes pour un spectacle, membres pour une association ou collaborateurs pour une entreprise : le Kit adapte les rôles, pas les personnes.</p>
               </div>
               {project.guests.length ? (
                 <div className="mt-14 flex flex-wrap items-end gap-x-2 gap-y-8 sm:gap-x-4">
@@ -484,13 +484,13 @@ export function ProjectStage() {
                       aria-label={`Ouvrir ${guest.name} dans le Registre`}
                     >
                       <span className="transition duration-300 group-hover:-translate-y-2 group-hover:scale-105"><GuestPortrait guest={guest} index={index} large /></span>
-                      <span className="mt-3 max-w-24 truncate text-[10px] text-white/58 transition group-hover:text-white">{guest.name}</span>
-                      <span className="mt-1 text-[8px] uppercase tracking-[.14em] text-white/24">{guest.role}</span>
+                      <span className="mt-3 max-w-24 truncate text-[10px] text-foreground/70 transition group-hover:text-foreground">{guest.name}</span>
+                      <span className="mt-1 text-[8px] uppercase tracking-[.14em] text-foreground/40">{guest.role}</span>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <Link href="/network" className="mt-12 block rounded-3xl border border-dashed border-white/15 px-8 py-12 text-center text-sm text-white/38 hover:border-white/30 transition-colors">Le Registre accueillera ici les personnes reliées à ce Monde.</Link>
+                <Link href="/network" className="mt-12 block rounded-3xl border border-dashed border-foreground/20 px-8 py-12 text-center text-sm text-foreground/50 hover:border-foreground/40 transition-colors">Le Registre accueillera ici les personnes reliées à ce Monde.</Link>
               )}
             </div>
           </section>
@@ -512,19 +512,19 @@ export function ProjectStage() {
         <CenteredBlock eyebrow="Présence" title="Est-ce que vous participez ?" description="La réponse appartient à la personne et peut s’appliquer au Monde entier ou à certains Moments." onClose={() => setRsvpOpen(false)}>
           <div className="grid gap-3 sm:grid-cols-3">
             {["Je participe", "Peut-être", "Je ne participe pas"].map((label, index) => (
-              <button key={label} type="button" className="rounded-2xl border border-white/12 bg-white/[.035] px-4 py-6 text-sm text-white/75 transition hover:border-white/35 hover:bg-white/[.07]">
-                <UserCheck className={cn("mx-auto mb-3 h-5 w-5", index === 1 ? "text-amber-200" : "text-white/45")} />{label}
+              <button key={label} type="button" className="rounded-2xl border border-foreground/10 bg-foreground/5 px-4 py-6 text-sm text-foreground/80 transition hover:border-foreground/30 hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
+                <UserCheck className={cn("mx-auto mb-3 h-5 w-5", index === 1 ? "text-amber-500" : "text-foreground/50")} />{label}
               </button>
             ))}
           </div>
-          <p className="mt-5 text-xs font-light leading-relaxed text-white/35">Une invitation personnelle reliera ensuite cette réponse au bon Profil et aux Moments auxquels il est invité.</p>
+          <p className="mt-5 text-xs font-light leading-relaxed text-foreground/50">Une invitation personnelle reliera ensuite cette réponse au bon Profil et aux Moments auxquels il est invité.</p>
         </CenteredBlock>
       )}
       {fundOpen && (
-        <CenteredBlock eyebrow="Soutenir ce Monde" title="Cagnotte" description="Un même espace pour contribuer à un projet, faire un don à une association ou rémunérer une personne depuis son Profil." onClose={() => setFundOpen(false)} leading={<span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/[.06]"><Gift className="h-5 w-5 text-white/65" /></span>}>
-          <div className="rounded-2xl border border-dashed border-white/15 px-6 py-10 text-center">
-            <p className="text-sm text-white/65">Aucune cagnotte n’est ouverte pour le moment.</p>
-            <p className="mt-2 text-xs font-light leading-relaxed text-white/35">Les montants, bénéficiaires, frais et conditions devront être affichés clairement avant d’activer un paiement réel.</p>
+        <CenteredBlock eyebrow="Soutenir ce Monde" title="Cagnotte" description="Un même espace pour contribuer à un projet, faire un don à une association ou rémunérer une personne depuis son Profil." onClose={() => setFundOpen(false)} leading={<span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-foreground/5"><Gift className="h-5 w-5 text-foreground/70" /></span>}>
+          <div className="rounded-2xl border border-dashed border-foreground/20 px-6 py-10 text-center">
+            <p className="text-sm text-foreground/70">Aucune cagnotte n’est ouverte pour le moment.</p>
+            <p className="mt-2 text-xs font-light leading-relaxed text-foreground/50">Les montants, bénéficiaires, frais et conditions devront être affichés clairement avant d’activer un paiement réel.</p>
           </div>
         </CenteredBlock>
       )}
@@ -540,20 +540,20 @@ export function ProjectStage() {
               className="grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px]"
               style={{ background: `conic-gradient(from -90deg, #ff375f 0deg, #ff9f0a ${completion * 1.2}deg, #ffe620 ${completion * 2.1}deg, #30d158 ${completion * 2.8}deg, #64d2ff ${completion * 3.25}deg, #bf5af2 ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
             >
-              <span className="grid h-full w-full place-items-center rounded-full bg-[#0a0a0a] text-[11px] tabular-nums">{completion}%</span>
+              <span className="grid h-full w-full place-items-center rounded-full bg-card text-[11px] tabular-nums text-foreground">{completion}%</span>
             </span>
           }
         >
           {project.tasks.length ? (
-            <div className="divide-y divide-white/8">
+            <div className="divide-y divide-border">
               {[...project.tasks]
                 .sort((a, b) => Number(a.status === "termine") - Number(b.status === "termine") || (a.dueDate ?? Number.MAX_SAFE_INTEGER) - (b.dueDate ?? Number.MAX_SAFE_INTEGER))
                 .map(task => (
                   <div key={task.id} className="flex items-start gap-4 py-4">
-                    <span className={cn("mt-1 h-3 w-3 shrink-0 rounded-full border", task.status === "termine" ? "border-white bg-white" : task.status === "en_cours" ? "border-amber-300 bg-amber-300/35" : "border-white/25")} />
+                    <span className={cn("mt-1 h-3 w-3 shrink-0 rounded-full border", task.status === "termine" ? "border-foreground bg-foreground" : task.status === "en_cours" ? "border-amber-500 bg-amber-500/35" : "border-foreground/25")} />
                     <div className="min-w-0 flex-1">
-                      <p className={cn("text-sm", task.status === "termine" ? "text-white/35 line-through" : "text-white/85")}>{task.title}</p>
-                      <p className="mt-1 text-[10px] uppercase tracking-[.14em] text-white/30">
+                      <p className={cn("text-sm", task.status === "termine" ? "text-foreground/35 line-through" : "text-foreground/85")}>{task.title}</p>
+                      <p className="mt-1 text-[10px] uppercase tracking-[.14em] text-foreground/40">
                         {task.priority === "haute" ? "Très important" : task.priority === "basse" ? "Peu important" : "Importance normale"}
                         {task.dueDate ? ` · ${format(task.dueDate, "d MMMM yyyy", { locale: fr })}` : ""}
                       </p>
@@ -562,13 +562,13 @@ export function ProjectStage() {
                 ))}
             </div>
           ) : (
-            <p className="py-10 text-center text-sm text-white/35">Aucune étape n’a encore été créée.</p>
+            <p className="py-10 text-center text-sm text-foreground/40">Aucune étape n’a encore été créée.</p>
           )}
         </CenteredBlock>
       )}
       {worldMenuOpen && (
         <CenteredBlock eyebrow="Monde" title="Choisir un Monde" description="Chaque Monde organise une réalité différente tout en partageant votre Profil et vos relations." onClose={() => setWorldMenuOpen(false)} size="lg">
-          <div className="divide-y divide-white/8">
+          <div className="divide-y divide-border">
             {projects.map(item => (
               <button
                 key={item.id}
@@ -576,31 +576,31 @@ export function ProjectStage() {
                   if (item.id !== project.id) void selectProject(item.id);
                   setWorldMenuOpen(false);
                 }}
-                className="group flex w-full items-center gap-4 py-5 text-left"
+                className="group flex w-full items-center gap-4 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2"
               >
-                <span className={cn("h-2.5 w-2.5 rounded-full border", item.id === project.id ? "border-white bg-white" : "border-white/25")} />
+                <span className={cn("h-2.5 w-2.5 rounded-full border", item.id === project.id ? "border-foreground bg-foreground" : "border-foreground/25")} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-display text-xl font-light text-white/85">{item.title}</span>
-                  <span className="mt-1 block text-[9px] uppercase tracking-[.18em] text-white/32">{item.id === project.id ? `${project.universe} · Monde actif` : item.role}</span>
+                  <span className="block truncate font-display text-xl font-light text-foreground/90">{item.title}</span>
+                  <span className="mt-1 block text-[9px] uppercase tracking-[.18em] text-foreground/50">{item.id === project.id ? `${project.universe} · Monde actif` : item.role}</span>
                 </span>
-                <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white/55" />
+                <ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1 group-hover:text-foreground/60" />
               </button>
             ))}
           </div>
-          <p className="mt-6 text-xs font-light leading-relaxed text-white/35">Le + universel accueillera ensuite la création de nouveaux Mondes et le choix de leur Kit.</p>
+          <p className="mt-6 text-xs font-light leading-relaxed text-foreground/40">Le + universel accueillera ensuite la création de nouveaux Mondes et le choix de leur Kit.</p>
         </CenteredBlock>
       )}
       {calendarOpen && (
         <CenteredBlock eyebrow="Calendrier du Monde" title={format(calendarMonth, "MMMM yyyy", { locale: fr })} description="Le temps du Monde, ses Moments et sa date pivot réunis dans une seule vue." onClose={() => setCalendarOpen(false)} size="lg" leading={
-          <span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full border border-white/12 bg-white/[.04]"><CalendarDays className="h-5 w-5 text-white/65" /></span>
+          <span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full border border-foreground/[.12] bg-foreground/[.04]"><CalendarDays className="h-5 w-5 text-foreground/65" /></span>
         }>
-          <div className="flex items-center justify-between border-y border-white/8 py-3">
-            <button type="button" onClick={() => setCalendarMonth(month => subMonths(month, 1))} className="rounded-full p-2 text-white/45 transition hover:bg-white/8 hover:text-white" aria-label="Mois précédent"><ChevronLeft className="h-4 w-4" /></button>
-            <button type="button" onClick={() => setCalendarMonth(new Date(project.pivot.value))} className="text-[10px] uppercase tracking-[.18em] text-white/45 transition hover:text-white">Revenir au Moment pivot</button>
-            <button type="button" onClick={() => setCalendarMonth(month => addMonths(month, 1))} className="rounded-full p-2 text-white/45 transition hover:bg-white/8 hover:text-white" aria-label="Mois suivant"><ChevronRight className="h-4 w-4" /></button>
+          <div className="flex items-center justify-between border-y border-foreground/[.08] py-3">
+            <button type="button" onClick={() => setCalendarMonth(month => subMonths(month, 1))} className="rounded-full p-2 text-foreground/45 transition hover:bg-foreground/[.08] hover:text-foreground" aria-label="Mois précédent"><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" onClick={() => setCalendarMonth(new Date(project.pivot.value))} className="text-[10px] uppercase tracking-[.18em] text-foreground/45 transition hover:text-foreground">Revenir au Moment pivot</button>
+            <button type="button" onClick={() => setCalendarMonth(month => addMonths(month, 1))} className="rounded-full p-2 text-foreground/45 transition hover:bg-foreground/[.08] hover:text-foreground" aria-label="Mois suivant"><ChevronRight className="h-4 w-4" /></button>
           </div>
           <div className="mt-5 grid grid-cols-7 gap-1">
-            {["L", "M", "M", "J", "V", "S", "D"].map((day, index) => <span key={`${day}-${index}`} className="pb-2 text-center text-[9px] uppercase tracking-[.14em] text-white/25">{day}</span>)}
+            {["L", "M", "M", "J", "V", "S", "D"].map((day, index) => <span key={`${day}-${index}`} className="pb-2 text-center text-[9px] uppercase tracking-[.14em] text-foreground/25">{day}</span>)}
             {calendarDays.map(day => {
               const momentCount = project.timeline.filter(event => isSameDay(event.time, day)).length;
               const isPivot = isSameDay(day, project.pivot.value);
@@ -612,22 +612,22 @@ export function ProjectStage() {
                   onClick={() => setSelectedDate(day)}
                   className={cn(
                     "relative aspect-square rounded-2xl text-sm transition",
-                    !isSameMonth(day, calendarMonth) && "text-white/16",
-                    isSameMonth(day, calendarMonth) && "text-white/58 hover:bg-white/[.06] hover:text-white",
+                    !isSameMonth(day, calendarMonth) && "text-foreground/16",
+                    isSameMonth(day, calendarMonth) && "text-foreground/58 hover:bg-foreground/[.06] hover:text-foreground",
                     isSelected && "bg-white text-black hover:bg-white hover:text-black",
-                    isPivot && !isSelected && "ring-1 ring-inset ring-white/45"
+                    isPivot && !isSelected && "ring-1 ring-inset ring-foreground/45"
                   )}
                 >
                   {format(day, "d")}
-                  {momentCount > 0 && <span className={cn("absolute bottom-2 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full", isSelected ? "bg-black/55" : "bg-white/55")} />}
+                  {momentCount > 0 && <span className={cn("absolute bottom-2 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full", isSelected ? "bg-background/55" : "bg-foreground/55")} />}
                 </button>
               );
             })}
           </div>
-          <div className="mt-6 grid gap-4 border-t border-white/8 pt-6 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="mt-6 grid gap-4 border-t border-foreground/[.08] pt-6 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
               <p className="font-display text-2xl font-light capitalize">{format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })}</p>
-              <p className="mt-2 text-xs font-light text-white/38">{selectedDayEvents.length ? `${selectedDayEvents.length} Moment${selectedDayEvents.length > 1 ? "s" : ""} ce jour-là : ${selectedDayEvents.map(event => event.title).join(" · ")}` : "Aucun Moment n’est encore placé ce jour-là."}</p>
+              <p className="mt-2 text-xs font-light text-foreground/38">{selectedDayEvents.length ? `${selectedDayEvents.length} Moment${selectedDayEvents.length > 1 ? "s" : ""} ce jour-là : ${selectedDayEvents.map(event => event.title).join(" · ")}` : "Aucun Moment n’est encore placé ce jour-là."}</p>
             </div>
             <button
               type="button"
@@ -649,45 +649,45 @@ export function ProjectStage() {
       {countdownsOpen && (
         <CenteredBlock eyebrow="Temps du Monde" title="Tous les comptes à rebours" description="Les prochains rendez-vous, échéances, Moments et la date pivot, réunis sans les confondre avec la progression du Monde." onClose={() => setCountdownsOpen(false)} size="lg">
           {countdownTargets.length ? (
-            <div className="divide-y divide-white/8">
+            <div className="divide-y divide-border">
               {countdownTargets.map((target, index) => (
                 <article key={target.id} className="grid gap-3 py-5 sm:grid-cols-[auto_1fr_auto] sm:items-center">
-                  <span className={cn("grid h-9 w-9 place-items-center rounded-full text-xs tabular-nums", index === 0 ? "bg-white text-black" : "bg-white/[.05] text-white/40")}>{String(index + 1).padStart(2, "0")}</span>
+                  <span className={cn("grid h-9 w-9 place-items-center rounded-full text-xs tabular-nums", index === 0 ? "bg-foreground text-background" : "bg-foreground/5 text-foreground/50")}>{String(index + 1).padStart(2, "0")}</span>
                   <div>
-                    <p className="text-sm text-white/82">{target.title}</p>
-                    <p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/30">{target.kind} · {format(target.time, "d MMMM yyyy · HH:mm", { locale: fr })}</p>
+                    <p className="text-sm text-foreground/90">{target.title}</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[.16em] text-foreground/50">{target.kind} · {format(target.time, "d MMMM yyyy · HH:mm", { locale: fr })}</p>
                   </div>
-                  <p className="font-display text-xl font-light tabular-nums text-white/60">{formatRemaining(target.time)}</p>
+                  <p className="font-display text-xl font-light tabular-nums text-foreground/70">{formatRemaining(target.time)}</p>
                 </article>
               ))}
             </div>
-          ) : <p className="py-10 text-center text-sm text-white/35">Aucun rendez-vous, Moment ou délai à venir.</p>}
+          ) : <p className="py-10 text-center text-sm text-foreground/40">Aucun rendez-vous, Moment ou délai à venir.</p>}
         </CenteredBlock>
       )}
       {aimeMenuOpen && (
         <CenteredBlock eyebrow="AIME" title="Le point d’entrée" description="Comprendre le concept, apprendre à utiliser AIME, obtenir de l’aide ou retrouver les réglages globaux." onClose={() => setAimeMenuOpen(false)}>
-          <div className="divide-y divide-white/8">
-            <Link href="/profile" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
-              <UserRound className="h-4 w-4 text-white/35" />
-              <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/80">Profil</span><span className="mt-1 block text-xs font-light text-white/35">Voir la projection de votre identité, de vos Moments et de vos liens.</span></span>
-              <ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+          <div className="divide-y divide-border">
+            <Link href="/profile" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
+              <UserRound className="h-4 w-4 text-foreground/40" />
+              <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-foreground/90">Profil</span><span className="mt-1 block text-xs font-light text-foreground/50">Voir la projection de votre identité, de vos Moments et de vos liens.</span></span>
+              <ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
             </Link>
-            <Link href="/concept" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
-              <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/80">Découvrir AIME</span><span className="mt-1 block text-xs font-light text-white/35">Profil, Monde, Kit et AI · + · ME.</span></span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            <Link href="/concept" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
+              <span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-foreground/90">Découvrir AIME</span><span className="mt-1 block text-xs font-light text-foreground/50">Profil, Monde, Kit et AI · + · ME.</span></span><ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
             </Link>
-            <Link href="/concept#guides" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5">
-              <BookOpen className="h-4 w-4 text-white/35" /><span className="flex-1 text-[11px] uppercase tracking-[.18em] text-white/70">Guides</span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            <Link href="/concept#guides" onClick={() => setAimeMenuOpen(false)} className="group flex items-center gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
+              <BookOpen className="h-4 w-4 text-foreground/40" /><span className="flex-1 text-[11px] uppercase tracking-[.18em] text-foreground/80">Guides</span><ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
             </Link>
-            <button type="button" onClick={() => { setAimeMenuOpen(false); window.dispatchEvent(new Event("aime:open-ai")); }} className="group flex w-full items-center gap-4 py-5 text-left">
-              <Bug className="h-4 w-4 text-white/35" /><span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/70">Remonter un problème</span><span className="mt-1 block text-xs font-light text-white/35">Décrire le problème à AIME sans quitter le Monde.</span></span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            <button type="button" onClick={() => { setAimeMenuOpen(false); window.dispatchEvent(new Event("aime:open-ai")); }} className="group flex w-full items-center gap-4 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
+              <Bug className="h-4 w-4 text-foreground/40" /><span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-foreground/80">Remonter un problème</span><span className="mt-1 block text-xs font-light text-foreground/50">Décrire le problème à AIME sans quitter le Monde.</span></span><ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
             </button>
-            <button type="button" onClick={() => { setAimeMenuOpen(false); window.dispatchEvent(new Event("aime:open-me")); }} className="group flex w-full items-center gap-4 py-5 text-left">
-              <Settings className="h-4 w-4 text-white/35" /><span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-white/70">Paramètres</span><span className="mt-1 block text-xs font-light text-white/35">Identité, confidentialité et préférences.</span></span><ChevronRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1" />
+            <button type="button" onClick={() => { setAimeMenuOpen(false); window.dispatchEvent(new Event("aime:open-me")); }} className="group flex w-full items-center gap-4 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2">
+              <Settings className="h-4 w-4 text-foreground/40" /><span className="flex-1"><span className="block text-[11px] uppercase tracking-[.18em] text-foreground/80">Paramètres</span><span className="mt-1 block text-xs font-light text-foreground/50">Identité, confidentialité et préférences.</span></span><ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1" />
             </button>
           </div>
-          <div className="mt-6 border-t border-white/8 pt-5">
-            <p className="text-[10px] uppercase tracking-[.16em] text-white/28">À structurer dans Paramètres</p>
-            <p className="mt-2 text-xs font-light leading-relaxed text-white/38">Accessibilité conforme aux exigences européennes et choix de langue global. La traduction devra couvrir toute l’interface et les contenus générés, pas seulement changer une étiquette.</p>
+          <div className="mt-6 border-t border-border pt-5">
+            <p className="text-[10px] uppercase tracking-[.16em] text-foreground/40">À structurer dans Paramètres</p>
+            <p className="mt-2 text-xs font-light leading-relaxed text-foreground/50">Accessibilité conforme aux exigences européennes et choix de langue global. La traduction devra couvrir toute l’interface et les contenus générés, pas seulement changer une étiquette.</p>
           </div>
         </CenteredBlock>
       )}

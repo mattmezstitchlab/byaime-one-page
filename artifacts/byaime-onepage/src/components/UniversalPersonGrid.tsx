@@ -167,7 +167,7 @@ export function UniversalPersonGrid({
   return (
     <div 
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden bg-[#030303] cursor-grab active:cursor-grabbing"
+      className="relative h-full w-full cursor-grab overflow-hidden bg-background active:cursor-grabbing"
       aria-label="Grille universelle des personnes"
       aria-describedby="universal-grid-help"
       onKeyDown={handleKeyboardNavigation}
@@ -231,26 +231,26 @@ export function UniversalPersonGrid({
                   aria-label={`Ouvrir le Profil de ${node.person?.name ?? 'la personne au point zéro'}`}
                   onFocus={() => focusNode(node)}
                 >
-                  <div className="w-24 h-24 rounded-full border border-white/20 bg-white/5 backdrop-blur-xl flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.1)] overflow-hidden">
+                  <div className="w-24 h-24 rounded-full border border-foreground/20 bg-foreground/5 backdrop-blur-xl flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.1)] overflow-hidden">
                     {node.person?.imageUrl ? (
                       <img src={node.person.imageUrl} alt={node.person.name} className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-10 h-10 text-white/80" />
+                      <User className="w-10 h-10 text-foreground/80" />
                     )}
                   </div>
                   {!showAvatarsOnly && (
                     <div className="absolute top-full mt-4 whitespace-nowrap text-center">
-                      <p className="text-xs font-display tracking-widest uppercase text-white">{node.person?.name}</p>
-                      <p className="mt-1 text-[8px] uppercase tracking-[.2em] text-white/35">X 0 · Y 0 · Z 0</p>
+                      <p className="text-xs font-display tracking-widest uppercase text-foreground">{node.person?.name}</p>
+                      <p className="mt-1 text-[8px] uppercase tracking-[.2em] text-foreground/35">X 0 · Y 0 · Z 0</p>
                     </div>
                   )}
                 </button>
               ) : (
                 <div 
                   className={cn(
-                    "relative p-5 rounded-2xl border bg-black/60 backdrop-blur-md transition-all group focus:outline-none focus:ring-2 focus:ring-white pointer-events-auto cursor-pointer",
+                    "relative p-5 rounded-2xl border bg-background/60 backdrop-blur-md transition-all group focus:outline-none focus:ring-2 focus:ring-white pointer-events-auto cursor-pointer",
                     showAvatarsOnly ? "w-16 h-16 !p-0 rounded-full flex items-center justify-center" : "w-48",
-                    activeId === node.id ? "border-white/40 shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "border-white/10 hover:border-white/20 hover:bg-white/5 focus:border-white/40"
+                    activeId === node.id ? "border-foreground/40 shadow-[0_0_20px_rgba(255,255,255,0.1)]" : "border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 focus:border-foreground/40"
                   )}
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -264,14 +264,14 @@ export function UniversalPersonGrid({
                   aria-label={node.person?.name}
                 >
                   <div className={cn("flex items-start gap-3", showAvatarsOnly && "items-center justify-center w-full h-full")}>
-                    <div className={cn("rounded-full border border-white/10 bg-white/5 flex items-center justify-center shrink-0", showAvatarsOnly ? "w-12 h-12" : "w-10 h-10")}>
-                      <User className={cn("text-white/50 group-hover:text-white/80 transition-colors", showAvatarsOnly ? "w-6 h-6" : "w-5 h-5")} />
+                    <div className={cn("rounded-full border border-foreground/10 bg-foreground/5 flex items-center justify-center shrink-0", showAvatarsOnly ? "w-12 h-12" : "w-10 h-10")}>
+                      <User className={cn("text-foreground/50 group-hover:text-foreground/80 transition-colors", showAvatarsOnly ? "w-6 h-6" : "w-5 h-5")} />
                     </div>
                     {!showAvatarsOnly && (
                       <div className="min-w-0">
-                        <h3 className="text-sm font-medium text-white/90 group-hover:text-white transition-colors leading-tight line-clamp-2">{node.person?.name}</h3>
-                        <p className="text-[10px] uppercase tracking-wider text-white/40 mt-1 line-clamp-1">{node.person?.role}</p>
-                        <p className="mt-1 text-[8px] uppercase tracking-[.18em] text-white/25">
+                        <h3 className="text-sm font-medium text-foreground/90 group-hover:text-foreground transition-colors leading-tight line-clamp-2">{node.person?.name}</h3>
+                        <p className="text-[10px] uppercase tracking-wider text-foreground/40 mt-1 line-clamp-1">{node.person?.role}</p>
+                        <p className="mt-1 text-[8px] uppercase tracking-[.18em] text-foreground/25">
                           X {node.x / GRID_SIZE} · Y {node.y / GRID_SIZE} · Z {node.person?.zLayer}
                         </p>
                       </div>
@@ -279,12 +279,12 @@ export function UniversalPersonGrid({
                   </div>
                   
                   {!showAvatarsOnly && (
-                    <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <div className="mt-4 pt-4 border-t border-foreground/10 flex items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                       {directHref ? (
                         <a 
                           href={directHref} 
                           onClick={e => e.stopPropagation()}
-                          className="flex-1 py-1.5 rounded bg-white/10 hover:bg-white/20 text-[10px] uppercase tracking-widest text-white/70 transition-colors flex items-center justify-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-white/50"
+                          className="flex-1 py-1.5 rounded bg-foreground/10 hover:bg-foreground/20 text-[10px] uppercase tracking-widest text-foreground/70 transition-colors flex items-center justify-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-foreground/50"
                         >
                           <ArrowUpRight className="w-3 h-3" /> Contacter
                         </a>
@@ -294,7 +294,7 @@ export function UniversalPersonGrid({
                             e.stopPropagation();
                             selectPerson(node.id);
                           }}
-                          className="flex-1 py-1.5 rounded bg-white/10 hover:bg-white/20 text-[10px] uppercase tracking-widest text-white/70 transition-colors flex items-center justify-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-white/50"
+                          className="flex-1 py-1.5 rounded bg-foreground/10 hover:bg-foreground/20 text-[10px] uppercase tracking-widest text-foreground/70 transition-colors flex items-center justify-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-foreground/50"
                         >
                           <Eye className="w-3 h-3" /> Inspecter
                         </button>
@@ -311,27 +311,27 @@ export function UniversalPersonGrid({
       <div className="absolute bottom-8 right-8 flex flex-col gap-2 z-10">
         <button 
           onClick={() => scale.set(Math.min(3, scale.get() + 0.2))}
-          className="w-10 h-10 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors text-lg"
+          className="w-10 h-10 rounded-full border border-foreground/10 bg-background/60 backdrop-blur-md flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-foreground/10 transition-colors text-lg"
           aria-label="Zoomer"
         >
           +
         </button>
         <button 
           onClick={() => scale.set(Math.max(0.15, scale.get() - 0.2))}
-          className="w-10 h-10 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors text-lg"
+          className="w-10 h-10 rounded-full border border-foreground/10 bg-background/60 backdrop-blur-md flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-foreground/10 transition-colors text-lg"
           aria-label="Dézoomer"
         >
           -
         </button>
         <button 
           onClick={resetView}
-          className="w-10 h-10 rounded-full border border-white/10 bg-black/60 backdrop-blur-md flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors mt-2"
+          className="w-10 h-10 rounded-full border border-foreground/10 bg-background/60 backdrop-blur-md flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-foreground/10 transition-colors mt-2"
           aria-label="Recentrer"
         >
           <User className="w-4 h-4" />
         </button>
       </div>
-      <div className="absolute right-6 top-6 z-10 flex items-center gap-1 rounded-full border border-white/10 bg-black/70 p-1 backdrop-blur-xl">
+      <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full border border-foreground/10 bg-background/80 p-1 backdrop-blur-xl sm:right-6 sm:top-6">
         {[
           { value: 0, label: 'Z0', title: 'Moi' },
           { value: 1, label: 'Z1', title: 'Invités' },
@@ -345,7 +345,7 @@ export function UniversalPersonGrid({
             onClick={() => setDepth(layer.value)}
             className={cn(
               "rounded-full px-3 py-2 text-[9px] uppercase tracking-[.16em] transition",
-              depth === layer.value ? "bg-white text-black" : "text-white/45 hover:bg-white/8 hover:text-white",
+              depth === layer.value ? "bg-foreground text-background" : "text-foreground/55 hover:bg-foreground/[.08] hover:text-foreground",
             )}
           >
             {layer.label}
@@ -353,8 +353,8 @@ export function UniversalPersonGrid({
         ))}
       </div>
       <div className="pointer-events-none absolute bottom-8 left-6 z-10 hidden sm:block">
-        <p id="universal-grid-help" className="text-[8px] uppercase tracking-[.24em] text-white/28">Glisser ou flèches pour parcourir · molette ou +/− pour zoomer</p>
-        <p className="mt-1 text-[8px] uppercase tracking-[.24em] text-white/18">Ctrl + molette ou Page haut/bas pour traverser Z</p>
+        <p id="universal-grid-help" className="text-[8px] uppercase tracking-[.24em] text-foreground/[.42]">Glisser ou flèches pour parcourir · molette ou +/− pour zoomer</p>
+        <p className="mt-1 text-[8px] uppercase tracking-[.24em] text-foreground/[.32]">Ctrl + molette ou Page haut/bas pour traverser Z</p>
       </div>
     </div>
   );

@@ -29,13 +29,13 @@ export function TimelineSection() {
   const sortedEvents = [...timelineEvents].sort((a, b) => a.year - b.year);
 
   return (
-    <section id="timeline" className="w-full pt-32 pb-48 bg-[#050505] relative border-t border-white/5 overflow-hidden">
+    <section id="timeline" className="relative w-full overflow-hidden border-t border-border bg-card pb-48 pt-32">
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-24 text-center relative z-10">
-          <h2 className="text-[10px] font-medium tracking-[0.3em] text-white/40 uppercase mb-4">
+          <h2 className="text-[10px] font-medium tracking-[0.3em] text-foreground/40 uppercase mb-4">
             Ligne de temps
           </h2>
-          <h3 className="text-3xl md:text-5xl font-display font-light text-white text-balance">
+          <h3 className="text-3xl md:text-5xl font-display font-light text-foreground text-balance">
             Votre calendrier,<br />prêt à être rempli.
           </h3>
         </div>
@@ -59,14 +59,14 @@ export function TimelineSection() {
                 >
                   {/* Stem */}
                   <div className={cn(
-                    "absolute left-1/2 -translate-x-1/2 w-[1px] bg-white/10 transition-all duration-500 group-hover:bg-white/40",
+                    "absolute left-1/2 -translate-x-1/2 w-[1px] bg-foreground/10 transition-all duration-500 group-hover:bg-foreground/40",
                     isTop ? "bottom-[calc(50%+4px)] h-24" : "top-[calc(50%+4px)] h-24"
                   )} />
                   
                   {/* Node */}
                   <div className={cn(
                     "w-2 h-2 rounded-full z-10 ring-4 transition-all duration-300 group-hover:scale-150",
-                    isToday ? "bg-[#e53935] ring-[#e53935]/20 shadow-[0_0_20px_rgba(229,57,53,0.5)]" : "bg-white ring-white/10 shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                    isToday ? "bg-[#e53935] ring-[#e53935]/20 shadow-[0_0_20px_rgba(229,57,53,0.5)]" : "bg-white ring-foreground/10 shadow-[0_0_15px_rgba(255,255,255,0.3)]"
                   )} />
                   
                   {/* Event Content */}
@@ -74,19 +74,19 @@ export function TimelineSection() {
                     "absolute left-1/2 -translate-x-1/2 w-56 text-center transition-all duration-300",
                     isTop ? "bottom-[calc(50%+110px)] group-hover:-translate-y-2" : "top-[calc(50%+110px)] group-hover:translate-y-2"
                   )}>
-                    <div className="text-[10px] text-white/40 font-mono tracking-widest mb-2 flex items-center justify-center gap-1">
+                    <div className="text-[10px] text-foreground/40 font-mono tracking-widest mb-2 flex items-center justify-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {event.year}
                     </div>
-                    <div className="text-sm text-white font-medium mb-1 px-2">{event.title}</div>
-                    <div className="text-[10px] text-white/30 uppercase tracking-[0.2em] flex items-center justify-center gap-1 mt-2">
+                    <div className="text-sm text-foreground font-medium mb-1 px-2">{event.title}</div>
+                    <div className="text-[10px] text-foreground/30 uppercase tracking-[0.2em] flex items-center justify-center gap-1 mt-2">
                       <MapPin className="w-3 h-3" />
                       {event.universe}
                     </div>
                     
                     <button 
                       onClick={() => removeTimelineEvent(event.id)}
-                      className="absolute -top-2 -right-2 p-1.5 rounded-full bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity text-white/40 hover:text-white hover:bg-white/10"
+                      className="absolute -top-2 -right-2 p-1.5 rounded-full bg-foreground/5 opacity-0 group-hover:opacity-100 transition-opacity text-foreground/40 hover:text-foreground hover:bg-foreground/10"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -99,13 +99,13 @@ export function TimelineSection() {
             <motion.div className="relative flex flex-col items-center flex-1 justify-center h-full">
               <button 
                 onClick={() => setIsAdding(true)}
-                className="w-12 h-12 rounded-full border border-white/20 bg-black/50 backdrop-blur-sm flex items-center justify-center z-10 hover:bg-white hover:text-black hover:scale-110 transition-all duration-300 group"
+                className="w-12 h-12 rounded-full border border-foreground/20 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10 hover:bg-white hover:text-black hover:scale-110 transition-all duration-300 group"
               >
                 <Plus className="w-5 h-5 opacity-70 group-hover:opacity-100" />
               </button>
               
               {sortedEvents.length === 0 && (
-                <div className="absolute top-[calc(50%+40px)] text-xs text-white/40 tracking-widest uppercase">
+                <div className="absolute top-[calc(50%+40px)] text-xs text-foreground/40 tracking-widest uppercase">
                   Commencer
                 </div>
               )}
@@ -120,47 +120,47 @@ export function TimelineSection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-md p-4"
             >
               <motion.div 
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                className="bg-[#111] border border-white/10 rounded-[2rem] p-10 max-w-md w-full relative shadow-2xl"
+                className="bg-[#111] border border-foreground/10 rounded-[2rem] p-10 max-w-md w-full relative shadow-2xl"
               >
                 <button 
                   onClick={() => setIsAdding(false)}
-                  className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                  className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-foreground/5 text-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
                 
-                <h4 className="text-2xl font-display text-white mb-8 font-light">Ajouter un jalon</h4>
+                <h4 className="text-2xl font-display text-foreground mb-8 font-light">Ajouter un jalon</h4>
                 
                 <form onSubmit={handleAdd} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] text-white/40 uppercase tracking-widest font-medium ml-1">Année</label>
+                    <label className="text-[10px] text-foreground/40 uppercase tracking-widest font-medium ml-1">Année</label>
                     <Input 
                       type="number" 
                       value={newEventYear}
                       onChange={(e) => setNewEventYear(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-white/30 focus-visible:border-white/30 text-lg"
+                      className="bg-foreground/5 border-foreground/10 text-foreground h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-foreground/30 focus-visible:border-foreground/30 text-lg"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] text-white/40 uppercase tracking-widest font-medium ml-1">Titre de l'événement</label>
+                    <label className="text-[10px] text-foreground/40 uppercase tracking-widest font-medium ml-1">Titre de l'événement</label>
                     <Input 
                       type="text" 
                       value={newEventTitle}
                       onChange={(e) => setNewEventTitle(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-white/30 focus-visible:border-white/30 text-lg"
+                      className="bg-foreground/5 border-foreground/10 text-foreground h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-foreground/30 focus-visible:border-foreground/30 text-lg"
                       placeholder="Ex: Première rencontre"
                       required
                     />
                   </div>
                   <div className="pt-6">
-                    <Button type="submit" variant="pill" className="w-full bg-white text-black hover:bg-white/90 h-12 text-sm uppercase tracking-wider font-semibold">
+                    <Button type="submit" variant="pill" className="w-full bg-white text-black hover:bg-foreground/90 h-12 text-sm uppercase tracking-wider font-semibold">
                       Ajouter à la ligne
                     </Button>
                   </div>

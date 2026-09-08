@@ -17,7 +17,7 @@ export function buttonVariants({ variant = "default", size = "default", classNam
     ghost: "hover:bg-accent hover:text-accent-foreground rounded-md",
     link: "text-primary underline-offset-4 hover:underline",
     pill: "bg-foreground text-background rounded-full hover:bg-foreground/90 font-medium px-6 py-2",
-    glass: "glass-panel text-white rounded-full hover:bg-white/10"
+    glass: "glass-panel text-foreground rounded-full hover:bg-foreground/10"
   }
   const sizes: Record<string, string> = {
     default: "h-10 px-4 py-2",

@@ -207,9 +207,9 @@ export function WorldMap({ events, activeId, onSelect }: WorldMapProps) {
         role="region"
         aria-label="Projection mondiale de secours des événements simulés"
       >
-        <div className="absolute inset-[8%_4%_12%] rounded-[50%] border border-white/10 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.06),transparent_68%),repeating-linear-gradient(0deg,transparent_0,transparent_calc(12.5%_-_1px),rgba(255,255,255,0.035)_12.5%),repeating-linear-gradient(90deg,transparent_0,transparent_calc(12.5%_-_1px),rgba(255,255,255,0.035)_12.5%)] shadow-[inset_0_0_100px_rgba(255,255,255,0.035)]" />
-        <div className="absolute left-1/2 top-[8%] bottom-[12%] w-px bg-white/[0.035]" />
-        <div className="absolute top-1/2 left-[4%] right-[4%] h-px bg-white/[0.035]" />
+        <div className="absolute inset-[8%_4%_12%] rounded-[50%] border border-foreground/10 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.06),transparent_68%),repeating-linear-gradient(0deg,transparent_0,transparent_calc(12.5%_-_1px),rgba(255,255,255,0.035)_12.5%),repeating-linear-gradient(90deg,transparent_0,transparent_calc(12.5%_-_1px),rgba(255,255,255,0.035)_12.5%)] shadow-[inset_0_0_100px_rgba(255,255,255,0.035)]" />
+        <div className="absolute left-1/2 top-[8%] bottom-[12%] w-px bg-foreground/[0.035]" />
+        <div className="absolute top-1/2 left-[4%] right-[4%] h-px bg-foreground/[0.035]" />
         {events
           .filter(event => event.coordinates)
           .slice(-500)
@@ -246,7 +246,7 @@ export function WorldMap({ events, activeId, onSelect }: WorldMapProps) {
               </button>
             );
           })}
-        <p className="absolute bottom-4 right-6 text-[9px] uppercase tracking-[.22em] text-white/25">
+        <p className="absolute bottom-4 right-6 text-[9px] uppercase tracking-[.22em] text-foreground/25">
           Projection 2D de secours
         </p>
       </div>

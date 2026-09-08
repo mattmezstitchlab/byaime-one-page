@@ -8,11 +8,42 @@
 @custom-variant dark (&:is(.dark *));
 
 @layer components {
-  .action { display: flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem; border: 1px solid rgb(255 255 255 / .14); border-radius: .75rem; padding: .7rem; font-size: .75rem; text-align: center; transition: background .2s; }
-  .action:hover { background: rgb(255 255 255 / .08); }
-  .field { width: 100%; border: 0; border-bottom: 1px solid rgb(255 255 255 / .2); border-radius: 0; background: transparent; padding: .65rem 0; color: white; font-size: .875rem; outline: none; transition: border-color .2s; }
-  .field::placeholder { color: rgb(255 255 255 / .25); }
-  .field:focus { border-color: rgb(255 255 255 / .85); }
+  .action { display: flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--color-border); border-radius: .75rem; padding: .7rem; font-size: .75rem; text-align: center; transition: background .2s; }
+  .action:hover { background: hsl(var(--foreground) / 0.08); }
+  .field { width: 100%; border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: transparent; padding: .65rem 0; color: var(--color-foreground); font-size: .875rem; outline: none; transition: border-color .2s; }
+  .field::placeholder { color: hsl(var(--foreground) / 0.25); }
+  .field:focus { border-color: hsl(var(--foreground) / 0.85); }
+  .aime-visual-copy {
+    color: white;
+    text-shadow: 0 1px 2px rgb(0 0 0 / .5), 0 8px 30px rgb(0 0 0 / .24);
+  }
+  .aime-cinematic-surface {
+    --background: 0 0% 2%;
+    --foreground: 40 10% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 40 10% 98%;
+    --card-border: 0 0% 12%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 40 10% 98%;
+    --popover-border: 0 0% 12%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 68%;
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+    --ring: 0 0% 80%;
+    color-scheme: dark;
+  }
+}
+
+/* Media is source content, never a theme surface. */
+:is(img, video, canvas, picture, [data-preserve-color]) {
+  filter: none !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body, .bg-background, .bg-card {
+    transition: background-color .22s ease, color .22s ease, border-color .22s ease;
+  }
 }
 
 @media print {
@@ -122,14 +153,6 @@
 
 :root[data-aime-theme="dark"] {
   color-scheme: dark;
-}
-
-:root[data-aime-theme="light"] .aime-page-shell {
-  filter: invert(1) hue-rotate(180deg);
-}
-
-:root[data-aime-theme="light"] .aime-page-shell :is(img, video, canvas, [data-preserve-color]) {
-  filter: invert(1) hue-rotate(180deg);
 }
 
 html {
