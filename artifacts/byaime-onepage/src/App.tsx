@@ -94,6 +94,21 @@ function Landing() {
           </div>
         </div>
       </header>
+      <section className="relative overflow-hidden border-b border-border px-6 py-20 md:px-10 md:py-28">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center text-center">
+          <p className="text-[10px] uppercase tracking-[.35em] text-foreground/45">L’ancien esprit connexion</p>
+          <h1 className="mt-6 font-display text-6xl font-light tracking-[.14em] md:text-8xl">AIME</h1>
+          <p className="mt-6 max-w-2xl text-sm font-light leading-relaxed text-foreground/65 md:text-lg">
+            L’art de créer des liens, avec une entrée claire avant de retrouver toute la landing actuelle.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <a data-testid="hero-sign-up" href={`${basePath}/creation`} className="rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background">Créer mon espace</a>
+            <a data-testid="hero-sign-in" href={`${basePath}/connexion`} className="rounded-full border border-foreground/20 px-6 py-3 text-sm hover:bg-foreground/5">Se connecter</a>
+          </div>
+        </div>
+      </section>
       <section className="border-b border-border px-6 py-16 md:px-10 md:py-24">
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
           <div>
