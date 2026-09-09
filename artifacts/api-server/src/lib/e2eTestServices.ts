@@ -3,8 +3,12 @@ import { createReadStream } from "node:fs";
 import path from "node:path";
 import type { RequestHandler } from "express";
 import type { File } from "@google-cloud/storage";
+import type { Logger } from "pino";
 
-import type { ObjectAclPolicy } from "./objectAcl";
+import type { ObjectAclPolicy } from "./objectAcl.js";
+
+type ExpressRequest = Parameters<RequestHandler>[0] & { log: Logger };
+type ExpressResponse = Parameters<RequestHandler>[1];
 
 export function isE2ETestServicesEnabled(): boolean {
   return (
@@ -32,7 +36,10 @@ function metadataPath(objectId: string): string {
   return `${objectFilePath(objectId)}.metadata.json`;
 }
 
-export const handleE2EStorageUpload: RequestHandler = async (req, res) => {
+export const handleE2EStorageUpload: RequestHandler = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+) => {
   try {
     const objectId = safeObjectId(String(req.params.objectId));
     await mkdir(storageRoot(), { recursive: true });
@@ -47,7 +54,10 @@ export const handleE2EStorageUpload: RequestHandler = async (req, res) => {
   }
 };
 
-export const handleE2ETestServicesReady: RequestHandler = async (req, res) => {
+export const handleE2ETestServicesReady: RequestHandler = async (
+  req: ExpressRequest,
+  res: ExpressResponse,
+) => {
   try {
     await mkdir(storageRoot(), { recursive: true });
     const emailResponse = await sendE2ETestEmail();
