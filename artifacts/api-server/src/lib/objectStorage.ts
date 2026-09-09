@@ -16,25 +16,38 @@ import {
   isE2ETestServicesEnabled,
 } from "./e2eTestServices";
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+function objectStorageProvider(): string {
+  return (process.env.OBJECT_STORAGE_PROVIDER || "gcs").trim().toLowerCase();
+}
 
-export const objectStorageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
+function createObjectStorageClient(): Storage {
+  const provider = objectStorageProvider();
+  if (provider !== "gcs") {
+    throw new Error(
+      `Unsupported OBJECT_STORAGE_PROVIDER "${provider}". Supported providers: gcs`,
+    );
+  }
+
+  const projectId = process.env.GCP_PROJECT_ID || undefined;
+  const clientEmail = process.env.GCP_CLIENT_EMAIL || undefined;
+  const privateKey = process.env.GCP_PRIVATE_KEY
+    ? process.env.GCP_PRIVATE_KEY.replace(/\\n/g, "\n")
+    : undefined;
+
+  if (clientEmail && privateKey) {
+    return new Storage({
+      projectId,
+      credentials: {
+        client_email: clientEmail,
+        private_key: privateKey,
       },
-    },
-    universe_domain: "googleapis.com",
-  },
-  projectId: "",
-});
+    });
+  }
+
+  return new Storage({ projectId });
+}
+
+export const objectStorageClient = createObjectStorageClient();
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -48,6 +61,31 @@ export class ObjectStorageService {
   constructor() {}
 
   getPublicObjectSearchPaths(): Array<string> {
+    const bucket = process.env.OBJECT_STORAGE_BUCKET?.trim() || "";
+    const prefixesStr = process.env.OBJECT_STORAGE_PUBLIC_PREFIXES || "";
+    if (prefixesStr) {
+      const prefixes = Array.from(
+        new Set(
+          prefixesStr
+            .split(",")
+            .map((path) => path.trim())
+            .filter((path) => path.length > 0),
+        ),
+      );
+      return prefixes.map((prefix) => {
+        if (prefix.startsWith("/")) return prefix;
+        if (!bucket) {
+          throw new Error(
+            "OBJECT_STORAGE_BUCKET is required when OBJECT_STORAGE_PUBLIC_PREFIXES uses relative prefixes.",
+          );
+        }
+        const normalizedPrefix = trimSlashes(prefix);
+        return normalizedPrefix
+          ? `/${bucket}/${normalizedPrefix}`
+          : `/${bucket}`;
+      });
+    }
+
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
     const paths = Array.from(
       new Set(
@@ -59,19 +97,25 @@ export class ObjectStorageService {
     );
     if (paths.length === 0) {
       throw new Error(
-        "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
-          "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths).",
+        "Object storage public paths are not configured. Set OBJECT_STORAGE_PUBLIC_PREFIXES " +
+          "(preferred) or PUBLIC_OBJECT_SEARCH_PATHS (legacy).",
       );
     }
     return paths;
   }
 
   getPrivateObjectDir(): string {
+    const bucket = process.env.OBJECT_STORAGE_BUCKET?.trim() || "";
+    if (bucket) {
+      const prefix = trimSlashes(process.env.OBJECT_STORAGE_PRIVATE_PREFIX || "");
+      return prefix ? `/${bucket}/${prefix}` : `/${bucket}`;
+    }
+
     const dir = process.env.PRIVATE_OBJECT_DIR || "";
     if (!dir) {
       throw new Error(
-        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var.",
+        "Object storage private path is not configured. Set OBJECT_STORAGE_BUCKET " +
+          "(and optional OBJECT_STORAGE_PRIVATE_PREFIX) or PRIVATE_OBJECT_DIR (legacy).",
       );
     }
     return dir;
@@ -124,8 +168,8 @@ export class ObjectStorageService {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
-        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var.",
+        "Object storage private path is not configured. Set OBJECT_STORAGE_BUCKET " +
+          "(and optional OBJECT_STORAGE_PRIVATE_PREFIX) or PRIVATE_OBJECT_DIR (legacy).",
       );
     }
 
@@ -181,12 +225,8 @@ export class ObjectStorageService {
       const objectId = e2eObjectId(rawPath);
       return objectId ? `/objects/uploads/${objectId}` : rawPath;
     }
-    if (!rawPath.startsWith("https://storage.googleapis.com/")) {
-      return rawPath;
-    }
-
-    const url = new URL(rawPath);
-    const rawObjectPath = url.pathname;
+    const rawObjectPath = objectPathFromRawValue(rawPath);
+    if (!rawObjectPath) return rawPath;
 
     let objectEntityDir = this.getPrivateObjectDir();
     if (!objectEntityDir.endsWith("/")) {
@@ -264,32 +304,43 @@ async function signObjectURL({
   method: "GET" | "PUT" | "DELETE" | "HEAD";
   ttlSec: number;
 }): Promise<string> {
-  const request = {
-    bucket_name: bucketName,
-    object_name: objectName,
-    method,
-    expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
-  };
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
-      signal: AbortSignal.timeout(30_000),
-    },
-  );
-  if (!response.ok) {
-    throw new Error(
-      `Failed to sign object URL, errorcode: ${response.status}, ` +
-        `make sure you're running on Replit`,
-    );
+  const action =
+    method === "PUT"
+      ? "write"
+      : method === "DELETE"
+        ? "delete"
+        : "read";
+
+  const [signedURL] = await objectStorageClient
+    .bucket(bucketName)
+    .file(objectName)
+    .getSignedUrl({
+      version: "v4",
+      action,
+      expires: Date.now() + ttlSec * 1000,
+    });
+
+  return signedURL;
+}
+
+function trimSlashes(value: string): string {
+  return value.trim().replace(/^\/+|\/+$/g, "");
+}
+
+function objectPathFromRawValue(rawPath: string): string | null {
+  if (rawPath.startsWith("/")) return rawPath;
+  if (!rawPath.startsWith("http://") && !rawPath.startsWith("https://")) {
+    return null;
   }
 
-  const { signed_url: signedURL } = (await response.json()) as {
-    signed_url: string;
-  };
-  return signedURL;
+  const url = new URL(rawPath);
+  const pathname = url.pathname.startsWith("/") ? url.pathname : `/${url.pathname}`;
+  if (url.hostname.endsWith(".storage.googleapis.com")) {
+    const bucketName = url.hostname.slice(
+      0,
+      -".storage.googleapis.com".length,
+    );
+    return `/${bucketName}${pathname}`;
+  }
+  return pathname;
 }
