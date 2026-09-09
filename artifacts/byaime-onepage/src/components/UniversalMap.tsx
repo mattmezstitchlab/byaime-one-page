@@ -10,16 +10,16 @@ const MAP_STYLE = {
     carto: {
       type: 'raster' as const,
       tiles: [
-        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
       ],
       tileSize: 256,
       attribution: '© OpenStreetMap contributors © CARTO',
     },
   },
   layers: [
-    { id: 'carto-background', type: 'background' as const, paint: { 'background-color': '#fbf8f4' } },
+    { id: 'carto-background', type: 'background' as const, paint: { 'background-color': '#0b0f14' } },
     { id: 'carto-tiles', type: 'raster' as const, source: 'carto', minzoom: 0, maxzoom: 20 },
   ],
 };
@@ -58,7 +58,7 @@ export function UniversalMap({ subjects, activeId, focusId, reduceMotion, onSele
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const readyRef = useRef(false);
-  const fittedRef = useRef(false);
+  const fittedKeyRef = useRef<string>('');
   const stateRef = useRef({ subjects, activeId, onSelect, onReady, onError });
   stateRef.current = { subjects, activeId, onSelect, onReady, onError };
 
@@ -168,15 +168,14 @@ export function UniversalMap({ subjects, activeId, focusId, reduceMotion, onSele
         const points = stateRef.current.subjects.filter(subject => subject.latitude !== undefined && subject.longitude !== undefined);
         if (points.length === 1) {
           map.jumpTo({ center: [points[0].longitude!, points[0].latitude!], zoom: 8 });
-          fittedRef.current = true;
         } else if (points.length > 1) {
           const bounds = points.reduce(
             (value, subject) => value.extend([subject.longitude!, subject.latitude!]),
             new gl.LngLatBounds([points[0].longitude!, points[0].latitude!], [points[0].longitude!, points[0].latitude!]),
           );
           map.fitBounds(bounds, { padding: 90, duration: 0, maxZoom: 11 });
-          fittedRef.current = true;
         }
+        fittedKeyRef.current = points.map(mapSubjectKey).sort().join('|');
         stateRef.current.onReady?.();
       });
     })();
@@ -185,6 +184,7 @@ export function UniversalMap({ subjects, activeId, focusId, reduceMotion, onSele
       cancelled = true;
       if (timeout) window.clearTimeout(timeout);
       readyRef.current = false;
+      fittedKeyRef.current = '';
       mapRef.current?.remove();
       mapRef.current = null;
     };
@@ -194,21 +194,20 @@ export function UniversalMap({ subjects, activeId, focusId, reduceMotion, onSele
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
     map.getSource('subjects')?.setData(toGeoJson(subjects, activeId));
-    if (!fittedRef.current) {
-      const points = subjects.filter(subject => subject.latitude !== undefined && subject.longitude !== undefined);
-      if (points.length === 1) {
-        map.jumpTo({ center: [points[0].longitude!, points[0].latitude!], zoom: 8 });
-        fittedRef.current = true;
-      } else if (points.length > 1) {
-        void import('maplibre-gl').then(gl => {
-          const bounds = points.reduce(
-            (value, subject) => value.extend([subject.longitude!, subject.latitude!]),
-            new gl.LngLatBounds([points[0].longitude!, points[0].latitude!], [points[0].longitude!, points[0].latitude!]),
-          );
-          map.fitBounds(bounds, { padding: 90, duration: 0, maxZoom: 11 });
-          fittedRef.current = true;
-        });
-      }
+    const points = subjects.filter(subject => subject.latitude !== undefined && subject.longitude !== undefined);
+    const fittedKey = points.map(mapSubjectKey).sort().join('|');
+    if (fittedKey === fittedKeyRef.current) return;
+    fittedKeyRef.current = fittedKey;
+    if (points.length === 1) {
+      map.jumpTo({ center: [points[0].longitude!, points[0].latitude!], zoom: 8 });
+    } else if (points.length > 1) {
+      void import('maplibre-gl').then(gl => {
+        const bounds = points.reduce(
+          (value, subject) => value.extend([subject.longitude!, subject.latitude!]),
+          new gl.LngLatBounds([points[0].longitude!, points[0].latitude!], [points[0].longitude!, points[0].latitude!]),
+        );
+        map.fitBounds(bounds, { padding: 90, duration: 0, maxZoom: 11 });
+      });
     }
   }, [subjects, activeId]);
 
@@ -224,5 +223,5 @@ export function UniversalMap({ subjects, activeId, focusId, reduceMotion, onSele
     }
   }, [focusId, reduceMotion, subjects]);
 
-  return <div ref={containerRef} className="absolute inset-0 bg-[#fbf8f4]" />;
+  return <div ref={containerRef} className="absolute inset-0 bg-[#0b0f14]" />;
 }

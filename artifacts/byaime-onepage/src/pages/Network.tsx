@@ -79,7 +79,7 @@ export function NetworkPage() {
   }
 
   return (
-    <main data-testid="network-page" className="relative flex h-[100dvh] overflow-hidden bg-[#f8f5ef] text-[#171717]">
+    <main data-testid="network-page" className="relative flex h-[100dvh] overflow-hidden bg-background text-foreground">
       <div className="sr-only" aria-live="polite">
         {query.isLoading
           ? 'Chargement du réseau'
@@ -87,16 +87,16 @@ export function NetworkPage() {
       </div>
 
       <aside className={cn(
-        'relative z-20 flex w-full shrink-0 flex-col border-r border-black/10 bg-[#f8f5ef]/95 backdrop-blur-xl md:w-[390px]',
+        'relative z-20 flex w-full shrink-0 flex-col border-r border-border bg-card/95 backdrop-blur-xl md:w-[390px]',
         view === 'map' && 'hidden md:flex',
       )}>
-        <header className="border-b border-black/10 px-5 py-5">
+        <header className="border-b border-border px-5 py-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-[.25em] text-black/45">Réseau AIME</p>
+              <p className="text-[10px] uppercase tracking-[.25em] text-foreground/45">Réseau AIME</p>
               <h1 className="mt-1 font-display text-2xl">Carte universelle</h1>
             </div>
-            <Link href="/user-portal" aria-label="Retour au Monde" className="grid h-10 w-10 place-items-center rounded-full border border-black/15">
+            <Link href="/user-portal" aria-label="Retour au Monde" className="grid h-10 w-10 place-items-center rounded-full border border-border">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </div>
@@ -109,7 +109,7 @@ export function NetworkPage() {
                   setKind(value);
                   setActiveKey(null);
                 }}
-                className={cn('whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px]', kind === value ? 'border-black bg-black text-white' : 'border-black/15')}
+                className={cn('whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px]', kind === value ? 'border-foreground bg-foreground text-background' : 'border-border bg-background/60')}
               >
                 {value === 'all' ? 'Tout' : KIND_LABELS[value]}
               </button>
@@ -119,13 +119,13 @@ export function NetworkPage() {
 
         <div className="flex-1 overflow-y-auto p-4" role="list" aria-label="Résultats du réseau">
           {query.isError && (
-            <div role="alert" className="rounded-2xl border border-red-900/20 bg-red-50 p-4 text-sm">
+            <div role="alert" className="rounded-2xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
               Le réseau n’a pas pu être chargé.
               <button className="mt-2 block underline" onClick={() => void query.refetch()}>Réessayer</button>
             </div>
           )}
           {!query.isLoading && !query.isError && subjects.length === 0 && (
-            <p className="p-4 text-sm text-black/55">Aucun sujet autorisé dans ce filtre.</p>
+            <p className="p-4 text-sm text-foreground/55">Aucun sujet autorisé dans ce filtre.</p>
           )}
           {subjects.map(subject => {
             const key = mapSubjectKey(subject);
@@ -135,7 +135,7 @@ export function NetworkPage() {
                 role="listitem"
                 aria-current={activeKey === key}
                 onClick={event => select(key, event.currentTarget)}
-                className={cn('mb-2 w-full rounded-2xl border p-4 text-left transition', activeKey === key ? 'border-black bg-black text-white' : 'border-black/10 bg-white/60 hover:border-black/30')}
+                className={cn('mb-2 w-full rounded-2xl border p-4 text-left transition', activeKey === key ? 'border-foreground bg-foreground text-background' : 'border-border bg-background/40 hover:border-foreground/30')}
               >
                 <span className="text-[9px] uppercase tracking-[.2em] opacity-55">{KIND_LABELS[subject.ref.kind] ?? subject.ref.kind}</span>
                 <span className="mt-1 block text-sm font-medium">{subject.label}</span>
@@ -144,7 +144,7 @@ export function NetworkPage() {
             );
           })}
           {offMap.length > 0 && (
-            <p className="mt-5 flex items-center gap-2 border-t border-black/10 pt-4 text-xs text-black/50">
+            <p className="mt-5 flex items-center gap-2 border-t border-border pt-4 text-xs text-foreground/50">
               <LocateFixed className="h-3.5 w-3.5" /> {offMap.length} résultat{offMap.length > 1 ? 's' : ''} hors carte
             </p>
           )}
@@ -159,15 +159,15 @@ export function NetworkPage() {
       >
         <UniversalMap subjects={onMap} activeId={activeKey} focusId={activeKey} onSelect={select} />
         {onMap.length === 0 && !query.isLoading && (
-          <div className="absolute inset-0 z-10 grid place-items-center bg-[#f8f5ef] text-sm text-black/55">
+          <div className="absolute inset-0 z-10 grid place-items-center bg-background text-sm text-foreground/55">
             Ces résultats sont disponibles dans la Liste, sans coordonnées autorisées.
           </div>
         )}
       </section>
 
-      <div className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 rounded-full border border-black/15 bg-white/90 p-1 shadow-lg md:hidden">
-        <button aria-pressed={view === 'map'} onClick={() => setView('map')} className={cn('flex items-center gap-2 rounded-full px-4 py-2 text-xs', view === 'map' && 'bg-black text-white')}><Map className="h-3.5 w-3.5" /> Carte</button>
-        <button aria-pressed={view === 'list'} onClick={() => setView('list')} className={cn('flex items-center gap-2 rounded-full px-4 py-2 text-xs', view === 'list' && 'bg-black text-white')}><Rows3 className="h-3.5 w-3.5" /> Liste</button>
+      <div className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 rounded-full border border-border bg-card/95 p-1 shadow-lg md:hidden">
+        <button aria-pressed={view === 'map'} onClick={() => setView('map')} className={cn('flex items-center gap-2 rounded-full px-4 py-2 text-xs', view === 'map' && 'bg-foreground text-background')}><Map className="h-3.5 w-3.5" /> Carte</button>
+        <button aria-pressed={view === 'list'} onClick={() => setView('list')} className={cn('flex items-center gap-2 rounded-full px-4 py-2 text-xs', view === 'list' && 'bg-foreground text-background')}><Rows3 className="h-3.5 w-3.5" /> Liste</button>
       </div>
 
       <Dialog open={Boolean(active)} onOpenChange={open => !open && closeDetail()}>
@@ -178,18 +178,18 @@ export function NetworkPage() {
               (returnFocusRef.current ?? mapRegionRef.current)?.focus();
               returnFocusRef.current = null;
             }}
-            className="left-4 right-4 top-auto bottom-20 w-auto max-w-none translate-x-0 translate-y-0 rounded-3xl border-black/10 bg-white p-5 text-black shadow-2xl md:left-auto md:right-6 md:bottom-6 md:w-[360px]"
+            className="left-4 right-4 top-auto bottom-20 w-auto max-w-none translate-x-0 translate-y-0 rounded-3xl border-border bg-card p-5 text-foreground shadow-2xl md:left-auto md:right-6 md:bottom-6 md:w-[360px]"
           >
-            <p className="text-[9px] uppercase tracking-[.22em] text-black/45">{KIND_LABELS[active.ref.kind] ?? active.ref.kind}</p>
+            <p className="text-[9px] uppercase tracking-[.22em] text-foreground/45">{KIND_LABELS[active.ref.kind] ?? active.ref.kind}</p>
             <DialogTitle className="pr-10 font-display text-2xl font-normal">{active.label}</DialogTitle>
-            <DialogDescription className="text-sm text-black/60">{active.summary ?? active.city ?? 'Sujet du réseau'}</DialogDescription>
-            {openError && <p role="alert" className="text-sm text-red-700">{openError}</p>}
+            <DialogDescription className="text-sm text-foreground/60">{active.summary ?? active.city ?? 'Sujet du réseau'}</DialogDescription>
+            {openError && <p role="alert" className="text-sm text-destructive">{openError}</p>}
             {active.ref.kind === 'world' && active.capabilities['world.view']?.allowed && (
               <button
                 type="button"
                 disabled={openingWorldId === active.ref.id}
                 onClick={() => void openWorld(active.ref.id)}
-                className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-xs font-semibold text-white disabled:opacity-50"
+                className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-3 text-xs font-semibold text-background disabled:opacity-50"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 {openingWorldId === active.ref.id ? 'Ouverture…' : 'Ouvrir le Monde'}
