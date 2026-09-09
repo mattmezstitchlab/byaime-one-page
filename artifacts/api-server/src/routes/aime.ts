@@ -8,11 +8,14 @@ import {
   db,
   filesTable,
   invitationsTable,
+  localBridgeSessionsTable,
+  localReferencesTable,
   membershipsTable,
   messagesTable,
   projectsTable,
   rsvpsTable,
   songRequestsTable,
+  type LocalBridgeSession,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -43,6 +46,7 @@ import {
 } from "../lib/security";
 import { logger } from "../lib/logger";
 import { buildNetworkProjection } from "../lib/networkProjection";
+import { suggestForProject } from "../lib/aimeLocalScan";
 
 type AuthedRequest = Parameters<RequestHandler>[0] & { userId?: string };
 const router: IRouter = Router();
@@ -60,7 +64,72 @@ const allowedTypes = new Set([
 ]);
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const UPLOAD_TOKEN_TTL_MS = 15 * 60 * 1000;
+const PAIRING_TOKEN_TTL_MS = 10 * 60 * 1000;
+const BRIDGE_SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 const uuid = z.string().uuid();
+
+type PairingTokenState = {
+  token: string;
+  userId: string;
+  createdAt: number;
+  expiresAt: number;
+  consumedAt?: number;
+};
+type LocalScanItem = {
+  name: string;
+  extension?: string;
+  fileType: string;
+  documentType?: string;
+  size: number;
+  modifiedAt: string;
+  relativePath: string;
+  sourceFolder: string;
+  localIdentifier: string;
+  fingerprint?: string;
+  metadata?: Record<string, unknown>;
+  entities?: Record<string, unknown>;
+};
+type ScanJob = {
+  id: string;
+  projectId: string;
+  ownerUserId: string;
+  folders: string[];
+  createdAt: string;
+  status: "queued" | "done" | "failed";
+  completedAt?: string;
+  results: LocalScanItem[];
+  suggestions: Array<{
+    localIdentifier: string;
+    score: number;
+    reason: string;
+    actions: Array<"link_project" | "add_timeline" | "import" | "ignore">;
+  }>;
+  error?: string;
+};
+type ImportJob = {
+  id: string;
+  projectId: string;
+  ownerUserId: string;
+  localReferenceId: string;
+  status: "queued" | "uploading" | "done" | "failed";
+  createdAt: string;
+  updatedAt: string;
+  error?: string;
+};
+
+const pairingTokens = new Map<string, PairingTokenState>();
+const scanJobs = new Map<string, ScanJob>();
+const importJobs = new Map<string, ImportJob>();
+const localWebRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 180,
+  key: (req) => `aime-local-web:${req.ip}:${req.path}`,
+});
+const localBridgeRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 600,
+  key: (req) => `aime-local-bridge:${req.ip}:${req.path}`,
+});
 
 function shouldSimulateProviderFailure(req: AuthedRequest): boolean {
   return (
@@ -215,6 +284,70 @@ const songRequestInput = z.object({
   artist: z.string().trim().min(1).max(200),
   message: z.string().trim().max(1_000).optional(),
 });
+const localPairingTokenInput = z.object({
+  bridgeLabel: z.string().trim().min(1).max(120).optional(),
+});
+const localPairInput = z.object({
+  token: z.string().min(24).max(256),
+  bridgeId: z.string().trim().min(8).max(240),
+  bridgeVersion: z.string().trim().min(1).max(80).optional(),
+});
+const localBridgeSessionInput = z.object({
+  sessionToken: z.string().min(32).max(256),
+});
+const localAuthorizedFoldersInput = z.object({
+  folders: z.array(z.string().trim().min(1).max(240)).max(30),
+});
+const localScanRequestInput = z.object({
+  folders: z.array(z.string().trim().min(1).max(240)).max(30).optional(),
+});
+const localScanItemSchema = z.object({
+  name: z.string().trim().min(1).max(240),
+  extension: z.string().trim().max(20).default(""),
+  fileType: z.string().trim().min(1).max(40),
+  documentType: z.string().trim().max(40).optional(),
+  size: z.number().int().nonnegative(),
+  modifiedAt: z.string().datetime(),
+  relativePath: z.string().trim().min(1).max(600),
+  sourceFolder: z.string().trim().min(1).max(240),
+  localIdentifier: z.string().trim().min(16).max(256),
+  fingerprint: z.string().trim().max(256).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  entities: z.record(z.string(), z.unknown()).optional(),
+});
+const localScanResultInput = z.object({
+  sessionToken: z.string().min(32).max(256),
+  results: z.array(localScanItemSchema).max(20_000),
+  error: z.string().trim().max(500).optional(),
+});
+const localReferenceCreateInput = z.object({
+  localIdentifier: z.string().trim().min(16).max(256),
+  fingerprint: z.string().trim().max(256).optional(),
+  filename: z.string().trim().min(1).max(240),
+  relativePath: z.string().trim().min(1).max(600),
+  sourceFolder: z.string().trim().min(1).max(240),
+  extension: z.string().trim().max(20).optional(),
+  fileType: z.string().trim().min(1).max(40),
+  size: z.number().int().nonnegative(),
+  modifiedAt: z.string().datetime(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  linkedEntityKind: z.string().trim().max(80).optional(),
+  linkedEntityId: z.string().trim().max(160).optional(),
+  linkedTimelineEventId: z.string().trim().max(160).optional(),
+});
+const localReferenceStateInput = z.object({
+  state: z.enum(["local", "linked", "imported", "ignored"]),
+});
+const bridgeImportFinalizeInput = z.object({
+  sessionToken: z.string().min(32).max(256),
+  objectPath: z.string().regex(/^\/objects\/uploads\/[a-f0-9-]+$/i),
+  finalizeToken: z.string().min(32).max(4096),
+  projectId: z.string().uuid(),
+  localReferenceId: z.string().uuid(),
+  name: z.string().trim().min(1).max(240),
+  contentType: z.string().trim().min(1).max(140),
+  size: z.number().int().positive().max(MAX_FILE_SIZE),
+});
 
 type RsvpLink = { id: string; projectId: string; guestId: string; token: string; revoked: boolean };
 
@@ -280,6 +413,41 @@ async function membership(projectId: string, userId: string) {
       ),
     );
   return member;
+}
+
+function ensureBridgeSessionToken(input: string): { sessionTokenHash: string } {
+  return { sessionTokenHash: signUploadAuthorization({ token: input }, uploadSecret()) };
+}
+
+async function activeBridgeSessionByToken(sessionToken: string) {
+  const { sessionTokenHash } = ensureBridgeSessionToken(sessionToken);
+  const [session] = await db
+    .select()
+    .from(localBridgeSessionsTable)
+    .where(
+      and(
+        eq(localBridgeSessionsTable.sessionTokenHash, sessionTokenHash),
+        isNull(localBridgeSessionsTable.revokedAt),
+      ),
+    );
+  if (!session) return undefined;
+  if (session.expiresAt.getTime() <= Date.now()) return undefined;
+  return session;
+}
+
+function authorizeBridgeOrigin(req: AuthedRequest, res: Parameters<RequestHandler>[1]): boolean {
+  const origin = req.get("origin");
+  if (origin && !/^https?:\/\/localhost(?::\d+)?$/.test(origin) && !/^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin)) {
+    res.status(403).json({ error: "Origine locale requise" });
+    return false;
+  }
+  return true;
+}
+
+function isSafeRelativePath(value: string): boolean {
+  if (!value || value.startsWith("/") || value.startsWith("\\")) return false;
+  const unix = value.replaceAll("\\", "/");
+  return !unix.split("/").some((segment) => segment === "..");
 }
 
 router.param("id", (req, res, next, value) => {
@@ -1461,6 +1629,601 @@ router.patch(
       return;
     }
     res.json(request);
+  },
+);
+
+router.post(
+  "/aime-local/pairing-token",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const input = parseBody(localPairingTokenInput, req, res);
+    if (!input) return;
+    const token = randomUUID().replaceAll("-", "") + randomUUID().replaceAll("-", "");
+    pairingTokens.set(token, {
+      token,
+      userId: req.userId!,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + PAIRING_TOKEN_TTL_MS,
+    });
+    res.json({
+      token,
+      expiresAt: new Date(Date.now() + PAIRING_TOKEN_TTL_MS).toISOString(),
+      bridgeLabel: input.bridgeLabel ?? null,
+    });
+  },
+);
+
+router.post(
+  "/aime-local/bridge/pair",
+  localBridgeRateLimit,
+  async (req: AuthedRequest, res): Promise<void> => {
+    if (!authorizeBridgeOrigin(req, res)) return;
+    const input = parseBody(localPairInput, req, res);
+    if (!input) return;
+    const pairing = pairingTokens.get(input.token);
+    if (!pairing || pairing.expiresAt <= Date.now() || pairing.consumedAt) {
+      res.status(403).json({ error: "Code de connexion invalide ou expiré" });
+      return;
+    }
+    pairing.consumedAt = Date.now();
+    const sessionToken = randomUUID().replaceAll("-", "") + randomUUID().replaceAll("-", "");
+    const sessionTokenHash = ensureBridgeSessionToken(sessionToken).sessionTokenHash;
+    const now = new Date();
+    const expiresAt = new Date(Date.now() + BRIDGE_SESSION_TTL_MS);
+    const [saved] = await db
+      .insert(localBridgeSessionsTable)
+      .values({
+        userId: pairing.userId,
+        bridgeId: input.bridgeId,
+        bridgeVersion: input.bridgeVersion ?? null,
+        bridgeLabel: null,
+        sessionTokenHash,
+        pairedAt: now,
+        lastSeenAt: now,
+        expiresAt,
+      })
+      .onConflictDoUpdate({
+        target: [localBridgeSessionsTable.userId, localBridgeSessionsTable.bridgeId],
+        set: { bridgeVersion: input.bridgeVersion ?? null, sessionTokenHash, lastSeenAt: now, expiresAt, revokedAt: null },
+      })
+      .returning();
+    res.status(201).json({
+      bridgeSessionId: saved.id,
+      sessionToken,
+      expiresAt: saved.expiresAt.toISOString(),
+      userId: saved.userId,
+    });
+  },
+);
+
+router.post(
+  "/aime-local/bridge/heartbeat",
+  localBridgeRateLimit,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const input = parseBody(localBridgeSessionInput, req, res);
+    if (!input) return;
+    const session = await activeBridgeSessionByToken(input.sessionToken);
+    if (!session) {
+      res.status(403).json({ error: "Session bridge invalide" });
+      return;
+    }
+    await db
+      .update(localBridgeSessionsTable)
+      .set({ lastSeenAt: new Date(), expiresAt: new Date(Date.now() + BRIDGE_SESSION_TTL_MS) })
+      .where(eq(localBridgeSessionsTable.id, session.id));
+    res.json({ ok: true });
+  },
+);
+
+router.get(
+  "/aime-local/bridge/status",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const sessions = await db
+      .select()
+      .from(localBridgeSessionsTable)
+      .where(and(eq(localBridgeSessionsTable.userId, req.userId!), isNull(localBridgeSessionsTable.revokedAt)));
+    const active = sessions
+      .filter((session: LocalBridgeSession) => session.expiresAt.getTime() > Date.now())
+      .sort((a: LocalBridgeSession, b: LocalBridgeSession) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())[0];
+    res.json({
+      connected: Boolean(active),
+      bridgeId: active?.bridgeId ?? null,
+      bridgeVersion: active?.bridgeVersion ?? null,
+      lastSeenAt: active?.lastSeenAt?.toISOString() ?? null,
+      expiresAt: active?.expiresAt?.toISOString() ?? null,
+    });
+  },
+);
+
+router.delete(
+  "/aime-local/bridge/status",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    await db
+      .update(localBridgeSessionsTable)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(localBridgeSessionsTable.userId, req.userId!), isNull(localBridgeSessionsTable.revokedAt)));
+    res.sendStatus(204);
+  },
+);
+
+router.get(
+  "/projects/:id/aime-local/folders",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!editableRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    const data = (project?.data ?? {}) as Record<string, unknown>;
+    const localData = (data.aimeLocal ?? {}) as Record<string, unknown>;
+    const folders = Array.isArray(localData.folders) ? localData.folders.filter((value: unknown): value is string => typeof value === "string").slice(0, 30) : [];
+    res.json({ folders });
+  },
+);
+
+router.put(
+  "/projects/:id/aime-local/folders",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!editableRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const input = parseBody(localAuthorizedFoldersInput, req, res);
+    if (!input) return;
+    const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    if (!project) {
+      res.status(404).json({ error: "Projet introuvable" });
+      return;
+    }
+    const current = (project.data ?? {}) as Record<string, unknown>;
+    const next = { ...current, aimeLocal: { ...((current.aimeLocal ?? {}) as Record<string, unknown>), folders: input.folders } };
+    const [saved] = await db.update(projectsTable).set({ data: next, updatedAt: new Date() }).where(eq(projectsTable.id, projectId)).returning();
+    const localData = (saved.data as Record<string, unknown>).aimeLocal as Record<string, unknown> | undefined;
+    res.json({ folders: Array.isArray(localData?.folders) ? localData?.folders : [] });
+  },
+);
+
+router.post(
+  "/projects/:id/aime-local/scan",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!editableRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const input = parseBody(localScanRequestInput, req, res);
+    if (!input) return;
+    const sessions = await db.select().from(localBridgeSessionsTable).where(and(eq(localBridgeSessionsTable.userId, req.userId!), isNull(localBridgeSessionsTable.revokedAt)));
+    const active = sessions
+      .filter((session: LocalBridgeSession) => session.expiresAt.getTime() > Date.now())
+      .sort((a: LocalBridgeSession, b: LocalBridgeSession) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())[0];
+    if (!active) {
+      res.status(409).json({ error: "Aucun bridge actif" });
+      return;
+    }
+    const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    const configuredFolders = Array.isArray((project?.data as Record<string, unknown> | undefined)?.aimeLocal && ((project?.data as Record<string, unknown>).aimeLocal as Record<string, unknown>).folders)
+      ? (((project?.data as Record<string, unknown>).aimeLocal as Record<string, unknown>).folders as string[])
+      : [];
+    const folders = (input.folders?.length ? input.folders : configuredFolders).slice(0, 30);
+    if (!folders.length) {
+      res.status(400).json({ error: "Aucun dossier autorisé configuré" });
+      return;
+    }
+    const id = randomUUID();
+    const job: ScanJob = {
+      id,
+      projectId,
+      ownerUserId: req.userId!,
+      folders,
+      createdAt: new Date().toISOString(),
+      status: "queued",
+      results: [],
+      suggestions: [],
+    };
+    scanJobs.set(id, job);
+    res.status(202).json({ jobId: id, status: job.status, folders });
+  },
+);
+
+router.get(
+  "/aime-local/bridge/scan-jobs/next",
+  localBridgeRateLimit,
+  async (req, res): Promise<void> => {
+    const sessionToken = String(req.query.sessionToken ?? "");
+    const session = await activeBridgeSessionByToken(sessionToken);
+    if (!session) {
+      res.status(403).json({ error: "Session bridge invalide" });
+      return;
+    }
+    const queued = [...scanJobs.values()]
+      .find((job) => job.ownerUserId === session.userId && job.status === "queued");
+    if (!queued) {
+      res.json({ job: null });
+      return;
+    }
+    res.json({ job: { id: queued.id, projectId: queued.projectId, folders: queued.folders, createdAt: queued.createdAt } });
+  },
+);
+
+router.post(
+  "/aime-local/bridge/scan-jobs/:jobId/result",
+  localBridgeRateLimit,
+  async (req, res): Promise<void> => {
+    const input = parseBody(localScanResultInput, req as AuthedRequest, res);
+    if (!input) return;
+    const session = await activeBridgeSessionByToken(input.sessionToken);
+    if (!session) {
+      res.status(403).json({ error: "Session bridge invalide" });
+      return;
+    }
+    const job = scanJobs.get(String(req.params.jobId));
+    if (!job || job.ownerUserId !== session.userId) {
+      res.status(404).json({ error: "Scan introuvable" });
+      return;
+    }
+    const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, job.projectId));
+    const projectData = ((project?.data ?? {}) as Record<string, unknown>);
+    const results = input.results.filter((item) => isSafeRelativePath(item.relativePath));
+    const suggestions = results
+      .map((item) => ({
+        localIdentifier: item.localIdentifier,
+        suggestion: suggestForProject({ name: item.name, documentType: (item.documentType as "devis" | "contrat" | "facture" | "reservation" | "liste_invites" | "playlist" | "planning" | "autre" | undefined) ?? "autre", entities: {
+          people: [],
+          places: Array.isArray(item.entities?.places) ? item.entities?.places as string[] : [],
+          dates: [],
+          amounts: [],
+          events: Array.isArray(item.entities?.events) ? item.entities?.events as string[] : [],
+          resources: Array.isArray(item.entities?.resources) ? item.entities?.resources as string[] : [],
+          organizations: [],
+        } }, projectData),
+      }))
+      .filter((row): row is { localIdentifier: string; suggestion: NonNullable<ReturnType<typeof suggestForProject>> } => Boolean(row.suggestion))
+      .map((row) => ({ localIdentifier: row.localIdentifier, ...row.suggestion }));
+    job.results = results;
+    job.suggestions = suggestions;
+    job.status = input.error ? "failed" : "done";
+    job.error = input.error;
+    job.completedAt = new Date().toISOString();
+    scanJobs.set(job.id, job);
+    res.json({ ok: true, suggestions: suggestions.length });
+  },
+);
+
+router.get(
+  "/projects/:id/aime-local/scans/latest",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!editableRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const latest = [...scanJobs.values()]
+      .filter((job) => job.ownerUserId === req.userId && job.projectId === projectId)
+      .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
+    if (!latest) {
+      res.json({ job: null });
+      return;
+    }
+    res.json({ job: latest });
+  },
+);
+
+router.get(
+  "/projects/:id/aime-local/references",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!editableRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const rows = await db
+      .select()
+      .from(localReferencesTable)
+      .where(and(eq(localReferencesTable.projectId, projectId), eq(localReferencesTable.ownerUserId, req.userId!)));
+    res.json(rows);
+  },
+);
+
+router.post(
+  "/projects/:id/aime-local/references",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!editableRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const input = parseBody(localReferenceCreateInput, req, res);
+    if (!input) return;
+    if (!isSafeRelativePath(input.relativePath)) {
+      res.status(400).json({ error: "Chemin local invalide" });
+      return;
+    }
+    const [saved] = await db
+      .insert(localReferencesTable)
+      .values({
+        projectId,
+        ownerUserId: req.userId!,
+        localIdentifier: input.localIdentifier,
+        fingerprint: input.fingerprint ?? null,
+        filename: input.filename,
+        relativePath: input.relativePath,
+        sourceFolder: input.sourceFolder,
+        extension: input.extension ?? null,
+        fileType: input.fileType,
+        size: input.size,
+        modifiedAt: new Date(input.modifiedAt),
+        metadata: input.metadata ?? {},
+        linkedEntityKind: input.linkedEntityKind ?? null,
+        linkedEntityId: input.linkedEntityId ?? null,
+        linkedTimelineEventId: input.linkedTimelineEventId ?? null,
+        state: "linked",
+      })
+      .onConflictDoUpdate({
+        target: [localReferencesTable.projectId, localReferencesTable.ownerUserId, localReferencesTable.localIdentifier],
+        set: {
+          fingerprint: input.fingerprint ?? null,
+          filename: input.filename,
+          relativePath: input.relativePath,
+          sourceFolder: input.sourceFolder,
+          extension: input.extension ?? null,
+          fileType: input.fileType,
+          size: input.size,
+          modifiedAt: new Date(input.modifiedAt),
+          metadata: input.metadata ?? {},
+          linkedEntityKind: input.linkedEntityKind ?? null,
+          linkedEntityId: input.linkedEntityId ?? null,
+          linkedTimelineEventId: input.linkedTimelineEventId ?? null,
+          state: "linked",
+          lastSeenAt: new Date(),
+        },
+      })
+      .returning();
+    res.status(201).json(saved);
+  },
+);
+
+router.patch(
+  "/projects/:id/aime-local/references/:referenceId/state",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!editableRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const input = parseBody(localReferenceStateInput, req, res);
+    if (!input) return;
+    const [saved] = await db
+      .update(localReferencesTable)
+      .set({ state: input.state, lastSeenAt: new Date() })
+      .where(and(
+        eq(localReferencesTable.id, String(req.params.referenceId)),
+        eq(localReferencesTable.projectId, projectId),
+        eq(localReferencesTable.ownerUserId, req.userId!),
+      ))
+      .returning();
+    if (!saved) {
+      res.status(404).json({ error: "Référence locale introuvable" });
+      return;
+    }
+    res.json(saved);
+  },
+);
+
+router.post(
+  "/projects/:id/aime-local/references/:referenceId/import",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [reference] = await db
+      .select()
+      .from(localReferencesTable)
+      .where(and(
+        eq(localReferencesTable.id, String(req.params.referenceId)),
+        eq(localReferencesTable.projectId, projectId),
+        eq(localReferencesTable.ownerUserId, req.userId!),
+      ));
+    if (!reference) {
+      res.status(404).json({ error: "Référence locale introuvable" });
+      return;
+    }
+    const jobId = randomUUID();
+    const now = new Date().toISOString();
+    importJobs.set(jobId, {
+      id: jobId,
+      projectId,
+      ownerUserId: req.userId!,
+      localReferenceId: reference.id,
+      status: "queued",
+      createdAt: now,
+      updatedAt: now,
+    });
+    res.status(202).json({ jobId, status: "queued" });
+  },
+);
+
+router.get(
+  "/projects/:id/aime-local/import-jobs/:jobId",
+  localWebRateLimit,
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!editableRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const job = importJobs.get(String(req.params.jobId));
+    if (!job || job.projectId !== projectId || job.ownerUserId !== req.userId) {
+      res.status(404).json({ error: "Import introuvable" });
+      return;
+    }
+    res.json(job);
+  },
+);
+
+router.get(
+  "/aime-local/bridge/import-jobs/next",
+  localBridgeRateLimit,
+  async (req, res): Promise<void> => {
+    const sessionToken = String(req.query.sessionToken ?? "");
+    const session = await activeBridgeSessionByToken(sessionToken);
+    if (!session) {
+      res.status(403).json({ error: "Session bridge invalide" });
+      return;
+    }
+    const next = [...importJobs.values()].find((job) => job.ownerUserId === session.userId && job.status === "queued");
+    if (!next) {
+      res.json({ job: null });
+      return;
+    }
+    const [reference] = await db.select().from(localReferencesTable).where(eq(localReferencesTable.id, next.localReferenceId));
+    if (!reference) {
+      next.status = "failed";
+      next.error = "Référence locale introuvable";
+      next.updatedAt = new Date().toISOString();
+      importJobs.set(next.id, next);
+      res.json({ job: null });
+      return;
+    }
+    res.json({
+      job: {
+        id: next.id,
+        projectId: next.projectId,
+        localReferenceId: next.localReferenceId,
+        filename: reference.filename,
+        relativePath: reference.relativePath,
+        sourceFolder: reference.sourceFolder,
+        size: reference.size,
+      },
+    });
+  },
+);
+
+router.post(
+  "/aime-local/bridge/import-jobs/:jobId/request-upload-url",
+  localBridgeRateLimit,
+  async (req, res): Promise<void> => {
+    const input = parseBody(bridgeImportFinalizeInput.omit({ objectPath: true, finalizeToken: true, localReferenceId: true }), req as AuthedRequest, res);
+    if (!input) return;
+    const session = await activeBridgeSessionByToken(input.sessionToken);
+    if (!session) {
+      res.status(403).json({ error: "Session bridge invalide" });
+      return;
+    }
+    const job = importJobs.get(String(req.params.jobId));
+    if (!job || job.ownerUserId !== session.userId || job.projectId !== input.projectId) {
+      res.status(404).json({ error: "Import introuvable" });
+      return;
+    }
+    if (!allowedTypes.has(input.contentType)) {
+      res.status(415).json({ error: "Type de fichier non autorisé" });
+      return;
+    }
+    const uploadURL = await storage.getObjectEntityUploadURL();
+    const objectPath = storage.normalizeObjectEntityPath(uploadURL.split("?")[0]);
+    const finalizeToken = signUploadAuthorization(
+      {
+        projectId: input.projectId,
+        name: input.name,
+        size: input.size,
+        contentType: input.contentType,
+        objectPath,
+        userId: session.userId,
+        expiresAt: Date.now() + UPLOAD_TOKEN_TTL_MS,
+      },
+      uploadSecret(),
+    );
+    job.status = "uploading";
+    job.updatedAt = new Date().toISOString();
+    importJobs.set(job.id, job);
+    res.json({ uploadURL, objectPath, finalizeToken });
+  },
+);
+
+router.post(
+  "/aime-local/bridge/import-jobs/:jobId/finalize",
+  localBridgeRateLimit,
+  async (req, res): Promise<void> => {
+    const input = parseBody(bridgeImportFinalizeInput, req as AuthedRequest, res);
+    if (!input) return;
+    const session = await activeBridgeSessionByToken(input.sessionToken);
+    if (!session) {
+      res.status(403).json({ error: "Session bridge invalide" });
+      return;
+    }
+    const job = importJobs.get(String(req.params.jobId));
+    if (!job || job.ownerUserId !== session.userId || job.projectId !== input.projectId || job.localReferenceId !== input.localReferenceId) {
+      res.status(404).json({ error: "Import introuvable" });
+      return;
+    }
+    if (!verifyUploadAuthorization(
+      input.finalizeToken,
+      {
+        projectId: input.projectId,
+        name: input.name,
+        size: input.size,
+        contentType: input.contentType,
+        objectPath: input.objectPath,
+        userId: session.userId,
+      },
+      uploadSecret(),
+    )) {
+      res.status(403).json({ error: "Autorisation de finalisation invalide ou expirée" });
+      return;
+    }
+    const objectPath = await storage.trySetObjectEntityAclPolicy(input.objectPath, {
+      owner: session.userId,
+      visibility: "private",
+    });
+    const [storedFile] = await db
+      .insert(filesTable)
+      .values({
+        projectId: input.projectId,
+        uploaderUserId: session.userId,
+        objectPath,
+        name: input.name,
+        contentType: input.contentType,
+        size: input.size,
+      })
+      .returning();
+    await db
+      .update(localReferencesTable)
+      .set({ state: "imported", importedFileId: storedFile.id, lastSeenAt: new Date() })
+      .where(and(
+        eq(localReferencesTable.id, input.localReferenceId),
+        eq(localReferencesTable.projectId, input.projectId),
+        eq(localReferencesTable.ownerUserId, session.userId),
+      ));
+    job.status = "done";
+    job.updatedAt = new Date().toISOString();
+    importJobs.set(job.id, job);
+    res.status(201).json({ file: storedFile, status: "imported" });
   },
 );
 

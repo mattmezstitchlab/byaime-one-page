@@ -262,6 +262,157 @@ paths:
             schema: { $ref: "#/components/schemas/RsvpInput" }
       responses:
         "200": { description: Response recorded }
+  /aime-local/pairing-token:
+    post:
+      operationId: createAimeLocalPairingToken
+      tags: [projects]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Pairing token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalPairingToken" }
+  /aime-local/bridge/pair:
+    post:
+      operationId: pairAimeLocalBridge
+      tags: [projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AimeLocalPairInput" }
+      responses:
+        "201":
+          description: Bridge paired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalBridgeSession" }
+  /aime-local/bridge/status:
+    get:
+      operationId: getAimeLocalBridgeStatus
+      tags: [projects]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Bridge connection status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalBridgeStatus" }
+    delete:
+      operationId: revokeAimeLocalBridgeStatus
+      tags: [projects]
+      security:
+        - bearerAuth: []
+      responses:
+        "204": { description: Bridge revoked }
+  /projects/{id}/aime-local/folders:
+    get:
+      operationId: getAimeLocalFolders
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "200":
+          description: Authorized local folders
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalFolders" }
+    put:
+      operationId: updateAimeLocalFolders
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AimeLocalFolders" }
+      responses:
+        "200":
+          description: Updated authorized folders
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalFolders" }
+  /projects/{id}/aime-local/scan:
+    post:
+      operationId: requestAimeLocalScan
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "202":
+          description: Scan requested
+  /projects/{id}/aime-local/scans/latest:
+    get:
+      operationId: getAimeLocalLatestScan
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "200":
+          description: Latest scan result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalLatestScanResponse" }
+  /projects/{id}/aime-local/references:
+    get:
+      operationId: listAimeLocalReferences
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "200":
+          description: Local references
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AimeLocalReference" }
+    post:
+      operationId: createAimeLocalReference
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AimeLocalReferenceInput" }
+      responses:
+        "201":
+          description: Local reference created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalReference" }
+  /projects/{id}/aime-local/references/{referenceId}/import:
+    post:
+      operationId: requestAimeLocalImport
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+        - { name: referenceId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "202":
+          description: Import requested
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalImportRequested" }
+  /projects/{id}/aime-local/import-jobs/{jobId}:
+    get:
+      operationId: getAimeLocalImportJob
+      tags: [projects]
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+        - { name: jobId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Import status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AimeLocalImportJob" }
   /public/profiles/{id}:
     get:
       operationId: getPublicProfile
@@ -600,3 +751,148 @@ components:
         timeline:
           type: array
           items: { $ref: "#/components/schemas/PublicTimelineEvent" }
+    AimeLocalPairingToken:
+      type: object
+      required: [token, expiresAt]
+      properties:
+        token: { type: string }
+        expiresAt: { type: string, format: date-time }
+    AimeLocalPairInput:
+      type: object
+      required: [token, bridgeId]
+      properties:
+        token: { type: string }
+        bridgeId: { type: string }
+        bridgeVersion: { type: string }
+    AimeLocalBridgeSession:
+      type: object
+      required: [bridgeSessionId, sessionToken, expiresAt, userId]
+      properties:
+        bridgeSessionId: { type: string, format: uuid }
+        sessionToken: { type: string }
+        expiresAt: { type: string, format: date-time }
+        userId: { type: string }
+    AimeLocalBridgeStatus:
+      type: object
+      required: [connected]
+      properties:
+        connected: { type: boolean }
+        bridgeId: { type: string, nullable: true }
+        bridgeVersion: { type: string, nullable: true }
+        lastSeenAt: { type: string, format: date-time, nullable: true }
+        expiresAt: { type: string, format: date-time, nullable: true }
+    AimeLocalFolders:
+      type: object
+      required: [folders]
+      properties:
+        folders:
+          type: array
+          items: { type: string }
+    AimeLocalEntityMap:
+      type: object
+      additionalProperties: true
+    AimeLocalScanFile:
+      type: object
+      required: [name, extension, fileType, size, modifiedAt, relativePath, sourceFolder, localIdentifier]
+      properties:
+        name: { type: string }
+        extension: { type: string }
+        fileType: { type: string }
+        documentType: { type: string }
+        size: { type: integer }
+        modifiedAt: { type: string, format: date-time }
+        relativePath: { type: string }
+        sourceFolder: { type: string }
+        localIdentifier: { type: string }
+        fingerprint: { type: string }
+        entities: { $ref: "#/components/schemas/AimeLocalEntityMap" }
+    AimeLocalSuggestion:
+      type: object
+      required: [localIdentifier, score, reason, actions]
+      properties:
+        localIdentifier: { type: string }
+        score: { type: number }
+        reason: { type: string }
+        actions:
+          type: array
+          items: { type: string, enum: [link_project, add_timeline, import, ignore] }
+    AimeLocalScanJob:
+      type: object
+      required: [id, projectId, status, createdAt, folders, results, suggestions]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        status: { type: string, enum: [queued, done, failed] }
+        createdAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        folders:
+          type: array
+          items: { type: string }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/AimeLocalScanFile" }
+        suggestions:
+          type: array
+          items: { $ref: "#/components/schemas/AimeLocalSuggestion" }
+        error: { type: string }
+    AimeLocalLatestScanResponse:
+      type: object
+      required: [job]
+      properties:
+        job:
+          anyOf:
+            - { $ref: "#/components/schemas/AimeLocalScanJob" }
+            - { type: "null" }
+    AimeLocalReferenceInput:
+      type: object
+      required: [localIdentifier, filename, relativePath, sourceFolder, fileType, size, modifiedAt]
+      properties:
+        localIdentifier: { type: string }
+        fingerprint: { type: string }
+        filename: { type: string }
+        relativePath: { type: string }
+        sourceFolder: { type: string }
+        extension: { type: string }
+        fileType: { type: string }
+        size: { type: integer }
+        modifiedAt: { type: string, format: date-time }
+        linkedEntityKind: { type: string }
+        linkedEntityId: { type: string }
+        linkedTimelineEventId: { type: string }
+        metadata: { type: object, additionalProperties: true }
+    AimeLocalReference:
+      type: object
+      required: [id, projectId, ownerUserId, localIdentifier, filename, relativePath, sourceFolder, fileType, size, modifiedAt, state]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        ownerUserId: { type: string }
+        localIdentifier: { type: string }
+        fingerprint: { type: string, nullable: true }
+        filename: { type: string }
+        relativePath: { type: string }
+        sourceFolder: { type: string }
+        extension: { type: string, nullable: true }
+        fileType: { type: string }
+        size: { type: integer }
+        modifiedAt: { type: string, format: date-time }
+        state: { type: string, enum: [local, linked, imported, ignored] }
+        importedFileId: { type: string, format: uuid, nullable: true }
+    AimeLocalImportRequested:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId: { type: string, format: uuid }
+        status: { type: string, enum: [queued] }
+    AimeLocalImportJob:
+      type: object
+      required: [id, projectId, ownerUserId, localReferenceId, status, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        ownerUserId: { type: string }
+        localReferenceId: { type: string, format: uuid }
+        status: { type: string, enum: [queued, uploading, done, failed] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        error: { type: string }
