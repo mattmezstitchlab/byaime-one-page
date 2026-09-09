@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2 } from "lucide-react";
+import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2, FolderOpen, RefreshCcw, Link2 } from "lucide-react";
 import type { MemoryItem, MusicSearchResult, MusicTrack, Payment } from "@/lib/types";
 import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
@@ -32,6 +32,52 @@ type SongRequest = {
   message?: string | null;
   status: "new" | "seen" | "accepted" | "played" | "rejected";
   createdAt: string;
+};
+type LocalBridgeStatus = {
+  connected: boolean;
+  bridgeId?: string | null;
+  bridgeVersion?: string | null;
+  lastSeenAt?: string | null;
+  expiresAt?: string | null;
+};
+type LocalScanSuggestion = {
+  localIdentifier: string;
+  score: number;
+  reason: string;
+  actions: Array<"link_project" | "add_timeline" | "import" | "ignore">;
+};
+type LocalScanFile = {
+  name: string;
+  extension: string;
+  fileType: string;
+  documentType?: string;
+  size: number;
+  modifiedAt: string;
+  relativePath: string;
+  sourceFolder: string;
+  localIdentifier: string;
+  fingerprint?: string;
+};
+type LocalScanJob = {
+  id: string;
+  projectId: string;
+  status: "queued" | "done" | "failed";
+  createdAt: string;
+  completedAt?: string;
+  folders: string[];
+  results: LocalScanFile[];
+  suggestions: LocalScanSuggestion[];
+  error?: string;
+};
+type LocalReference = {
+  id: string;
+  localIdentifier: string;
+  filename: string;
+  relativePath: string;
+  sourceFolder: string;
+  fileType: string;
+  state: "local" | "linked" | "imported" | "ignored";
+  importedFileId?: string | null;
 };
 const MUSIC_SOURCE = "Apple Music / iTunes";
 
@@ -111,6 +157,12 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
   const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
   const [songRequests, setSongRequests] = useState<SongRequest[]>([]);
+  const [localBridge, setLocalBridge] = useState<LocalBridgeStatus>({ connected: false });
+  const [pairingToken, setPairingToken] = useState<{ token: string; expiresAt: string } | null>(null);
+  const [authorizedFoldersText, setAuthorizedFoldersText] = useState("");
+  const [localScan, setLocalScan] = useState<LocalScanJob | null>(null);
+  const [localReferences, setLocalReferences] = useState<LocalReference[]>([]);
+  const [pendingImportJobs, setPendingImportJobs] = useState<Record<string, string>>({});
   const musicSearchAbortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const canManage = currentRole === "owner" || currentRole === "planner";
@@ -145,6 +197,20 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     setRemoteError("");
     void api<SongRequest[]>(`/projects/${projectId}/song-requests`).then(setSongRequests).catch(error => setRemoteError(error.message));
   }, [canManage, module, projectId]);
+
+  useEffect(() => {
+    if (!projectId || module !== "documents") return;
+    void api<LocalBridgeStatus>("/aime-local/bridge/status").then(setLocalBridge).catch(() => setLocalBridge({ connected: false }));
+    void api<{ folders: string[] }>(`/projects/${projectId}/aime-local/folders`)
+      .then((payload) => setAuthorizedFoldersText(payload.folders.join("\n")))
+      .catch(() => undefined);
+    void api<{ job: LocalScanJob | null }>(`/projects/${projectId}/aime-local/scans/latest`)
+      .then((payload) => setLocalScan(payload.job))
+      .catch(() => undefined);
+    void api<LocalReference[]>(`/projects/${projectId}/aime-local/references`)
+      .then(setLocalReferences)
+      .catch(() => undefined);
+  }, [module, projectId]);
 
   if (!project) return null;
 
@@ -300,6 +366,115 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       setBusy(false);
     }
   };
+  const refreshAimeLocal = async () => {
+    if (!projectId) return;
+    const [bridge, scan, refs] = await Promise.all([
+      api<LocalBridgeStatus>("/aime-local/bridge/status").catch(() => ({ connected: false })),
+      api<{ job: LocalScanJob | null }>(`/projects/${projectId}/aime-local/scans/latest`).catch(() => ({ job: null })),
+      api<LocalReference[]>(`/projects/${projectId}/aime-local/references`).catch(() => []),
+    ]);
+    setLocalBridge(bridge);
+    setLocalScan(scan.job);
+    setLocalReferences(refs);
+  };
+  const createPairingToken = async () => {
+    setBusy(true);
+    setRemoteError("");
+    try {
+      const paired = await api<{ token: string; expiresAt: string }>("/aime-local/pairing-token", { method: "POST", body: JSON.stringify({}) });
+      setPairingToken(paired);
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Connexion locale impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const saveAuthorizedFolders = async () => {
+    if (!projectId) return;
+    setBusy(true);
+    setRemoteError("");
+    try {
+      const folders = authorizedFoldersText.split("\n").map((value) => value.trim()).filter(Boolean);
+      await api(`/projects/${projectId}/aime-local/folders`, { method: "PUT", body: JSON.stringify({ folders }) });
+      await refreshAimeLocal();
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Enregistrement impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const launchLocalScan = async () => {
+    if (!projectId) return;
+    setBusy(true);
+    setRemoteError("");
+    try {
+      await api(`/projects/${projectId}/aime-local/scan`, { method: "POST", body: JSON.stringify({}) });
+      window.setTimeout(() => void refreshAimeLocal(), 3000);
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Scan impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const linkLocalFile = async (file: LocalScanFile, suggestion?: LocalScanSuggestion) => {
+    if (!projectId) return;
+    setBusy(true);
+    setRemoteError("");
+    try {
+      const linkedEntityKind = suggestion?.actions.includes("add_timeline") ? "timeline" : "project";
+      await api(`/projects/${projectId}/aime-local/references`, {
+        method: "POST",
+        body: JSON.stringify({
+          localIdentifier: file.localIdentifier,
+          fingerprint: file.fingerprint,
+          filename: file.name,
+          relativePath: file.relativePath,
+          sourceFolder: file.sourceFolder,
+          extension: file.extension,
+          fileType: file.fileType,
+          size: file.size,
+          modifiedAt: file.modifiedAt,
+          metadata: {},
+          linkedEntityKind,
+        }),
+      });
+      await refreshAimeLocal();
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Liaison impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const requestImport = async (reference: LocalReference) => {
+    if (!projectId) return;
+    setBusy(true);
+    setRemoteError("");
+    try {
+      const result = await api<{ jobId: string }>(`/projects/${projectId}/aime-local/references/${reference.id}/import`, { method: "POST" });
+      setPendingImportJobs((state) => ({ ...state, [reference.id]: result.jobId }));
+    } catch (error) {
+      setRemoteError(error instanceof Error ? error.message : "Import impossible");
+    } finally {
+      setBusy(false);
+    }
+  };
+  useEffect(() => {
+    if (!projectId || module !== "documents") return;
+    const timer = window.setInterval(() => {
+      void refreshAimeLocal();
+      void Promise.all(Object.entries(pendingImportJobs).map(async ([referenceId, jobId]) => {
+        const job = await api<{ status: string }>(`/projects/${projectId}/aime-local/import-jobs/${jobId}`).catch(() => null);
+        if (job?.status === "done" || job?.status === "failed") {
+          setPendingImportJobs((current) => {
+            const next = { ...current };
+            delete next[referenceId];
+            return next;
+          });
+        }
+      }));
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [module, projectId, pendingImportJobs]);
 
   if (module === "seating") {
     const unassigned = project.guests.filter(g => effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline" && !g.tableId);
@@ -325,9 +500,78 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "documents") return <div className="max-w-3xl mx-auto space-y-5">
     <PersistenceState status={syncStatus} error={syncError} />
+    <div className="rounded-2xl border border-sky-300/20 bg-sky-300/5 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-sky-100/80">AIME LOCAL</p>
+          <p className="mt-1 text-sm text-foreground/80">AIME peut analyser certains fichiers sur votre Mac sans les importer automatiquement.</p>
+          <p className="mt-1 text-xs text-foreground/45">
+            État bridge : {localBridge.connected ? `connecté (${localBridge.bridgeVersion || "bridge"})` : "non connecté"}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button disabled={busy} onClick={() => void createPairingToken()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+            {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+            Connecter mon Mac
+          </button>
+          <button disabled={busy} onClick={() => void refreshAimeLocal()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+            <RefreshCcw className="h-3.5 w-3.5" /> Actualiser
+          </button>
+        </div>
+      </div>
+      {pairingToken && (
+        <div className="mt-3 rounded-xl border border-foreground/10 bg-background/20 p-3 text-xs">
+          <p className="text-foreground/75">Terminal (une seule fois):</p>
+          <code className="mt-1 block overflow-auto rounded bg-black/60 p-2 text-[11px] text-emerald-200">
+            pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base {window.location.origin}/api --pairing-token {pairingToken.token}
+          </code>
+          <p className="mt-1 text-foreground/45">Code valide jusqu&apos;au {new Date(pairingToken.expiresAt).toLocaleTimeString("fr-FR")}.</p>
+        </div>
+      )}
+      <div className="mt-3 space-y-2">
+        <label className="block text-[10px] uppercase tracking-[.2em] text-foreground/45">Dossiers autorisés (un par ligne)</label>
+        <textarea
+          value={authorizedFoldersText}
+          onChange={(event) => setAuthorizedFoldersText(event.target.value)}
+          rows={3}
+          className="w-full rounded-xl border border-foreground/10 bg-background/30 px-3 py-2 text-xs outline-none focus:border-foreground/30"
+          placeholder={`/Users/${project.title.toLowerCase().replace(/\s+/g, "-")}/Documents`}
+        />
+        <div className="flex flex-wrap gap-2">
+          <button disabled={busy} onClick={() => void saveAuthorizedFolders()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+            <FolderOpen className="h-3.5 w-3.5" /> Enregistrer les dossiers
+          </button>
+          <button disabled={busy || !localBridge.connected} onClick={() => void launchLocalScan()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+            <Search className="h-3.5 w-3.5" /> Lancer un scan manuel
+          </button>
+        </div>
+      </div>
+    </div>
     <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-foreground/70">Documents & médias privés</p><p className="mt-1 text-xs text-foreground/40">Stockés dans l’espace sécurisé de ce Monde.</p></div>{canManage && <><button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter un fichier</button><input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => event.target.files?.[0] && void uploadFile(event.target.files[0])} /></>}</div>
     {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
     {uploadProgress !== null && <div role="status" aria-live="polite" className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3"><div className="flex justify-between text-xs text-amber-100"><span>Transfert vers l’espace privé</span><span>{uploadProgress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10"><div className="h-full rounded-full bg-amber-200 transition-[width]" style={{ width: `${uploadProgress}%` }} /></div></div>}
+    {localScan && (
+      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-widest text-foreground/45">Résultats AIME LOCAL</p>
+          <span className="text-xs text-foreground/45">{localScan.results.length} fichier(s)</span>
+        </div>
+        {localScan.suggestions.length === 0 ? <p className="mt-2 text-xs text-foreground/45">Aucune suggestion contextuelle pour le moment.</p> : <div className="mt-3 space-y-2">{localScan.suggestions.slice(0, 12).map((suggestion) => {
+          const file = localScan.results.find((item) => item.localIdentifier === suggestion.localIdentifier);
+          if (!file) return null;
+          const linked = localReferences.find((reference) => reference.localIdentifier === suggestion.localIdentifier);
+          return <div key={suggestion.localIdentifier} className="rounded-xl border border-foreground/10 bg-background/20 p-3">
+            <p className="truncate text-sm">{file.name}</p>
+            <p className="mt-1 text-xs text-foreground/50">{suggestion.reason}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button disabled={busy} onClick={() => void linkLocalFile(file, suggestion)} className="rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-white hover:text-black disabled:opacity-40">Lier au projet</button>
+              <button disabled={busy || !linked || !canManage} onClick={() => linked && void requestImport(linked)} className="inline-flex items-center gap-1 rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-white hover:text-black disabled:opacity-40"><Upload className="h-3 w-3" />Importer dans AIME</button>
+              <button disabled={busy || !linked} onClick={() => linked && void api(`/projects/${project.id}/aime-local/references/${linked.id}/state`, { method: "PATCH", body: JSON.stringify({ state: "ignored" }) }).then(() => refreshAimeLocal())} className="rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/55 hover:bg-foreground/10 disabled:opacity-40">Ignorer</button>
+            </div>
+          </div>;
+        })}</div>}
+      </div>
+    )}
     {files.length === 0 ? <Empty>Aucun document stocké.</Empty> : <div className="space-y-2">{files.map(file => <div key={file.id} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="min-w-0 flex-1"><p className="truncate text-sm">{file.name}</p><p className="mt-1 text-xs text-foreground/35">{fileSize(file.size)} · {file.contentType || "fichier"}</p></div><a aria-label={`Aperçu de ${file.name}`} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="p-2 text-foreground/45 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a><a aria-label={`Télécharger ${file.name}`} href={`/api/storage/files/${file.id}?download=1`} className="p-2 text-foreground/45 hover:text-foreground"><Download className="h-4 w-4" /></a>{canManage && <button disabled={busy} aria-label={`Supprimer ${file.name}`} onClick={() => void deleteFile(file)} className="p-2 text-foreground/30 hover:text-rose-300 disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>}
     {!canManage && <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent consulter ou modifier ces documents privés.</p>}
   </div>;
