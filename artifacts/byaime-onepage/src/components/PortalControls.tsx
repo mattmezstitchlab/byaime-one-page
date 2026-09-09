@@ -16,7 +16,7 @@ import {
 import { useProject } from "@/store/project-store";
 import { focusWorld, openLaboratory } from "@/lib/laboratory";
 import { trackEvent } from "@/lib/analytics";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
 import { cn } from "@/lib/utils";
 import {
@@ -158,7 +158,6 @@ export function PortalControls({
   embedded?: boolean;
   openMeSignal?: number;
 }) {
-  const [location, navigate] = useLocation();
   const { signOut, openUserProfile } = useClerk();
   const { user } = useUser();
   const {
@@ -418,11 +417,16 @@ export function PortalControls({
     audit.dangling.length +
     audit.manualMusic.length +
     (syncStatus === "conflict" || syncStatus === "error" ? 1 : 0);
-  const isProfileRoute = window.location.pathname.endsWith("/profile");
+  const currentPath = typeof window === "undefined" ? "/profile" : window.location.pathname;
+  const isProfileRoute = currentPath.endsWith("/profile");
   const openWorldContext = (request: Parameters<typeof focusWorld>[0]) => {
     setPanel(null);
     focusWorld({ route: "/user-portal", ...request });
-    if (!location.startsWith("/user-portal")) navigate("/user-portal");
+    if (typeof window !== "undefined" && !currentPath.startsWith("/user-portal")) {
+      const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+      window.history.pushState({}, "", `${basePath}/user-portal`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
   };
 
   return (
@@ -629,8 +633,8 @@ export function PortalControls({
                       context: {
                         projectId: project.id,
                         role: currentRole,
-                        route: isProfileRoute ? "profile" : location.startsWith("/network") ? "network" : "world",
-                        path: location,
+                        route: isProfileRoute ? "profile" : currentPath.startsWith("/network") ? "network" : "world",
+                        path: currentPath,
                         source: "universal-review-sync",
                         syncStatus,
                         narrative: syncStatus === "conflict"
