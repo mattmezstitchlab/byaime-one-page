@@ -1,19 +1,35 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { getAssetUrl } from '@/lib/assets';
+import { AIME_VISUALS, getAssetUrl, getOptionalAssetUrl } from '@/lib/assets';
 import { ChevronDown, Plus } from 'lucide-react';
 import { useAppStore } from '@/store/use-app-store';
 import { cn } from '@/lib/utils';
 
 export function HeroSection() {
   const { currentQuestion, setCurrentQuestion, selectedUniverse } = useAppStore();
+  const [hasVideoError, setHasVideoError] = useState(false);
+  const heroVideoUrl = getOptionalAssetUrl(AIME_VISUALS.hero.backgroundVideo);
 
   return (
     <section className="relative w-full h-[100dvh] flex items-center justify-center overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000"
-        style={{ backgroundImage: `url(${getAssetUrl('images/visual-event-D_L9Q-iW.jpg')})` }}
+        style={{ backgroundImage: `url(${getAssetUrl(AIME_VISUALS.hero.backgroundImage)})` }}
       />
+      {heroVideoUrl && !hasVideoError && (
+        <video
+          className="absolute inset-0 z-0 h-full w-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          onError={() => setHasVideoError(true)}
+        >
+          <source src={heroVideoUrl} type="video/mp4" />
+        </video>
+      )}
       {/* Subtle overlay for text readability */}
       <div className="absolute inset-0 z-0 bg-black/45" />
       

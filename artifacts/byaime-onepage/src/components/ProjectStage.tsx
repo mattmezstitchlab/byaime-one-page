@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
-import { getAssetUrl } from '@/lib/assets';
+import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Link } from 'wouter';
@@ -35,25 +35,10 @@ const CREATE_PANEL_TARGETS: Partial<Record<UniversalCreateActionId, WeddingPanel
 };
 
 const providerImages: Partial<Record<Provider['category'], string>> = {
-  lieu: 'images/visual-venue-kJsZKZPp.jpg',
-  traiteur: 'images/visual-food-BYGwGQGu.jpg',
-  photo: 'images/visual-photo-C-yKtlRN.jpg',
-  video: 'images/source/visual-video.jpg',
-  fleuriste: 'images/source/visual-flower.jpg',
-  musique: 'images/visual-music-BWv1eToA.jpg',
-  tenue: 'images/source/visual-mode.jpg',
-  beaute: 'images/visual-beaute-DJ6SEguK.jpg',
-  transport: 'images/source/visual-transport.jpg',
+  ...AIME_VISUALS.providersByCategory,
 };
 
-const guestPortraitImages = [
-  'images/visual-people-Dc5ifsnr.jpg',
-  'images/source/home-ensemble.jpg',
-  'images/source/home-reseau.jpg',
-  'images/visual-event-D_L9Q-iW.jpg',
-  'images/visual-scene-CMVk_6wW.jpg',
-  'images/visual-photo-C-yKtlRN.jpg',
-];
+const guestPortraitImages = [...AIME_VISUALS.guestPortraitImages];
 
 function ProviderPortrait({ provider, index = 0 }: { provider: Provider; index?: number }) {
   const image = providerImages[provider.category] || 'images/visual-service-DXmeWatY.jpg';
@@ -294,7 +279,7 @@ export function ProjectStage() {
         <div
           data-preserve-color
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
+          style={{ backgroundImage: `url(${getAssetUrl(AIME_VISUALS.world.heroImage)})` }}
         />
         <div className="aime-world-hero-overlay absolute inset-0 z-10" />
         <div className="aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6">

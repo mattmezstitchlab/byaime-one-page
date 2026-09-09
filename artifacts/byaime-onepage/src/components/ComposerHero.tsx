@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useProject } from '@/store/project-store';
-import { getAssetUrl } from '@/lib/assets';
+import { AIME_VISUALS, getAssetUrl, getOptionalAssetUrl } from '@/lib/assets';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export function ComposerHero() {
   const { intentionText, setIntentionText, draft, commitDraft, createWeddingDemo } = useProject();
+  const [hasVideoError, setHasVideoError] = useState(false);
+  const heroVideoUrl = getOptionalAssetUrl(AIME_VISUALS.hero.backgroundVideo);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && intentionText.length > 10) {
@@ -20,8 +23,21 @@ export function ComposerHero() {
       {/* Background */}
       <div 
         className="absolute inset-0 z-0 scale-105 bg-cover bg-center bg-no-repeat opacity-50"
-        style={{ backgroundImage: `url(${getAssetUrl('images/visual-event-D_L9Q-iW.jpg')})` }}
+        style={{ backgroundImage: `url(${getAssetUrl(AIME_VISUALS.hero.backgroundImage)})` }}
       />
+      {heroVideoUrl && !hasVideoError && (
+        <video
+          className="absolute inset-0 z-0 h-full w-full object-cover opacity-40"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          onError={() => setHasVideoError(true)}
+        >
+          <source src={heroVideoUrl} type="video/mp4" />
+        </video>
+      )}
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/70 via-black/45 to-black/95" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6">

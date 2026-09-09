@@ -73,19 +73,98 @@ function CacheInvalidator() {
 }
 
 function Landing() {
+  const features = [
+    { title: "Invités", text: "Suivez les réponses RSVP, les groupes, les régimes et les besoins importants." },
+    { title: "Budget", text: "Gardez une vision claire des dépenses, des paiements et des engagements." },
+    { title: "Prestataires", text: "Centralisez les contacts, les décisions et les prochaines actions." },
+    { title: "Jour J", text: "Cadencez les horaires, les rôles et les informations utiles en direct." },
+    { title: "Espace partagé", text: "Avancez à deux et avec vos proches, selon les rôles autorisés." },
+  ];
   return (
-    <main data-testid="landing" className="relative min-h-[100dvh] bg-background text-foreground flex items-center justify-center px-6">
-      <img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />
-      <div className="max-w-3xl text-center">
-        <p className="text-xs tracking-[.35em] uppercase text-foreground/50 mb-8">L’art de créer des liens</p>
-        <h1 className="font-display text-6xl md:text-8xl tracking-[.12em] mb-8">AIME</h1>
-        <p className="text-lg md:text-2xl text-foreground/70 font-light leading-relaxed mb-10">Organisez votre mariage simplement. Retrouvez vos invités, votre budget, les professionnels et le Jour J dans un espace privé.</p>
-        <div className="flex flex-wrap justify-center gap-3">
-           <a data-testid="landing-sign-up" href={`${basePath}/sign-up`} className="rounded-full bg-foreground text-background px-7 py-3 text-sm font-semibold">Créer mon espace</a>
-           <a data-testid="landing-sign-in" href={`${basePath}/sign-in`} className="rounded-full border border-foreground/25 px-7 py-3 text-sm hover:bg-foreground/5">Se connecter</a>
+    <main data-testid="landing" className="min-h-[100dvh] bg-background text-foreground">
+      <header className="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 md:px-8">
+          <a href={`${basePath}/`} className="inline-flex items-center gap-2">
+            <img src={`${basePath}/logo.svg`} alt="AIME" className="h-9 w-auto rounded-xl" />
+            <span className="text-[10px] uppercase tracking-[.3em] text-foreground/50">L’art de créer des liens</span>
+          </a>
+          <div className="flex items-center gap-2">
+            <a data-testid="landing-sign-in" href={`${basePath}/connexion`} className="rounded-full border border-foreground/20 px-4 py-2 text-xs hover:bg-foreground/5">Se connecter</a>
+            <a href={`${basePath}/creation`} className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background">Créer mon espace</a>
+          </div>
         </div>
-        <p className="mt-8 text-xs text-foreground/40">En créant un espace, vous acceptez les <a href={`${basePath}/conditions`} className="underline underline-offset-4 hover:text-foreground">conditions</a> et la <a href={`${basePath}/confidentialite`} className="underline underline-offset-4 hover:text-foreground">politique de confidentialité</a>.</p>
-      </div>
+      </header>
+      <section className="border-b border-border px-6 py-16 md:px-10 md:py-24">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+          <div>
+            <p className="text-[10px] uppercase tracking-[.3em] text-foreground/45">Tout votre mariage au même endroit</p>
+            <h1 className="mt-6 font-display text-4xl font-light leading-tight md:text-6xl">AIME accompagne votre mariage, de la première idée au Jour J.</h1>
+            <p className="mt-6 max-w-2xl text-base font-light leading-relaxed text-foreground/65 md:text-lg">Centralisez vos invités, votre budget, vos prestataires, vos décisions et vos moments importants dans un espace privé pensé pour avancer sereinement à plusieurs.</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a data-testid="landing-sign-up" href={`${basePath}/creation`} className="rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background">Créer mon espace gratuitement</a>
+              <a href={`${basePath}/guides`} className="rounded-full border border-foreground/20 px-6 py-3 text-sm hover:bg-foreground/5">Découvrir comment ça fonctionne</a>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-foreground/10 bg-card p-5">
+            <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Aperçu produit</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3">
+                <p className="text-xs text-foreground/45">Monde</p>
+                <p className="mt-2 text-sm">Timeline, tâches et décisions reliées.</p>
+              </div>
+              <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3">
+                <p className="text-xs text-foreground/45">Invités</p>
+                <p className="mt-2 text-sm">Réponses RSVP, tables et préférences.</p>
+              </div>
+              <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3">
+                <p className="text-xs text-foreground/45">Budget</p>
+                <p className="mt-2 text-sm">Dépenses, paiements et restant.</p>
+              </div>
+              <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3">
+                <p className="text-xs text-foreground/45">Jour J</p>
+                <p className="mt-2 text-sm">Régie, horaires et informations pratiques.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="border-b border-border px-6 py-14 md:px-10 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="font-display text-3xl font-light md:text-5xl">Organiser un mariage, ce n’est pas seulement choisir une date et une salle.</h2>
+          <p className="mt-5 max-w-3xl text-sm font-light leading-relaxed text-foreground/65 md:text-base">C’est coordonner des personnes, des décisions, des dépenses et des émotions. AIME rassemble ces éléments dans un même espace, au lieu de les disperser entre messages, fichiers, tableaux et conversations.</p>
+          <div className="mt-10 grid gap-3 md:grid-cols-3">
+            {features.map((feature) => (
+              <article key={feature.title} className="rounded-2xl border border-foreground/10 bg-card p-4">
+                <h3 className="text-sm font-medium">{feature.title}</h3>
+                <p className="mt-2 text-xs leading-relaxed text-foreground/55">{feature.text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="border-b border-border px-6 py-14 md:px-10 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Comment ça marche</p>
+          <ol className="mt-6 grid gap-3 md:grid-cols-3">
+            {["Créez votre espace", "Invitez les personnes qui comptent", "Organisez votre mariage sereinement"].map((step, index) => (
+              <li key={step} className="rounded-2xl border border-foreground/10 bg-card p-4">
+                <p className="text-[10px] tracking-[.2em] text-foreground/45">0{index + 1}</p>
+                <p className="mt-2 text-sm">{step}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+      <section className="px-6 py-16 text-center md:px-10 md:py-24">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="font-display text-3xl font-light md:text-5xl">AIME n’est pas seulement un outil de gestion.</h2>
+          <p className="mt-5 text-sm font-light leading-relaxed text-foreground/65 md:text-base">C’est un espace commun pour prendre des décisions, partager les responsabilités et garder une trace de ce qui compte.</p>
+          <p className="mt-10 text-xl font-light md:text-2xl">Prêts à organiser votre mariage autrement ?</p>
+          <a href={`${basePath}/creation`} className="mt-6 inline-flex rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Créer mon espace</a>
+          <p className="mt-4 text-xs text-foreground/45">Gratuit pour commencer. Aucun engagement.</p>
+          <p className="mt-8 text-xs text-foreground/40">En créant un espace, vous acceptez les <a href={`${basePath}/conditions`} className="underline underline-offset-4 hover:text-foreground">conditions</a> et la <a href={`${basePath}/confidentialite`} className="underline underline-offset-4 hover:text-foreground">politique de confidentialité</a>.</p>
+        </div>
+      </section>
     </main>
   );
 }
@@ -107,8 +186,8 @@ function ConceptLanding() {
           <div className="flex flex-wrap justify-center gap-3">
             <Show when="signed-in"><a href={`${basePath}/user-portal`} className="rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Entrer dans mon Monde</a></Show>
             <Show when="signed-out">
-              <a href={`${basePath}/sign-up`} className="rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Créer mon espace</a>
-              <a href={`${basePath}/sign-in`} className="rounded-full border border-foreground/25 px-7 py-3 text-sm hover:bg-foreground/5">Se connecter</a>
+              <a href={`${basePath}/creation`} className="rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Créer mon espace</a>
+              <a href={`${basePath}/connexion`} className="rounded-full border border-foreground/25 px-7 py-3 text-sm hover:bg-foreground/5">Se connecter</a>
             </Show>
           </div>
         </div>
@@ -154,7 +233,7 @@ function ConceptLanding() {
           <h2 className="mt-7 font-display text-5xl font-light md:text-7xl">Un mariage, avant, pendant et après.</h2>
           <p className="mx-auto mt-7 max-w-2xl text-base font-light leading-relaxed text-foreground/60">Préparer ensemble, conduire le Jour J en direct, puis conserver les souvenirs dans le même Monde.</p>
           <Show when="signed-in"><a href={`${basePath}/user-portal`} className="mt-10 inline-flex rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Retrouver mon Monde</a></Show>
-          <Show when="signed-out"><a href={`${basePath}/sign-up`} className="mt-10 inline-flex rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Commencer</a></Show>
+          <Show when="signed-out"><a href={`${basePath}/creation`} className="mt-10 inline-flex rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Commencer</a></Show>
         </div>
       </section>
     </main>
@@ -162,7 +241,7 @@ function ConceptLanding() {
 }
 
 function HomeRedirect() {
-  return <><Show when="signed-in"><Redirect to="/profile" /></Show><Show when="signed-out"><Landing /></Show></>;
+  return <><Show when="signed-in"><Redirect to="/app" /></Show><Show when="signed-out"><Landing /></Show></>;
 }
 
 function PrivateRoute({ children }: { children: ReactNode }) {
@@ -198,7 +277,7 @@ function ProfilePageWrapper() {
   );
 }
 
-function authPath(path: "/sign-in" | "/sign-up", returnTo?: string) {
+function authPath(path: "/connexion" | "/creation", returnTo?: string) {
   const destination = `${basePath}${path}`;
   return returnTo ? `${destination}?returnTo=${encodeURIComponent(returnTo)}` : destination;
 }
@@ -217,13 +296,13 @@ function SignUpPage({ returnTo }: { returnTo?: string }) {
       trackEvent('account_created');
     }
   }, [isLoaded, isSignedIn]);
-  return <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={authPath("/sign-in", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />;
+  return <SignUp routing="path" path={`${basePath}/creation`} signInUrl={authPath("/connexion", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />;
 }
 function AuthPage({ signup = false }: { signup?: boolean }) {
   const returnTo = invitationReturnPath();
   return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="relative min-h-[100dvh] bg-background flex items-center justify-center px-4 pb-20"><img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />{signup
     ? <SignUpPage returnTo={returnTo} />
-    : <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={authPath("/sign-up", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />}<p className="absolute bottom-6 text-center text-[11px] text-foreground/40"><a href={`${basePath}/conditions`} className="hover:text-foreground">Conditions</a><span className="mx-2">·</span><a href={`${basePath}/confidentialite`} className="hover:text-foreground">Confidentialité</a></p></div>;
+    : <SignIn routing="path" path={`${basePath}/connexion`} signUpUrl={authPath("/creation", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />}<p className="absolute bottom-6 text-center text-[11px] text-foreground/40"><a href={`${basePath}/conditions`} className="hover:text-foreground">Conditions</a><span className="mx-2">·</span><a href={`${basePath}/confidentialite`} className="hover:text-foreground">Confidentialité</a></p></div>;
 }
 function InvitePage({ params }: { params: { token: string } }) {
   const { isLoaded, isSignedIn } = useAuth();
@@ -235,8 +314,8 @@ function InvitePage({ params }: { params: { token: string } }) {
     <h1 className="mt-4 font-display text-3xl font-light">Invitation à collaborer</h1>
     <p className="mb-7 mt-3 text-sm font-light leading-relaxed text-foreground/55">En acceptant, vous rejoignez ce Monde avec un compte et un rôle. Cette invitation n’est pas une réponse RSVP à l’événement.</p>
     {!isLoaded ? <p className="text-sm text-foreground/45">Vérification de votre compte…</p> : !isSignedIn ? <div className="flex flex-col items-center gap-3">
-      <a data-testid="invite-sign-in" href={authPath("/sign-in", returnTo)} className="rounded-full bg-foreground px-6 py-3 text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Se connecter pour accepter</a>
-      <a data-testid="invite-sign-up" href={authPath("/sign-up", returnTo)} className="text-sm text-foreground/55 underline decoration-foreground/20 underline-offset-4 hover:text-foreground">Créer un compte avec l’adresse invitée</a>
+      <a data-testid="invite-sign-in" href={authPath("/connexion", returnTo)} className="rounded-full bg-foreground px-6 py-3 text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Se connecter pour accepter</a>
+      <a data-testid="invite-sign-up" href={authPath("/creation", returnTo)} className="text-sm text-foreground/55 underline decoration-foreground/20 underline-offset-4 hover:text-foreground">Créer un compte avec l’adresse invitée</a>
       <p className="mt-2 text-xs font-light leading-relaxed text-foreground/40">Après la connexion, vous reviendrez ici pour confirmer l’accès. Utilisez la même adresse e-mail vérifiée que celle ayant reçu l’invitation.</p>
     </div> : <button data-testid="invite-accept" disabled={pending} className="rounded-full bg-foreground text-background px-6 py-3 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={async () => {
       setPending(true); setError('');
@@ -361,10 +440,13 @@ function Routes() {
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={HomeRedirect} />
+    <Route path="/app">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
     <Route path="/user-portal">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
     <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
     <Route path="/network">{() => <PrivateRoute><NetworkPage /></PrivateRoute>}</Route>
     <Route path="/laboratoire">{() => <PrivateRoute><LaboratoryPage /></PrivateRoute>}</Route>
+    <Route path="/connexion/*?">{() => <AuthPage />}</Route>
+    <Route path="/creation/*?">{() => <AuthPage signup />}</Route>
     <Route path="/sign-in/*?">{() => <AuthPage />}</Route>
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />
@@ -377,7 +459,7 @@ function Routes() {
 function Providers() {
   const [, setLocation] = useLocation();
   return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance}
-    signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`}
+    signInUrl={`${basePath}/connexion`} signUpUrl={`${basePath}/creation`}
     localization={{ signIn: { start: { title: 'Heureux de vous revoir', subtitle: 'Retrouvez votre mariage' } }, signUp: { start: { title: 'Créer votre espace AIME', subtitle: 'Votre histoire commence ici' } } }}
     routerPush={to => setLocation(stripBase(to))} routerReplace={to => setLocation(stripBase(to), { replace: true })}>
     <QueryClientProvider client={queryClient}>
