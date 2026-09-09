@@ -51,6 +51,7 @@ Une interface one-page qui transforme une intention libre en projet, puis rassem
 - Change OpenAPI first, run codegen, then typecheck.
 - Schema changes use `pnpm --filter @workspace/db run push` in development only; production startup never runs DDL.
 - Resend calls must use the Replit connector proxy and must persist/report provider failures.
+- `@workspace/mockup-sandbox` and `@workspace/byaime-onepage` read `PORT`/`BASE_PATH` in `vite.config.ts` with defaults (`4173` and `/`), keeping `pnpm run build` shell-portable on macOS/Linux/Windows while preserving env overrides.
 
 ## Pointers
 
