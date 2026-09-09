@@ -60,11 +60,67 @@ export function uploadedObjectMetadataMatches(
   return actualType === expectedType && Number.isSafeInteger(actualSize) && actualSize === expected.size;
 }
 
-export function configuredAppOrigin(domains: string | undefined, environment: string | undefined): string {
-  const domain = (domains ?? "").split(",").map((value) => value.trim()).find(Boolean);
-  if (!domain) {
-    if (environment === "production") throw new Error("REPLIT_DOMAINS is required to build invitation links");
-    return "http://localhost";
+function normalizedOrigin(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return undefined;
   }
-  return `https://${domain}`;
+}
+
+function firstForwardedValue(value: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const first = raw?.split(",")[0]?.trim();
+  return first || undefined;
+}
+
+export function requestOrigin(
+  req: Pick<Request, "headers">,
+): string | undefined {
+  const host = firstForwardedValue(req.headers["x-forwarded-host"]) || req.headers.host?.trim();
+  if (!host) return undefined;
+  const protocol = firstForwardedValue(req.headers["x-forwarded-proto"]) || "https";
+  return normalizedOrigin(`${protocol}://${host}`);
+}
+
+export function configuredAppOrigin({
+  appUrl,
+  req,
+  environment,
+}: {
+  appUrl?: string;
+  req?: Pick<Request, "headers">;
+  environment?: string;
+}): string {
+  const configured = normalizedOrigin(appUrl);
+  if (configured) return configured;
+  const inferred = req ? requestOrigin(req) : undefined;
+  if (inferred) return inferred;
+  if (environment === "production") {
+    throw new Error("APP_URL is required when the public application URL cannot be inferred from the request");
+  }
+  return "http://localhost";
+}
+
+export function isTrustedAppOrigin({
+  origin,
+  req,
+  appUrl,
+  environment,
+}: {
+  origin: string;
+  req: Pick<Request, "headers">;
+  appUrl?: string;
+  environment?: string;
+}): boolean {
+  const normalized = normalizedOrigin(origin);
+  if (!normalized) return false;
+  if (normalized === requestOrigin(req)) return true;
+  if (normalized === normalizedOrigin(appUrl)) return true;
+  if (environment !== "production") {
+    const hostname = new URL(normalized).hostname;
+    return hostname === "localhost" || hostname === "127.0.0.1";
+  }
+  return false;
 }

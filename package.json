@@ -11,9 +11,7 @@
     "e2e": "playwright test"
   },
   "private": true,
-  "dependencies": {
-    "@replit/connectors-sdk": "^0.4.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@clerk/testing": "^2.2.33",
     "@playwright/test": "^1.63.0",

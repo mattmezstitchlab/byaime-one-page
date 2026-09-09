@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   configuredAppOrigin,
+  isTrustedAppOrigin,
+  requestOrigin,
   safeDownloadName,
   signUploadAuthorization,
   uploadedObjectMetadataMatches,
@@ -47,9 +49,49 @@ describe("security helpers", () => {
   });
 
   it("uses configured domains and fails closed in production", () => {
-    expect(configuredAppOrigin("aime.example,other.example", "production")).toBe("https://aime.example");
-    expect(() => configuredAppOrigin(undefined, "production")).toThrow();
-    expect(configuredAppOrigin(undefined, "development")).toBe("http://localhost");
+    expect(configuredAppOrigin({
+      appUrl: "https://aime.example/custom/path",
+      environment: "production",
+    })).toBe("https://aime.example");
+    expect(configuredAppOrigin({
+      req: {
+        headers: {
+          host: "preview.example",
+          "x-forwarded-proto": "https",
+        },
+      },
+      environment: "production",
+    })).toBe("https://preview.example");
+    expect(() => configuredAppOrigin({ environment: "production" })).toThrow();
+    expect(configuredAppOrigin({ environment: "development" })).toBe("http://localhost");
+  });
+
+  it("trusts same-origin and configured origins", () => {
+    const req = {
+      headers: {
+        host: "preview.example",
+        origin: "https://preview.example",
+        "x-forwarded-proto": "https",
+      },
+    };
+    expect(requestOrigin(req)).toBe("https://preview.example");
+    expect(isTrustedAppOrigin({
+      origin: "https://preview.example",
+      req,
+      environment: "production",
+    })).toBe(true);
+    expect(isTrustedAppOrigin({
+      origin: "https://aime.example",
+      req,
+      appUrl: "https://aime.example",
+      environment: "production",
+    })).toBe(true);
+    expect(isTrustedAppOrigin({
+      origin: "https://evil.example",
+      req,
+      appUrl: "https://aime.example",
+      environment: "production",
+    })).toBe(false);
   });
 
   it("rejects uploaded objects whose real type or size differs from the signed claims", () => {
