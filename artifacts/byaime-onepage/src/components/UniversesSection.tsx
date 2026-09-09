@@ -1,22 +1,24 @@
 import { motion } from 'framer-motion';
-import { getAssetUrl } from '@/lib/assets';
+import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { useAppStore } from '@/store/use-app-store';
 import { cn } from '@/lib/utils';
 
+type UniverseVisualId = keyof typeof AIME_VISUALS.universes;
+
 const UNIVERSES = [
-  { id: 'service', name: 'Service', image: 'visual-service-DXmeWatY.jpg' },
-  { id: 'venue', name: 'Lieux', image: 'visual-venue-kJsZKZPp.jpg' },
-  { id: 'food', name: 'Gastronomie', image: 'visual-food-BYGwGQGu.jpg' },
-  { id: 'photo', name: 'Image', image: 'visual-photo-C-yKtlRN.jpg' },
-  { id: 'beaute', name: 'Beauté', image: 'visual-beaute-DJ6SEguK.jpg' },
-  { id: 'patrimoine', name: 'Patrimoine', image: 'visual-patrimoine-DHVLBfVK.jpg' },
-  { id: 'hotel', name: 'Hôtellerie', image: 'visual-hotel-C8zQiMK2.jpg' },
-  { id: 'people', name: 'Réseau', image: 'visual-people-Dc5ifsnr.jpg' },
-  { id: 'institution', name: 'Institution', image: 'visual-institution-CuVWMxit.jpg' },
-  { id: 'music', name: 'Musique', image: 'visual-music-BWv1eToA.jpg' },
-  { id: 'event', name: 'Événement', image: 'visual-event-D_L9Q-iW.jpg' },
-  { id: 'scene', name: 'Scène', image: 'visual-scene-CMVk_6wW.jpg' },
-];
+  { id: 'service', name: 'Service' },
+  { id: 'venue', name: 'Lieux' },
+  { id: 'food', name: 'Gastronomie' },
+  { id: 'photo', name: 'Image' },
+  { id: 'beaute', name: 'Beauté' },
+  { id: 'patrimoine', name: 'Patrimoine' },
+  { id: 'hotel', name: 'Hôtellerie' },
+  { id: 'people', name: 'Réseau' },
+  { id: 'institution', name: 'Institution' },
+  { id: 'music', name: 'Musique' },
+  { id: 'event', name: 'Événement' },
+  { id: 'scene', name: 'Scène' },
+] as const satisfies ReadonlyArray<{ id: UniverseVisualId; name: string }>;
 
 export function UniversesSection() {
   const { selectedUniverse, setSelectedUniverse } = useAppStore();
@@ -62,7 +64,7 @@ export function UniversesSection() {
                     "absolute inset-0 bg-cover bg-center transition-transform duration-1000",
                     isSelected ? "scale-105" : "group-hover:scale-105"
                   )}
-                  style={{ backgroundImage: `url(${getAssetUrl(`images/${universe.image}`)})` }}
+                  style={{ backgroundImage: `url(${getAssetUrl(AIME_VISUALS.universes[universe.id])})` }}
                 />
                 
                 {/* Overlays */}

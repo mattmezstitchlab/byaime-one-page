@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { getAssetUrl } from '@/lib/assets';
+import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 
 export function ConceptSection() {
   return (
@@ -37,7 +37,7 @@ export function ConceptSection() {
         viewport={{ once: true }}
         transition={{ duration: 1.5 }}
         className="absolute left-[-10%] top-[20%] w-[30vw] h-[40vh] overflow-hidden bg-cover bg-center rounded-3xl -rotate-6"
-        style={{ backgroundImage: `url(${getAssetUrl('images/visual-photo-C-yKtlRN.jpg')})` }}
+        style={{ backgroundImage: `url(${getAssetUrl(AIME_VISUALS.concept.leftImage)})` }}
       ><div className="absolute inset-0 bg-background/85" /></motion.div>
       
       <motion.div 
@@ -46,7 +46,7 @@ export function ConceptSection() {
         viewport={{ once: true }}
         transition={{ duration: 1.5, delay: 0.2 }}
         className="absolute right-[-10%] bottom-[10%] w-[25vw] h-[45vh] overflow-hidden bg-cover bg-center rounded-3xl rotate-3"
-        style={{ backgroundImage: `url(${getAssetUrl('images/visual-institution-CuVWMxit.jpg')})` }}
+        style={{ backgroundImage: `url(${getAssetUrl(AIME_VISUALS.concept.rightImage)})` }}
       ><div className="absolute inset-0 bg-background/85" /></motion.div>
     </section>
   );

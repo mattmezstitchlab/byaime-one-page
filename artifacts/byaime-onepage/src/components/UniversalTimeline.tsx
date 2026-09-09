@@ -8,7 +8,7 @@ import { openLaboratory, type WorldFocusRequest } from "@/lib/laboratory";
 import { useProject } from "@/store/project-store";
 import { analyzeEventImpact, applyPropagationPlan, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
 import { cn } from "@/lib/utils";
-import { getAssetUrl } from "@/lib/assets";
+import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { ContextPanel } from "@/components/ContextPanel";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
@@ -55,20 +55,7 @@ function getSubchapter(event: TimelineEvent, pivotTime: number): string {
   return "Jalon";
 }
 
-const images = [
-  "images/visual-hotel-C8zQiMK2.jpg",
-  "images/visual-venue-kJsZKZPp.jpg",
-  "images/visual-people-Dc5ifsnr.jpg",
-  "images/visual-food-BYGwGQGu.jpg",
-  "images/visual-music-BWv1eToA.jpg",
-  "images/visual-beaute-DJ6SEguK.jpg",
-  "images/visual-scene-CMVk_6wW.jpg",
-  "images/visual-photo-C-yKtlRN.jpg",
-  "images/visual-institution-CuVWMxit.jpg",
-  "images/visual-patrimoine-DHVLBfVK.jpg",
-  "images/visual-event-D_L9Q-iW.jpg",
-  "images/visual-service-DXmeWatY.jpg"
-];
+const images = AIME_VISUALS.timelineAmbientImages;
 
 const AmbientBackground = ({ index }: { index: number }) => {
   const prefersReducedMotion = useReducedMotion();
