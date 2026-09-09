@@ -322,7 +322,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
       {/* Desktop Rail Visual - Transparent Floating Rail */}
       <aside
         className={cn(
-          "fixed left-0 top-20 z-[70] hidden flex-col overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none md:flex",
+          "fixed left-0 top-20 z-[70] hidden flex-col overflow-hidden border-r border-border/35 bg-card shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none md:flex",
           isPinned ? "w-[240px] h-[calc(100dvh-6.5rem)]" : "w-[64px] h-[calc(100dvh-6.5rem)] hover:w-[240px] focus-within:w-[240px] group/rail"
         )}
       >

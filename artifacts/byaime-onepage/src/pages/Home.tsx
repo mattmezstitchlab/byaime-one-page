@@ -6,7 +6,7 @@ function AppContent() {
   const { hasProject } = useProject();
 
   return (
-    <div data-testid="portal" className="h-full w-full bg-background text-foreground font-sans antialiased selection:bg-foreground/20 selection:text-foreground">
+    <div data-testid="portal" className="aime-world-surface h-full w-full bg-background text-foreground font-sans antialiased selection:bg-foreground/20 selection:text-foreground">
       {!hasProject ? (
         <ComposerHero />
       ) : (

@@ -4,6 +4,7 @@ import {
   getWeddingCapabilities,
   getWeddingNavigation,
   isWeddingDestinationActive,
+  isWeddingPanelAvailable,
   WORLD_PHASES,
   type WeddingRole,
 } from "./wedding-navigation";
@@ -52,6 +53,12 @@ describe("wedding navigation", () => {
     expect(isWeddingDestinationActive(music!.destination, "music", null)).toBe(true);
     expect(isWeddingDestinationActive(music!.destination, "music", "music")).toBe(true);
     expect(isWeddingDestinationActive(music!.destination, "music", "documents")).toBe(false);
+  });
+
+  it("keeps the music panel available only inside music view when not declared in panel navigation", () => {
+    const navigation = getWeddingNavigation("avant", getWeddingCapabilities("owner"));
+    expect(isWeddingPanelAvailable("music", navigation, "music")).toBe(true);
+    expect(isWeddingPanelAvailable("music", navigation, "chronological")).toBe(false);
   });
 
   it("keeps the World capsule strictly temporal", () => {

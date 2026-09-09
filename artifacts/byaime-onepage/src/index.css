@@ -33,6 +33,34 @@
     --ring: 0 0% 80%;
     color-scheme: dark;
   }
+  .aime-world-surface {
+    background:
+      radial-gradient(130% 110% at 18% 0%, hsl(var(--foreground) / 0.06) 0%, transparent 54%),
+      radial-gradient(110% 95% at 84% 14%, hsl(var(--foreground) / 0.04) 0%, transparent 58%),
+      hsl(var(--background));
+  }
+  .aime-world-hero-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0.34) 0%,
+      rgb(0 0 0 / 0.6) 42%,
+      hsl(var(--background) / 0.96) 100%
+    );
+  }
+  :root[data-aime-theme="light"] .aime-world-surface {
+    background:
+      radial-gradient(130% 120% at 16% 0%, hsl(var(--foreground) / 0.08) 0%, transparent 58%),
+      radial-gradient(120% 100% at 84% 10%, hsl(var(--foreground) / 0.06) 0%, transparent 60%),
+      hsl(var(--background));
+  }
+  :root[data-aime-theme="light"] .aime-world-hero-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0.28) 0%,
+      rgb(0 0 0 / 0.5) 40%,
+      hsl(var(--background) / 0.9) 100%
+    );
+  }
 }
 
 /* Media is source content, never a theme surface. */

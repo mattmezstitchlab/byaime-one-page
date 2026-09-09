@@ -18,6 +18,7 @@ import {
   isWeddingDestinationActive,
   getWeddingCapabilities,
   getWeddingNavigation,
+  isWeddingPanelAvailable,
   getInitialWorldPhase,
   type WorldPhase,
   type WeddingDestination,
@@ -126,11 +127,8 @@ export function ProjectStage() {
 
   useEffect(() => {
     if (!activePanel) return;
-    const available = [...navigation.primary, ...navigation.secondary].some(
-      item => item.destination.kind === "panel" && item.destination.panel === activePanel,
-    );
-    if (activePanel !== "sections" && !available) setActivePanel(null);
-  }, [activePanel, navigation]);
+    if (!isWeddingPanelAvailable(activePanel, navigation, view)) setActivePanel(null);
+  }, [activePanel, navigation, view]);
 
   useEffect(() => {
     const openCreateTarget = (action: UniversalCreateActionId | undefined) => {
@@ -272,7 +270,7 @@ export function ProjectStage() {
     || view === "public-info";
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
+    <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
       {/* Cinematic Header */}
       <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
         <div
@@ -280,7 +278,7 @@ export function ProjectStage() {
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${getAssetUrl('images/visual-hotel-C8zQiMK2.jpg')})` }}
         />
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-black/60 to-background" />
+        <div className="aime-world-hero-overlay absolute inset-0 z-10" />
         <div className="aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6">
           <motion.button
             type="button"
