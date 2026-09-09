@@ -1,21 +1,26 @@
 import { Router, type IRouter, type RequestHandler } from "express";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { clerkClient, getAuth } from "@clerk/express";
-import { ReplitConnectors } from "@replit/connectors-sdk";
-import { and, eq, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import {
   db,
   filesTable,
   invitationsTable,
   localBridgeSessionsTable,
+  localImportJobsTable,
+  localPairingTokensTable,
   localReferencesTable,
+  localScanJobsTable,
   membershipsTable,
   messagesTable,
   projectsTable,
   rsvpsTable,
   songRequestsTable,
   type LocalBridgeSession,
+  type LocalImportJob,
+  type LocalPairingToken,
+  type LocalScanJob,
 } from "@workspace/db";
 import { z } from "zod";
 import {
@@ -47,11 +52,11 @@ import {
 import { logger } from "../lib/logger";
 import { buildNetworkProjection } from "../lib/networkProjection";
 import { suggestForProject } from "../lib/aimeLocalScan";
+import { sendResendEmail } from "../lib/resend";
 
 type AuthedRequest = Parameters<RequestHandler>[0] & { userId?: string };
 const router: IRouter = Router();
 const storage = new ObjectStorageService();
-const connectors = new ReplitConnectors();
 const roles = ["owner", "planner", "family", "viewer"] as const;
 const editableRoles = new Set(["owner", "planner", "family"]);
 const managedRoles = new Set(["owner", "planner"]);
@@ -68,13 +73,6 @@ const PAIRING_TOKEN_TTL_MS = 10 * 60 * 1000;
 const BRIDGE_SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 const uuid = z.string().uuid();
 
-type PairingTokenState = {
-  token: string;
-  userId: string;
-  createdAt: number;
-  expiresAt: number;
-  consumedAt?: number;
-};
 type LocalScanItem = {
   name: string;
   extension?: string;
@@ -117,9 +115,95 @@ type ImportJob = {
   error?: string;
 };
 
-const pairingTokens = new Map<string, PairingTokenState>();
-const scanJobs = new Map<string, ScanJob>();
-const importJobs = new Map<string, ImportJob>();
+function hashedToken(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function toLocalScanItems(value: unknown): LocalScanItem[] {
+  return Array.isArray(value) ? (value as LocalScanItem[]) : [];
+}
+
+function toScanSuggestions(value: unknown): ScanJob["suggestions"] {
+  return Array.isArray(value) ? (value as ScanJob["suggestions"]) : [];
+}
+
+function scanJobFromRow(job: LocalScanJob): ScanJob {
+  return {
+    id: job.id,
+    projectId: job.projectId,
+    ownerUserId: job.ownerUserId,
+    folders: job.folders,
+    createdAt: job.createdAt.toISOString(),
+    status: job.status as ScanJob["status"],
+    completedAt: job.completedAt?.toISOString(),
+    results: toLocalScanItems(job.results),
+    suggestions: toScanSuggestions(job.suggestions),
+    error: job.error ?? undefined,
+  };
+}
+
+function importJobFromRow(job: LocalImportJob): ImportJob {
+  return {
+    id: job.id,
+    projectId: job.projectId,
+    ownerUserId: job.ownerUserId,
+    localReferenceId: job.localReferenceId,
+    status: job.status as ImportJob["status"],
+    createdAt: job.createdAt.toISOString(),
+    updatedAt: job.updatedAt.toISOString(),
+    error: job.error ?? undefined,
+  };
+}
+
+async function consumePairingToken(token: string): Promise<LocalPairingToken | undefined> {
+  const now = new Date();
+  const [pairing] = await db
+    .update(localPairingTokensTable)
+    .set({ consumedAt: now })
+    .where(
+      and(
+        eq(localPairingTokensTable.tokenHash, hashedToken(token)),
+        isNull(localPairingTokensTable.consumedAt),
+        gt(localPairingTokensTable.expiresAt, now),
+      ),
+    )
+    .returning();
+  return pairing;
+}
+
+async function nextQueuedScanJob(userId: string): Promise<ScanJob | undefined> {
+  const [job] = await db
+    .select()
+    .from(localScanJobsTable)
+    .where(and(eq(localScanJobsTable.ownerUserId, userId), eq(localScanJobsTable.status, "queued")))
+    .orderBy(asc(localScanJobsTable.createdAt))
+    .limit(1);
+  return job ? scanJobFromRow(job) : undefined;
+}
+
+async function nextQueuedImportJob(userId: string): Promise<ImportJob | undefined> {
+  const [job] = await db
+    .select()
+    .from(localImportJobsTable)
+    .where(and(eq(localImportJobsTable.ownerUserId, userId), eq(localImportJobsTable.status, "queued")))
+    .orderBy(asc(localImportJobsTable.createdAt))
+    .limit(1);
+  return job ? importJobFromRow(job) : undefined;
+}
+
+function authorizeCron(req: AuthedRequest, res: Parameters<RequestHandler>[1]): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    res.status(503).json({ error: "CRON_SECRET manquant" });
+    return false;
+  }
+  if (req.get("authorization") !== "Bearer " + secret) {
+    res.status(401).json({ error: "Cron non autorisé" });
+    return false;
+  }
+  return true;
+}
+
 const localWebRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 180,
@@ -141,11 +225,8 @@ function shouldSimulateProviderFailure(req: AuthedRequest): boolean {
 
 async function sendEmail(path: string, body: string): Promise<Response> {
   if (isE2ETestServicesEnabled()) return sendE2ETestEmail();
-  return connectors.proxy("resend", path, {
-    method: "POST",
-    body,
-    headers: { "Content-Type": "application/json" },
-  });
+  if (path !== "/emails") throw new Error(`Unsupported Resend path: ${path}`);
+  return sendResendEmail(JSON.parse(body) as Parameters<typeof sendResendEmail>[0]);
 }
 
 type MessageRecord = typeof messagesTable.$inferSelect;
@@ -210,12 +291,20 @@ async function deliverScheduledMessages(): Promise<void> {
   }
 }
 
-const scheduledDeliveryTimer = setInterval(() => {
-  void deliverScheduledMessages().catch((error) => {
-    logger.warn({ error }, "Scheduled email sweep failed");
-  });
-}, 30_000);
-scheduledDeliveryTimer.unref?.();
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
+  const scheduledDeliveryTimer = setInterval(() => {
+    void deliverScheduledMessages().catch((error) => {
+      logger.warn({ error }, "Scheduled email sweep failed");
+    });
+  }, 30_000);
+  scheduledDeliveryTimer.unref?.();
+}
+
+router.get("/cron/scheduled-messages", async (req: AuthedRequest, res): Promise<void> => {
+  if (!authorizeCron(req, res)) return;
+  await deliverScheduledMessages();
+  res.json({ ok: true });
+});
 
 const projectInput = z.object({
   title: z.string().trim().min(1).max(160),
@@ -1054,7 +1143,11 @@ router.post(
       .insert(invitationsTable)
       .values({ projectId, ...input, invitedBy: req.userId! })
       .returning();
-    const link = `${configuredAppOrigin(process.env.REPLIT_DOMAINS, process.env.NODE_ENV)}/invite/${invitation.token}`;
+    const link = `${configuredAppOrigin({
+      appUrl: process.env.APP_URL,
+      req,
+      environment: process.env.NODE_ENV,
+    })}/invite/${invitation.token}`;
     try {
       const providerResponse = await sendEmail(
         "/emails",
@@ -1640,11 +1733,11 @@ router.post(
     const input = parseBody(localPairingTokenInput, req, res);
     if (!input) return;
     const token = randomUUID().replaceAll("-", "") + randomUUID().replaceAll("-", "");
-    pairingTokens.set(token, {
-      token,
+    await db.insert(localPairingTokensTable).values({
+      tokenHash: hashedToken(token),
       userId: req.userId!,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + PAIRING_TOKEN_TTL_MS,
+      bridgeLabel: input.bridgeLabel ?? null,
+      expiresAt: new Date(Date.now() + PAIRING_TOKEN_TTL_MS),
     });
     res.json({
       token,
@@ -1661,12 +1754,11 @@ router.post(
     if (!authorizeBridgeOrigin(req, res)) return;
     const input = parseBody(localPairInput, req, res);
     if (!input) return;
-    const pairing = pairingTokens.get(input.token);
-    if (!pairing || pairing.expiresAt <= Date.now() || pairing.consumedAt) {
+    const pairing = await consumePairingToken(input.token);
+    if (!pairing) {
       res.status(403).json({ error: "Code de connexion invalide ou expiré" });
       return;
     }
-    pairing.consumedAt = Date.now();
     const sessionToken = randomUUID().replaceAll("-", "") + randomUUID().replaceAll("-", "");
     const sessionTokenHash = ensureBridgeSessionToken(sessionToken).sessionTokenHash;
     const now = new Date();
@@ -1824,18 +1916,16 @@ router.post(
       return;
     }
     const id = randomUUID();
-    const job: ScanJob = {
+    await db.insert(localScanJobsTable).values({
       id,
       projectId,
       ownerUserId: req.userId!,
       folders,
-      createdAt: new Date().toISOString(),
       status: "queued",
       results: [],
       suggestions: [],
-    };
-    scanJobs.set(id, job);
-    res.status(202).json({ jobId: id, status: job.status, folders });
+    });
+    res.status(202).json({ jobId: id, status: "queued", folders });
   },
 );
 
@@ -1849,8 +1939,7 @@ router.get(
       res.status(403).json({ error: "Session bridge invalide" });
       return;
     }
-    const queued = [...scanJobs.values()]
-      .find((job) => job.ownerUserId === session.userId && job.status === "queued");
+    const queued = await nextQueuedScanJob(session.userId);
     if (!queued) {
       res.json({ job: null });
       return;
@@ -1870,11 +1959,15 @@ router.post(
       res.status(403).json({ error: "Session bridge invalide" });
       return;
     }
-    const job = scanJobs.get(String(req.params.jobId));
-    if (!job || job.ownerUserId !== session.userId) {
+    const [jobRow] = await db
+      .select()
+      .from(localScanJobsTable)
+      .where(and(eq(localScanJobsTable.id, String(req.params.jobId)), eq(localScanJobsTable.ownerUserId, session.userId)));
+    if (!jobRow) {
       res.status(404).json({ error: "Scan introuvable" });
       return;
     }
+    const job = scanJobFromRow(jobRow);
     const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, job.projectId));
     const projectData = ((project?.data ?? {}) as Record<string, unknown>);
     const results = input.results.filter((item) => isSafeRelativePath(item.relativePath));
@@ -1893,12 +1986,17 @@ router.post(
       }))
       .filter((row): row is { localIdentifier: string; suggestion: NonNullable<ReturnType<typeof suggestForProject>> } => Boolean(row.suggestion))
       .map((row) => ({ localIdentifier: row.localIdentifier, ...row.suggestion }));
-    job.results = results;
-    job.suggestions = suggestions;
-    job.status = input.error ? "failed" : "done";
-    job.error = input.error;
-    job.completedAt = new Date().toISOString();
-    scanJobs.set(job.id, job);
+    await db
+      .update(localScanJobsTable)
+      .set({
+        results,
+        suggestions,
+        status: input.error ? "failed" : "done",
+        error: input.error,
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(localScanJobsTable.id, job.id));
     res.json({ ok: true, suggestions: suggestions.length });
   },
 );
@@ -1913,8 +2011,12 @@ router.get(
       res.status(403).json({ error: "Permission refusée" });
       return;
     }
-    const latest = [...scanJobs.values()]
-      .filter((job) => job.ownerUserId === req.userId && job.projectId === projectId)
+    const jobs = await db
+      .select()
+      .from(localScanJobsTable)
+      .where(and(eq(localScanJobsTable.ownerUserId, req.userId!), eq(localScanJobsTable.projectId, projectId)));
+    const latest = jobs
+      .map(scanJobFromRow)
       .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
     if (!latest) {
       res.json({ job: null });
@@ -2054,15 +2156,12 @@ router.post(
       return;
     }
     const jobId = randomUUID();
-    const now = new Date().toISOString();
-    importJobs.set(jobId, {
+    await db.insert(localImportJobsTable).values({
       id: jobId,
       projectId,
       ownerUserId: req.userId!,
       localReferenceId: reference.id,
       status: "queued",
-      createdAt: now,
-      updatedAt: now,
     });
     res.status(202).json({ jobId, status: "queued" });
   },
@@ -2078,12 +2177,19 @@ router.get(
       res.status(403).json({ error: "Permission refusée" });
       return;
     }
-    const job = importJobs.get(String(req.params.jobId));
-    if (!job || job.projectId !== projectId || job.ownerUserId !== req.userId) {
+    const [jobRow] = await db
+      .select()
+      .from(localImportJobsTable)
+      .where(and(
+        eq(localImportJobsTable.id, String(req.params.jobId)),
+        eq(localImportJobsTable.projectId, projectId),
+        eq(localImportJobsTable.ownerUserId, req.userId!),
+      ));
+    if (!jobRow) {
       res.status(404).json({ error: "Import introuvable" });
       return;
     }
-    res.json(job);
+    res.json(importJobFromRow(jobRow));
   },
 );
 
@@ -2097,17 +2203,21 @@ router.get(
       res.status(403).json({ error: "Session bridge invalide" });
       return;
     }
-    const next = [...importJobs.values()].find((job) => job.ownerUserId === session.userId && job.status === "queued");
+    const next = await nextQueuedImportJob(session.userId);
     if (!next) {
       res.json({ job: null });
       return;
     }
     const [reference] = await db.select().from(localReferencesTable).where(eq(localReferencesTable.id, next.localReferenceId));
     if (!reference) {
-      next.status = "failed";
-      next.error = "Référence locale introuvable";
-      next.updatedAt = new Date().toISOString();
-      importJobs.set(next.id, next);
+      await db
+        .update(localImportJobsTable)
+        .set({
+          status: "failed",
+          error: "Référence locale introuvable",
+          updatedAt: new Date(),
+        })
+        .where(eq(localImportJobsTable.id, next.id));
       res.json({ job: null });
       return;
     }
@@ -2136,11 +2246,19 @@ router.post(
       res.status(403).json({ error: "Session bridge invalide" });
       return;
     }
-    const job = importJobs.get(String(req.params.jobId));
-    if (!job || job.ownerUserId !== session.userId || job.projectId !== input.projectId) {
+    const [jobRow] = await db
+      .select()
+      .from(localImportJobsTable)
+      .where(and(
+        eq(localImportJobsTable.id, String(req.params.jobId)),
+        eq(localImportJobsTable.ownerUserId, session.userId),
+        eq(localImportJobsTable.projectId, input.projectId),
+      ));
+    if (!jobRow) {
       res.status(404).json({ error: "Import introuvable" });
       return;
     }
+    const job = importJobFromRow(jobRow);
     if (!allowedTypes.has(input.contentType)) {
       res.status(415).json({ error: "Type de fichier non autorisé" });
       return;
@@ -2159,9 +2277,10 @@ router.post(
       },
       uploadSecret(),
     );
-    job.status = "uploading";
-    job.updatedAt = new Date().toISOString();
-    importJobs.set(job.id, job);
+    await db
+      .update(localImportJobsTable)
+      .set({ status: "uploading", updatedAt: new Date(), error: null })
+      .where(eq(localImportJobsTable.id, job.id));
     res.json({ uploadURL, objectPath, finalizeToken });
   },
 );
@@ -2177,11 +2296,20 @@ router.post(
       res.status(403).json({ error: "Session bridge invalide" });
       return;
     }
-    const job = importJobs.get(String(req.params.jobId));
-    if (!job || job.ownerUserId !== session.userId || job.projectId !== input.projectId || job.localReferenceId !== input.localReferenceId) {
+    const [jobRow] = await db
+      .select()
+      .from(localImportJobsTable)
+      .where(and(
+        eq(localImportJobsTable.id, String(req.params.jobId)),
+        eq(localImportJobsTable.ownerUserId, session.userId),
+        eq(localImportJobsTable.projectId, input.projectId),
+        eq(localImportJobsTable.localReferenceId, input.localReferenceId),
+      ));
+    if (!jobRow) {
       res.status(404).json({ error: "Import introuvable" });
       return;
     }
+    const job = importJobFromRow(jobRow);
     if (!verifyUploadAuthorization(
       input.finalizeToken,
       {
@@ -2220,9 +2348,10 @@ router.post(
         eq(localReferencesTable.projectId, input.projectId),
         eq(localReferencesTable.ownerUserId, session.userId),
       ));
-    job.status = "done";
-    job.updatedAt = new Date().toISOString();
-    importJobs.set(job.id, job);
+    await db
+      .update(localImportJobsTable)
+      .set({ status: "done", updatedAt: new Date(), error: null })
+      .where(eq(localImportJobsTable.id, job.id));
     res.status(201).json({ file: storedFile, status: "imported" });
   },
 );

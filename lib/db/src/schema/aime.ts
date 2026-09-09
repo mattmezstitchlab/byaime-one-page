@@ -78,6 +78,15 @@ export const localBridgeSessionsTable = pgTable("aime_local_bridge_sessions", {
   uniqueIndex("aime_local_bridge_user_bridge").on(table.userId, table.bridgeId),
 ]);
 
+export const localPairingTokensTable = pgTable("aime_local_pairing_tokens", {
+  tokenHash: text("token_hash").primaryKey(),
+  userId: text("user_id").notNull(),
+  bridgeLabel: text("bridge_label"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+});
+
 export const localReferencesTable = pgTable("aime_local_references", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
@@ -106,6 +115,31 @@ export const localReferencesTable = pgTable("aime_local_references", {
     table.localIdentifier,
   ),
 ]);
+
+export const localScanJobsTable = pgTable("aime_local_scan_jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  ownerUserId: text("owner_user_id").notNull(),
+  folders: text("folders").array().notNull(),
+  status: text("status").notNull(),
+  results: jsonb("results").notNull().default(sql`'[]'::jsonb`),
+  suggestions: jsonb("suggestions").notNull().default(sql`'[]'::jsonb`),
+  error: text("error"),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const localImportJobsTable = pgTable("aime_local_import_jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  ownerUserId: text("owner_user_id").notNull(),
+  localReferenceId: uuid("local_reference_id").notNull().references(() => localReferencesTable.id, { onDelete: "cascade" }),
+  status: text("status").notNull(),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const messagesTable = pgTable("aime_messages", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -152,7 +186,10 @@ export const insertMembershipSchema = createInsertSchema(membershipsTable);
 export const insertInvitationSchema = createInsertSchema(invitationsTable);
 export const insertFileSchema = createInsertSchema(filesTable);
 export const insertLocalBridgeSessionSchema = createInsertSchema(localBridgeSessionsTable);
+export const insertLocalPairingTokenSchema = createInsertSchema(localPairingTokensTable);
 export const insertLocalReferenceSchema = createInsertSchema(localReferencesTable);
+export const insertLocalScanJobSchema = createInsertSchema(localScanJobsTable);
+export const insertLocalImportJobSchema = createInsertSchema(localImportJobsTable);
 export const insertMessageSchema = createInsertSchema(messagesTable);
 export const insertRsvpSchema = createInsertSchema(rsvpsTable);
 export const insertSongRequestSchema = createInsertSchema(songRequestsTable);
@@ -160,5 +197,8 @@ export const insertSongRequestSchema = createInsertSchema(songRequestsTable);
 export type Project = typeof projectsTable.$inferSelect;
 export type Membership = typeof membershipsTable.$inferSelect;
 export type LocalBridgeSession = typeof localBridgeSessionsTable.$inferSelect;
+export type LocalPairingToken = typeof localPairingTokensTable.$inferSelect;
 export type LocalReference = typeof localReferencesTable.$inferSelect;
+export type LocalScanJob = typeof localScanJobsTable.$inferSelect;
+export type LocalImportJob = typeof localImportJobsTable.$inferSelect;
 export type SongRequest = typeof songRequestsTable.$inferSelect;

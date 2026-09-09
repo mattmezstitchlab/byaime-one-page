@@ -14,7 +14,6 @@
     "@clerk/express": "^2.1.66",
     "@clerk/shared": "^4.31.0",
     "@google-cloud/storage": "^8.0.1",
-    "@replit/connectors-sdk": "^0.4.1",
     "@workspace/aime-domain": "workspace:*",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",

@@ -10,6 +10,7 @@ Une interface one-page qui transforme une intention libre en projet, puis rassem
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Vercel runtime env: `APP_URL`, `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `RESEND_API_KEY`, `SESSION_SECRET`, `OBJECT_STORAGE_BUCKET`, `GCP_CLIENT_EMAIL`, `GCP_PRIVATE_KEY` (plus `GCP_PROJECT_ID` when needed)
 
 ## Stack
 
@@ -50,7 +51,7 @@ Une interface one-page qui transforme une intention libre en projet, puis rassem
 
 - Change OpenAPI first, run codegen, then typecheck.
 - Schema changes use `pnpm --filter @workspace/db run push` in development only; production startup never runs DDL.
-- Resend calls must use the Replit connector proxy and must persist/report provider failures.
+- Resend calls use the direct API key integration and must persist/report provider failures.
 - `@workspace/mockup-sandbox` and `@workspace/byaime-onepage` read `PORT`/`BASE_PATH` in `vite.config.ts` with defaults (`4173` and `/`), keeping `pnpm run build` shell-portable on macOS/Linux/Windows while preserving env overrides.
 
 ## Pointers

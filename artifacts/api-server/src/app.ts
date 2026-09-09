@@ -15,32 +15,9 @@ import {
   clerkProxyMiddleware,
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
+import { isTrustedAppOrigin } from "./lib/security";
 
 const app: Express = express();
-const trustedOrigins = new Set(
-  (process.env.REPLIT_DOMAINS ?? "")
-    .split(",")
-    .map((host) => host.trim())
-    .filter(Boolean)
-    .flatMap((host) => [`https://${host}`, `http://${host}`]),
-);
-if (process.env.NODE_ENV !== "production") {
-  trustedOrigins.add("http://localhost");
-  trustedOrigins.add("http://127.0.0.1");
-}
-
-function isTrustedOrigin(origin: string): boolean {
-  try {
-    const url = new URL(origin);
-    if (trustedOrigins.has(origin)) return true;
-    return (
-      process.env.NODE_ENV !== "production" &&
-      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
-    );
-  } catch {
-    return false;
-  }
-}
 
 app.use(
   pinoHttp({
@@ -66,7 +43,12 @@ app.use((req, res, next) => {
   const origin = req.get("origin");
   if (
     origin &&
-    !isTrustedOrigin(origin) &&
+    !isTrustedAppOrigin({
+      origin,
+      req,
+      appUrl: process.env.APP_URL,
+      environment: process.env.NODE_ENV,
+    }) &&
     !["GET", "HEAD", "OPTIONS"].includes(req.method)
   ) {
     res.status(403).json({ error: "Origine non autorisée" });
@@ -75,12 +57,19 @@ app.use((req, res, next) => {
   next();
 });
 app.use(
-  cors({
-    credentials: true,
-    origin(origin, callback) {
-      if (!origin || isTrustedOrigin(origin)) callback(null, true);
-      else callback(null, false);
-    },
+  cors((req, callback) => {
+    const origin =
+      typeof req.headers.origin === "string" ? req.headers.origin : undefined;
+    callback(null, {
+      credentials: true,
+      origin: !origin
+        || isTrustedAppOrigin({
+          origin,
+          req,
+          appUrl: process.env.APP_URL,
+          environment: process.env.NODE_ENV,
+        }),
+    });
   }),
 );
 if (isE2ETestServicesEnabled()) {
