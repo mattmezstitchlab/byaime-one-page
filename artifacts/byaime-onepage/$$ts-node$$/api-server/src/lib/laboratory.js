@@ -1,5 +1,9 @@
-import { z } from "zod";
-export const laboratoryFeedbackTypes = [
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.listLaboratoryFeedbackQuery = exports.updateLaboratoryFeedbackInput = exports.createLaboratoryFeedbackInput = exports.laboratoryContextSchema = exports.laboratoryFeedbackStatuses = exports.laboratoryFeedbackTypes = void 0;
+exports.formatLaboratoryId = formatLaboratoryId;
+var zod_1 = require("zod");
+exports.laboratoryFeedbackTypes = [
     "bug",
     "remarque",
     "suggestion",
@@ -9,44 +13,44 @@ export const laboratoryFeedbackTypes = [
     "ux",
     "contenu_donnees",
 ];
-export const laboratoryFeedbackStatuses = [
+exports.laboratoryFeedbackStatuses = [
     "nouveau",
     "en_cours",
     "a_verifier",
     "resolu",
     "archive",
 ];
-export const laboratoryContextSchema = z.object({
-    projectId: z.string().uuid().optional(),
-    role: z.enum(["owner", "planner", "family", "viewer"]).optional(),
-    route: z.enum(["profile", "world", "network", "laboratory"]).optional(),
-    path: z.string().max(120).optional(),
-    source: z.string().trim().min(1).max(60).optional(),
-    view: z.string().trim().min(1).max(40).optional(),
-    phase: z.string().trim().min(1).max(24).optional(),
-    panel: z.string().trim().min(1).max(40).optional(),
-    auditView: z.string().trim().min(1).max(24).optional(),
-    syncStatus: z.string().trim().min(1).max(24).optional(),
-    momentId: z.string().trim().min(1).max(120).optional(),
-    momentTitle: z.string().trim().min(1).max(200).optional(),
-    entityKind: z.string().trim().min(1).max(40).optional(),
-    entityId: z.string().trim().min(1).max(120).optional(),
-    entityLabel: z.string().trim().min(1).max(200).optional(),
-    narrative: z.string().trim().min(1).max(320).optional(),
+exports.laboratoryContextSchema = zod_1.z.object({
+    projectId: zod_1.z.string().uuid().optional(),
+    role: zod_1.z.enum(["owner", "planner", "family", "viewer"]).optional(),
+    route: zod_1.z.enum(["profile", "world", "network", "laboratory"]).optional(),
+    path: zod_1.z.string().max(120).optional(),
+    source: zod_1.z.string().trim().min(1).max(60).optional(),
+    view: zod_1.z.string().trim().min(1).max(40).optional(),
+    phase: zod_1.z.string().trim().min(1).max(24).optional(),
+    panel: zod_1.z.string().trim().min(1).max(40).optional(),
+    auditView: zod_1.z.string().trim().min(1).max(24).optional(),
+    syncStatus: zod_1.z.string().trim().min(1).max(24).optional(),
+    momentId: zod_1.z.string().trim().min(1).max(120).optional(),
+    momentTitle: zod_1.z.string().trim().min(1).max(200).optional(),
+    entityKind: zod_1.z.string().trim().min(1).max(40).optional(),
+    entityId: zod_1.z.string().trim().min(1).max(120).optional(),
+    entityLabel: zod_1.z.string().trim().min(1).max(200).optional(),
+    narrative: zod_1.z.string().trim().min(1).max(320).optional(),
 }).strict();
-export const createLaboratoryFeedbackInput = z.object({
-    type: z.enum(laboratoryFeedbackTypes),
-    message: z.string().trim().min(3).max(4000),
-    context: laboratoryContextSchema.default({}),
+exports.createLaboratoryFeedbackInput = zod_1.z.object({
+    type: zod_1.z.enum(exports.laboratoryFeedbackTypes),
+    message: zod_1.z.string().trim().min(3).max(4000),
+    context: exports.laboratoryContextSchema.default({}),
 });
-export const updateLaboratoryFeedbackInput = z.object({
-    status: z.enum(laboratoryFeedbackStatuses),
+exports.updateLaboratoryFeedbackInput = zod_1.z.object({
+    status: zod_1.z.enum(exports.laboratoryFeedbackStatuses),
 });
-export const listLaboratoryFeedbackQuery = z.object({
-    type: z.enum(laboratoryFeedbackTypes).optional(),
-    status: z.enum(laboratoryFeedbackStatuses).optional(),
+exports.listLaboratoryFeedbackQuery = zod_1.z.object({
+    type: zod_1.z.enum(exports.laboratoryFeedbackTypes).optional(),
+    status: zod_1.z.enum(exports.laboratoryFeedbackStatuses).optional(),
 });
-export function formatLaboratoryId(sequence) {
-    return `LAB-${String(sequence).padStart(6, "0")}`;
+function formatLaboratoryId(sequence) {
+    return "LAB-".concat(String(sequence).padStart(6, "0"));
 }
 //# sourceMappingURL=laboratory.js.map

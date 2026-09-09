@@ -1,4 +1,8 @@
-export function can(role, action) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.can = can;
+exports.authenticatedUserId = authenticatedUserId;
+function can(role, action) {
     if (!role)
         return false;
     if (action === "read")
@@ -9,8 +13,9 @@ export function can(role, action) {
         return role === "owner" || role === "planner";
     return role === "owner";
 }
-export function authenticatedUserId(auth) {
-    const claims = auth.sessionClaims;
-    return typeof claims?.userId === "string" ? claims.userId : auth.userId ?? undefined;
+function authenticatedUserId(auth) {
+    var _a;
+    var claims = auth.sessionClaims;
+    return typeof (claims === null || claims === void 0 ? void 0 : claims.userId) === "string" ? claims.userId : (_a = auth.userId) !== null && _a !== void 0 ? _a : undefined;
 }
 //# sourceMappingURL=permissions.js.map

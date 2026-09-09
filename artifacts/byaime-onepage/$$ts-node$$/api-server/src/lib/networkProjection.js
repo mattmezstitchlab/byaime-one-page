@@ -1,6 +1,20 @@
-import { evaluateCapability, mapLegacyProjectRole, } from "@workspace/aime-domain";
-import { projectDataForRole } from "./projectDataPolicy";
-const CITY_COORDINATES = {
+"use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.buildNetworkProjection = buildNetworkProjection;
+var aime_domain_1 = require("@workspace/aime-domain");
+var projectDataPolicy_1 = require("./projectDataPolicy");
+var CITY_COORDINATES = {
     paris: [48.8566, 2.3522],
     lille: [50.6292, 3.0573],
     lyon: [45.764, 4.8357],
@@ -32,158 +46,129 @@ function list(value) {
     return Array.isArray(value) ? value.map(record) : [];
 }
 function projectionId(worldId, kind, legacyId) {
-    return `world-project:${worldId}:${kind}:${encodeURIComponent(legacyId)}`;
+    return "world-project:".concat(worldId, ":").concat(kind, ":").concat(encodeURIComponent(legacyId));
 }
 function approximateLocation(value) {
     if (!value)
         return undefined;
-    const normalized = value
+    var normalized = value
         .normalize("NFD")
         .replace(/\p{Diacritic}/gu, "")
         .toLowerCase();
-    const match = Object.entries(CITY_COORDINATES).find(([city]) => normalized.includes(city));
+    var match = Object.entries(CITY_COORDINATES).find(function (_a) {
+        var city = _a[0];
+        return normalized.includes(city);
+    });
     return match
         ? {
-            city: match[0].replace(/^./, (letter) => letter.toUpperCase()),
+            city: match[0].replace(/^./, function (letter) { return letter.toUpperCase(); }),
             latitude: match[1][0],
             longitude: match[1][1],
         }
         : undefined;
 }
 function decisions(capabilities, context) {
-    return Object.fromEntries(capabilities.map((capability) => [
+    return Object.fromEntries(capabilities.map(function (capability) { return [
         capability,
-        evaluateCapability(capability, context),
-    ]));
+        (0, aime_domain_1.evaluateCapability)(capability, context),
+    ]; }));
 }
-export function buildNetworkProjection(rows, generatedAt = new Date().toISOString()) {
-    const subjects = [];
-    const relations = [];
-    for (const row of rows) {
+function buildNetworkProjection(rows, generatedAt) {
+    var _a, _b, _c;
+    if (generatedAt === void 0) { generatedAt = new Date().toISOString(); }
+    var subjects = [];
+    var relations = [];
+    for (var _i = 0, rows_1 = rows; _i < rows_1.length; _i++) {
+        var row = rows_1[_i];
         // Reuse the established serialization boundary before reading any nested
         // subject. This keeps private, financial, and role-hidden records out of
         // both subjects and their relations.
-        const data = record(projectDataForRole(row.data, row.role));
-        const role = mapLegacyProjectRole(row.role);
-        const worldRef = { kind: "world", id: row.id };
-        const worldContext = {
+        var data = record((0, projectDataPolicy_1.projectDataForRole)(row.data, row.role));
+        var role = (0, aime_domain_1.mapLegacyProjectRole)(row.role);
+        var worldRef = { kind: "world", id: row.id };
+        var worldContext = {
             authenticated: true,
             worldRole: role,
         };
-        const location = approximateLocation(factText(data.city));
-        const venue = factText(data.venue);
-        subjects.push({
-            ref: worldRef,
-            worldRef,
-            label: row.title,
-            summary: [text(data.universe), text(data.subtitle)]
+        var location_1 = approximateLocation(factText(data.city));
+        var venue = factText(data.venue);
+        subjects.push(__assign(__assign({ ref: worldRef, worldRef: worldRef, label: row.title, summary: [text(data.universe), text(data.subtitle)]
                 .filter(Boolean)
-                .join(" · "),
-            locationLevel: "world",
-            city: location?.city,
-            ...(!venue && location
-                ? { latitude: location.latitude, longitude: location.longitude }
-                : {}),
-            primaryCapability: "world.view",
-            capabilities: decisions(["world.view", "world.edit"], worldContext),
-        });
+                .join(" · "), locationLevel: "world", city: location_1 === null || location_1 === void 0 ? void 0 : location_1.city }, (!venue && location_1
+            ? { latitude: location_1.latitude, longitude: location_1.longitude }
+            : {})), { primaryCapability: "world.view", capabilities: decisions(["world.view", "world.edit"], worldContext) }));
         if (venue) {
-            const legacyId = "venue";
-            const ref = {
+            var legacyId = "venue";
+            var ref = {
                 kind: "place",
                 id: projectionId(row.id, "place", legacyId),
             };
-            subjects.push({
-                ref,
-                worldRef,
-                label: venue,
-                summary: location?.city
-                    ? `Lieu du Monde · ${location.city}`
-                    : "Lieu du Monde",
-                locationLevel: "world",
-                city: location?.city,
-                ...(location
-                    ? { latitude: location.latitude, longitude: location.longitude }
-                    : {}),
-                primaryCapability: "world.view",
-                capabilities: decisions(["world.view"], worldContext),
-                legacy: {
+            subjects.push(__assign(__assign({ ref: ref, worldRef: worldRef, label: venue, summary: (location_1 === null || location_1 === void 0 ? void 0 : location_1.city)
+                    ? "Lieu du Monde \u00B7 ".concat(location_1.city)
+                    : "Lieu du Monde", locationLevel: "world", city: location_1 === null || location_1 === void 0 ? void 0 : location_1.city }, (location_1
+                ? { latitude: location_1.latitude, longitude: location_1.longitude }
+                : {})), { primaryCapability: "world.view", capabilities: decisions(["world.view"], worldContext), legacy: {
                     source: "world_project_json",
                     entityKind: "venue",
-                    legacyId,
-                },
-            });
+                    legacyId: legacyId,
+                } }));
             relations.push({
-                id: `${ref.id}:in-world`,
+                id: "".concat(ref.id, ":in-world"),
                 from: ref,
                 to: worldRef,
                 kind: "belongs_to",
                 visibility: "world",
             });
         }
-        for (const moment of list(data.timeline)) {
-            const legacyId = text(moment.id);
-            const label = text(moment.title);
+        for (var _d = 0, _e = list(data.timeline); _d < _e.length; _d++) {
+            var moment = _e[_d];
+            var legacyId = text(moment.id);
+            var label = text(moment.title);
             if (!legacyId || !label)
                 continue;
-            const ref = {
+            var ref = {
                 kind: "moment",
                 id: projectionId(row.id, "moment", legacyId),
             };
-            const momentLocation = approximateLocation(text(moment.location));
-            subjects.push({
-                ref,
-                worldRef,
-                label,
-                summary: text(moment.detail) ?? text(moment.kind),
-                locationLevel: "world",
-                city: momentLocation?.city,
-                ...(momentLocation
-                    ? {
-                        latitude: momentLocation.latitude,
-                        longitude: momentLocation.longitude,
-                    }
-                    : {}),
-                primaryCapability: "world.view",
-                capabilities: decisions(["world.view", "moment.edit"], {
-                    ...worldContext,
+            var momentLocation = approximateLocation(text(moment.location));
+            subjects.push(__assign(__assign({ ref: ref, worldRef: worldRef, label: label, summary: (_a = text(moment.detail)) !== null && _a !== void 0 ? _a : text(moment.kind), locationLevel: "world", city: momentLocation === null || momentLocation === void 0 ? void 0 : momentLocation.city }, (momentLocation
+                ? {
+                    latitude: momentLocation.latitude,
+                    longitude: momentLocation.longitude,
+                }
+                : {})), { primaryCapability: "world.view", capabilities: decisions(["world.view", "moment.edit"], __assign(__assign({}, worldContext), { 
                     // Historical owner ids are not Identity mappings. Do not infer
                     // ownership until that mapping has been explicitly verified.
-                    ownsContribution: false,
-                }),
-                legacy: {
+                    ownsContribution: false })), legacy: {
                     source: "world_project_json",
                     entityKind: "timeline_event",
-                    legacyId,
-                },
-            });
+                    legacyId: legacyId,
+                } }));
             relations.push({
-                id: `${ref.id}:in-world`,
+                id: "".concat(ref.id, ":in-world"),
                 from: ref,
                 to: worldRef,
                 kind: "belongs_to",
                 visibility: "world",
             });
         }
-        for (const provider of list(data.providers)) {
-            const legacyId = text(provider.id);
+        for (var _f = 0, _g = list(data.providers); _f < _g.length; _f++) {
+            var provider = _g[_f];
+            var legacyId = text(provider.id);
             if (!legacyId)
                 continue;
-            const ref = {
+            var ref = {
                 kind: "card",
                 id: projectionId(row.id, "card", legacyId),
             };
-            const cardContext = {
-                ...worldContext,
-                socialRelation: "connected",
+            var cardContext = __assign(__assign({}, worldContext), { socialRelation: "connected", 
                 // A legacy contact value is not proof that the Card opted into
                 // contact. Keep the action denied until preferences are canonical.
-                contactAllowed: false,
-            };
+                contactAllowed: false });
             subjects.push({
-                ref,
-                worldRef,
-                label: text(provider.name) ?? text(provider.role) ?? "Professionnel",
+                ref: ref,
+                worldRef: worldRef,
+                label: (_c = (_b = text(provider.name)) !== null && _b !== void 0 ? _b : text(provider.role)) !== null && _c !== void 0 ? _c : "Professionnel",
                 summary: text(provider.category),
                 locationLevel: "world",
                 primaryCapability: "card.view",
@@ -191,11 +176,11 @@ export function buildNetworkProjection(rows, generatedAt = new Date().toISOStrin
                 legacy: {
                     source: "world_project_json",
                     entityKind: "provider",
-                    legacyId,
+                    legacyId: legacyId,
                 },
             });
             relations.push({
-                id: `${ref.id}:in-world`,
+                id: "".concat(ref.id, ":in-world"),
                 from: ref,
                 to: worldRef,
                 kind: "participates_in",
@@ -203,6 +188,6 @@ export function buildNetworkProjection(rows, generatedAt = new Date().toISOStrin
             });
         }
     }
-    return { generatedAt, subjects, relations };
+    return { generatedAt: generatedAt, subjects: subjects, relations: relations };
 }
 //# sourceMappingURL=networkProjection.js.map

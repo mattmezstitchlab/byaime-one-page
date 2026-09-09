@@ -1,17 +1,34 @@
-const records = (value) => Array.isArray(value) ? value.filter((item) => Boolean(item) && typeof item === "object") : [];
-const text = (value) => typeof value === "string" && value.trim() ? value.trim() : undefined;
-const number = (value) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
-const date = (value) => new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" }).format(value);
-const euros = (cents) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(cents / 100);
+"use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.buildAuthorizedWeddingBrief = buildAuthorizedWeddingBrief;
+var records = function (value) {
+    return Array.isArray(value) ? value.filter(function (item) { return Boolean(item) && typeof item === "object"; }) : [];
+};
+var text = function (value) { return typeof value === "string" && value.trim() ? value.trim() : undefined; };
+var number = function (value) { return typeof value === "number" && Number.isFinite(value) ? value : undefined; };
+var date = function (value) { return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" }).format(value); };
+var euros = function (cents) { return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(cents / 100); };
 function factValue(value) {
     if (!value || typeof value !== "object")
         return {};
-    const row = value;
+    var row = value;
     return { value: text(row.value), confidence: text(row.confidence) };
 }
 function eventVisibleToRole(event, role) {
-    const visibility = text(event.visibility) ?? "prive";
-    const financial = ["paiement", "facture", "devis"].includes(text(event.kind) ?? "");
+    var _a, _b;
+    var visibility = (_a = text(event.visibility)) !== null && _a !== void 0 ? _a : "prive";
+    var financial = ["paiement", "facture", "devis"].includes((_b = text(event.kind)) !== null && _b !== void 0 ? _b : "");
     if (financial && role !== "owner")
         return false;
     if (role === "owner")
@@ -23,113 +40,96 @@ function eventVisibleToRole(event, role) {
 function verifiedEvent(event) {
     return text(event.confidence) === "confirme" && text(event.provenance) !== "demo";
 }
-export function buildAuthorizedWeddingBrief(input) {
-    const now = input.now ?? Date.now();
-    const data = input.data && typeof input.data === "object" ? input.data : {};
-    const events = records(data.timeline)
-        .filter(event => text(event.phase) === "avant" && verifiedEvent(event) && eventVisibleToRole(event, input.role))
-        .sort((a, b) => (number(a.time) ?? 0) - (number(b.time) ?? 0));
-    const segments = [{
+function buildAuthorizedWeddingBrief(input) {
+    var _a;
+    var now = (_a = input.now) !== null && _a !== void 0 ? _a : Date.now();
+    var data = input.data && typeof input.data === "object" ? input.data : {};
+    var events = records(data.timeline)
+        .filter(function (event) { return text(event.phase) === "avant" && verifiedEvent(event) && eventVisibleToRole(event, input.role); })
+        .sort(function (a, b) { var _a, _b; return ((_a = number(a.time)) !== null && _a !== void 0 ? _a : 0) - ((_b = number(b.time)) !== null && _b !== void 0 ? _b : 0); });
+    var segments = [{
             id: "brief-introduction",
             kind: "transition",
             title: "Point de situation",
-            narration: `Voici où en est ${input.title}, à partir des informations confirmées que vous pouvez consulter.`,
+            narration: "Voici o\u00F9 en est ".concat(input.title, ", \u00E0 partir des informations confirm\u00E9es que vous pouvez consulter."),
             source: { collection: "project", id: input.projectId, label: input.title },
             supportingSources: [],
             evidenceStatus: "verified",
         }];
-    const completed = events.filter(event => text(event.status) === "execute" && (number(event.time) ?? Number.MAX_SAFE_INTEGER) <= now).at(-1);
-    const completedTime = completed ? number(completed.time) : undefined;
-    const completedId = completed ? text(completed.id) : undefined;
-    const completedTitle = completed ? text(completed.title) : undefined;
+    var completed = events.filter(function (event) { var _a; return text(event.status) === "execute" && ((_a = number(event.time)) !== null && _a !== void 0 ? _a : Number.MAX_SAFE_INTEGER) <= now; }).at(-1);
+    var completedTime = completed ? number(completed.time) : undefined;
+    var completedId = completed ? text(completed.id) : undefined;
+    var completedTitle = completed ? text(completed.title) : undefined;
     if (completed && completedId && completedTitle && completedTime !== undefined) {
         segments.push({
-            id: `completed-${completedId}`,
+            id: "completed-".concat(completedId),
             kind: "fact",
             title: "Dernière étape marquée comme terminée",
-            narration: `${completedTitle} est terminé dans le Monde. Ce Moment était planifié pour le ${date(completedTime)}.`,
+            narration: "".concat(completedTitle, " est termin\u00E9 dans le Monde. Ce Moment \u00E9tait planifi\u00E9 pour le ").concat(date(completedTime), "."),
             source: { collection: "timeline", id: completedId, label: completedTitle },
             supportingSources: [],
             at: completedTime,
             evidenceStatus: "verified",
         });
     }
-    const next = events.find(event => (number(event.time) ?? 0) >= now && text(event.status) !== "execute");
-    const nextTime = next ? number(next.time) : undefined;
-    const nextId = next ? text(next.id) : undefined;
-    const nextTitle = next ? text(next.title) : undefined;
+    var next = events.find(function (event) { var _a; return ((_a = number(event.time)) !== null && _a !== void 0 ? _a : 0) >= now && text(event.status) !== "execute"; });
+    var nextTime = next ? number(next.time) : undefined;
+    var nextId = next ? text(next.id) : undefined;
+    var nextTitle = next ? text(next.title) : undefined;
     if (next && nextId && nextTitle && nextTime !== undefined) {
         segments.push({
-            id: `next-${nextId}`,
+            id: "next-".concat(nextId),
             kind: "fact",
             title: "Prochain Moment",
-            narration: `${nextTitle} est prévu le ${date(nextTime)}.`,
+            narration: "".concat(nextTitle, " est pr\u00E9vu le ").concat(date(nextTime), "."),
             source: { collection: "timeline", id: nextId, label: nextTitle },
             supportingSources: [],
             at: nextTime,
             evidenceStatus: "verified",
         });
     }
-    const blocked = events.find(event => ["bloque", "echoue"].includes(text(event.status) ?? ""));
-    const blockedId = blocked ? text(blocked.id) : undefined;
-    const blockedTitle = blocked ? text(blocked.title) : undefined;
+    var blocked = events.find(function (event) { var _a; return ["bloque", "echoue"].includes((_a = text(event.status)) !== null && _a !== void 0 ? _a : ""); });
+    var blockedId = blocked ? text(blocked.id) : undefined;
+    var blockedTitle = blocked ? text(blocked.title) : undefined;
     if (blocked && blockedId && blockedTitle) {
-        segments.push({
-            id: `blocked-${blockedId}`,
-            kind: "alert",
-            title: "Un point demande votre attention",
-            narration: `${blockedTitle} est signalé comme ${text(blocked.status) === "bloque" ? "bloqué" : "en échec"}.`,
-            source: { collection: "timeline", id: blockedId, label: blockedTitle },
-            supportingSources: [],
-            ...(number(blocked.time) === undefined ? {} : { at: number(blocked.time) }),
-            evidenceStatus: "verified",
-        });
+        segments.push(__assign(__assign({ id: "blocked-".concat(blockedId), kind: "alert", title: "Un point demande votre attention", narration: "".concat(blockedTitle, " est signal\u00E9 comme ").concat(text(blocked.status) === "bloque" ? "bloqué" : "en échec", "."), source: { collection: "timeline", id: blockedId, label: blockedTitle }, supportingSources: [] }, (number(blocked.time) === undefined ? {} : { at: number(blocked.time) })), { evidenceStatus: "verified" }));
     }
     if (input.role === "owner") {
-        const pendingTask = records(data.tasks)
-            .filter(task => text(task.status) !== "termine")
-            .sort((a, b) => (number(a.dueDate) ?? Number.MAX_SAFE_INTEGER) - (number(b.dueDate) ?? Number.MAX_SAFE_INTEGER))[0];
-        const taskId = pendingTask ? text(pendingTask.id) : undefined;
-        const taskTitle = pendingTask ? text(pendingTask.title) : undefined;
+        var pendingTask = records(data.tasks)
+            .filter(function (task) { return text(task.status) !== "termine"; })
+            .sort(function (a, b) { var _a, _b; return ((_a = number(a.dueDate)) !== null && _a !== void 0 ? _a : Number.MAX_SAFE_INTEGER) - ((_b = number(b.dueDate)) !== null && _b !== void 0 ? _b : Number.MAX_SAFE_INTEGER); })[0];
+        var taskId = pendingTask ? text(pendingTask.id) : undefined;
+        var taskTitle = pendingTask ? text(pendingTask.title) : undefined;
         if (pendingTask && taskId && taskTitle) {
-            const due = number(pendingTask.dueDate);
-            segments.push({
-                id: `task-${taskId}`,
-                kind: text(pendingTask.priority) === "haute" ? "alert" : "fact",
-                title: "À préparer",
-                narration: `${taskTitle}${due === undefined ? " reste à organiser" : ` est attendu pour le ${date(due)}`}.`,
-                source: { collection: "task", id: taskId, label: taskTitle },
-                supportingSources: [],
-                ...(due === undefined ? {} : { at: due }),
-                evidenceStatus: "verified",
-            });
+            var due = number(pendingTask.dueDate);
+            segments.push(__assign(__assign({ id: "task-".concat(taskId), kind: text(pendingTask.priority) === "haute" ? "alert" : "fact", title: "À préparer", narration: "".concat(taskTitle).concat(due === undefined ? " reste à organiser" : " est attendu pour le ".concat(date(due)), "."), source: { collection: "task", id: taskId, label: taskTitle }, supportingSources: [] }, (due === undefined ? {} : { at: due })), { evidenceStatus: "verified" }));
         }
-        const payments = records(data.payments).flatMap(payment => {
-            const id = text(payment.id);
-            const label = text(payment.label);
-            const amountCents = number(payment.amountCents);
-            const at = number(payment.at);
-            const state = text(payment.state);
+        var payments = records(data.payments).flatMap(function (payment) {
+            var id = text(payment.id);
+            var label = text(payment.label);
+            var amountCents = number(payment.amountCents);
+            var at = number(payment.at);
+            var state = text(payment.state);
             return id && label && amountCents !== undefined && at !== undefined && (state === "paye" || state === "du")
-                ? [{ id, label, amountCents, at, state: state }]
+                ? [{ id: id, label: label, amountCents: amountCents, at: at, state: state }]
                 : [];
         });
         if (payments.length) {
-            const paidTotal = payments.filter(payment => payment.state === "paye").reduce((sum, payment) => sum + payment.amountCents, 0);
-            const dueTotal = payments.filter(payment => payment.state === "du").reduce((sum, payment) => sum + payment.amountCents, 0);
-            const sources = payments.map(payment => ({
+            var paidTotal = payments.filter(function (payment) { return payment.state === "paye"; }).reduce(function (sum, payment) { return sum + payment.amountCents; }, 0);
+            var dueTotal = payments.filter(function (payment) { return payment.state === "du"; }).reduce(function (sum, payment) { return sum + payment.amountCents; }, 0);
+            var sources = payments.map(function (payment) { return ({
                 collection: "payment",
                 id: payment.id,
                 label: payment.label,
                 amountCents: payment.amountCents,
                 paymentState: payment.state,
                 recordedAt: payment.at,
-            }));
+            }); });
             segments.push({
                 id: "financial-position",
                 kind: "calculation",
                 title: "Situation financière",
-                narration: `${euros(paidTotal)} sont marqués comme payés et ${euros(dueTotal)} restent à régler. Chaque montant vient des paiements enregistrés.`,
+                narration: "".concat(euros(paidTotal), " sont marqu\u00E9s comme pay\u00E9s et ").concat(euros(dueTotal), " restent \u00E0 r\u00E9gler. Chaque montant vient des paiements enregistr\u00E9s."),
                 source: sources[0],
                 supportingSources: sources.slice(1),
                 at: payments[0].at,
@@ -148,12 +148,12 @@ export function buildAuthorizedWeddingBrief(input) {
             evidenceStatus: "verified",
         });
     }
-    const city = factValue(data.city);
-    const venue = factValue(data.venue);
-    const verifiedLocation = venue.confidence === "confirme" && venue.value
+    var city = factValue(data.city);
+    var venue = factValue(data.venue);
+    var verifiedLocation = venue.confidence === "confirme" && venue.value
         ? venue.value
         : city.confidence === "confirme" && city.value ? city.value : undefined;
-    const nearbyCategories = input.role === "owner" && input.useWorldLocation && verifiedLocation
+    var nearbyCategories = input.role === "owner" && input.useWorldLocation && verifiedLocation
         ? [
             { id: "nearby-decoration", label: "Décoration et fleurs", reason: "Catégorie à comparer avec les prestataires déjà réservés.", evidenceStatus: "unverified" },
             { id: "nearby-sound", label: "Son et matériel", reason: "Catégorie à rechercher auprès d’une source locale vérifiée.", evidenceStatus: "unverified" },
@@ -164,12 +164,9 @@ export function buildAuthorizedWeddingBrief(input) {
         projectId: input.projectId,
         role: input.role,
         generatedAt: now,
-        segments,
-        location: {
-            available: input.role === "owner" && Boolean(verifiedLocation),
-            ...(input.role === "owner" && input.useWorldLocation && verifiedLocation ? { label: verifiedLocation } : {}),
-        },
-        nearbyCategories,
+        segments: segments,
+        location: __assign({ available: input.role === "owner" && Boolean(verifiedLocation) }, (input.role === "owner" && input.useWorldLocation && verifiedLocation ? { label: verifiedLocation } : {})),
+        nearbyCategories: nearbyCategories,
     };
 }
 //# sourceMappingURL=weddingBrief.js.map

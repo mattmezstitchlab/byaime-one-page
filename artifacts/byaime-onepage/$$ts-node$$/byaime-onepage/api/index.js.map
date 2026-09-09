@@ -1,1 +1,1 @@
-{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../api/index.ts"],"names":[],"mappings":"AAAA,OAAO,GAAG,MAAM,6BAA6B,CAAC;AAE9C,eAAe,GAAG,CAAC","sourcesContent":["import app from \"../../api-server/src/app.js\";\n\nexport default app;\n"]}
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../api/index.ts"],"names":[],"mappings":";;AAAA,sDAA8C;AAE9C,kBAAe,gBAAG,CAAC","sourcesContent":["import app from \"../../api-server/src/app.js\";\n\nexport default app;\n"]}
