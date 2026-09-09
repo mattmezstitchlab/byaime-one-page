@@ -7,6 +7,7 @@ import {
   db,
   filesTable,
   invitationsTable,
+  laboratoryFeedbackTable,
   localBridgeSessionsTable,
   localImportJobsTable,
   localPairingTokensTable,
@@ -17,6 +18,7 @@ import {
   projectsTable,
   rsvpsTable,
   songRequestsTable,
+  type LaboratoryFeedback,
   type LocalBridgeSession,
   type LocalImportJob,
   type LocalPairingToken,
@@ -32,6 +34,12 @@ import { buildParticipantProjection, participantNameById } from "../lib/particip
 import { projectToPublicProfile } from "../lib/publicProfile";
 import { buildAuthorizedWeddingBrief } from "../lib/weddingBrief";
 import { buildAuthorizedProfileFil } from "../lib/profileFil";
+import {
+  createLaboratoryFeedbackInput,
+  formatLaboratoryId,
+  listLaboratoryFeedbackQuery,
+  updateLaboratoryFeedbackInput,
+} from "../lib/laboratory";
 import {
   mergeProtectedProjectData,
   projectDataForRole,
@@ -114,6 +122,23 @@ type ImportJob = {
   updatedAt: string;
   error?: string;
 };
+
+function laboratoryFeedbackResponse(
+  feedback: LaboratoryFeedback,
+  currentUserId: string,
+) {
+  return {
+    id: feedback.id,
+    labId: formatLaboratoryId(feedback.sequence),
+    type: feedback.type,
+    status: feedback.status,
+    message: feedback.message,
+    context: feedback.context as Record<string, unknown>,
+    createdAt: feedback.createdAt.toISOString(),
+    updatedAt: feedback.updatedAt.toISOString(),
+    authoredByCurrentUser: feedback.authorUserId === currentUserId,
+  };
+}
 
 function hashedToken(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -1540,6 +1565,96 @@ router.post(
       .where(eq(messagesTable.id, messageId))
       .returning();
     res.json(cancelled);
+  },
+);
+
+router.get(
+  "/projects/:id/laboratory-feedback",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    const member = await membership(projectId, req.userId!);
+    if (!member) {
+      res.status(404).json({ error: "Monde introuvable" });
+      return;
+    }
+    const filters = listLaboratoryFeedbackQuery.safeParse(req.query);
+    if (!filters.success) {
+      res.status(400).json({ error: "Filtres invalides", details: filters.error.flatten() });
+      return;
+    }
+    const conditions = [
+      eq(laboratoryFeedbackTable.projectId, projectId),
+      filters.data.type ? eq(laboratoryFeedbackTable.type, filters.data.type) : undefined,
+      filters.data.status ? eq(laboratoryFeedbackTable.status, filters.data.status) : undefined,
+      managedRoles.has(member.role) ? undefined : eq(laboratoryFeedbackTable.authorUserId, req.userId!),
+    ].filter(Boolean);
+    const feedback = await db
+      .select()
+      .from(laboratoryFeedbackTable)
+      .where(and(...conditions))
+      .orderBy(sql`${laboratoryFeedbackTable.sequence} desc`);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.json(feedback.map((item) => laboratoryFeedbackResponse(item, req.userId!)));
+  },
+);
+
+router.post(
+  "/projects/:id/laboratory-feedback",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    const member = await membership(projectId, req.userId!);
+    if (!member) {
+      res.status(404).json({ error: "Monde introuvable" });
+      return;
+    }
+    const input = parseBody(createLaboratoryFeedbackInput, req, res);
+    if (!input) return;
+    const [feedback] = await db
+      .insert(laboratoryFeedbackTable)
+      .values({
+        projectId,
+        authorUserId: req.userId!,
+        type: input.type,
+        status: "nouveau",
+        message: input.message,
+        context: {
+          ...input.context,
+          projectId,
+          role: member.role,
+        },
+      })
+      .returning();
+    res.status(201).json(laboratoryFeedbackResponse(feedback, req.userId!));
+  },
+);
+
+router.patch(
+  "/projects/:id/laboratory-feedback/:feedbackId",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    const member = await membership(projectId, req.userId!);
+    if (!managedRoles.has(member?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const input = parseBody(updateLaboratoryFeedbackInput, req, res);
+    if (!input) return;
+    const [feedback] = await db
+      .update(laboratoryFeedbackTable)
+      .set({ status: input.status, updatedAt: new Date() })
+      .where(and(
+        eq(laboratoryFeedbackTable.id, String(req.params.feedbackId)),
+        eq(laboratoryFeedbackTable.projectId, projectId),
+      ))
+      .returning();
+    if (!feedback) {
+      res.status(404).json({ error: "Retour Laboratoire introuvable" });
+      return;
+    }
+    res.json(laboratoryFeedbackResponse(feedback, req.userId!));
   },
 );
 

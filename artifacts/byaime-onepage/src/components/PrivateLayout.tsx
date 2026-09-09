@@ -2,6 +2,7 @@ import { type ComponentType, type ReactNode, useEffect, useRef, useState } from 
 import { Link, useLocation } from 'wouter';
 import {
   CircleUserRound,
+  FlaskConical,
   Globe2,
   HelpCircle,
   Map,
@@ -19,6 +20,8 @@ import { cn } from '@/lib/utils';
 import { CommandBar } from '@/components/CommandBar';
 import { GlobalCreateCenter } from '@/components/GlobalCreateCenter';
 import { PortalControls } from '@/components/PortalControls';
+import { openLaboratory } from '@/lib/laboratory';
+import { LaboratoryCenter } from '@/components/LaboratoryCenter';
 import { useProject } from '@/store/project-store';
 import {
   getPrivateDestinationId,
@@ -183,7 +186,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
   const activeDestination = getPrivateDestinationId(location);
   const activeItem = PRIVATE_PRIMARY_NAVIGATION.find(item => item.id === activeDestination)!;
-  const icons = { profile: User, world: Globe2, network: Map } satisfies Record<PrivateDestinationId, ComponentType<{ className?: string }>>;
+  const icons = { profile: User, world: Globe2, network: Map, laboratory: FlaskConical } satisfies Record<PrivateDestinationId, ComponentType<{ className?: string }>>;
 
   useEffect(() => {
     document.documentElement.dataset.aimeTheme = appearance;
@@ -294,6 +297,12 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         isPinned={isPinnedContext}
       />
       <BottomActionButton
+        onClick={() => openLaboratory()}
+        icon={FlaskConical}
+        label="Ouvrir le Laboratoire"
+        isPinned={isPinnedContext}
+      />
+      <BottomActionButton
         onClick={openMe}
         icon={CircleUserRound}
         label="Mon compte (ME)"
@@ -390,6 +399,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         <ActionCenter destination={activeDestination} onOpenMe={openMe} />
         <CommandBar context={activeDestination} />
         <GlobalCreateCenter destination={activeDestination} />
+        <LaboratoryCenter />
       </div>
 
       {/* Mobile Menu Overlay */}

@@ -11,6 +11,7 @@ import { BottomDock } from './BottomDock';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Grid2X2, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
+import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/laboratory';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import type { Guest, Provider } from '@/lib/types';
@@ -149,6 +150,23 @@ export function ProjectStage() {
       window.removeEventListener("aime:open-create-target", listener);
       window.removeEventListener("aime:close-world-panel", closeWorldPanel);
     };
+  }, []);
+
+  useEffect(() => {
+    const applyFocus = (request?: WorldFocusRequest) => {
+      if (!request) return;
+      if (request.phase === "avant" || request.phase === "pendant" || request.phase === "apres") setPhase(request.phase);
+      if (request.view) setView(request.view as TimelineView);
+      if (request.panel) setActivePanel(request.panel as WeddingPanelId);
+    };
+    const pending = consumeWorldFocus();
+    if (pending) {
+      applyFocus(pending);
+      window.dispatchEvent(new CustomEvent("aime:focus-world", { detail: pending }));
+    }
+    const listener = (event: Event) => applyFocus((event as CustomEvent<WorldFocusRequest>).detail);
+    window.addEventListener("aime:focus-world", listener);
+    return () => window.removeEventListener("aime:focus-world", listener);
   }, []);
 
   const visibleEvents = useMemo(() => {
