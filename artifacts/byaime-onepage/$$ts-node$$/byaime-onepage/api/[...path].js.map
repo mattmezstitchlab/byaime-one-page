@@ -1,1 +1,0 @@
-{"version":3,"file":"[...path].js","sourceRoot":"","sources":["../../../api/[...path].ts"],"names":[],"mappings":";;AAAA,gDAA2C;AAE3C,kBAAe,aAAG,CAAC","sourcesContent":["import app from \"../../api-server/src/app\";\n\nexport default app;\n"]}
