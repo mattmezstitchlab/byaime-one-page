@@ -24,6 +24,21 @@ describe("private navigation", () => {
     expect(getPrivateDestinationId("/")).toBe("profile");
   });
 
+  it("exposes only the declared private routes in the main rail", () => {
+    expect(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).toEqual([
+      "/profile",
+      "/user-portal",
+      "/network",
+      "/laboratoire",
+    ]);
+    expect(PRIVATE_PRIMARY_NAVIGATION.some(item => item.href === "/budget")).toBe(
+      false,
+    );
+    expect(
+      PRIVATE_PRIMARY_NAVIGATION.some(item => item.href === "/prestataires"),
+    ).toBe(false);
+  });
+
   it("reserves the expanded rail width only when pinned", () => {
     expect(getDesktopRailReservedWidth(false)).toBe(80);
     expect(getDesktopRailReservedWidth(true)).toBe(276);

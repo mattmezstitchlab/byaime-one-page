@@ -1,16 +1,24 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { ActionCenter } from "@/components/PrivateLayout";
+import type { ReactNode } from "react";
+import { ActionCenter, PrivateHomeLink } from "@/components/PrivateLayout";
 import { TimelinePlayback } from "@/components/TimelinePlayback";
 import type { TimelineEvent } from "@/lib/types";
 import type { PrivateDestinationId } from "@/lib/private-navigation";
+import { Router } from "wouter";
 
 describe("private shell controls", () => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <Router hook={() => ["/profile", () => {}]}>{children}</Router>
+  );
+
   it.each<PrivateDestinationId>(["profile", "world", "network"])(
     "keeps AI, create and ME visible from %s",
     destination => {
       const markup = renderToStaticMarkup(
-        <ActionCenter destination={destination} onOpenMe={vi.fn()} />,
+        <Wrapper>
+          <ActionCenter destination={destination} onOpenMe={vi.fn()} />
+        </Wrapper>,
       );
 
       expect(markup).toContain('aria-label="Ouvrir l’aide contextuelle AI"');
@@ -38,5 +46,17 @@ describe("private shell controls", () => {
 
     expect(markup).toContain(' disabled=""');
     expect(markup).toContain("Aucun Moment à lire dans cette période");
+  });
+
+  it("sends the private AIME logo back to the public home", () => {
+    const markup = renderToStaticMarkup(
+      <Wrapper>
+        <PrivateHomeLink textClassName="text-lg" />
+      </Wrapper>,
+    );
+
+    expect(markup).toContain('data-testid="private-home-logo"');
+    expect(markup).toContain('href="/"');
+    expect(markup).toContain('aria-label="Retour à l’accueil AIME"');
   });
 });

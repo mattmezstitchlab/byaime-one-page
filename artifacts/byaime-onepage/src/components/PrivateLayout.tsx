@@ -30,6 +30,31 @@ import {
   type PrivateDestinationId,
 } from '@/lib/private-navigation';
 
+const PRIVATE_HOME_ARIA_LABEL = "Retour à l’accueil AIME";
+
+export function PrivateHomeLink({
+  className,
+  textClassName,
+  labelClassName,
+}: {
+  className?: string;
+  textClassName?: string;
+  labelClassName?: string;
+}) {
+  return (
+    <Link
+      href="/"
+      aria-label={PRIVATE_HOME_ARIA_LABEL}
+      data-testid="private-home-logo"
+      className={cn("inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}
+    >
+      <span className={cn("font-display font-light tracking-[0.3em] text-foreground", textClassName, labelClassName)}>
+        AIME
+      </span>
+    </Link>
+  );
+}
+
 export function ActionCenter({ destination, onOpenMe }: { destination: PrivateDestinationId; onOpenMe: () => void }) {
   return (
     <nav
@@ -323,9 +348,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
       {/* Desktop Logo - Fixed top left */}
       <div className="fixed left-6 top-6 z-[80] hidden md:block">
-        <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span className="font-display font-light text-xl tracking-[0.3em] text-foreground">AIME</span>
-        </Link>
+        <PrivateHomeLink className="rounded-lg" textClassName="text-xl" />
       </div>
 
       {/* Desktop Rail Visual - Transparent Floating Rail */}
@@ -368,9 +391,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
       <div className="relative flex h-full min-w-0 flex-1 flex-col">
         {/* Header - Mobile only visual, completely empty on desktop */}
         <header className="z-[60] grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur-xl sm:px-4 md:border-none md:bg-transparent">
-          <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="inline-flex rounded-md md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <span className="font-display font-light text-lg tracking-[0.3em] text-foreground">AIME</span>
-          </Link>
+          <PrivateHomeLink className="md:hidden" textClassName="text-lg" />
 
           <div className="flex-1" />
 
@@ -413,9 +434,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
             onKeyDown={handleDrawerKeyDown}
           >
             <div className="mb-8 flex items-center justify-between px-2">
-              <Link href="/profile" aria-label="AIME — ouvrir le Profil" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <span className="font-display font-light text-lg tracking-[0.3em] text-foreground">AIME</span>
-              </Link>
+              <PrivateHomeLink textClassName="text-lg" />
               <button data-drawer-autofocus type="button" onClick={() => closeMobileMenu(true)} aria-label="Fermer la navigation" className="-mr-2 rounded-full p-2 text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <X className="h-5 w-5" />
               </button>
