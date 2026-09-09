@@ -106,6 +106,19 @@ export function isWeddingDestinationActive(destination: WeddingDestination, view
   return destination.kind === "panel" ? destination.panel === panel : false;
 }
 
+export function isWeddingPanelAvailable(
+  panel: WeddingPanelId,
+  navigation: WeddingNavigation,
+  view: TimelineView,
+) {
+  if (panel === "sections") return true;
+  const available = [...navigation.primary, ...navigation.secondary].some(
+    item => item.destination.kind === "panel" && item.destination.panel === panel,
+  );
+  if (available) return true;
+  return panel === "music" && view === "music";
+}
+
 export function getWeddingNavigationLabel(view: TimelineView, panel: WeddingPanelId | null, navigation?: WeddingNavigation) {
   if (panel) return WEDDING_PANEL_LABELS[panel];
   return navigation?.primary.concat(navigation.secondary).find(entry => entry.destination.kind === "view" && entry.destination.view === view)?.label ?? "Timeline";

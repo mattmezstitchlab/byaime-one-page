@@ -18,6 +18,7 @@ import {
   isWeddingDestinationActive,
   getWeddingCapabilities,
   getWeddingNavigation,
+  isWeddingPanelAvailable,
   getInitialWorldPhase,
   type WorldPhase,
   type WeddingDestination,
@@ -126,11 +127,8 @@ export function ProjectStage() {
 
   useEffect(() => {
     if (!activePanel) return;
-    const available = [...navigation.primary, ...navigation.secondary].some(
-      item => item.destination.kind === "panel" && item.destination.panel === activePanel,
-    );
-    if (activePanel !== "sections" && !available) setActivePanel(null);
-  }, [activePanel, navigation]);
+    if (!isWeddingPanelAvailable(activePanel, navigation, view)) setActivePanel(null);
+  }, [activePanel, navigation, view]);
 
   useEffect(() => {
     const openCreateTarget = (action: UniversalCreateActionId | undefined) => {
