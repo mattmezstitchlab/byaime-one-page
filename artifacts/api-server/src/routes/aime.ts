@@ -120,6 +120,16 @@ type ImportJob = {
 const pairingTokens = new Map<string, PairingTokenState>();
 const scanJobs = new Map<string, ScanJob>();
 const importJobs = new Map<string, ImportJob>();
+const localWebRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 180,
+  key: (req) => `aime-local-web:${req.ip}:${req.path}`,
+});
+const localBridgeRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 600,
+  key: (req) => `aime-local-bridge:${req.ip}:${req.path}`,
+});
 
 function shouldSimulateProviderFailure(req: AuthedRequest): boolean {
   return (
@@ -1624,6 +1634,7 @@ router.patch(
 
 router.post(
   "/aime-local/pairing-token",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const input = parseBody(localPairingTokenInput, req, res);
@@ -1645,6 +1656,7 @@ router.post(
 
 router.post(
   "/aime-local/bridge/pair",
+  localBridgeRateLimit,
   async (req: AuthedRequest, res): Promise<void> => {
     if (!authorizeBridgeOrigin(req, res)) return;
     const input = parseBody(localPairInput, req, res);
@@ -1687,6 +1699,7 @@ router.post(
 
 router.post(
   "/aime-local/bridge/heartbeat",
+  localBridgeRateLimit,
   async (req: AuthedRequest, res): Promise<void> => {
     const input = parseBody(localBridgeSessionInput, req, res);
     if (!input) return;
@@ -1705,6 +1718,7 @@ router.post(
 
 router.get(
   "/aime-local/bridge/status",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const sessions = await db
@@ -1726,6 +1740,7 @@ router.get(
 
 router.delete(
   "/aime-local/bridge/status",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     await db
@@ -1738,6 +1753,7 @@ router.delete(
 
 router.get(
   "/projects/:id/aime-local/folders",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -1755,6 +1771,7 @@ router.get(
 
 router.put(
   "/projects/:id/aime-local/folders",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -1779,6 +1796,7 @@ router.put(
 
 router.post(
   "/projects/:id/aime-local/scan",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -1823,6 +1841,7 @@ router.post(
 
 router.get(
   "/aime-local/bridge/scan-jobs/next",
+  localBridgeRateLimit,
   async (req, res): Promise<void> => {
     const sessionToken = String(req.query.sessionToken ?? "");
     const session = await activeBridgeSessionByToken(sessionToken);
@@ -1842,6 +1861,7 @@ router.get(
 
 router.post(
   "/aime-local/bridge/scan-jobs/:jobId/result",
+  localBridgeRateLimit,
   async (req, res): Promise<void> => {
     const input = parseBody(localScanResultInput, req as AuthedRequest, res);
     if (!input) return;
@@ -1885,6 +1905,7 @@ router.post(
 
 router.get(
   "/projects/:id/aime-local/scans/latest",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -1905,6 +1926,7 @@ router.get(
 
 router.get(
   "/projects/:id/aime-local/references",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -1922,6 +1944,7 @@ router.get(
 
 router.post(
   "/projects/:id/aime-local/references",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -1981,6 +2004,7 @@ router.post(
 
 router.patch(
   "/projects/:id/aime-local/references/:referenceId/state",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -2009,6 +2033,7 @@ router.patch(
 
 router.post(
   "/projects/:id/aime-local/references/:referenceId/import",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -2045,6 +2070,7 @@ router.post(
 
 router.get(
   "/projects/:id/aime-local/import-jobs/:jobId",
+  localWebRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -2063,6 +2089,7 @@ router.get(
 
 router.get(
   "/aime-local/bridge/import-jobs/next",
+  localBridgeRateLimit,
   async (req, res): Promise<void> => {
     const sessionToken = String(req.query.sessionToken ?? "");
     const session = await activeBridgeSessionByToken(sessionToken);
@@ -2100,6 +2127,7 @@ router.get(
 
 router.post(
   "/aime-local/bridge/import-jobs/:jobId/request-upload-url",
+  localBridgeRateLimit,
   async (req, res): Promise<void> => {
     const input = parseBody(bridgeImportFinalizeInput.omit({ objectPath: true, finalizeToken: true, localReferenceId: true }), req as AuthedRequest, res);
     if (!input) return;
@@ -2140,6 +2168,7 @@ router.post(
 
 router.post(
   "/aime-local/bridge/import-jobs/:jobId/finalize",
+  localBridgeRateLimit,
   async (req, res): Promise<void> => {
     const input = parseBody(bridgeImportFinalizeInput, req as AuthedRequest, res);
     if (!input) return;
