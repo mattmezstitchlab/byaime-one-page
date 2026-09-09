@@ -158,6 +158,14 @@ export function PortalControls({
   embedded?: boolean;
   openMeSignal?: number;
 }) {
+  type MeSection =
+    | "overview"
+    | "profile"
+    | "security"
+    | "privacy"
+    | "preferences"
+    | "worlds"
+    | "sensitive";
   const { signOut, openUserProfile } = useClerk();
   const { user } = useUser();
   const {
@@ -204,6 +212,7 @@ export function PortalControls({
     useState("");
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [meSection, setMeSection] = useState<MeSection>("overview");
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingSaveSeenRef = useRef(false);
   const pendingSaveSuccessNoticeRef = useRef<string | null>(null);
@@ -211,7 +220,10 @@ export function PortalControls({
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
   useEffect(() => {
-    const openMe = () => setPanel("me");
+    const openMe = () => {
+      setMeSection("overview");
+      setPanel("me");
+    };
     const openWorldSettings = () => setPanel("world-settings");
     const openCollaborationInvite = () => setPanel("invite");
     window.addEventListener("aime:open-me", openMe);
@@ -224,7 +236,10 @@ export function PortalControls({
     };
   }, []);
   useEffect(() => {
-    if (openMeSignal > 0) setPanel("me");
+    if (openMeSignal > 0) {
+      setMeSection("overview");
+      setPanel("me");
+    }
   }, [openMeSignal]);
   const api = async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, {
@@ -481,92 +496,189 @@ export function PortalControls({
 
       {panel === "me" && (
         <CenteredBlock eyebrow="ME" title="Votre compte personnel" description="Identité, accès et sécurité." onClose={() => setPanel(null)} size="lg" testId="settings-panel">
-          <div data-testid="me-panel">
-          <div className="flex flex-col md:flex-row gap-6 mb-10 items-start">
-             <div className="relative shrink-0">
-                <img src={user?.imageUrl} alt="" className="h-16 w-16 rounded-full border border-border bg-card object-cover" />
-             </div>
-             <div>
-                <h3 className="text-xl font-display font-light text-foreground">{user?.fullName || user?.firstName || "Utilisateur"}</h3>
-                <p className="text-sm text-foreground/50">{user?.primaryEmailAddress?.emailAddress}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-5 py-2 text-xs font-medium text-foreground transition hover:bg-foreground/5 hover:text-foreground">
-                     Gérer l'identité
-                  </button>
-                  <button onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-5 py-2 text-xs font-medium text-foreground transition hover:bg-foreground/5 hover:text-foreground">
-                     Sécurité
+          <div data-testid="me-panel" className="grid gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
+            <aside className="space-y-1 rounded-2xl border border-border bg-card p-2">
+              {[
+                ["overview", "Vue d’ensemble"],
+                ["profile", "Profil personnel"],
+                ["security", "Connexion et sécurité"],
+                ["privacy", "Confidentialité"],
+                ["preferences", "Préférences"],
+                ["worlds", "Mes Mondes"],
+                ["sensitive", "Zone sensible"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setMeSection(id as MeSection)}
+                  className={cn(
+                    "w-full rounded-xl px-3 py-2 text-left text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    meSection === id
+                      ? "bg-foreground text-background"
+                      : "text-foreground/70 hover:bg-foreground/5",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </aside>
+
+            <section className="min-w-0">
+              {meSection === "overview" && (
+                <div className="space-y-6">
+                  <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center">
+                    <img src={user?.imageUrl} alt="" className="h-14 w-14 rounded-full border border-border bg-background object-cover" />
+                    <div className="min-w-0">
+                      <p className="text-lg font-display font-light">{user?.fullName || user?.firstName || "Utilisateur"}</p>
+                      <p className="truncate text-sm text-foreground/55">{user?.primaryEmailAddress?.emailAddress}</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button type="button" onClick={() => setMeSection("profile")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Modifier mon profil</button>
+                    <button type="button" onClick={() => setMeSection("security")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Gérer ma sécurité</button>
+                    <button type="button" onClick={() => setMeSection("worlds")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Voir mes Mondes</button>
+                    <button type="button" onClick={() => setMeSection("sensitive")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Actions sensibles</button>
+                  </div>
+                  {projects.length === 0 && (
+                    <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">
+                      Aucun Monde pour le moment. Votre compte reste accessible.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {meSection === "profile" && (
+                <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
+                  <h4 className="text-sm font-medium">Profil personnel</h4>
+                  <div className="space-y-2 text-sm text-foreground/70">
+                    <p>Nom: {user?.fullName || user?.firstName || "Non renseigné"}</p>
+                    <p>E-mail principal: {user?.primaryEmailAddress?.emailAddress || "Non renseigné"}</p>
+                    <p>
+                      E-mail vérifié: {user?.primaryEmailAddress?.verification?.status === "verified" ? "Oui" : "Non"}
+                    </p>
+                    <p>
+                      Créé le: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "Indisponible"}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground/5">
+                    Modifier dans l’espace sécurisé
                   </button>
                 </div>
-             </div>
-          </div>
-
-          <div className="mb-10">
-            <h4 className="mb-4 text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">Méthodes de connexion</h4>
-            <div className="space-y-2">
-              {user?.externalAccounts.map(acc => (
-                 <div key={acc.id} className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 text-sm">
-                   <span className="capitalize">{acc.provider.replace("oauth_", "")}</span>
-                   <span className="text-[10px] uppercase tracking-wider text-emerald-500/90 font-medium bg-emerald-500/10 px-2 py-1 rounded">Connecté</span>
-                 </div>
-              ))}
-              {user?.externalAccounts.length === 0 && (
-                 <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 text-sm">
-                   <span>E-mail & Mot de passe</span>
-                   <span className="text-[10px] uppercase tracking-wider text-emerald-500/90 font-medium bg-emerald-500/10 px-2 py-1 rounded">Actif</span>
-                 </div>
               )}
-            </div>
-          </div>
 
-          <div className="mb-10">
-             <h4 className="mb-4 text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">Mondes accessibles</h4>
-             {projects.length > 0 && (
-               <select
-                 data-testid="active-project-select"
-                 value={project?.id ?? ""}
-                 onChange={(event) => void selectProject(event.target.value)}
-                 className="mb-3 w-full rounded-2xl border border-border bg-card px-5 py-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-               >
-                 {projects.map((item) => (
-                   <option key={item.id} value={item.id}>
-                     {item.title} · {item.role}
-                   </option>
-                 ))}
-               </select>
-             )}
-             <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 hide-scrollbar">
-                {projects.map((item) => (
-                   <button
-                     key={item.id}
-                     onClick={() => { selectProject(item.id); setPanel(null); }}
-                     className={cn("flex w-full items-center justify-between rounded-2xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", item.id === project?.id ? "border-brand-accent/30 bg-brand-accent/5" : "border-border bg-card hover:border-foreground/20 hover:bg-foreground/[.02]")}
-                   >
-                      <div>
-                         <div className={cn("text-sm font-medium mb-1", item.id === project?.id ? "text-brand-accent" : "text-foreground")}>{item.title}</div>
-                         <div className="text-[10px] uppercase tracking-[.15em] text-foreground/50">{item.role}</div>
+              {meSection === "security" && (
+                <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
+                  <h4 className="text-sm font-medium">Connexion et sécurité</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
+                      <span>Adresse e-mail principale</span>
+                      <span className="text-xs text-foreground/55">{user?.primaryEmailAddress?.verification?.status === "verified" ? "Vérifiée" : "À vérifier"}</span>
+                    </div>
+                    {user?.externalAccounts.map((account) => (
+                      <div key={account.id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
+                        <span className="capitalize">{account.provider.replace("oauth_", "")}</span>
+                        <span className="text-xs text-emerald-500">Connecté</span>
                       </div>
-                      {item.id === project?.id && <div className="h-2.5 w-2.5 rounded-full bg-brand-accent shadow-[0_0_12px_hsl(var(--brand-accent)/0.7)]" />}
-                   </button>
-                ))}
-              {projects.length === 0 && (
-                <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">
-                  Aucun Monde pour le moment. Votre compte reste accessible.
-                </p>
+                    ))}
+                    {user?.externalAccounts.length === 0 && (
+                      <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
+                        <span>E-mail & mot de passe</span>
+                        <span className="text-xs text-foreground/55">Actif</span>
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground/5">
+                    Ouvrir les actions avancées de sécurité
+                  </button>
+                </div>
               )}
-             </div>
-          </div>
 
-          <div className="space-y-3 border-t border-border pt-8">
-             <a href="/api/account/export" className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-border">
-                <Download className="h-4 w-4" /> Exporter mes données personnelles
-             </a>
-             <button onClick={() => signOut({ redirectUrl: basePath })} className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-border">
-                <LogOut className="h-4 w-4" /> Se déconnecter
-             </button>
-             <button onClick={() => setPanel("delete-account")} className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-destructive/80 transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-destructive/20">
-                <Trash2 className="h-4 w-4" /> Supprimer mon compte
-             </button>
-          </div>
+              {meSection === "privacy" && (
+                <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
+                  <h4 className="text-sm font-medium">Confidentialité et visibilité</h4>
+                  <p className="text-sm text-foreground/65">
+                    Le profil de compte reste privé. La publication publique du Monde se règle dans « Réglages du Monde ».
+                  </p>
+                  <div className="rounded-xl border border-border px-3 py-2 text-sm">
+                    Profil public du Monde actif: {project?.publicProfile?.published ? "activé" : "désactivé"}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href="/confidentialite" className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
+                      Politique de confidentialité
+                    </Link>
+                    <a href="/api/account/export" className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
+                      Exporter mes données
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {meSection === "preferences" && (
+                <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
+                  <h4 className="text-sm font-medium">Préférences</h4>
+                  <p className="text-sm text-foreground/65">
+                    Les préférences globales (ex: apparence claire/sombre) restent accessibles depuis le menu principal.
+                  </p>
+                  <p className="text-xs text-foreground/50">
+                    Langue, fuseau horaire et notifications avancées seront intégrés dans cette section.
+                  </p>
+                </div>
+              )}
+
+              {meSection === "worlds" && (
+                <div className="space-y-4">
+                  <h4 className="text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">Mondes accessibles</h4>
+                  {projects.length > 0 && (
+                    <select
+                      data-testid="active-project-select"
+                      value={project?.id ?? ""}
+                      onChange={(event) => void selectProject(event.target.value)}
+                      className="w-full rounded-2xl border border-border bg-card px-5 py-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {projects.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.title} · {item.role}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 hide-scrollbar">
+                    {projects.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => { selectProject(item.id); setPanel(null); }}
+                        className={cn("flex w-full items-center justify-between rounded-2xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", item.id === project?.id ? "border-brand-accent/30 bg-brand-accent/5" : "border-border bg-card hover:border-foreground/20 hover:bg-foreground/[.02]")}
+                      >
+                        <div>
+                          <div className={cn("mb-1 text-sm font-medium", item.id === project?.id ? "text-brand-accent" : "text-foreground")}>{item.title}</div>
+                          <div className="text-[10px] uppercase tracking-[.15em] text-foreground/50">{item.role}</div>
+                        </div>
+                        {item.id === project?.id && <div className="h-2.5 w-2.5 rounded-full bg-brand-accent shadow-[0_0_12px_hsl(var(--brand-accent)/0.7)]" />}
+                      </button>
+                    ))}
+                    {projects.length === 0 && (
+                      <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">
+                        Aucun Monde pour le moment. Votre compte reste accessible.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {meSection === "sensitive" && (
+                <div className="space-y-3 border-t border-border pt-4">
+                  <a href="/api/account/export" className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-border">
+                    <Download className="h-4 w-4" /> Exporter mes données personnelles
+                  </a>
+                  <button onClick={() => signOut({ redirectUrl: basePath })} className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-border">
+                    <LogOut className="h-4 w-4" /> Se déconnecter
+                  </button>
+                  <button onClick={() => setPanel("delete-account")} className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-destructive/80 transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-destructive/20">
+                    <Trash2 className="h-4 w-4" /> Supprimer mon compte
+                  </button>
+                </div>
+              )}
+            </section>
           </div>
         </CenteredBlock>
       )}
