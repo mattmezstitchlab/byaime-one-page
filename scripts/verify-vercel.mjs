@@ -92,7 +92,8 @@ async function assertEntrypoint(relativePath) {
 
 async function assertEntrypointLoads(relativePath) {
   const originalDatabaseUrl = process.env.DATABASE_URL;
-  process.env.DATABASE_URL = originalDatabaseUrl || "******127.0.0.1:5432/byaime";
+  process.env.DATABASE_URL =
+    originalDatabaseUrl || "postgres://localhost:5432/byaime";
   try {
     const moduleUrl = `${pathToFileURL(path.join(rootDir, relativePath)).href}?t=${Date.now()}`;
     const loaded = await import(moduleUrl);
