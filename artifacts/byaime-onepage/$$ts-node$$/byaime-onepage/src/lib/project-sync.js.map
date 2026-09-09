@@ -1,1 +1,0 @@
-{"version":3,"file":"project-sync.js","sourceRoot":"","sources":["../../../../src/lib/project-sync.ts"],"names":[],"mappings":"AAAA,MAAM,UAAU,iBAAiB,CAAC,eAAuB,EAAE,iBAAyB;IAClF,OAAO,eAAe,KAAK,iBAAiB,CAAC;AAC/C,CAAC","sourcesContent":["export function isCurrentRevision(currentRevision: number, completedRevision: number) {\n  return currentRevision === completedRevision;\n}"]}
