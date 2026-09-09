@@ -6,19 +6,21 @@ import {
 } from "./private-navigation";
 
 describe("private navigation", () => {
-  it("keeps the three global destinations distinct", () => {
+  it("keeps the global destinations distinct", () => {
     expect(PRIVATE_PRIMARY_NAVIGATION.map(item => item.label)).toEqual([
       "Profil",
       "Monde",
       "Carte",
+      "Laboratoire",
     ]);
-    expect(new Set(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).size).toBe(3);
+    expect(new Set(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).size).toBe(4);
   });
 
   it("uses the Profile as the safe private home", () => {
     expect(getPrivateDestinationId("/profile")).toBe("profile");
     expect(getPrivateDestinationId("/user-portal")).toBe("world");
     expect(getPrivateDestinationId("/network")).toBe("network");
+    expect(getPrivateDestinationId("/laboratoire")).toBe("laboratory");
     expect(getPrivateDestinationId("/")).toBe("profile");
   });
 

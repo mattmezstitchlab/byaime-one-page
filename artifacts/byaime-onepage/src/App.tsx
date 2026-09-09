@@ -10,6 +10,7 @@ import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
 import { NetworkPage } from '@/pages/Network';
 import { PublicProfilePage } from '@/pages/PublicProfile';
+import { LaboratoryPage } from '@/pages/Laboratory';
 import { LeMondeAimePage } from '@/pages/LeMondeAime';
 import { LegalPage } from '@/pages/Legal';
 import { GuidesPage } from '@/pages/Guides';
@@ -363,6 +364,7 @@ function Routes() {
     <Route path="/user-portal">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
     <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
     <Route path="/network">{() => <PrivateRoute><NetworkPage /></PrivateRoute>}</Route>
+    <Route path="/laboratoire">{() => <PrivateRoute><LaboratoryPage /></PrivateRoute>}</Route>
     <Route path="/sign-in/*?">{() => <AuthPage />}</Route>
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />

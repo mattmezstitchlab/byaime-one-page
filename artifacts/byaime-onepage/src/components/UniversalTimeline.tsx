@@ -4,6 +4,7 @@ import { Link2, MapPin, Plus, X, Clock3, CalendarDays, Undo2, Waves } from "luci
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
+import { openLaboratory, type WorldFocusRequest } from "@/lib/laboratory";
 import { useProject } from "@/store/project-store";
 import { analyzeEventImpact, applyPropagationPlan, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
 import { cn } from "@/lib/utils";
@@ -180,12 +181,21 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
 }
 
 export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
-  const { project, addEntity, updateEntity, updateProject, removeEntity, canEdit } = useProject();
+  const { project, addEntity, updateEntity, updateProject, removeEntity, canEdit, currentRole } = useProject();
   const [selected, setSelected] = useState<string>();
   const [undoTimeline, setUndoTimeline] = useState<TimelineEvent[]>();
 
   if (!project) return null;
   const event = project.timeline.find(item => item.id === selected);
+
+  useEffect(() => {
+    const listener = (raw: Event) => {
+      const request = (raw as CustomEvent<WorldFocusRequest>).detail;
+      if (request?.momentId) setSelected(request.momentId);
+    };
+    window.addEventListener("aime:focus-world", listener);
+    return () => window.removeEventListener("aime:focus-world", listener);
+  }, []);
 
   const add = () => {
     if (!canEdit) return;
@@ -236,6 +246,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
         <EventDrawer
           event={event}
           project={project}
+          currentRole={currentRole}
           onClose={() => setSelected(undefined)}
           onEdit={updates => updateEntity("timeline", event.id, updates)}
           onApplyRipple={(plan, dependentIds) => {
@@ -258,7 +269,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
   );
 }
 
-function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onApplyRipple: (plan: PropagationPlan, dependentIds: string[]) => void; onDelete: () => void; canEdit: boolean }) {
+function EventDrawer({ event, project, currentRole, onClose, onEdit, onApplyRipple, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; currentRole: ReturnType<typeof useProject>["currentRole"]; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onApplyRipple: (plan: PropagationPlan, dependentIds: string[]) => void; onDelete: () => void; canEdit: boolean }) {
   const impact = analyzeEventImpact(project, event.id, {});
   const [pendingTime, setPendingTime] = useState(event.time);
   const [selectedDependents, setSelectedDependents] = useState<string[]>([]);
@@ -275,6 +286,11 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
         <div className="space-y-8">
           <div>
             <input disabled={!canEdit} className={cn(input, "text-2xl font-display font-medium")} value={event.title} onChange={e => onEdit({ title: e.target.value })} placeholder="Titre de l'événement" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => openLaboratory({ type: "remarque", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "timeline-event-drawer", phase: event.phase, view: "chronological", momentId: event.id, momentTitle: event.title, narrative: "Moment ouvert depuis la Timeline universelle." } })} className="rounded-full border border-foreground/15 px-3 py-2 text-[10px] uppercase tracking-[.14em] text-foreground/65 hover:bg-foreground/5">
+              Ouvrir le Laboratoire
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-6">

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import {
+  ArrowRight,
   CloudAlert,
   CloudCheck,
   CloudOff,
   Download,
+  FlaskConical,
   LoaderCircle,
   PenLine,
   Upload,
@@ -12,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useProject } from "@/store/project-store";
+import { focusWorld, openLaboratory } from "@/lib/laboratory";
 import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
@@ -90,11 +93,43 @@ function ReviewCard({
   );
 }
 
-function ReviewLine({ label, meta }: { label: string; meta: string }) {
+function ReviewLine({
+  label,
+  meta,
+  action,
+  secondaryAction,
+}: {
+  label: string;
+  meta: string;
+  action?: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
+}) {
   return (
-    <div className="flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors hover:bg-foreground/5">
-      <span className="truncate text-foreground/80">{label}</span>
-      <span className="ml-4 shrink-0 text-xs text-foreground/40">{meta}</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-foreground/5">
+      <div className="min-w-0 flex-1">
+        <span className="truncate text-foreground/80">{label}</span>
+        <span className="mt-1 block text-xs text-foreground/40">{meta}</span>
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        {action && (
+          <button
+            type="button"
+            onClick={action.onClick}
+            className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-medium text-background"
+          >
+            {action.label} <ArrowRight className="h-3 w-3" />
+          </button>
+        )}
+        {secondaryAction && (
+          <button
+            type="button"
+            onClick={secondaryAction.onClick}
+            className="inline-flex items-center gap-1 rounded-full border border-foreground/15 px-3 py-1.5 text-[10px] text-foreground/70"
+          >
+            <FlaskConical className="h-3 w-3" /> {secondaryAction.label}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -382,7 +417,17 @@ export function PortalControls({
     audit.dangling.length +
     audit.manualMusic.length +
     (syncStatus === "conflict" || syncStatus === "error" ? 1 : 0);
-  const isProfileRoute = window.location.pathname.endsWith("/profile");
+  const currentPath = typeof window === "undefined" ? "/profile" : window.location.pathname;
+  const isProfileRoute = currentPath.endsWith("/profile");
+  const openWorldContext = (request: Parameters<typeof focusWorld>[0]) => {
+    setPanel(null);
+    focusWorld({ route: "/user-portal", ...request });
+    if (typeof window !== "undefined" && !currentPath.startsWith("/user-portal")) {
+      const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+      window.history.pushState({}, "", `${basePath}/user-portal`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  };
 
   return (
     <>
@@ -566,14 +611,71 @@ export function PortalControls({
             </p>
           )}
           {(audit.isolated.length > 0 ||
+            syncStatus === "conflict" ||
+            syncStatus === "error" ||
             audit.dangling.length > 0 ||
             audit.manualMusic.length > 0) && (
             <div className="mt-6 space-y-1 border-t border-border pt-5">
+              {(syncStatus === "conflict" || syncStatus === "error") && (
+                <ReviewLine
+                  label={syncStatus === "conflict" ? "Une version du Monde demande vérification" : "La synchronisation a rencontré un problème"}
+                  meta={syncError || labels[syncStatus]}
+                  action={{
+                    label: "Réglages du Monde",
+                    onClick: () => {
+                      setPanel("world-settings");
+                    },
+                  }}
+                  secondaryAction={{
+                    label: "En parler au Laboratoire",
+                    onClick: () => openLaboratory({
+                      type: "bug",
+                      context: {
+                        projectId: project.id,
+                        role: currentRole,
+                        route: isProfileRoute ? "profile" : currentPath.startsWith("/network") ? "network" : "world",
+                        path: currentPath,
+                        source: "universal-review-sync",
+                        syncStatus,
+                        narrative: syncStatus === "conflict"
+                          ? "Conflit de sauvegarde détecté dans le Contrôle universel."
+                          : "Erreur de synchronisation rencontrée dans le Contrôle universel.",
+                      },
+                    }),
+                  }}
+                />
+              )}
               {audit.isolated.slice(0, 4).map((entity) => (
                 <ReviewLine
                   key={`isolated:${entity.kind}:${entity.id}`}
                   label={entity.label}
                   meta={`${entity.kind} · sans Moment`}
+                  action={{
+                    label: "Voir le graphe",
+                    onClick: () => openWorldContext({
+                      auditView: "isolated",
+                      entityKind: entity.kind,
+                      entityId: entity.id,
+                    }),
+                  }}
+                  secondaryAction={{
+                    label: "En parler au Laboratoire",
+                    onClick: () => openLaboratory({
+                      type: "remarque",
+                      context: {
+                        projectId: project.id,
+                        role: currentRole,
+                        route: "world",
+                        path: "/user-portal",
+                        source: "universal-review-isolated",
+                        auditView: "isolated",
+                        entityKind: entity.kind,
+                        entityId: entity.id,
+                        entityLabel: entity.label,
+                        narrative: "Élément sans lien détecté par AIME dans le graphe du Monde.",
+                      },
+                    }),
+                  }}
                 />
               ))}
               {audit.dangling.slice(0, 4).map(({ eventId, relation }) => (
@@ -584,6 +686,34 @@ export function PortalControls({
                     "Moment introuvable"
                   }
                   meta={`${relation.kind} · référence absente`}
+                  action={{
+                    label: "Voir le lien",
+                    onClick: () => openWorldContext({
+                      auditView: "dangling",
+                      momentId: eventId,
+                      entityKind: relation.kind,
+                      entityId: relation.id,
+                    }),
+                  }}
+                  secondaryAction={{
+                    label: "En parler au Laboratoire",
+                    onClick: () => openLaboratory({
+                      type: "remarque",
+                      context: {
+                        projectId: project.id,
+                        role: currentRole,
+                        route: "world",
+                        path: "/user-portal",
+                        source: "universal-review-dangling",
+                        auditView: "dangling",
+                        momentId: eventId,
+                        momentTitle: timelineIndex.events.get(eventId)?.title,
+                        entityKind: relation.kind,
+                        entityId: relation.id,
+                        narrative: "Lien incomplet détecté entre un Moment et une référence absente.",
+                      },
+                    }),
+                  }}
                 />
               ))}
               {audit.manualMusic.slice(0, 4).map((track) => (
@@ -591,6 +721,35 @@ export function PortalControls({
                   key={`music:${track.id}`}
                   label={track.title}
                   meta={`${track.artist} · ajouté à la main`}
+                  action={{
+                    label: "Ouvrir Musique",
+                    onClick: () => openWorldContext({
+                      panel: "music",
+                      auditView: "music",
+                      entityKind: "music",
+                      entityId: track.id,
+                      musicTrackId: track.id,
+                    }),
+                  }}
+                  secondaryAction={{
+                    label: "En parler au Laboratoire",
+                    onClick: () => openLaboratory({
+                      type: "suggestion",
+                      context: {
+                        projectId: project.id,
+                        role: currentRole,
+                        route: "world",
+                        path: "/user-portal",
+                        source: "universal-review-music",
+                        panel: "music",
+                        auditView: "music",
+                        entityKind: "music",
+                        entityId: track.id,
+                        entityLabel: track.title,
+                        narrative: "Morceau manuel à reconnaître ou conserver dans le module Musique.",
+                      },
+                    }),
+                  }}
                 />
               ))}
             </div>
