@@ -7,6 +7,8 @@ import {
   LABORATORY_FEEDBACK_TYPES,
   cleanLaboratoryContext,
   consumeLaboratoryDraft,
+  describeLaboratoryContext,
+  describeLaboratoryJourney,
   laboratoryTypeLabels,
   openLaboratory,
   type LaboratoryContext,
@@ -109,8 +111,8 @@ export function LaboratoryCenter() {
   return open ? (
     <CenteredBlock
       eyebrow="Laboratoire"
-      title="Raconter ce que vous venez de vivre"
-      description="Le Laboratoire reçoit vos retours volontaires. Il ne remplace pas « À vérifier », qui reste la boîte d’anomalies détectées par AIME."
+      title="Vous observez quelque chose dans AIME"
+      description="Le Laboratoire recueille vos retours volontaires. « À vérifier » reste séparé et réservé aux anomalies ou décisions détectées par AIME."
       onClose={() => setOpen(false)}
       size="lg"
     >
@@ -124,12 +126,12 @@ export function LaboratoryCenter() {
           <div className="flex items-start gap-3">
             <FlaskConical className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              Vous racontez une expérience. AIME ajoute seulement un contexte léger déjà disponible pour aider l’équipe à comprendre.
+              Vous décrivez ce que vous venez de remarquer. AIME ajoute seulement un contexte léger déjà disponible pour aider à comprendre, sans reformuler votre parole.
             </p>
           </div>
         </div>
         <label className="block">
-          <span className="mb-2 block text-[10px] uppercase tracking-[.24em] text-foreground/40">Type de retour</span>
+          <span className="mb-2 block text-[10px] uppercase tracking-[.24em] text-foreground/40">Ce que vous souhaitez partager</span>
           <select
             value={type}
             onChange={(event) => setType(event.target.value as LaboratoryFeedbackType)}
@@ -143,27 +145,35 @@ export function LaboratoryCenter() {
           </select>
         </label>
         <label className="block">
-          <span className="mb-2 block text-[10px] uppercase tracking-[.24em] text-foreground/40">Votre retour</span>
+          <span className="mb-2 block text-[10px] uppercase tracking-[.24em] text-foreground/40">Vous observez</span>
           <textarea
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             rows={6}
-            placeholder="Décrivez simplement ce que vous venez de remarquer dans AIME."
+            placeholder="Décrivez simplement ce que vous venez de vivre, remarquer ou ne pas comprendre."
             className="w-full rounded-3xl border border-border bg-card px-4 py-4 text-sm outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/20"
           />
         </label>
         <div className="rounded-2xl border border-foreground/10 bg-card p-4">
-          <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Contexte associé automatiquement</p>
+          <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">AIME a détecté</p>
+          {describeLaboratoryJourney(context) && (
+            <p className="mt-3 text-sm text-foreground/70">
+              {describeLaboratoryJourney(context)}
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-foreground/55">
-            {Object.entries(context).map(([key, value]) => (
-              <span key={key} className="rounded-full border border-foreground/10 bg-foreground/[.03] px-3 py-1">
-                {key} · {String(value)}
+            {describeLaboratoryContext(context).map((line) => (
+              <span key={line} className="rounded-full border border-foreground/10 bg-foreground/[.03] px-3 py-1">
+                {line}
               </span>
             ))}
-            {Object.keys(context).length === 0 && (
+            {describeLaboratoryContext(context).length === 0 && (
               <span className="text-foreground/35">Aucun contexte léger disponible.</span>
             )}
           </div>
+          <p className="mt-3 text-xs text-foreground/40">
+            Le contexte affiché aide à situer votre retour, sans rejouer toute votre navigation.
+          </p>
         </div>
         {error && (
           <p className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive/85">
@@ -176,7 +186,7 @@ export function LaboratoryCenter() {
               <MessageCircleHeart className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
               <div>
                 <p className="font-medium text-foreground">{success.labId} enregistré</p>
-                <p className="mt-1">Vous pourrez retrouver ce retour dans votre page Laboratoire et suivre son statut.</p>
+                <p className="mt-1">Vous pourrez retrouver cette contribution dans votre page Laboratoire et voir son évolution.</p>
               </div>
             </div>
           </div>
@@ -188,14 +198,14 @@ export function LaboratoryCenter() {
             onClick={() => void submit()}
             className="inline-flex rounded-full bg-foreground px-4 py-2.5 text-xs font-medium text-background disabled:opacity-40"
           >
-            {busy ? "Enregistrement…" : "Envoyer au Laboratoire"}
+            {busy ? "Enregistrement…" : "Partager au Laboratoire"}
           </button>
           <button
             type="button"
             onClick={() => navigate("/laboratoire")}
             className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-4 py-2.5 text-xs text-foreground/70 hover:bg-foreground/5"
           >
-            <Send className="h-3.5 w-3.5" /> Ouvrir la page Laboratoire
+            <Send className="h-3.5 w-3.5" /> Voir mon parcours
           </button>
           <button
             type="button"

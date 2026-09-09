@@ -73,22 +73,30 @@ const LAB_DRAFT_KEY = "aime:laboratory:pending-draft";
 const WORLD_FOCUS_KEY = "aime:world-focus";
 
 export const laboratoryTypeLabels: Record<LaboratoryFeedbackType, string> = {
-  bug: "Bug",
-  remarque: "Remarque",
-  suggestion: "Suggestion",
-  idee: "Idée",
-  question: "Je ne comprends pas",
-  positif: "Retour positif",
-  ux: "Amélioration UX",
-  contenu_donnees: "Contenu ou données",
+  bug: "⚠️ Problème",
+  remarque: "💬 Remarque",
+  suggestion: "✨ Suggestion",
+  idee: "💡 Idée",
+  question: "❓ Je ne comprends pas",
+  positif: "❤️ Ce que j’aime",
+  ux: "🪄 Expérience",
+  contenu_donnees: "🧩 Contenu ou données",
 };
 
 export const laboratoryStatusLabels: Record<LaboratoryFeedbackStatus, string> = {
-  nouveau: "Nouveau",
+  nouveau: "Reçu",
   en_cours: "En cours",
-  a_verifier: "À vérifier",
+  a_verifier: "À revérifier",
   resolu: "Résolu",
   archive: "Archivé",
+};
+
+export const laboratoryStatusDescriptions: Record<LaboratoryFeedbackStatus, string> = {
+  nouveau: "Votre retour vient d’entrer dans la boucle d’amélioration.",
+  en_cours: "AIME et l’équipe sont en train de le comprendre.",
+  a_verifier: "Une évolution existe ou un point doit être revu dans le contexte réel.",
+  resolu: "Une amélioration a été apportée ou le point a trouvé sa réponse.",
+  archive: "Ce retour reste conservé comme trace utile du parcours.",
 };
 
 export function cleanLaboratoryContext(
@@ -162,13 +170,83 @@ export function focusWorld(request: WorldFocusRequest): void {
 }
 
 export function describeLaboratoryContext(context: LaboratoryContext): string[] {
+  const routeLabel = context.route === "world"
+    ? "Monde"
+    : context.route === "profile"
+      ? "Profil"
+      : context.route === "network"
+        ? "Carte"
+        : context.route === "laboratory"
+          ? "Laboratoire"
+          : undefined;
+  const phaseLabel = context.phase === "avant"
+    ? "Avant"
+    : context.phase === "pendant"
+      ? "Pendant"
+      : context.phase === "apres"
+        ? "Après"
+        : undefined;
+  const viewLabel = context.view === "chronological"
+    ? "Timeline"
+    : context.view === "public-info"
+      ? "Infos visibles"
+      : context.view === "music"
+        ? "Musique"
+        : context.view === "person"
+          ? "Personnes"
+          : context.view === "provider"
+            ? "Professionnels"
+            : context.view === "day-of"
+              ? "Jour J"
+              : context.view === "collaborative"
+                ? "Collaboration"
+                : context.view === "memories"
+                  ? "Souvenirs"
+                  : context.view === "logistics"
+                    ? "Logistique"
+                    : undefined;
+  const panelLabel = context.panel === "music"
+    ? "Module Musique"
+    : context.panel === "documents"
+      ? "Module Documents"
+      : context.panel === "messages"
+        ? "Module Messages"
+        : context.panel === "contributions"
+          ? "Module Contributions"
+          : context.panel === "world-settings"
+            ? "Réglages du Monde"
+            : context.panel
+              ? `Panneau ${context.panel}`
+              : undefined;
+  const entityLabel = context.entityLabel
+    ? context.entityLabel
+    : context.entityKind === "music"
+      ? "Morceau concerné"
+      : context.entityKind === "provider"
+        ? "Professionnel concerné"
+        : context.entityKind === "guest"
+          ? "Personne concernée"
+          : undefined;
   return [
-    context.route === "world" ? "Monde" : context.route === "profile" ? "Profil" : context.route === "network" ? "Carte" : context.route === "laboratory" ? "Laboratoire" : undefined,
-    context.phase ? `Phase ${context.phase}` : undefined,
-    context.view ? `Vue ${context.view}` : undefined,
-    context.panel ? `Panneau ${context.panel}` : undefined,
+    routeLabel,
+    phaseLabel,
+    viewLabel,
+    panelLabel,
     context.momentTitle ? `Moment ${context.momentTitle}` : undefined,
-    context.entityLabel ? `${context.entityKind || "Élément"} · ${context.entityLabel}` : undefined,
+    entityLabel,
     context.narrative,
   ].filter(Boolean) as string[];
+}
+
+export function describeLaboratoryJourney(context: LaboratoryContext): string | undefined {
+  const segments = describeLaboratoryContext({
+    route: context.route,
+    phase: context.phase,
+    view: context.view,
+    panel: context.panel,
+    momentTitle: context.momentTitle,
+    entityLabel: context.entityLabel,
+    entityKind: context.entityKind,
+  }).filter((item) => item !== context.narrative);
+  return segments.length ? segments.join(" → ") : undefined;
 }

@@ -78,7 +78,7 @@ function DefaultFallback({ error, resetError }: ErrorFallbackProps) {
           }}
           className="mt-3 rounded border border-foreground/15 px-4 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          Ouvrir le Laboratoire
+          Raconter ce problème au Laboratoire
         </button>
       </div>
     </div>

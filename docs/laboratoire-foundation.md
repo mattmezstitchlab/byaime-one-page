@@ -3,7 +3,7 @@
 ## Distinction produit
 
 - **À vérifier / Contrôle universel** : anomalies et décisions détectées par AIME.
-- **Laboratoire** : retours volontaires envoyés par un humain pendant son expérience.
+- **Laboratoire** : retours volontaires envoyés par un humain pour raconter ce qu’il vient de vivre, remarquer ou ne pas comprendre.
 
 Les deux surfaces restent séparées.
 
@@ -67,6 +67,11 @@ AIME ne stocke pas de replay de navigation ni de télémétrie intrusive.
   - filtrer par statut
   - mettre à jour le statut
   - ouvrir le contexte associé
+
+L’interface présente ces retours comme un parcours de contribution, avec une séparation explicite entre :
+
+- **vous observez** : ce que la personne écrit volontairement
+- **AIME a détecté** : le contexte léger déjà disponible pour situer ce retour
 
 ## API minimale
 

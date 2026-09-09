@@ -627,7 +627,7 @@ export function PortalControls({
                     },
                   }}
                   secondaryAction={{
-                    label: "Laboratoire",
+                    label: "En parler au Laboratoire",
                     onClick: () => openLaboratory({
                       type: "bug",
                       context: {
@@ -659,7 +659,7 @@ export function PortalControls({
                     }),
                   }}
                   secondaryAction={{
-                    label: "Laboratoire",
+                    label: "En parler au Laboratoire",
                     onClick: () => openLaboratory({
                       type: "remarque",
                       context: {
@@ -696,7 +696,7 @@ export function PortalControls({
                     }),
                   }}
                   secondaryAction={{
-                    label: "Laboratoire",
+                    label: "En parler au Laboratoire",
                     onClick: () => openLaboratory({
                       type: "remarque",
                       context: {
@@ -732,7 +732,7 @@ export function PortalControls({
                     }),
                   }}
                   secondaryAction={{
-                    label: "Laboratoire",
+                    label: "En parler au Laboratoire",
                     onClick: () => openLaboratory({
                       type: "suggestion",
                       context: {

@@ -4,6 +4,8 @@ import { useLocation } from "wouter";
 import { useProject } from "@/store/project-store";
 import {
   describeLaboratoryContext,
+  describeLaboratoryJourney,
+  laboratoryStatusDescriptions,
   focusWorld,
   laboratoryStatusLabels,
   laboratoryTypeLabels,
@@ -100,9 +102,9 @@ export function LaboratoryPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-2xl">
             <p className="text-[10px] uppercase tracking-[.28em] text-foreground/38">Laboratoire</p>
-            <h1 className="mt-4 font-display text-4xl font-light md:text-5xl">Vos retours volontaires, distincts de « À vérifier »</h1>
+            <h1 className="mt-4 font-display text-4xl font-light md:text-5xl">Votre parcours de contribution</h1>
             <p className="mt-4 text-sm font-light leading-6 text-foreground/55">
-              Ici, vous racontez ce que vous vivez dans AIME. « À vérifier » reste réservé aux anomalies et décisions détectées par AIME.
+              Ici, vous retrouvez ce que vous avez choisi de partager à AIME. « À vérifier » reste réservé aux anomalies et décisions détectées par AIME.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -126,7 +128,7 @@ export function LaboratoryPage() {
         <div className="mt-8 rounded-3xl border border-foreground/10 bg-card/70 p-5">
           <div className="flex flex-wrap gap-3">
             <label className="text-xs text-foreground/50">
-              Type
+              Ce que vous partagez
               <select
                 value={typeFilter}
                 onChange={(event) => setTypeFilter(event.target.value as "" | LaboratoryFeedbackType)}
@@ -139,7 +141,7 @@ export function LaboratoryPage() {
               </select>
             </label>
             <label className="text-xs text-foreground/50">
-              Statut
+              Où en est l’amélioration
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as "" | LaboratoryFeedbackStatus)}
@@ -153,7 +155,7 @@ export function LaboratoryPage() {
             </label>
           </div>
           <p className="mt-4 text-xs text-foreground/40">
-            {canManage ? "Vue de consultation interne du Monde." : "Vous retrouvez ici vos propres contributions au Laboratoire."}
+            {canManage ? "Vue interne des retours volontaires du Monde." : "Vous retrouvez ici la trace de vos contributions au Laboratoire."}
           </p>
         </div>
 
@@ -167,12 +169,13 @@ export function LaboratoryPage() {
           <p className="mt-10 text-sm text-foreground/45">Chargement du Laboratoire…</p>
         ) : visibleItems.length === 0 ? (
           <div className="mt-10 rounded-3xl border border-dashed border-foreground/12 px-6 py-12 text-center">
-            <p className="text-sm text-foreground/50">Aucun retour n’est encore visible avec ces filtres.</p>
+            <p className="text-sm text-foreground/50">Aucune contribution n’est visible avec ces filtres pour le moment.</p>
           </div>
         ) : (
           <div className="mt-10 space-y-4">
             {visibleItems.map((item) => {
               const contextLines = describeLaboratoryContext(item.context);
+              const journey = describeLaboratoryJourney(item.context);
               return (
                 <article key={item.id} className="rounded-3xl border border-foreground/10 bg-card/70 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -205,7 +208,7 @@ export function LaboratoryPage() {
                         }}
                         className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/70 hover:bg-foreground/5"
                       >
-                        Ouvrir le contexte <ArrowRight className="h-3.5 w-3.5" />
+                        Revenir à ce contexte <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                       {canManage && (
                         <select
@@ -220,15 +223,33 @@ export function LaboratoryPage() {
                       )}
                     </div>
                   </div>
-                  {contextLines.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-foreground/45">
-                      {contextLines.map((line) => (
-                        <span key={line} className="rounded-full border border-foreground/10 bg-foreground/[.03] px-3 py-1">
-                          {line}
-                        </span>
-                      ))}
+                  <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                    <div className="rounded-2xl border border-foreground/8 bg-background/50 p-4">
+                    <p className="text-[10px] uppercase tracking-[.22em] text-foreground/38">Vous avez observé</p>
+                    <p className="mt-3 text-sm leading-6 text-foreground/80">{item.message}</p>
                     </div>
-                  )}
+                    <div className="rounded-2xl border border-foreground/8 bg-background/50 p-4">
+                    <p className="text-[10px] uppercase tracking-[.22em] text-foreground/38">AIME a déjà le contexte</p>
+                    {journey && (
+                      <p className="mt-3 text-sm leading-6 text-foreground/72">{journey}</p>
+                    )}
+                    {contextLines.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-foreground/45">
+                        {contextLines.map((line) => (
+                          <span key={line} className="rounded-full border border-foreground/10 bg-foreground/[.03] px-3 py-1">
+                            {line}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {!journey && contextLines.length === 0 && (
+                      <p className="mt-3 text-sm text-foreground/45">Aucun contexte léger n’était disponible pour ce retour.</p>
+                    )}
+                    </div>
+                  </div>
+                  <p className="mt-4 text-xs text-foreground/45">
+                    {laboratoryStatusDescriptions[item.status]}
+                  </p>
                 </article>
               );
             })}
