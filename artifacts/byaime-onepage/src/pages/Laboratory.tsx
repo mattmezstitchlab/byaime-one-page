@@ -185,7 +185,6 @@ export function LaboratoryPage() {
                         <span className="rounded-full border border-foreground/10 px-3 py-1 text-[10px] uppercase tracking-[.18em] text-foreground/50">{laboratoryTypeLabels[item.type]}</span>
                         <span className="rounded-full border border-foreground/10 px-3 py-1 text-[10px] uppercase tracking-[.18em] text-foreground/50">{laboratoryStatusLabels[item.status]}</span>
                       </div>
-                      <p className="mt-4 text-sm leading-6 text-foreground/80">{item.message}</p>
                       <p className="mt-3 text-xs text-foreground/38">
                         {new Date(item.createdAt).toLocaleString("fr-FR")} · {item.authoredByCurrentUser ? "vous" : "membre du Monde"}
                       </p>
