@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useState, useRef } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -53,6 +53,97 @@ const SECTIONS = [
   { id: "archives", label: "Archives", x: 4000, icon: Folder },
   { id: "network", label: "Réseau", x: 5000, icon: Network },
 ];
+
+export function ProfileIdentityHero({
+  displayName,
+  profileImage,
+  subtitle,
+  city,
+  pivot,
+  isPrivatePreview,
+  onEditIdentity,
+  children,
+}: {
+  displayName: string;
+  profileImage?: string;
+  subtitle?: string;
+  city?: string;
+  pivot?: number;
+  isPrivatePreview: boolean;
+  onEditIdentity: () => void;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      data-testid="profile-identity-hero"
+      className="relative flex w-[min(38rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col items-center gap-4 px-4 text-center sm:px-6"
+    >
+      <button
+        type="button"
+        onClick={onEditIdentity}
+        disabled={!isPrivatePreview}
+        aria-label={isPrivatePreview ? "Modifier l’identité du Profil" : displayName}
+        className={cn(
+          "relative mb-2 flex h-28 w-28 items-center justify-center overflow-visible rounded-full border-2 border-foreground/15 bg-background shadow-2xl sm:h-32 sm:w-32",
+          isPrivatePreview && "group transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent",
+        )}
+      >
+        <div className="h-full w-full overflow-hidden rounded-full">
+          {profileImage ? (
+            <img data-preserve-color src={profileImage} alt={displayName} className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-10 w-10 text-foreground/20" />
+          )}
+          {isPrivatePreview && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+              <Pencil className="h-6 w-6 text-white" />
+              <span className="mt-2 text-[9px] uppercase tracking-widest text-white">Modifier</span>
+            </div>
+          )}
+        </div>
+        {isPrivatePreview && (
+          <div className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-brand-accent shadow-lg transition-transform group-hover:scale-110">
+            <Pencil className="h-3.5 w-3.5 text-brand-accent-foreground" />
+          </div>
+        )}
+      </button>
+
+      <h1 className="max-w-full text-balance font-display text-4xl font-light tracking-tight text-foreground sm:text-5xl">
+        {displayName}
+      </h1>
+
+      {subtitle && (
+        <p className="max-w-[min(30rem,100%)] text-balance text-sm font-light leading-7 text-foreground/45 [overflow-wrap:anywhere] sm:text-base md:text-lg">
+          {subtitle}
+        </p>
+      )}
+
+      <p className="pt-1 text-[10px] uppercase tracking-[0.3em] text-foreground/35">Identité</p>
+
+      <div
+        data-testid="profile-identity-meta"
+        className="flex max-w-full flex-wrap items-center justify-center gap-3"
+      >
+        {city && (
+          <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-foreground/5 bg-foreground/5 px-4 py-2 text-[10px] uppercase tracking-widest text-foreground/40">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 [overflow-wrap:anywhere]">{city}</span>
+          </span>
+        )}
+        {pivot && (
+          <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-foreground/5 bg-foreground/5 px-4 py-2 text-[10px] uppercase tracking-widest text-foreground/40">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              {format(pivot, "d MMM yyyy", { locale: fr })}
+            </span>
+          </span>
+        )}
+      </div>
+
+      {children}
+    </div>
+  );
+}
 
 export function PublicProfilePage({ privatePreview: forcePrivatePreview = false }: { privatePreview?: boolean }) {
   const params = useParams<{ projectId: string }>();
@@ -295,67 +386,28 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
           {SECTIONS.map(section => (
             <div key={section.id} className="absolute top-1/2 -translate-y-1/2" style={{ left: `${section.x}px` }}>
                <div className="w-[1px] h-32 bg-foreground/10 absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2" />
-               <div className="absolute top-20 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-foreground/30 font-medium bg-background px-4 py-1 rounded-full border border-foreground/5">
-                 {section.label}
-               </div>
+              {section.id !== "identity" && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-foreground/30 font-medium bg-background px-4 py-1 rounded-full border border-foreground/5">
+                  {section.label}
+                </div>
+              )}
             </div>
           ))}
 
           {/* 1. IDENTITÉ (Hero) */}
           <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '400px' }}>
-             <div className="relative flex flex-col items-center -translate-x-1/2 w-[600px]">
-                <button
-                    type="button"
-                    onClick={() => isPrivatePreview && setSelectedNode({ type: "identity", label: "Identité" })}
-                    disabled={!isPrivatePreview}
-                    aria-label={isPrivatePreview ? "Modifier l’identité du Profil" : displayName}
-                    className={cn(
-                      "relative group w-32 h-32 rounded-full border-2 border-foreground/15 bg-background flex items-center justify-center overflow-visible mb-8 shadow-2xl",
-                      isPrivatePreview && "transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent",
-                    )}
-                >
-                  <div className="w-full h-full rounded-full overflow-hidden">
-                    {profileImage
-                      ? <img data-preserve-color src={profileImage} alt={displayName} className="h-full w-full object-cover" />
-                      : <User className="w-10 h-10 text-foreground/20" />}
-                    {isPrivatePreview && (
-                      <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Pencil className="w-6 h-6 text-white" />
-                        <span className="text-[9px] uppercase tracking-widest text-white mt-2">Modifier</span>
-                      </div>
-                    )}
-                  </div>
-                  {isPrivatePreview && (
-                    <div className="absolute bottom-0 right-0 w-8 h-8 bg-brand-accent rounded-full border-2 border-background flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                       <Pencil className="w-3.5 h-3.5 text-brand-accent-foreground" />
-                    </div>
-                  )}
-                </button>
-
-                <h1 className="text-5xl font-display font-light tracking-tight text-foreground mb-4 text-center">
-                  {displayName}
-                </h1>
-                {profile.subtitle && (
-                  <h2 className="mb-8 max-w-[min(28rem,calc(100vw-3rem))] text-balance text-center text-base font-light leading-7 text-foreground/40 md:text-lg">
-                    {profile.subtitle}
-                  </h2>
-                )}
-
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
-                  {profile.city && (
-                    <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/40 bg-foreground/5 px-4 py-2 rounded-full border border-foreground/5">
-                      <MapPin className="w-3.5 h-3.5" /> {profile.city}
-                    </span>
-                  )}
-                  {profile.pivot && (
-                    <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-foreground/40 bg-foreground/5 px-4 py-2 rounded-full border border-foreground/5">
-                      <CalendarDays className="w-3.5 h-3.5" /> {format(profile.pivot, "d MMM yyyy", { locale: fr })}
-                    </span>
-                  )}
-                </div>
-
+            <div className="-translate-x-1/2">
+              <ProfileIdentityHero
+                displayName={displayName}
+                profileImage={profileImage}
+                subtitle={profile.subtitle}
+                city={profile.city}
+                pivot={profile.pivot}
+                isPrivatePreview={isPrivatePreview}
+                onEditIdentity={() => isPrivatePreview && setSelectedNode({ type: "identity", label: "Identité" })}
+              >
                 {isPrivatePreview && contextItems.length > 0 && (
-                  <div className="mt-8 flex max-w-full items-center justify-center -space-x-2 overflow-x-auto px-4 py-4 hide-scrollbar" aria-label="Collections du Monde">
+                  <div className="mt-4 flex max-w-full items-center justify-center -space-x-2 overflow-x-auto px-4 py-4 hide-scrollbar" aria-label="Collections du Monde">
                     {contextItems.map((item, index) => (
                       <button
                         key={item.id + index}
@@ -365,7 +417,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                         className="relative group grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-background bg-card text-foreground shadow-xl transition-transform hover:z-20 hover:-translate-y-1 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
                         style={{ zIndex: 10 - index }}
                       >
-                        <EventIcon kind={item.kind} className="w-5 h-5 text-foreground/70 group-hover:text-foreground transition-colors" />
+                        <EventIcon kind={item.kind} className="h-5 w-5 text-foreground/70 transition-colors group-hover:text-foreground" />
                         <span className="sr-only">{item._title}</span>
                       </button>
                     ))}
@@ -376,13 +428,14 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                         title="Ajouter au Monde"
                         className="relative z-10 grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-background bg-brand-accent text-brand-accent-foreground shadow-[0_0_15px_hsl(var(--brand-accent)/0.4)] transition-transform hover:z-20 hover:-translate-y-1 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
                       >
-                        <Plus className="w-5 h-5" />
+                        <Plus className="h-5 w-5" />
                         <span className="sr-only">Ajouter au Monde</span>
                       </button>
                     )}
                   </div>
                 )}
-             </div>
+              </ProfileIdentityHero>
+            </div>
           </div>
 
           {/* 2. HISTOIRE (Timeline) */}
