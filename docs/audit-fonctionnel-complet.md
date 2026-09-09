@@ -6,7 +6,7 @@
 - Le produit contient aussi une part importante de **données semées/démonstration** (timeline, tâches, musique, templates, etc.) qui peuvent ressembler à des fonctions « complètes » alors qu’elles restent en partie guidées par seed JSON.
 - Plusieurs domaines sont **partiels** (propagation/conflits avancés, exploitation analytique Laboratoire, import de sauvegarde robuste, gouvernance opérationnelle complète).
 - Des écarts de contrat existent: une partie des routes implémentées n’est pas décrite dans OpenAPI, et une partie du frontend passe encore par des `fetch('/api/...')` directs.
-- La vérification live Vercel n’a pas pu être finalisée depuis cet environnement (résolution DNS du domaine impossible), donc les checks runtime production restent à confirmer hors sandbox.
+- Smoke test public validé le 9 septembre 2026 sur `https://byaime-one-page.vercel.app/` et `https://byaime.fr/` : la landing est accessible et affiche correctement la proposition de valeur et les actions de création/connexion.
 
 ## Périmètre, méthode, limites
 
@@ -22,7 +22,23 @@
 | Typecheck | réussi dans ce clone | script CI e2e appelle `pnpm run typecheck:e2e` `.github/workflows/e2e.yml:61` (pas d’erreur reproduite ici) |
 | Tests unitaires | réussis dans ce clone | suites présentes (exemples: `artifacts/api-server/src/lib/*.test.ts`, `artifacts/byaime-onepage/src/lib/*.test.ts`) |
 | Vérification Vercel (structure) | réussie localement | checks routage/entrypoints `scripts/verify-vercel.mjs:32-40`, `:143-157`, `artifacts/byaime-onepage/vercel.json:9-21` |
-| Smoke tests live | non conclusifs ici (blocage DNS sandbox) | `scripts/verify-vercel.mjs:159-194` |
+| Smoke tests live | validés (Vercel + domaine personnalisé) | observation live du 2026-09-09 + checks définis dans `scripts/verify-vercel.mjs:159-194` |
+
+## Cadre de lecture des constats
+
+Chaque constat de la matrice doit être lu avec:
+- la fonction concernée;
+- son statut réel (`complet`, `partiel`, `prototype`, `démo uniquement`, `backend sans UI`, `UI sans backend`, `présent mais non testé`, `absent`);
+- la preuve (fichier, route, composant, test, observation live);
+- le risque utilisateur;
+- l’action attendue (`ne pas créer`, `améliorer`, `relier`, `durcir`, `mesurer`, `compléter`, `nouveau`);
+- la priorité (P0/P1/P2) et le critère de validation.
+
+Distinction explicite à maintenir:
+- visible sur la landing publique;
+- présent dans le code;
+- raccordé à API/DB;
+- validé en exécution réelle.
 
 ## Matrice de couverture fonctionnelle
 
@@ -170,8 +186,11 @@
 ## Problèmes runtime Vercel
 
 - Routage et entrypoints sont conformes en statique (`vercel.json`, `verify-vercel.mjs`, `api/*.js`).
-- Vérification live des routes critiques non confirmée ici à cause d’un blocage DNS sandbox vers `https://byaime-one-page.vercel.app`.
-- Commande à exécuter hors sandbox réseau restreint:
+- Validation publique confirmée:
+  - `https://byaime-one-page.vercel.app/` accessible;
+  - `https://byaime.fr/` accessible;
+  - landing affichée avec proposition de valeur + CTA création/connexion.
+- Commande de contrôle à conserver pour les prochains déploiements:
 
 ```bash
 VERCEL_VERIFY_DEPLOYMENT_URL=https://byaime-one-page.vercel.app \
@@ -181,7 +200,7 @@ pnpm run verify:vercel
 ## Priorisation P0 / P1 / P2
 
 - **P0**
-  - Exécuter et archiver les smoke tests live post-déploiement (5 endpoints).
+  - Conserver l’archivage des smoke tests live post-déploiement (5 endpoints) sur chaque release.
   - Fermer l’incertitude typecheck “préexistant” sur le commit source exact.
   - Aligner routes critiques implémentées ↔ contrat OpenAPI (au moins domaines RSVP/media/song/lab/privacy/export).
 
