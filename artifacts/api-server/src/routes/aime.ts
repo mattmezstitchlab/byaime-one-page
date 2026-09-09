@@ -80,6 +80,16 @@ const UPLOAD_TOKEN_TTL_MS = 15 * 60 * 1000;
 const PAIRING_TOKEN_TTL_MS = 10 * 60 * 1000;
 const BRIDGE_SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 const uuid = z.string().uuid();
+const laboratoryReadRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  key: (req) => `laboratory-read:${authenticatedUserId(getAuth(req)) ?? req.ip}`,
+});
+const laboratoryWriteRateLimit = createRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  key: (req) => `laboratory-write:${authenticatedUserId(getAuth(req)) ?? req.ip}`,
+});
 
 type LocalScanItem = {
   name: string;
@@ -1570,6 +1580,7 @@ router.post(
 
 router.get(
   "/projects/:id/laboratory-feedback",
+  laboratoryReadRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -1601,6 +1612,7 @@ router.get(
 
 router.post(
   "/projects/:id/laboratory-feedback",
+  laboratoryWriteRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
@@ -1632,6 +1644,7 @@ router.post(
 
 router.patch(
   "/projects/:id/laboratory-feedback/:feedbackId",
+  laboratoryWriteRateLimit,
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const projectId = String(req.params.id);
