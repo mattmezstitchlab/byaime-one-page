@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle, CalendarDays, CheckCircle2, Check, Clock, Copy, Eye, EyeOff, FolderOpen, Globe2,
   Heart, Image as ImageIcon, Link2, ListChecks, Lock, MapPin, Music, PenLine, Plus, Send, Settings,
-  Shield, Sparkles, User, Users, Wallet,
+  Shield, User, Users, Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -119,21 +119,6 @@ export const WorldFakeUI = () => (
            </div>
          ))}
        </div>
-    </div>
-  </div>
-);
-
-export const LaboratoryFakeUI = () => (
-  <div className="flex flex-col items-center justify-center h-full bg-card/50 p-8 text-center">
-    <div className="w-20 h-20 rounded-full bg-foreground/10 flex items-center justify-center mb-6">
-      <Sparkles className="w-8 h-8 text-foreground/40" />
-    </div>
-    <h3 className="font-display text-2xl mb-2">Le Laboratoire</h3>
-    <p className="text-sm text-foreground/50 max-w-xs">Vos retours volontaires, reliés à leur contexte, pour améliorer AIME sans se substituer à vos données.</p>
-    <div className="mt-8 w-full max-w-sm space-y-3">
-      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
-      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
-      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
     </div>
   </div>
 );
@@ -700,38 +685,6 @@ export const ProfileTimelineFakeUI = ({ step }: { step: number }) => (
     <div className="mt-3 space-y-2">
       {step <= 1 && <Row icon={CalendarDays} title="Fiançailles · 18 mai" meta="Moment relié au Monde Mariage" />}
       {step >= 1 && <Row icon={Users} title="Camille, témoin" meta="Reliée à votre Réseau" />}
-    </div>
-  </div>
-);
-
-export const LaboratoryTutoFakeUI = ({ step }: { step: number }) => (
-  <div className="flex h-full flex-col items-center justify-center bg-card/50 p-5">
-    <div className="flex items-center gap-3">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/10">
-        <Sparkles className="h-6 w-6 text-foreground/40" />
-      </div>
-      <div>
-        <h4 className="font-display text-lg">Le Laboratoire</h4>
-        <p className="text-[10px] text-foreground/45">Vos retours, reliés à leur contexte</p>
-      </div>
-    </div>
-    <div className="mt-4 w-full max-w-sm space-y-2">
-      <div className={cn("rounded-xl border p-3", step === 0 ? "border-foreground/25 bg-foreground/[.06]" : "border-foreground/10 bg-foreground/[.035] opacity-60")}>
-        <p className="text-xs">⚠️ Problème — « Plan de table illisible sur mobile »</p>
-        <p className="mt-1 text-[10px] text-foreground/45">Contexte : Monde Mariage · plan de table</p>
-      </div>
-      <div className={cn("rounded-xl border p-3", step === 1 ? "border-foreground/25 bg-foreground/[.06]" : "border-foreground/10 bg-foreground/[.035] opacity-60")}>
-        <p className="text-xs">✨ Suggestion — « Pouvoir dupliquer un modèle de message »</p>
-        <p className="mt-1 text-[10px] text-foreground/45">Contexte : Monde Mariage · messages</p>
-      </div>
-      <div className={cn("flex items-center justify-between rounded-xl border p-3", step === 2 ? "border-foreground/25 bg-foreground/[.06]" : "border-foreground/10 bg-foreground/[.035] opacity-60")}>
-        <p className="text-xs">Suivi de votre retour</p>
-        <div className="flex gap-1">
-          <Chip tone="ok">Reçu</Chip>
-          <Chip tone="warn">En cours</Chip>
-          <Chip>Résolu</Chip>
-        </div>
-      </div>
     </div>
   </div>
 );

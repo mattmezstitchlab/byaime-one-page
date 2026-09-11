@@ -53,3 +53,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Aperçu local sans Clerk ni base de données (hors dépôt)
+artifacts/byaime-onepage/.preview/
+artifacts/byaime-onepage/vite.preview.mjs

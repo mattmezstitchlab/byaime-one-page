@@ -34,7 +34,6 @@ const requiredRoutingChecks = [
   { requestPath: "/api/healthz", expectedDestination: "/api/[...path].js" },
   { requestPath: "/api/projects", expectedDestination: "/api/[...path].js" },
   { requestPath: `/api/projects/${deploymentProbeId}`, expectedDestination: "/api/[...path].js" },
-  { requestPath: `/api/projects/${deploymentProbeId}/laboratory-feedback`, expectedDestination: "/api/[...path].js" },
   { requestPath: "/api/cron/scheduled-messages", expectedDestination: "/api/[...path].js" },
   { requestPath: "/profile", expectedDestination: "/index.html" },
 ];
@@ -42,7 +41,6 @@ const requiredDeploymentChecks = [
   { path: "/api/healthz", expectedStatuses: [200] },
   { path: "/api/projects", expectedStatuses: [401] },
   { path: `/api/projects/${deploymentProbeId}`, expectedStatuses: [401, 403, 404] },
-  { path: `/api/projects/${deploymentProbeId}/laboratory-feedback`, expectedStatuses: [401, 403, 404] },
   { path: "/api/cron/scheduled-messages", expectedStatuses: [401, 503] },
 ];
 

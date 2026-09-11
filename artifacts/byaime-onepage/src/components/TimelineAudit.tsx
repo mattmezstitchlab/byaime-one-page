@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, FlaskConical, Link2 } from "lucide-react";
+import { ArrowRight, Link2 } from "lucide-react";
 import { auditTimelineConnections, buildTimelineIndex } from "@/lib/timeline-graph";
-import { openLaboratory, type WorldFocusRequest } from "@/lib/laboratory";
+import type { WorldFocusRequest } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 import { CenteredBlock } from "./CenteredBlock";
 
 type AuditView = "connected" | "isolated" | "dangling" | "music";
 
 export function TimelineAudit() {
-  const { project, currentRole } = useProject();
+  const { project } = useProject();
   const [view, setView] = useState<AuditView>();
   const [focusRequest, setFocusRequest] = useState<WorldFocusRequest>();
 
@@ -80,16 +80,15 @@ export function TimelineAudit() {
                 <div><p className="text-[10px] uppercase tracking-[.16em] text-foreground/35">{entity.kind}</p><p className="mt-1 text-sm">{entity.label}</p></div>
                 <div className="flex flex-wrap gap-2">
                   <span className="text-xs text-foreground/30">À relier à un Moment</span>
-                  <button type="button" onClick={() => openLaboratory({ type: "remarque", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "timeline-audit-isolated", auditView: "isolated", entityKind: entity.kind, entityId: entity.id, entityLabel: entity.label, narrative: "Élément encore isolé dans le graphe du Monde." } })} className="inline-flex items-center gap-1 rounded-full border border-foreground/15 px-2.5 py-1 text-[10px] text-foreground/70"><FlaskConical className="h-3 w-3" />Laboratoire</button>
-                </div>
+                                  </div>
               </div>
             ))}
             {view === "dangling" && audit.dangling.map(({ eventId, relation }) => {
               const event = index.events.get(eventId);
-              return <div key={`${eventId}:${relation.kind}:${relation.id}`} className={`border-b border-foreground/[.08] py-4 ${focusRequest?.momentId === eventId && focusRequest?.entityKind === relation.kind && focusRequest?.entityId === relation.id ? "rounded-xl bg-foreground/[.03] px-3" : ""}`}><p className="text-sm">{event?.title || "Moment introuvable"}</p><p className="mt-1 text-xs text-foreground/45">{relation.kind} · référence absente {relation.id}</p><button type="button" onClick={() => openLaboratory({ type: "remarque", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "timeline-audit-dangling", auditView: "dangling", momentId: eventId, momentTitle: event?.title, entityKind: relation.kind, entityId: relation.id, narrative: "Lien incomplet encore visible dans l’audit de la Timeline." } })} className="mt-3 inline-flex items-center gap-1 rounded-full border border-foreground/15 px-2.5 py-1 text-[10px] text-foreground/70"><FlaskConical className="h-3 w-3" />Laboratoire</button></div>;
+              return <div key={`${eventId}:${relation.kind}:${relation.id}`} className={`border-b border-foreground/[.08] py-4 ${focusRequest?.momentId === eventId && focusRequest?.entityKind === relation.kind && focusRequest?.entityId === relation.id ? "rounded-xl bg-foreground/[.03] px-3" : ""}`}><p className="text-sm">{event?.title || "Moment introuvable"}</p><p className="mt-1 text-xs text-foreground/45">{relation.kind} · référence absente {relation.id}</p></div>;
             })}
             {view === "music" && audit.manualMusic.map(track => (
-              <div key={track.id} className={`border-b border-foreground/[.08] py-4 ${focusRequest?.entityKind === "music" && focusRequest?.entityId === track.id ? "rounded-xl bg-foreground/[.03] px-3" : ""}`}><p className="text-sm">{track.title}</p><p className="mt-1 text-xs text-foreground/45">{track.artist} · à rechercher auprès d’un service autorisé</p><button type="button" onClick={() => openLaboratory({ type: "suggestion", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "timeline-audit-music", auditView: "music", panel: "music", entityKind: "music", entityId: track.id, entityLabel: track.title, narrative: "Morceau manuel encore présent dans l’audit de la Timeline." } })} className="mt-3 inline-flex items-center gap-1 rounded-full border border-foreground/15 px-2.5 py-1 text-[10px] text-foreground/70"><FlaskConical className="h-3 w-3" />Laboratoire</button></div>
+              <div key={track.id} className={`border-b border-foreground/[.08] py-4 ${focusRequest?.entityKind === "music" && focusRequest?.entityId === track.id ? "rounded-xl bg-foreground/[.03] px-3" : ""}`}><p className="text-sm">{track.title}</p><p className="mt-1 text-xs text-foreground/45">{track.artist} · à rechercher auprès d’un service autorisé</p></div>
             ))}
             {((view === "connected" && !connected.length) || (view === "isolated" && !audit.isolated.length) || (view === "dangling" && !audit.dangling.length) || (view === "music" && !audit.manualMusic.length)) && (
               <p className="py-10 text-center text-sm text-foreground/35">Rien à afficher dans cette vue.</p>

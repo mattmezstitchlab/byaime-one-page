@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { openLaboratory } from "@/lib/laboratory";
 import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2, FolderOpen, RefreshCcw, Link2, FlaskConical } from "lucide-react";
+import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2, FolderOpen, RefreshCcw, Link2 } from "lucide-react";
 import type { MemoryItem, MusicSearchResult, MusicTrack, Payment } from "@/lib/types";
 import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
@@ -138,25 +137,6 @@ function AddBar({ label, onAdd }: { label: string; onAdd: () => void }) {
 
 function Empty({ children }: { children: string }) {
   return <div className="rounded-2xl border border-dashed border-foreground/10 px-5 py-10 text-center text-sm text-foreground/40">{children}</div>;
-}
-
-function LaboratoryShortcut({
-  type,
-  onClick,
-}: {
-  type?: "bug" | "remarque" | "suggestion" | "idee" | "question" | "positif" | "ux" | "contenu_donnees";
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-[10px] uppercase tracking-[.14em] text-foreground/65 transition hover:bg-foreground/5"
-    >
-      <FlaskConical className="h-3.5 w-3.5" />
-      {type === "bug" ? "Signaler" : "Laboratoire"}
-    </button>
-  );
 }
 
 export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
@@ -520,9 +500,6 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "documents") return <div className="max-w-3xl mx-auto space-y-5">
     <PersistenceState status={syncStatus} error={syncError} />
-    <div className="flex justify-end">
-      <LaboratoryShortcut onClick={() => openLaboratory({ type: "suggestion", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "documents-module", panel: "documents", narrative: "Retour volontaire envoyé depuis le module Documents / AIME LOCAL." } })} />
-    </div>
     <div className="rounded-2xl border border-sky-300/20 bg-sky-300/5 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -664,9 +641,6 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       updateProject(linkMusicTrackToEvents(project, track.id, next));
     };
     return <div className="max-w-4xl mx-auto space-y-5">
-      <div className="flex justify-end">
-        <LaboratoryShortcut onClick={() => openLaboratory({ type: "suggestion", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "music-module", panel: "music", view: "music", narrative: "Retour volontaire envoyé depuis le module Musique." } })} />
-      </div>
       {canManage && <section className="rounded-2xl border border-sky-300/20 bg-sky-300/5 p-4">
         <div className="flex items-start gap-3">
           <Music2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
@@ -709,9 +683,6 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   if (module === "messages") {
     const templates = project.messageTemplates.filter(t => t.title.toLowerCase().includes(query.toLowerCase()));
     return <div className="max-w-4xl mx-auto space-y-5">
-      <div className="flex justify-end">
-        <LaboratoryShortcut onClick={() => openLaboratory({ type: "remarque", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "messages-module", panel: "messages", narrative: "Retour volontaire envoyé depuis le module Messages." } })} />
-      </div>
       <PersistenceState status={syncStatus} error={syncError} />
       {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
       <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
@@ -732,9 +703,6 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "contributions") {
     return <div className="mx-auto max-w-4xl space-y-5">
-      <div className="flex justify-end">
-        <LaboratoryShortcut type="bug" onClick={() => openLaboratory({ type: "bug", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "contributions-module", panel: "contributions", narrative: "Retour volontaire envoyé depuis le module Contributions invitées." } })} />
-      </div>
       <div><h4 className="text-sm font-medium">Photos et vidéos reçues</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Chaque contribution reste privée jusqu’à votre décision. Le consentement et la provenance restent attachés au fichier.</p></div>
       {remoteError && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
       {participantMedia.length === 0 ? <Empty>Aucune contribution invitée reçue.</Empty> : <div className="grid gap-3 sm:grid-cols-2">{participantMedia.map(media => <article key={media.id} className="overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[.035]">

@@ -6,7 +6,6 @@ import {
   CloudCheck,
   CloudOff,
   Download,
-  FlaskConical,
   LoaderCircle,
   PenLine,
   Upload,
@@ -14,7 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useProject } from "@/store/project-store";
-import { focusWorld, openLaboratory } from "@/lib/laboratory";
+import { focusWorld } from "@/lib/world-focus";
 import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
@@ -97,12 +96,10 @@ function ReviewLine({
   label,
   meta,
   action,
-  secondaryAction,
 }: {
   label: string;
   meta: string;
   action?: { label: string; onClick: () => void };
-  secondaryAction?: { label: string; onClick: () => void };
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-foreground/5">
@@ -118,15 +115,6 @@ function ReviewLine({
             className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-medium text-background"
           >
             {action.label} <ArrowRight className="h-3 w-3" />
-          </button>
-        )}
-        {secondaryAction && (
-          <button
-            type="button"
-            onClick={secondaryAction.onClick}
-            className="inline-flex items-center gap-1 rounded-full border border-foreground/15 px-3 py-1.5 text-[10px] text-foreground/70"
-          >
-            <FlaskConical className="h-3 w-3" /> {secondaryAction.label}
           </button>
         )}
       </div>
@@ -738,23 +726,6 @@ export function PortalControls({
                       setPanel("world-settings");
                     },
                   }}
-                  secondaryAction={{
-                    label: "En parler au Laboratoire",
-                    onClick: () => openLaboratory({
-                      type: "bug",
-                      context: {
-                        projectId: project.id,
-                        role: currentRole,
-                        route: isProfileRoute ? "profile" : "world",
-                        path: currentPath,
-                        source: "universal-review-sync",
-                        syncStatus,
-                        narrative: syncStatus === "conflict"
-                          ? "Conflit de sauvegarde détecté dans le Contrôle universel."
-                          : "Erreur de synchronisation rencontrée dans le Contrôle universel.",
-                      },
-                    }),
-                  }}
                 />
               )}
               {audit.isolated.slice(0, 4).map((entity) => (
@@ -768,24 +739,6 @@ export function PortalControls({
                       auditView: "isolated",
                       entityKind: entity.kind,
                       entityId: entity.id,
-                    }),
-                  }}
-                  secondaryAction={{
-                    label: "En parler au Laboratoire",
-                    onClick: () => openLaboratory({
-                      type: "remarque",
-                      context: {
-                        projectId: project.id,
-                        role: currentRole,
-                        route: "world",
-                        path: "/user-portal",
-                        source: "universal-review-isolated",
-                        auditView: "isolated",
-                        entityKind: entity.kind,
-                        entityId: entity.id,
-                        entityLabel: entity.label,
-                        narrative: "Élément sans lien détecté par AIME dans le graphe du Monde.",
-                      },
                     }),
                   }}
                 />
@@ -807,25 +760,6 @@ export function PortalControls({
                       entityId: relation.id,
                     }),
                   }}
-                  secondaryAction={{
-                    label: "En parler au Laboratoire",
-                    onClick: () => openLaboratory({
-                      type: "remarque",
-                      context: {
-                        projectId: project.id,
-                        role: currentRole,
-                        route: "world",
-                        path: "/user-portal",
-                        source: "universal-review-dangling",
-                        auditView: "dangling",
-                        momentId: eventId,
-                        momentTitle: timelineIndex.events.get(eventId)?.title,
-                        entityKind: relation.kind,
-                        entityId: relation.id,
-                        narrative: "Lien incomplet détecté entre un Moment et une référence absente.",
-                      },
-                    }),
-                  }}
                 />
               ))}
               {audit.manualMusic.slice(0, 4).map((track) => (
@@ -841,25 +775,6 @@ export function PortalControls({
                       entityKind: "music",
                       entityId: track.id,
                       musicTrackId: track.id,
-                    }),
-                  }}
-                  secondaryAction={{
-                    label: "En parler au Laboratoire",
-                    onClick: () => openLaboratory({
-                      type: "suggestion",
-                      context: {
-                        projectId: project.id,
-                        role: currentRole,
-                        route: "world",
-                        path: "/user-portal",
-                        source: "universal-review-music",
-                        panel: "music",
-                        auditView: "music",
-                        entityKind: "music",
-                        entityId: track.id,
-                        entityLabel: track.title,
-                        narrative: "Morceau manuel à reconnaître ou conserver dans le module Musique.",
-                      },
                     }),
                   }}
                 />

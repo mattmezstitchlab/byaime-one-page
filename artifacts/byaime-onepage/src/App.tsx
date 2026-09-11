@@ -9,9 +9,9 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
 import { PublicProfilePage } from '@/pages/PublicProfile';
-import { LaboratoryPage } from '@/pages/Laboratory';
 import { LegalPage } from '@/pages/Legal';
 import { GuidesPage } from '@/pages/Guides';
+import { LandingPage } from '@/pages/Landing';
 import { ComposerHero } from '@/components/ComposerHero';
 import { ProjectProvider, useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
@@ -21,14 +21,11 @@ import { PrivateLayout } from '@/components/PrivateLayout';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-if (typeof window !== 'undefined') {
-  document.documentElement.dataset.aimeTheme = localStorage.getItem('aime-appearance') === 'light' ? 'light' : 'dark';
-}
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const clerkPubKey = typeof window !== 'undefined'
   ? publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
   : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-if (!clerkPubKey) throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
+const clerkKeyMissing = !clerkPubKey;
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -74,120 +71,14 @@ function CacheInvalidator() {
   return null;
 }
 
-function Landing() {
-  const features = [
-    { title: "Invités", text: "Suivez les réponses RSVP, les groupes, les régimes et les besoins importants." },
-    { title: "Budget", text: "Gardez une vision claire des dépenses, des paiements et des engagements." },
-    { title: "Prestataires", text: "Centralisez les contacts, les décisions et les prochaines actions." },
-    { title: "Jour J", text: "Cadencez les horaires, les rôles et les informations utiles en direct." },
-    { title: "Espace partagé", text: "Avancez à deux et avec vos proches, selon les rôles autorisés." },
-  ];
-  return (
-    <main data-testid="landing" className="min-h-[100dvh] bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border/80 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 md:px-8">
-          <a href={`${basePath}/`} className="inline-flex items-center gap-2">
-            <img src={`${basePath}/logo.svg`} alt="AIME" className="h-9 w-auto rounded-xl" />
-            <span className="text-[10px] uppercase tracking-[.3em] text-foreground/50">L’art de créer des liens</span>
-          </a>
-          <div className="flex items-center gap-2">
-            <a data-testid="landing-sign-in" href={`${basePath}/connexion`} className="rounded-full border border-foreground/20 px-4 py-2 text-xs hover:bg-foreground/5">Se connecter</a>
-            <a href={`${basePath}/creation`} className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background">Créer mon espace</a>
-          </div>
-        </div>
-      </header>
-      <section className="relative overflow-hidden border-b border-border px-6 py-20 md:px-10 md:py-28">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_55%)]" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background to-transparent" />
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center text-center">
-          <p className="text-[10px] uppercase tracking-[.35em] text-foreground/45">L’art de créer des liens</p>
-          <h1 className="mt-6 font-display text-6xl font-light tracking-[.14em] md:text-8xl">AIME</h1>
-          <p className="mt-6 max-w-2xl text-sm font-light leading-relaxed text-foreground/65 md:text-lg">
-            Un espace privé pour organiser votre mariage à plusieurs, de la première idée au Jour J.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a data-testid="hero-sign-up" href={`${basePath}/creation`} className="rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background">Créer mon espace</a>
-            <a data-testid="hero-sign-in" href={`${basePath}/connexion`} className="rounded-full border border-foreground/20 px-6 py-3 text-sm hover:bg-foreground/5">Se connecter</a>
-          </div>
-        </div>
-      </section>
-      <section className="border-b border-border px-6 py-16 md:px-10 md:py-24">
-        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
-          <div>
-            <p className="text-[10px] uppercase tracking-[.3em] text-foreground/45">Tout votre mariage au même endroit</p>
-            <h2 className="mt-6 font-display text-4xl font-light leading-tight md:text-6xl">AIME accompagne votre mariage, de la première idée au Jour J.</h2>
-            <p className="mt-6 max-w-2xl text-base font-light leading-relaxed text-foreground/65 md:text-lg">Centralisez vos invités, votre budget, vos prestataires, vos décisions et vos moments importants dans un espace privé pensé pour avancer sereinement à plusieurs.</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a data-testid="landing-sign-up" href={`${basePath}/creation`} className="rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background">Créer mon espace gratuitement</a>
-              <a href={`${basePath}/guides`} className="rounded-full border border-foreground/20 px-6 py-3 text-sm hover:bg-foreground/5">Découvrir comment ça fonctionne</a>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-foreground/10 bg-card p-5">
-            <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Aperçu produit</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3">
-                <p className="text-xs text-foreground/45">Monde</p>
-                <p className="mt-2 text-sm">Timeline, tâches et décisions reliées.</p>
-              </div>
-              <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3">
-                <p className="text-xs text-foreground/45">Invités</p>
-                <p className="mt-2 text-sm">Réponses RSVP, tables et préférences.</p>
-              </div>
-              <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3">
-                <p className="text-xs text-foreground/45">Budget</p>
-                <p className="mt-2 text-sm">Dépenses, paiements et restant.</p>
-              </div>
-              <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3">
-                <p className="text-xs text-foreground/45">Jour J</p>
-                <p className="mt-2 text-sm">Régie, horaires et informations pratiques.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="border-b border-border px-6 py-14 md:px-10 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="font-display text-3xl font-light md:text-5xl">Organiser un mariage, ce n’est pas seulement choisir une date et une salle.</h2>
-          <p className="mt-5 max-w-3xl text-sm font-light leading-relaxed text-foreground/65 md:text-base">C’est coordonner des personnes, des décisions, des dépenses et des émotions. AIME rassemble ces éléments dans un même espace, au lieu de les disperser entre messages, fichiers, tableaux et conversations.</p>
-          <div className="mt-10 grid gap-3 md:grid-cols-3">
-            {features.map((feature) => (
-              <article key={feature.title} className="rounded-2xl border border-foreground/10 bg-card p-4">
-                <h3 className="text-sm font-medium">{feature.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-foreground/55">{feature.text}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-      <section className="border-b border-border px-6 py-14 md:px-10 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Comment ça marche</p>
-          <ol className="mt-6 grid gap-3 md:grid-cols-3">
-            {["Créez votre espace", "Invitez les personnes qui comptent", "Organisez votre mariage sereinement"].map((step, index) => (
-              <li key={step} className="rounded-2xl border border-foreground/10 bg-card p-4">
-                <p className="text-[10px] tracking-[.2em] text-foreground/45">0{index + 1}</p>
-                <p className="mt-2 text-sm">{step}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-      <section className="px-6 py-16 text-center md:px-10 md:py-24">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="font-display text-3xl font-light md:text-5xl">AIME n’est pas seulement un outil de gestion.</h2>
-          <p className="mt-5 text-sm font-light leading-relaxed text-foreground/65 md:text-base">C’est un espace commun pour prendre des décisions, partager les responsabilités et garder une trace de ce qui compte.</p>
-          <p className="mt-10 text-xl font-light md:text-2xl">Prêts à organiser votre mariage autrement ?</p>
-          <a href={`${basePath}/creation`} className="mt-6 inline-flex rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Créer mon espace</a>
-          <p className="mt-4 text-xs text-foreground/45">Gratuit pour commencer. Aucun engagement.</p>
-          <p className="mt-8 text-xs text-foreground/40">En créant un espace, vous acceptez les <a href={`${basePath}/conditions`} className="underline underline-offset-4 hover:text-foreground">conditions</a> et la <a href={`${basePath}/confidentialite`} className="underline underline-offset-4 hover:text-foreground">politique de confidentialité</a>.</p>
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function HomeRedirect() {
-  return <><Show when="signed-in"><Redirect to="/user-portal" /></Show><Show when="signed-out"><Landing /></Show></>;
+function LandingRoute() {
+  const { isSignedIn } = useAuth();
+  /*
+   * L'accueil présente le site pour tout le monde : le logo « AIME » mène
+   * toujours ici, connecté comme non connecté. La redirection automatique vers
+   * l'espace privé volait ce retour et doublonnait la page d'entrée.
+   */
+  return <LandingPage signedIn={!!isSignedIn} />;
 }
 
 function PrivateRoute({ children }: { children: ReactNode }) {
@@ -384,11 +275,10 @@ function Routes() {
     <Route path="/guides" component={GuidesPage} />
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
-    <Route path="/" component={HomeRedirect} />
+    <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>
     <Route path="/user-portal">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
     <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
-    <Route path="/laboratoire">{() => <PrivateRoute><LaboratoryPage /></PrivateRoute>}</Route>
     <Route path="/connexion/*?">{() => <AuthPage />}</Route>
     <Route path="/creation/*?">{() => <AuthPage signup />}</Route>
     <Route path="/sign-in/*?">{() => <AuthPage />}</Route>
@@ -413,6 +303,30 @@ function Providers() {
     </QueryClientProvider>
   </ClerkProvider>;
 }
+/**
+ * Une clé publique absente est une erreur de déploiement, pas une raison de
+ * laisser une page blanche : l'écran reste lisible et aucune donnée n'est
+ * demandée.
+ */
+function MissingAuthKey() {
+  return (
+    <main className="grid min-h-[100dvh] place-items-center bg-background px-6 text-center text-foreground">
+      <div className="max-w-md">
+        <p className="text-[10px] uppercase tracking-[.3em] text-foreground/60">AIME · L’art de créer des liens</p>
+        <h1 className="mt-5 font-display text-3xl font-light md:text-4xl">Connexion momentanément indisponible</h1>
+        <p className="mt-4 text-sm font-light leading-relaxed text-foreground/70">
+          La clé publique d’authentification (`VITE_CLERK_PUBLISHABLE_KEY`) manque dans l’environnement
+          de ce déploiement. Aucune information n’est demandée ni modifiée tant que ce réglage est absent.
+        </p>
+      </div>
+    </main>
+  );
+}
+
 export default function App() {
+  if (clerkKeyMissing) {
+    console.error('[AIME] VITE_CLERK_PUBLISHABLE_KEY est absent : l’authentification est désactivée pour ce déploiement.');
+    return <MissingAuthKey />;
+  }
   return <WouterRouter base={basePath}><Providers /></WouterRouter>;
 }

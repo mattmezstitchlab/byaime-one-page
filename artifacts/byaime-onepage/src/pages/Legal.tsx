@@ -1,4 +1,6 @@
 import { Link } from "wouter";
+import { useRouteMeta } from "@/lib/page-meta";
+import { AppearanceToggle } from "@/components/AppearanceToggle";
 
 // Date de la dernière révision des textes légaux.
 // À mettre à jour à chaque modification des conditions ou de la confidentialité.
@@ -25,9 +27,18 @@ const sections = {
 
 export function LegalPage({ kind }: { kind: keyof typeof sections }) {
   const privacy = kind === "privacy";
+  useRouteMeta({
+    title: privacy ? "Confidentialité — AIME" : "Conditions d’utilisation — AIME",
+    description: privacy
+      ? "Ce qu’AIME conserve, pourquoi, et comment chaque personne garde la maîtrise de ses données."
+      : "Les règles du pilote AIME pour les couples, leurs invités et les prestataires.",
+  });
   return <main className="min-h-[100dvh] bg-background px-6 py-16 text-foreground md:px-10">
     <div className="mx-auto max-w-3xl">
-      <Link href="/" className="text-sm font-medium tracking-[.3em] text-foreground/70">AIME</Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link href="/" className="text-sm font-medium tracking-[.3em] text-foreground/70">AIME</Link>
+        <AppearanceToggle />
+      </div>
       <p className="mt-20 text-[10px] uppercase tracking-[.25em] text-foreground/35">Version pilote · {LEGAL_VERSION_DATE}</p>
       <h1 className="mt-5 font-display text-4xl font-light md:text-6xl">{privacy ? "Confidentialité" : "Conditions d’utilisation"}</h1>
       <p className="mt-7 max-w-2xl text-base font-light leading-relaxed text-foreground/50">{privacy ? "AIME organise des informations personnelles et parfois sensibles. Cette page explique simplement ce qui est conservé et comment chacun garde le contrôle." : "Ces règles protègent les couples, leurs invités, les prestataires et les personnes qui participent au pilote AIME."}</p>

@@ -4,7 +4,6 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from 'react';
-import { queueLaboratoryDraft } from '@/lib/laboratory';
 
 export interface ErrorFallbackProps {
   error: Error;
@@ -61,25 +60,12 @@ function DefaultFallback({ error, resetError }: ErrorFallbackProps) {
         >
           Réessayer
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            queueLaboratoryDraft({
-              type: "bug",
-              context: {
-                route: "laboratory",
-                path: window.location.pathname,
-                source: "error-boundary",
-                narrative: "Une erreur d’interface a interrompu l’expérience.",
-              },
-              message: import.meta.env.DEV ? error.message : "",
-            });
-            window.location.assign(`${basePath}/laboratoire`);
-          }}
-          className="mt-3 rounded border border-foreground/15 px-4 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <a
+          href={`${basePath}/`}
+          className="mt-3 inline-flex rounded border border-foreground/15 px-4 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          Raconter ce problème au Laboratoire
-        </button>
+          Revenir à l’accueil
+        </a>
       </div>
     </div>
   );

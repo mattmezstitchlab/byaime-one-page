@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import {
   ActionPillFakeUI, BudgetFakeUI, CeremonyFakeUI, CreateMondeFakeUI, DayofFakeUI, DocumentsFakeUI,
-  GraphFakeUI, GuestsFakeUI, InfosFakeUI, LaboratoryFakeUI, LaboratoryTutoFakeUI, MeFakeUI, MemoriesFakeUI,
+  GraphFakeUI, GuestsFakeUI, InfosFakeUI, MeFakeUI, MemoriesFakeUI,
   MessagesFakeUI, MusicFakeUI, ProfileFakeUI, ProfileTimelineFakeUI, ProvidersFakeUI, RolesFakeUI,
   RsvpInviteFakeUI, SeatingFakeUI, SynthesisFakeUI, TasksFakeUI, ThanksFakeUI, TimelineFakeUI, WorldFakeUI,
 } from "./guides-fake-uis";
@@ -35,12 +35,11 @@ export const DEMOS: DemoConfig[] = [
   {
     id: "architecture",
     title: "Un seul système, plusieurs réalités",
-    description: "Votre vie n'est pas une succession de tableaux de bord jetables. Découvrez comment Profil, Monde et Laboratoire interagissent durablement.",
+    description: "Votre vie n'est pas une succession de tableaux de bord jetables. Découvrez comment le Profil et le Monde interagissent durablement.",
     category: "comprendre",
     steps: [
       { label: "Profil", content: "Votre identité durable. Une projection unique qui réunit ce qui vous concerne à travers tous les Mondes.", ui: <ProfileFakeUI />, cursor: { x: 15, y: 30 } },
       { label: "Monde", content: "L'espace collaboratif et privé. C'est ici que s'organise l'événement avec les rôles stricts et les outils dédiés.", ui: <WorldFakeUI />, cursor: { x: 50, y: 50 } },
-      { label: "Laboratoire", content: "Le recueil de vos retours volontaires, reliés à leur contexte, pour faire évoluer AIME sans mélanger vos données et vos remarques.", ui: <LaboratoryFakeUI />, cursor: { x: 85, y: 70 } },
     ],
   },
   {
@@ -273,17 +272,6 @@ export const DEMOS: DemoConfig[] = [
       { label: "La Timeline", content: "Votre histoire durable, à travers tous les Mondes.", ui: <ProfileTimelineFakeUI step={0} />, cursor: { x: 18, y: 58 } },
       { label: "Le Fil", content: "Le flux de vos Moments, à vous.", ui: <ProfileTimelineFakeUI step={1} />, cursor: { x: 46, y: 58 } },
       { label: "Publier", content: "Vous choisissez ce qui devient public.", ui: <ProfileTimelineFakeUI step={2} />, cursor: { x: 76, y: 58 } },
-    ],
-  },
-  {
-    id: "laboratory",
-    title: "Le Laboratoire",
-    description: "Un problème, une idée, une remarque — reliés à leur contexte et suivis.",
-    category: "apres",
-    steps: [
-      { label: "Retours", content: "Un problème, une idée, une remarque — reliés à leur contexte.", ui: <LaboratoryTutoFakeUI step={0} />, cursor: { x: 40, y: 52 } },
-      { label: "Contexte", content: "Chaque retour garde la trace du Monde et de l'écran d'où il vient.", ui: <LaboratoryTutoFakeUI step={1} />, cursor: { x: 40, y: 68 } },
-      { label: "Suivi", content: "Reçu → En cours → Résolu : votre retour reste visible.", ui: <LaboratoryTutoFakeUI step={2} />, cursor: { x: 50, y: 82 } },
     ],
   },
   {

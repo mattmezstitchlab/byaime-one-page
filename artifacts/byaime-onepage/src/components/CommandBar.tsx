@@ -13,10 +13,6 @@ const contextCopy: Record<PrivateDestinationId, { label: string; description: st
     label: "Monde",
     description: "AIME comprend le Monde actif, vérifie votre demande et demande votre accord avant tout changement.",
   },
-  laboratory: {
-    label: "Laboratoire",
-    description: "Le Laboratoire recueille vos retours volontaires sans se confondre avec la boîte « À vérifier » d’AIME.",
-  },
 };
 
 export function CommandBar({ context = "world" }: { context?: PrivateDestinationId }) {

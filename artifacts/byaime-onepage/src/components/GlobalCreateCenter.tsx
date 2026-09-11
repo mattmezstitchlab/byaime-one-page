@@ -16,7 +16,6 @@ const actionIcons = {
 const contextCopy: Record<PrivateDestinationId, string> = {
   profile: "Le Profil reste votre projection personnelle. Les nouvelles informations sont créées dans le Monde actif, puis apparaissent ici lorsqu’elles vous concernent.",
   world: "Ajoutez une information dans le Monde actif. AIME ouvre directement l’espace opérationnel qui peut réellement l’enregistrer.",
-  laboratory: "Le Laboratoire recueille vos retours volontaires. Les nouvelles informations opérationnelles restent créées dans le Monde actif.",
 };
 
 export function GlobalCreateCenter({ destination }: { destination: PrivateDestinationId }) {

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Link } from "wouter";
+import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight, MousePointer2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEMOS, DEMO_CATEGORIES, type DemoConfig } from "./guides-demos";
+import { useRouteMeta } from "@/lib/page-meta";
 
 const FakeCursor = ({ x, y, active, reducedMotion }: { x: number; y: number; active: boolean; reducedMotion: boolean | null }) => {
   if (reducedMotion) return null;
@@ -107,6 +109,11 @@ function ScriptedDemoPlayer({ config }: { config: DemoConfig }) {
 }
 
 export function GuidesPage() {
+  useRouteMeta({
+    title: "Guides — Comprendre AIME, pas à pas",
+    description:
+      `${DEMOS.length} démonstrations animées pour comprendre comment AIME organise un mariage : Monde, invités, budget, Jour J, rôles et partage.`,
+  });
   const [activeDemo, setActiveDemo] = useState(DEMOS[0].id);
   const activeConfig = DEMOS.find(demo => demo.id === activeDemo) ?? DEMOS[0];
 
@@ -114,11 +121,12 @@ export function GuidesPage() {
     <main data-testid="guides-page" className="min-h-[100dvh] bg-background text-foreground selection:bg-foreground/20">
       <nav className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between px-6 bg-background/80 backdrop-blur-xl border-b border-border/50">
          <Link href="/" className="font-display font-medium tracking-[.2em] text-foreground hover:opacity-70 transition-opacity focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none rounded">AIME</Link>
-         <Link href="/sign-up" className="rounded-full bg-foreground px-5 py-2 text-xs font-semibold text-background hover:bg-foreground/90 transition-colors focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none">Commencer</Link>
+         <AppearanceToggle />
+         <Link href="/creation" className="rounded-full bg-foreground px-5 py-2 text-xs font-semibold text-background hover:bg-foreground/90 transition-colors focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none">Commencer</Link>
       </nav>
 
       <section className="pt-32 pb-20 px-6 max-w-6xl mx-auto">
-         <p className="text-[10px] uppercase tracking-[.35em] text-foreground/40 mb-6">Guides et Concepts</p>
+         <p className="text-[10px] uppercase tracking-[.35em] text-foreground/40 mb-6">Guides AIME</p>
          <h1 className="font-display text-5xl md:text-7xl font-light mb-8 max-w-3xl leading-tight">
            L'outil d'organisation qui respecte votre vie privée.
          </h1>

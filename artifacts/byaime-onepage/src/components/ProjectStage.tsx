@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
@@ -11,7 +11,7 @@ import { BottomDock } from './BottomDock';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Grid2X2, Search, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
-import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/laboratory';
+import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/world-focus';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import { PanelChromeProvider, type PanelChrome, type PanelNavItem } from './PanelChrome';
@@ -96,12 +96,15 @@ export function ProjectStage() {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [now, setNow] = useState(() => Date.now());
-  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    // Le tick à la seconde n'est utile que pendant le Jour J (événement en cours,
+    // horaires qui défilent). Hors Jour J, une minute suffit : sinon tout le Monde
+    // se re-rend chaque seconde pour un décompte affiché en jours.
+    const delay = phase === 'pendant' ? 1000 : 60000;
+    const timer = window.setInterval(() => setNow(Date.now()), delay);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [phase]);
 
   useEffect(() => {
     if (!project) return;
