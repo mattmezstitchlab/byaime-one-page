@@ -16,12 +16,14 @@
     color: white;
     text-shadow: 0 1px 2px rgb(0 0 0 / .5), 0 8px 30px rgb(0 0 0 / .24);
   }
-  /* Lisibilité des titres sur photos de l'accueil, sans voile noir sur le visuel. */
+  /* Les titres de l'accueil se passent d'ombre portée : le voile fixe
+     suffit à leur contraste sur le shader. (La classe ne porte plus que le
+     nom, conservé comme repère de relecture.) */
   .aime-landing-copy > h1,
   .aime-landing-copy > h2,
   .aime-landing-copy > h3,
   .aime-landing-copy > p {
-    text-shadow: 0 1px 3px rgb(0 0 0 / .7), 0 8px 28px rgb(0 0 0 / .55);
+    text-shadow: none;
   }
   /* Hero immersif de l'accueil : lente dérive cinématographique du plan fixe.
      Les marges d'échelle (≥ 3 %) couvrent toujours la translation (≤ 1 %). */

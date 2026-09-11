@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "wouter";
 import { AppearanceToggle } from "@/components/AppearanceToggle";
-import { ArrowRight, ChevronDown, Compass } from "lucide-react";
+import { ArrowRight, Compass, X } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
 import { ShaderBackdrop } from "@/components/ShaderBackdrop";
 import { useRouteMeta } from "@/lib/page-meta";
@@ -15,10 +16,11 @@ import { cn } from "@/lib/utils";
 const LANDING_FEATURED_GUIDES = ["architecture", "intention", "ai-plus-me", "budget", "dayof", "memories"];
 
 /**
- * L'accueil d'AIME — court, immersif. Le hero demande d'abord qui vous êtes
- * (couple ou professionnel), puis un seul onboarding en cinq questions dans
- * la langue et la devise du visiteur. Viennent les guides animés, une seule
- * section de repérage et un appel à créer. Le shader Mesh reste fixe :
+ * L'accueil d'AIME — court, immersif. Le hero tient sa promesse en une
+ * phrase et un seul appel à l'action ; les cinq questions s'ouvrent
+ * derrière, dans la langue et la devise du visiteur. Viennent les guides
+ * animés, une seule section de repérage et un appel à créer. Le shader
+ * Mesh reste fixe :
  * aucun visuel photo, un seul fond animé continu.
  */
 export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
@@ -31,6 +33,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
 
 function LandingContent({ signedIn }: { signedIn: boolean }) {
   const { t, locale, setLocale } = useI18n();
+  const [questionsOpen, setQuestionsOpen] = useState(false);
 
   useRouteMeta({
     title: locale === "en"
@@ -80,31 +83,40 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </div>
       </header>
 
-      {/* ——— Le hero : plein écran, immersif, l'onboarding unique au centre. ——— */}
+      {/* ——— Le hero : une promesse, un seul appel à l'action. Les cinq
+             questions s'ouvrent derrière, dans un parcours focalisé. ——— */}
       <section className="aime-cinematic-surface relative z-10 flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 md:px-10">
-        <div className="aime-landing-copy relative flex w-full max-w-5xl flex-col items-center pb-24 pt-28 text-center md:pb-28 md:pt-32">
-          <p className="text-[10px] uppercase tracking-[.35em] text-white/55">{t("hero.eyebrow")}</p>
-          <h1 className="mt-7 font-display text-6xl font-light tracking-[.14em] text-white md:text-8xl">{t("hero.title")}</h1>
-          <p className="mt-7 max-w-2xl text-base font-light leading-relaxed text-white/75 md:text-lg">
+        <div className="aime-landing-copy relative flex w-full max-w-3xl flex-col items-center pb-24 pt-28 text-center md:pb-28 md:pt-32">
+          <p className="text-[10px] uppercase tracking-[.35em] text-white/60">{t("hero.eyebrow")}</p>
+          <h1 className="mt-7 font-display text-4xl font-light leading-[1.12] text-white md:text-6xl">{t("hero.title")}</h1>
+          <p className="mt-6 max-w-xl text-base font-light leading-relaxed text-white/75 md:text-lg">
             {t("hero.subtitle")}
           </p>
-          <div className="mt-12 w-full">
-            <LandingComposer signedIn={signedIn} />
+          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
+            <button
+              type="button"
+              data-testid="hero-cta"
+              onClick={() => setQuestionsOpen(true)}
+              className="rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              {t(signedIn ? "composer.open" : "composer.create")}
+            </button>
+            <button
+              type="button"
+              data-testid="hero-secondary"
+              onClick={() => document.getElementById("landing-guides")?.scrollIntoView({ behavior: "smooth" })}
+              className="rounded-full border border-white/30 px-8 py-3.5 text-sm text-white/85 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              {t("hero.secondary")}
+            </button>
           </div>
-          <p className="mt-9 text-[11px] uppercase tracking-[.18em] text-white/45">
-            {t("hero.free")}
+          <p className="mt-7 text-[11px] uppercase tracking-[.18em] text-white/55">
+            {t("hero.reassurance")}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => document.getElementById("landing-guides")?.scrollIntoView({ behavior: "smooth" })}
-          aria-label={t("hero.scroll")}
-          className="aime-landing-copy absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1.5 text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-        >
-          <span className="text-[9px] uppercase tracking-[.32em]">{t("hero.scroll")}</span>
-          <ChevronDown aria-hidden className="h-4 w-4 animate-bounce motion-reduce:animate-none" />
-        </button>
       </section>
+
+      {questionsOpen && <HeroQuestionsOverlay signedIn={signedIn} onClose={() => setQuestionsOpen(false)} />}
 
       {/* ——— Les guides animés : la démonstration remplace les longs discours. ——— */}
       <section id="landing-guides" data-testid="landing-guides" className="relative z-10 overflow-hidden py-20 md:py-28">
@@ -171,6 +183,62 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </div>
       </footer>
     </main>
+  );
+}
+
+/**
+ * Les cinq questions derrière le CTA du hero : un parcours focalisé sur
+ * fond sombre, dans la même esthétique que l'ancien hero. Échap ou clic
+ * hors carte pour refermer ; le défilement de la page est verrouillé.
+ */
+function HeroQuestionsOverlay({ signedIn, onClose }: { signedIn: boolean; onClose: () => void }) {
+  const { t } = useI18n();
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = previous;
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      data-testid="hero-questions"
+      onClick={onClose}
+      className="fixed inset-0 z-[120] flex items-center justify-center overflow-y-auto bg-[#02101f]/80 px-4 py-8 backdrop-blur-md"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("hero.overlay.title")}
+        onClick={event => event.stopPropagation()}
+        className="w-full max-w-2xl rounded-[2rem] border border-white/15 bg-[#03182c]/95 p-6 shadow-[0_40px_120px_rgba(0,0,0,.5)] sm:p-10"
+      >
+        <div className="relative mb-8 text-center">
+          <p className="text-[10px] uppercase tracking-[.3em] text-white/55">{t("hero.overlay.eyebrow")}</p>
+          <h2 className="mt-4 font-display text-3xl font-light text-white">{t("hero.overlay.title")}</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm font-light leading-relaxed text-white/70">
+            {t("hero.overlay.description")}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t("panel.close")}
+            className="absolute -right-2 -top-2 rounded-full p-2 text-white/50 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            <X aria-hidden className="h-4 w-4" />
+          </button>
+        </div>
+        <LandingComposer signedIn={signedIn} />
+      </section>
+    </div>,
+    document.body,
   );
 }
 
