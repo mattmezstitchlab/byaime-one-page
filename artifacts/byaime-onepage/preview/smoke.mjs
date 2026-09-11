@@ -142,7 +142,7 @@ function checkHtml(label, html, needles, absent = []) {
 checkHtml(
   "Accueil visiteur, sans brouillon (deux choix, questions à venir)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire", 'data-testid="landing-guide-button"', 'data-testid="guide-chapters-open"', "1/6"],
+  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire", 'data-testid="landing-guide-button"', 'data-testid="landing-guides-links"', "Tous les guides"],
   ['data-testid="landing-intention-input"', 'data-testid="landing-intention-finish"', "Choisir l’univers", "Laboratoire"],
 );
 

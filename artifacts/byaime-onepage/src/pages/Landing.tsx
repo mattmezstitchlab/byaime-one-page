@@ -8,13 +8,9 @@ import { ShaderBackdrop } from "@/components/ShaderBackdrop";
 import { useRouteMeta } from "@/lib/page-meta";
 import { AimeGuide } from "@/components/AimeGuide";
 import { CenteredBlock } from "@/components/CenteredBlock";
-import { GuidesExplorer } from "@/pages/Guides";
 import { I18nProvider, useI18n, type I18nKey, type Locale } from "@/lib/i18n";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { cn } from "@/lib/utils";
-
-/** Sélection de guides montrés sur l'accueil — tout le catalogue est sur /guides. */
-const LANDING_FEATURED_GUIDES = ["architecture", "intention", "ai-plus-me", "budget", "dayof", "memories"];
 
 /**
  * L'accueil d'AIME, dans la direction « Apple du mariage » : un message par
@@ -22,8 +18,8 @@ const LANDING_FEATURED_GUIDES = ["architecture", "intention", "ai-plus-me", "bud
  * hiérarchie minimale. Le hero tient sa promesse en une phrase, puis
  * l'onboarding (deux choix, cinq questions, une par écran). Viennent la
  * vitrine du Monde Mariage, les trois temps (Avant / Jour J / Après) en
- * visuels immersifs, les valeurs, un témoignage, les guides animés et un
- * appel à créer. Les médias sont du contenu, jamais un thème : le texte des
+ * visuels immersifs, les valeurs, un témoignage, un renvoi vers les guides et
+ * un appel à créer. Les médias sont du contenu, jamais un thème : le texte des
  * visuels pleine page reste blanc dans les deux apparences.
  */
 export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
@@ -121,9 +117,9 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
             alt=""
             className="aime-apple-kenburns h-full w-full object-cover"
           />
-          <div className="aime-apple-overlay absolute inset-0" />
-          {/* Halo d'ambiance dans l'harmonie du fond signature. */}
-          <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_18%,rgba(0,187,205,0.16),transparent_62%)]" />
+          {/* Tint vert-bleu du fond signature : le hero rejoint la teinte des
+              sections suivantes, sans voile sombre écrasant. */}
+          <div className="aime-apple-hero-tint absolute inset-0" />
         </div>
 
         <div className="aime-landing-copy relative z-10 flex w-full max-w-5xl flex-col items-center px-6 pb-24 pt-28 text-center md:pb-28 md:pt-32">
@@ -239,7 +235,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </Reveal>
       </section>
 
-      {/* ——— Les guides animés : la démonstration remplace les longs discours. ——— */}
+      {/* ——— Les guides : des liens directs, pas une animation factice. ——— */}
       <section
         id="landing-guides"
         data-testid="landing-guides"
@@ -255,18 +251,18 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
               {t("guides.subtitle")}
             </p>
           </div>
-          <div className="mt-12">
-            <GuidesExplorer idPrefix="landing-guides" tone="onDark" featuredDemos={LANDING_FEATURED_GUIDES} />
-          </div>
-          <p className="mt-10 text-center">
-            <Link
-              href="/guides"
-              className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-3 text-xs text-white/80 transition hover:border-white/55 hover:bg-white/10 hover:text-white"
-            >
+          <div
+            data-testid="landing-guides-links"
+            className="mt-10 flex flex-wrap items-center justify-center gap-3"
+          >
+            <Link href="/guides" className="aime-apple-pill aime-apple-pill-glass">{t("spot.1.title")}</Link>
+            <Link href="/guides" className="aime-apple-pill aime-apple-pill-glass">{t("spot.2.title")}</Link>
+            <Link href="/guides" className="aime-apple-pill aime-apple-pill-glass">{t("spot.3.title")}</Link>
+            <Link href="/guides" className="aime-apple-pill aime-apple-pill-primary">
               {t("guides.all")}
-              <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+              <ArrowRight aria-hidden className="h-4 w-4" />
             </Link>
-          </p>
+          </div>
         </div>
       </section>
 
@@ -361,13 +357,10 @@ function ImmersiveSection({
           <p className="aime-apple-eyebrow text-white/60">{eyebrow}</p>
           <h2 className="aime-apple-title mt-5 text-4xl text-white md:text-6xl">{title}</h2>
           <p className="aime-apple-lead mx-auto mt-5 max-w-xl text-base text-white/75 md:text-lg">{subtitle}</p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/guides" className="aime-apple-pill aime-apple-pill-glass">
-              {link1}
-            </Link>
-            <Link href="/guides" className="aime-apple-pill aime-apple-pill-glass">
-              {link2}
-            </Link>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/70">
+            <Link href="/guides" className="transition hover:text-white">{link1}</Link>
+            <span aria-hidden className="text-white/30">·</span>
+            <Link href="/guides" className="transition hover:text-white">{link2}</Link>
           </div>
         </Reveal>
       </div>

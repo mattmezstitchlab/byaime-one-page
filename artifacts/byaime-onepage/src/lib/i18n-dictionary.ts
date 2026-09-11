@@ -105,7 +105,7 @@ const fr = {
   // Section guides (landing)
   "guides.eyebrow": "Guides",
   "guides.title": "Comprendre avant de cliquer.",
-  "guides.subtitle": "Six repères pour commencer, et une vingtaine de démonstrations animées sur la page Guides.",
+  "guides.subtitle": "Les grands repères pour commencer — invités, budget, prestataires, Jour J — expliqués pas à pas.",
   "guides.all": "Tous les guides",
   // Section repérage
   "spot.eyebrow": "Tout au même endroit",
@@ -571,7 +571,7 @@ const en: Record<I18nKey, string> = {
   // Section guides (landing)
   "guides.eyebrow": "Guides",
   "guides.title": "Understand before you click.",
-  "guides.subtitle": "Six starting points, and about twenty animated demos on the Guides page.",
+  "guides.subtitle": "The key checkpoints to get started — guests, budget, vendors, the big day — explained step by step.",
   "guides.all": "All guides",
   "spot.eyebrow": "Everything in one place",
   "spot.title": "Your wedding, finally together.",

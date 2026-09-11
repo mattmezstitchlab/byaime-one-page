@@ -98,21 +98,23 @@ describe("Landing (accueil)", () => {
     expect(member).not.toContain('data-testid="landing-sign-in"');
   });
 
-  it("place les guides animés sous le hero, pilotés par une capsule sobre sans bande de boutons", () => {
+  it("propose les guides sous le hero par des liens directs, sans animation factice", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).toContain('data-testid="landing-guides"');
-    expect(markup).toContain('data-testid="landing-guides-explorer"');
+    expect(markup).toContain('data-testid="landing-guides-links"');
     expect(markup).toContain("Comprendre avant de cliquer.");
+    expect(markup).toContain("Tous les guides");
+    // Les liens mènent au catalogue complet.
+    expect(markup).toContain('href="/guides"');
     expect(markup.indexOf('data-testid="landing-guides"')).toBeGreaterThan(markup.indexOf('data-testid="landing-composer"'));
-    expect(markup).toContain('data-testid="landing-guides-player"');
-    expect(markup).toContain('data-testid="guide-chapters-open"');
-    expect(markup).toContain('data-testid="guide-prev"');
-    expect(markup).toContain('data-testid="guide-next"');
-    expect(markup).toContain("1/6");
     expect(markup.match(/<h1/g)).toHaveLength(1);
-    expect(markup).not.toContain('data-testid="landing-guides-menu"');
-    expect(markup).not.toContain('data-testid="landing-guides-screens"');
+    // Plus d'animation de démonstration sur l'accueil.
+    expect(markup).not.toContain('data-testid="landing-guides-explorer"');
+    expect(markup).not.toContain('data-testid="landing-guides-player"');
+    expect(markup).not.toContain('data-testid="guide-chapters-open"');
+    expect(markup).not.toContain('data-testid="guide-prev"');
+    expect(markup).not.toContain('data-testid="guide-next"');
   });
 
   it("ne parle plus jamais de Laboratoire", () => {

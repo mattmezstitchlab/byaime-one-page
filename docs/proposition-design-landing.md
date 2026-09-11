@@ -57,13 +57,15 @@ On garde l'essence AIME (onboarding, guides, palette rose, ton chaleureux) et on
    marche » · « Guides » · FR/EN · thème · « Se connecter » · CTA pilule « Créer mon espace ».
 2. **Hero plein écran** : eyebrow, titre géant « Tout votre mariage. Un seul espace. »,
    une phrase, deux actions (CTA pilule + « Voir comment ça marche › »), ligne de
-   confiance. Visuel plein écran (`landing-hero-astronauts.jpg`) avec lent mouvement.
+   confiance. Visuel plein écran (`landing-hero-astronauts.jpg`) avec lent mouvement,
+   **teinté du vert-bleu du fond signature** (voile léger, sans ombre écrasante).
 3. **Le produit** : « Un espace né d'une simple phrase. » + **fenêtre du Monde Mariage**
-   en grand (sidebar, anneau de progression rose, statistiques, timeline Avant/Jour J/Après).
+   en grand (sidebar, anneau de progression rose, statistiques, timeline Avant/Jour J/Après),
+   **sobre** : pastilles neutres, ombre discrète.
    C'est ici que vit l'onboarding/démo vivante.
 4. **Trois temps pleine page** (Avant / Jour J / Après) : un visuel immersif chacun
    (`wedding-guests.jpg`, `wedding-reception.jpg`, `wedding-portrait.jpg`), titre, phrase,
-   deux liens.
+   deux liens en texte simple (voile léger, plus sobre).
 5. **Pourquoi AIME** : 4 valeurs (Privé · Gratuit · Simple pour tous · Disponible partout),
    icônes fines, beaucoup d'espace, sans cartes criardes.
 6. **Témoignage** : une grande citation, typo display.
@@ -94,8 +96,11 @@ On garde l'essence AIME (onboarding, guides, palette rose, ton chaleureux) et on
 - Le **mode clair** devient réel : en clair, le site passe sur fond clair (blanc/ivoire),
   mêmes médias, mêmes fonctions (règle `accessible-appearance`).
 - Ajout de la **preuve sociale** et du **témoignage**.
-- **Code-splitting** (`React.lazy` sur `/user-portal`, `/guides`, panneaux lourds) pour un
-  accueil léger (−35 à −50 % de JS initial).
+- L'**animation de guides** quitte l'accueil : la landing propose des **liens directs** vers
+  `/guides` (l'animation factice n'est pas représentative de l'app) ; les démos animées
+  restent sur la page Guides.
+- **Code-splitting** (`React.lazy` sur `/user-portal`, `/profile`, `/profil/:id` + chunks
+  fournisseurs) pour un accueil léger (−68 % de JS initial).
 
 ### Ce que je garde
 

@@ -46,11 +46,11 @@ export function LandingShowcase() {
   return (
     <div data-testid="landing-showcase" role="img" aria-label={t("showcase.bar")}>
       <div className="aime-apple-window text-left">
-        {/* Barre de fenêtre. */}
+        {/* Barre de fenêtre, sobre : pastilles neutres, sans couleur vive. */}
         <div className="flex items-center gap-2 border-b border-border/70 bg-foreground/[0.03] px-4 py-3">
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-foreground/20" />
+          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-foreground/20" />
+          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-foreground/20" />
           <span className="ml-3 text-xs font-medium tracking-wide text-muted-foreground">
             {t("showcase.bar")}
           </span>

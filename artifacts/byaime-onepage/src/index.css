@@ -124,15 +124,32 @@
   }
 
   /* Voile noir sur les visuels pleine page, dans les deux modes : le texte du
-     hero reste blanc, et aucun fondu ne doit blanchir la photo en mode clair. */
+     hero reste blanc, et aucun fondu ne doit blanchir la photo en mode clair.
+     Volontairement léger : la photographie reste lisible, le voile ne fait que
+     garantir le contraste des extrémités. */
   .aime-apple-overlay {
     background: linear-gradient(
       to bottom,
-      rgb(0 0 0 / 0.55) 0%,
-      rgb(0 0 0 / 0.18) 32%,
-      rgb(0 0 0 / 0.22) 60%,
-      rgb(0 0 0 / 0.94) 100%
+      rgb(0 0 0 / 0.3) 0%,
+      rgb(0 0 0 / 0.08) 34%,
+      rgb(0 0 0 / 0.1) 62%,
+      rgb(0 0 0 / 0.55) 100%
     );
+  }
+
+  /* Hero : la photographie est teintée du vert-bleu du fond signature, sans
+     l'écraser. Le bas rejoint le shader de la section suivante, le haut garde
+     juste assez de profondeur pour le titre. */
+  .aime-apple-hero-tint {
+    background:
+      radial-gradient(90% 70% at 50% 12%, rgb(0 187 205 / 0.2), transparent 60%),
+      linear-gradient(
+        to bottom,
+        rgb(2 24 43 / 0.42) 0%,
+        rgb(2 24 43 / 0.12) 34%,
+        rgb(0 40 60 / 0.1) 62%,
+        rgb(0 93 184 / 0.32) 100%
+      );
   }
 
   /* Lent mouvement cinématographique des visuels pleine page. */
@@ -219,13 +236,14 @@
     border-color: rgb(255 255 255 / 0.5);
   }
 
-  /* Fenêtre « produit » : le Monde Mariage mis en scène comme un objet. */
+  /* Fenêtre « produit » : le Monde Mariage mis en scène comme un objet.
+     Ombre discrète, bordure fine — sobre, sans relief inutile. */
   .aime-apple-window {
     border-radius: 1.5rem;
     border: 1px solid hsl(var(--border));
     background: hsl(var(--card));
     overflow: hidden;
-    box-shadow: 0 40px 120px rgb(0 0 0 / 0.55);
+    box-shadow: 0 20px 60px rgb(0 0 0 / 0.28);
   }
 }
 
