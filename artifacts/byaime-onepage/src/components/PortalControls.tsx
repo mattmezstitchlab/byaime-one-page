@@ -745,7 +745,7 @@ export function PortalControls({
                       context: {
                         projectId: project.id,
                         role: currentRole,
-                        route: isProfileRoute ? "profile" : currentPath.startsWith("/network") ? "network" : "world",
+                        route: isProfileRoute ? "profile" : "world",
                         path: currentPath,
                         source: "universal-review-sync",
                         syncStatus,

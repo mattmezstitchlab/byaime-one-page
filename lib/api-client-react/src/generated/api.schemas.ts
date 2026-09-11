@@ -5,122 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export type UniversalReferenceKind = typeof UniversalReferenceKind[keyof typeof UniversalReferenceKind];
-
-
-export const UniversalReferenceKind = {
-  card: 'card',
-  world: 'world',
-  place: 'place',
-  moment: 'moment',
-  resource: 'resource',
-} as const;
-
-export interface UniversalReference {
-  kind: UniversalReferenceKind;
-  id: string;
-}
-
-export interface CapabilityDecision {
-  allowed: boolean;
-  reason: string;
-  requiresAuthentication?: boolean;
-  requiresConfirmation?: boolean;
-}
-
-export type NetworkCapability = typeof NetworkCapability[keyof typeof NetworkCapability];
-
-
-export const NetworkCapability = {
-  cardview: 'card.view',
-  cardcontact: 'card.contact',
-  worldview: 'world.view',
-  worldedit: 'world.edit',
-  momentedit: 'moment.edit',
-} as const;
-
-export type LegacyTraceSource = typeof LegacyTraceSource[keyof typeof LegacyTraceSource];
-
-
-export const LegacyTraceSource = {
-  world_project_json: 'world_project_json',
-  supabase: 'supabase',
-} as const;
-
-/**
- * Auditable source identifier; never the canonical subject key
- */
-export interface LegacyTrace {
-  source: LegacyTraceSource;
-  entityKind: string;
-  legacyId: string;
-}
-
-export type NetworkSubjectLocationLevel = typeof NetworkSubjectLocationLevel[keyof typeof NetworkSubjectLocationLevel];
-
-
-export const NetworkSubjectLocationLevel = {
-  public: 'public',
-  network: 'network',
-  world: 'world',
-  operations: 'operations',
-  private: 'private',
-  exact_location: 'exact_location',
-} as const;
-
-export type NetworkSubjectCapabilities = {[key: string]: CapabilityDecision};
-
-export interface NetworkSubject {
-  ref: UniversalReference;
-  worldRef: UniversalReference;
-  label: string;
-  summary?: string;
-  imageUrl?: string;
-  locationLevel: NetworkSubjectLocationLevel;
-  /**
-     * @minimum -90
-     * @maximum 90
-     */
-  latitude?: number;
-  /**
-     * @minimum -180
-     * @maximum 180
-     */
-  longitude?: number;
-  city?: string;
-  primaryCapability?: NetworkCapability;
-  legacy?: LegacyTrace;
-  capabilities: NetworkSubjectCapabilities;
-}
-
-export type NetworkRelationVisibility = typeof NetworkRelationVisibility[keyof typeof NetworkRelationVisibility];
-
-
-export const NetworkRelationVisibility = {
-  public: 'public',
-  network: 'network',
-  world: 'world',
-  operations: 'operations',
-  financial: 'financial',
-  private: 'private',
-  exact_location: 'exact_location',
-  moderation: 'moderation',
-} as const;
-
-export interface NetworkRelation {
-  id: string;
-  from: UniversalReference;
-  to: UniversalReference;
-  kind: string;
-  visibility: NetworkRelationVisibility;
-}
-
-export interface NetworkProjection {
-  generatedAt: string;
-  subjects: NetworkSubject[];
-  relations: NetworkRelation[];
-}
-
 export interface HealthStatus {
   status: string;
 }
@@ -536,5 +420,171 @@ export interface PublicProfile {
   city?: string;
   pivot?: number;
   timeline: PublicTimelineEvent[];
+}
+
+export interface AimeLocalPairingToken {
+  token: string;
+  expiresAt: string;
+}
+
+export interface AimeLocalPairInput {
+  token: string;
+  bridgeId: string;
+  bridgeVersion?: string;
+}
+
+export interface AimeLocalBridgeSession {
+  bridgeSessionId: string;
+  sessionToken: string;
+  expiresAt: string;
+  userId: string;
+}
+
+export interface AimeLocalBridgeStatus {
+  connected: boolean;
+  bridgeId?: string | null;
+  bridgeVersion?: string | null;
+  lastSeenAt?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface AimeLocalFolders {
+  folders: string[];
+}
+
+export interface AimeLocalEntityMap { [key: string]: unknown }
+
+export interface AimeLocalScanFile {
+  name: string;
+  extension: string;
+  fileType: string;
+  documentType?: string;
+  size: number;
+  modifiedAt: string;
+  relativePath: string;
+  sourceFolder: string;
+  localIdentifier: string;
+  fingerprint?: string;
+  entities?: AimeLocalEntityMap;
+}
+
+export type AimeLocalSuggestionActionsItem = typeof AimeLocalSuggestionActionsItem[keyof typeof AimeLocalSuggestionActionsItem];
+
+
+export const AimeLocalSuggestionActionsItem = {
+  link_project: 'link_project',
+  add_timeline: 'add_timeline',
+  import: 'import',
+  ignore: 'ignore',
+} as const;
+
+export interface AimeLocalSuggestion {
+  localIdentifier: string;
+  score: number;
+  reason: string;
+  actions: AimeLocalSuggestionActionsItem[];
+}
+
+export type AimeLocalScanJobStatus = typeof AimeLocalScanJobStatus[keyof typeof AimeLocalScanJobStatus];
+
+
+export const AimeLocalScanJobStatus = {
+  queued: 'queued',
+  done: 'done',
+  failed: 'failed',
+} as const;
+
+export interface AimeLocalScanJob {
+  id: string;
+  projectId: string;
+  status: AimeLocalScanJobStatus;
+  createdAt: string;
+  completedAt?: string;
+  folders: string[];
+  results: AimeLocalScanFile[];
+  suggestions: AimeLocalSuggestion[];
+  error?: string;
+}
+
+export interface AimeLocalLatestScanResponse {
+  job: AimeLocalScanJob | null;
+}
+
+export type AimeLocalReferenceInputMetadata = { [key: string]: unknown };
+
+export interface AimeLocalReferenceInput {
+  localIdentifier: string;
+  fingerprint?: string;
+  filename: string;
+  relativePath: string;
+  sourceFolder: string;
+  extension?: string;
+  fileType: string;
+  size: number;
+  modifiedAt: string;
+  linkedEntityKind?: string;
+  linkedEntityId?: string;
+  linkedTimelineEventId?: string;
+  metadata?: AimeLocalReferenceInputMetadata;
+}
+
+export type AimeLocalReferenceState = typeof AimeLocalReferenceState[keyof typeof AimeLocalReferenceState];
+
+
+export const AimeLocalReferenceState = {
+  local: 'local',
+  linked: 'linked',
+  imported: 'imported',
+  ignored: 'ignored',
+} as const;
+
+export interface AimeLocalReference {
+  id: string;
+  projectId: string;
+  ownerUserId: string;
+  localIdentifier: string;
+  fingerprint?: string | null;
+  filename: string;
+  relativePath: string;
+  sourceFolder: string;
+  extension?: string | null;
+  fileType: string;
+  size: number;
+  modifiedAt: string;
+  state: AimeLocalReferenceState;
+  importedFileId?: string | null;
+}
+
+export type AimeLocalImportRequestedStatus = typeof AimeLocalImportRequestedStatus[keyof typeof AimeLocalImportRequestedStatus];
+
+
+export const AimeLocalImportRequestedStatus = {
+  queued: 'queued',
+} as const;
+
+export interface AimeLocalImportRequested {
+  jobId: string;
+  status: AimeLocalImportRequestedStatus;
+}
+
+export type AimeLocalImportJobStatus = typeof AimeLocalImportJobStatus[keyof typeof AimeLocalImportJobStatus];
+
+
+export const AimeLocalImportJobStatus = {
+  queued: 'queued',
+  uploading: 'uploading',
+  done: 'done',
+  failed: 'failed',
+} as const;
+
+export interface AimeLocalImportJob {
+  id: string;
+  projectId: string;
+  ownerUserId: string;
+  localReferenceId: string;
+  status: AimeLocalImportJobStatus;
+  createdAt: string;
+  updatedAt: string;
+  error?: string;
 }
 

@@ -12,12 +12,6 @@ export const PRIVATE_PRIMARY_NAVIGATION = [
     href: "/user-portal",
   },
   {
-    id: "network",
-    label: "Carte",
-    description: "Les personnes et les Mondes reliés.",
-    href: "/network",
-  },
-  {
     id: "laboratory",
     label: "Laboratoire",
     description: "Vos retours et leur contexte.",
@@ -34,7 +28,6 @@ export function getDesktopRailReservedWidth(isPinned: boolean): 80 | 276 {
 
 export function getPrivateDestinationId(pathname: string): PrivateDestinationId {
   if (pathname.startsWith("/user-portal")) return "world";
-  if (pathname.startsWith("/network")) return "network";
   if (pathname.startsWith("/laboratoire")) return "laboratory";
   return "profile";
 }

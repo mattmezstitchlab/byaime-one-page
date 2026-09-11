@@ -23,7 +23,7 @@ export type LaboratoryFeedbackStatus = (typeof LABORATORY_FEEDBACK_STATUSES)[num
 export type LaboratoryContext = {
   projectId?: string;
   role?: string;
-  route?: "profile" | "world" | "network" | "laboratory";
+  route?: "profile" | "world" | "laboratory";
   path?: string;
   source?: string;
   view?: string;
@@ -63,6 +63,7 @@ export type WorldFocusRequest = {
   view?: string;
   panel?: string;
   auditView?: string;
+  graph?: boolean;
   momentId?: string;
   entityKind?: string;
   entityId?: string;
@@ -174,11 +175,9 @@ export function describeLaboratoryContext(context: LaboratoryContext): string[] 
     ? "Monde"
     : context.route === "profile"
       ? "Profil"
-      : context.route === "network"
-        ? "Carte"
-        : context.route === "laboratory"
-          ? "Laboratoire"
-          : undefined;
+      : context.route === "laboratory"
+        ? "Laboratoire"
+        : undefined;
   const phaseLabel = context.phase === "avant"
     ? "Avant"
     : context.phase === "pendant"

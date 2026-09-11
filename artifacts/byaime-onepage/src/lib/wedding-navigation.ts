@@ -1,4 +1,5 @@
 import type { TimelineView } from "./timeline-graph";
+import type { TimelineEntityKind } from "./types";
 
 export const WORLD_PHASES = [
   { id: "avant", label: "Avant" },
@@ -123,3 +124,18 @@ export function getWeddingNavigationLabel(view: TimelineView, panel: WeddingPane
   if (panel) return WEDDING_PANEL_LABELS[panel];
   return navigation?.primary.concat(navigation.secondary).find(entry => entry.destination.kind === "view" && entry.destination.view === view)?.label ?? "Timeline";
 }
+
+/** Associe chaque type d'entité de la Timeline au panneau du Monde qui l'édite. */
+export const PANEL_FOR_KIND: Partial<Record<TimelineEntityKind, WeddingPanelId>> = {
+  guest: "guests",
+  table: "seating",
+  provider: "providers",
+  task: "planning",
+  payment: "budget",
+  document: "documents",
+  music: "music",
+  team: "team",
+  message: "messages",
+  logistics: "logistics",
+  memory: "memories",
+};

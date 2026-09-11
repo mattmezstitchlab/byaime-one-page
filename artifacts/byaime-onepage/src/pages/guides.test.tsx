@@ -19,10 +19,16 @@ describe("GuidesPage", () => {
     expect(markup).toContain("AI · + · ME");
   });
 
-  it("renders desktop and mobile demo selectors with data-testids", () => {
+  it("renders a single responsive demo selector with data-testids", () => {
     const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
-    expect(markup).toContain('data-testid="demo-select-roles-desktop"');
-    expect(markup).toContain('data-testid="demo-select-creation-mobile"');
+    expect(markup).toContain('data-testid="demo-select-roles"');
+    expect(markup).toContain('data-testid="demo-select-creation"');
+  });
+
+  it("covers the new control tools of the World", () => {
+    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
+    expect(markup).toContain('data-testid="demo-select-synthesis"');
+    expect(markup).toContain('data-testid="demo-select-graph"');
   });
 
   it("renders player controls with correct aria-labels", () => {

@@ -8,10 +8,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
-import { NetworkPage } from '@/pages/Network';
 import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LaboratoryPage } from '@/pages/Laboratory';
-import { LeMondeAimePage } from '@/pages/LeMondeAime';
 import { LegalPage } from '@/pages/Legal';
 import { GuidesPage } from '@/pages/Guides';
 import { ComposerHero } from '@/components/ComposerHero';
@@ -23,9 +21,13 @@ import { PrivateLayout } from '@/components/PrivateLayout';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-document.documentElement.dataset.aimeTheme = localStorage.getItem('aime-appearance') === 'light' ? 'light' : 'dark';
-const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+if (typeof window !== 'undefined') {
+  document.documentElement.dataset.aimeTheme = localStorage.getItem('aime-appearance') === 'light' ? 'light' : 'dark';
+}
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const clerkPubKey = typeof window !== 'undefined'
+  ? publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
+  : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!clerkPubKey) throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env file');
 
 function stripBase(path: string) {
@@ -38,7 +40,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: 'inside' as const,
     logoLinkUrl: basePath || '/',
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}${basePath}/logo.svg`,
     socialButtonsPlacement: 'bottom' as const,
   },
   variables: {
@@ -98,10 +100,10 @@ function Landing() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_55%)]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background to-transparent" />
         <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center text-center">
-          <p className="text-[10px] uppercase tracking-[.35em] text-foreground/45">L’ancien esprit connexion</p>
+          <p className="text-[10px] uppercase tracking-[.35em] text-foreground/45">L’art de créer des liens</p>
           <h1 className="mt-6 font-display text-6xl font-light tracking-[.14em] md:text-8xl">AIME</h1>
           <p className="mt-6 max-w-2xl text-sm font-light leading-relaxed text-foreground/65 md:text-lg">
-            L’art de créer des liens, avec une entrée claire avant de retrouver toute la landing actuelle.
+            Un espace privé pour organiser votre mariage à plusieurs, de la première idée au Jour J.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a data-testid="hero-sign-up" href={`${basePath}/creation`} className="rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background">Créer mon espace</a>
@@ -113,7 +115,7 @@ function Landing() {
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
           <div>
             <p className="text-[10px] uppercase tracking-[.3em] text-foreground/45">Tout votre mariage au même endroit</p>
-            <h1 className="mt-6 font-display text-4xl font-light leading-tight md:text-6xl">AIME accompagne votre mariage, de la première idée au Jour J.</h1>
+            <h2 className="mt-6 font-display text-4xl font-light leading-tight md:text-6xl">AIME accompagne votre mariage, de la première idée au Jour J.</h2>
             <p className="mt-6 max-w-2xl text-base font-light leading-relaxed text-foreground/65 md:text-lg">Centralisez vos invités, votre budget, vos prestataires, vos décisions et vos moments importants dans un espace privé pensé pour avancer sereinement à plusieurs.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a data-testid="landing-sign-up" href={`${basePath}/creation`} className="rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background">Créer mon espace gratuitement</a>
@@ -184,79 +186,8 @@ function Landing() {
   );
 }
 
-function ConceptLanding() {
-  const pillars = [
-    { number: '01', title: 'Profil', text: 'Votre identité durable, vos liens, vos créations et ce que vous choisissez de rendre visible.' },
-    { number: '02', title: 'Monde', text: 'Une réalité organisée dans le temps : mariage, voyage, projet, famille, équipe ou aventure collective.' },
-    { number: '03', title: 'Kit', text: 'La spécialisation qui donne à chaque Monde ses outils, ses méthodes et son langage sans enfermer les données.' },
-  ];
-  return (
-    <main data-testid="concept-landing" className="bg-background text-foreground">
-      <section className="relative flex min-h-[100dvh] items-center justify-center px-6">
-        <a href={`${basePath}/`} className="absolute left-6 top-6 text-sm font-medium tracking-[.32em] text-foreground/80 md:left-10 md:top-8 hover:text-foreground">AIME</a>
-        <div className="max-w-3xl text-center">
-          <p className="mb-8 text-xs uppercase tracking-[.35em] text-foreground/50">L’art de créer des liens</p>
-          <h1 className="mb-8 font-display text-6xl tracking-[.12em] md:text-8xl">AIME</h1>
-          <p className="mb-10 text-lg font-light leading-relaxed text-foreground/70 md:text-2xl">Un espace vivant pour relier les personnes, les projets et les Moments — avant, maintenant et après.</p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Show when="signed-in"><a href={`${basePath}/user-portal`} className="rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Entrer dans mon Monde</a></Show>
-            <Show when="signed-out">
-              <a href={`${basePath}/creation`} className="rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Créer mon espace</a>
-              <a href={`${basePath}/connexion`} className="rounded-full border border-foreground/25 px-7 py-3 text-sm hover:bg-foreground/5">Se connecter</a>
-            </Show>
-          </div>
-        </div>
-      </section>
-
-      <section id="guides" className="scroll-mt-8 border-t border-border px-6 py-28 md:px-10 md:py-40">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-[10px] uppercase tracking-[.28em] text-foreground/40">Un seul système, plusieurs réalités</p>
-          <h2 className="mt-6 max-w-4xl font-display text-4xl font-light leading-tight md:text-7xl">Votre vie n’est pas une succession de tableaux de bord.</h2>
-          <p className="mt-8 max-w-2xl text-base font-light leading-relaxed text-foreground/60 md:text-lg">AIME compose une Timeline cinématique autour de personnes, de lieux, de documents, de besoins et de décisions qui restent reliés entre eux.</p>
-          <div className="mt-20 grid gap-px overflow-hidden rounded-[2rem] bg-border md:grid-cols-3">
-            {pillars.map(pillar => (
-              <article key={pillar.title} className="bg-card p-8 md:min-h-72 md:p-10">
-                <p className="text-[10px] tracking-[.2em] text-foreground/40">{pillar.number}</p>
-                <h3 className="mt-12 font-display text-3xl font-light">{pillar.title}</h3>
-                <p className="mt-5 text-sm font-light leading-relaxed text-foreground/60">{pillar.text}</p>
-              </article>
-            ))}
-          </div>
-          <div className="mt-12 text-center">
-            <a href={`${basePath}/guides`} className="inline-flex rounded-full border border-foreground/20 px-7 py-3 text-sm hover:bg-foreground/5 transition-colors">Explorer les guides détaillés</a>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-border px-6 py-28 md:px-10 md:py-40">
-        <div className="mx-auto grid max-w-6xl gap-16 md:grid-cols-[.8fr_1.2fr] md:items-end">
-          <div>
-            <p className="text-[10px] uppercase tracking-[.28em] text-foreground/40">AI · + · ME</p>
-            <h2 className="mt-6 font-display text-4xl font-light leading-tight md:text-6xl">Comprendre. Créer. Contrôler.</h2>
-          </div>
-          <div className="space-y-8 text-base font-light leading-relaxed text-foreground/60">
-            <p><span className="text-foreground font-medium">AI</span> comprend le contexte, vérifie les conséquences et conseille sans décider à votre place.</p>
-            <p><span className="text-foreground font-medium">+</span> crée, importe ou relie une personne, un lieu, un Moment, une tâche, un document ou un besoin.</p>
-            <p><span className="text-foreground font-medium">ME</span> garde la maîtrise de l’identité, des droits, de la confidentialité, de la publication et des exports.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid min-h-[70dvh] place-items-center border-t border-border px-6 py-24 text-center">
-        <div className="max-w-3xl">
-          <p className="text-[10px] uppercase tracking-[.3em] text-foreground/40">Le premier Kit complet</p>
-          <h2 className="mt-7 font-display text-5xl font-light md:text-7xl">Un mariage, avant, pendant et après.</h2>
-          <p className="mx-auto mt-7 max-w-2xl text-base font-light leading-relaxed text-foreground/60">Préparer ensemble, conduire le Jour J en direct, puis conserver les souvenirs dans le même Monde.</p>
-          <Show when="signed-in"><a href={`${basePath}/user-portal`} className="mt-10 inline-flex rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Retrouver mon Monde</a></Show>
-          <Show when="signed-out"><a href={`${basePath}/creation`} className="mt-10 inline-flex rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background">Commencer</a></Show>
-        </div>
-      </section>
-    </main>
-  );
-}
-
 function HomeRedirect() {
-  return <><Show when="signed-in"><Redirect to="/app" /></Show><Show when="signed-out"><Landing /></Show></>;
+  return <><Show when="signed-in"><Redirect to="/user-portal" /></Show><Show when="signed-out"><Landing /></Show></>;
 }
 
 function PrivateRoute({ children }: { children: ReactNode }) {
@@ -451,14 +382,12 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function Routes() {
   return <RoutedErrorBoundary><Switch>
     <Route path="/guides" component={GuidesPage} />
-    <Route path="/concept" component={ConceptLanding} />
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={HomeRedirect} />
-    <Route path="/app">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
+    <Route path="/app"><Redirect to="/user-portal" /></Route>
     <Route path="/user-portal">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
     <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
-    <Route path="/network">{() => <PrivateRoute><NetworkPage /></PrivateRoute>}</Route>
     <Route path="/laboratoire">{() => <PrivateRoute><LaboratoryPage /></PrivateRoute>}</Route>
     <Route path="/connexion/*?">{() => <AuthPage />}</Route>
     <Route path="/creation/*?">{() => <AuthPage signup />}</Route>
@@ -467,7 +396,6 @@ function Routes() {
     <Route path="/invite/:token" component={InvitePage} />
     <Route path="/rsvp/:token" component={RsvpPage} />
     <Route path="/profil/:projectId">{() => <PublicProfilePage />}</Route>
-    <Route path="/le-monde-aime" component={LeMondeAimePage} />
     <Route component={NotFound} />
   </Switch></RoutedErrorBoundary>;
 }
