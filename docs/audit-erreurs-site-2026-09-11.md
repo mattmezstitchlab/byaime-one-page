@@ -38,6 +38,12 @@ Le site tourne, l'authentification et la landing sont fonctionnelles, et **aucun
 - ✅ `og:image`, `og:url`, `og:site_name`, `canonical` et `twitter:image` ajoutés à `index.html`.
 - ✅ `public/sitemap.xml` créé (routes publiques uniquement) + référence `Sitemap:` dans `robots.txt`.
 
+**Cinquième passe (page Guides enrichie) :**
+- ✅ La page `/guides` passe de 4 à **18 tutoriels**, répartis en **4 thèmes** (Comprendre AIME · Organiser le mariage · Le Jour J · Après & vous).
+- ✅ Même moteur d'animations (auto-lecture, transitions flou, curseur spring, progression) et même style visuel.
+- ✅ Refactor : `FakeUI` déplacés dans `src/pages/guides-fake-uis.tsx`, données des tutoriels dans `src/pages/guides-demos.tsx`, page dans `Guides.tsx` avec sélecteur groupé par thème.
+- ✅ Nouveaux tutoriels ancrés sur le comportement réel de l'app (phases Avant/Jour J/Après, rôles & capacités, statuts RSVP/musique, envoi après confirmation, AIME LOCAL, etc.).
+
 ---
 
 ## 2. Suppression de la map réseau — périmètre réalisé
