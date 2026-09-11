@@ -2,29 +2,33 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 
 /**
- * Visuel de section qui glisse légèrement plus lentement que le contenu :
- * il garde sa taille de couverture (scale d'amorce) et se translate sur la
- * traversée de la section, pour une seconde profondeur sans effet de gimmick.
+ * Visuel de section qui glisse légèrement plus lentement que le contenu.
+ * L'image est amorcée à l'échelle 1.25 (12,5 % de marge de chaque côté), ce
+ * qui couvre toujours la translation (≤ 12 % par défaut) : aucune bande noire
+ * ne peut se découvrir, y compris à la première peinture avant que
+ * framer-motion n'applique son style. Le glissement est omis en mouvement
+ * réduit.
  */
 export function ParallaxImage({
   src,
   alt,
   className = "",
-  distance = 12,
+  distance = 8,
 }: {
   src: string;
   alt: string;
   className?: string;
-  /** Amplitude du glissement vertical, en pourcentage de l'image. */
+  /** Amplitude du glissement vertical, en pourcentage de l'image (≤ 12). */
   distance?: number;
 }) {
+  const safeDistance = Math.min(distance, 12);
   const ref = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start end", "end start"],
   });
-  const y = useTransform(scrollYProgress, [0, 1], [`-${distance}%`, `${distance}%`]);
+  const y = useTransform(scrollYProgress, [0, 1], [`-${safeDistance}%`, `${safeDistance}%`]);
 
   return (
     <div ref={ref} aria-hidden className={`overflow-hidden ${className}`}>
@@ -32,8 +36,9 @@ export function ParallaxImage({
         src={src}
         alt={alt}
         loading="lazy"
-        style={reduceMotion ? undefined : { y, scale: 1.18 }}
-        className="h-full w-full object-cover object-center will-change-transform"
+        initial={false}
+        style={reduceMotion ? undefined : { y }}
+        className="aime-parallax-image h-full w-full scale-[1.3] object-cover object-center will-change-transform"
       />
     </div>
   );

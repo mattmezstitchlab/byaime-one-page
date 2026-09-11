@@ -148,13 +148,16 @@ function ScriptedDemoPlayer({
         tabIndex={0}
         aria-label={t("player.frame", { title: demoTitle(config, locale) })}
       >
+        {/* Fondu simple (opacité + translation de quelques pixels) : un
+            flou animé force la recombinaison des calques fixes de la page et
+            fait scintiller les visuels en arrière-plan. */}
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, filter: "blur(10px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, filter: "blur(10px)" }}
-            transition={{ duration: 0.6 }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
             className="absolute inset-0"
           >
             <DemoLangProvider lang={locale}>{step.ui}</DemoLangProvider>
@@ -202,9 +205,11 @@ function ScriptedDemoPlayer({
       </div>
 
       <div className="flex flex-col items-center gap-4 bg-card/60 px-6 py-6 text-center">
-        <div className="w-full max-w-xl">
+        {/* Hauteur calée sur 3 lignes : les textes d'étape à 2 ou 3 lignes ne
+            doivent pas faire sauter la carte à chaque changement d'étape. */}
+        <div className="flex min-h-[7rem] w-full max-w-xl flex-col justify-start">
           <h3 className="font-display text-xl text-foreground">{demoStepLabel(step, locale)}</h3>
-          <p className="mt-2 min-h-[3rem] text-sm font-light leading-relaxed text-foreground/60">{demoStepContent(step, locale)}</p>
+          <p className="mt-2 min-h-[4.6rem] text-sm font-light leading-relaxed text-foreground/60">{demoStepContent(step, locale)}</p>
         </div>
 
         {/* Segments d'étapes : cliquables, ils remplacent la rangée de boutons. */}

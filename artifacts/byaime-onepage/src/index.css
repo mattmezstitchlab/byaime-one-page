@@ -23,10 +23,11 @@
   .aime-landing-copy > p {
     text-shadow: 0 1px 3px rgb(0 0 0 / .7), 0 8px 28px rgb(0 0 0 / .55);
   }
-  /* Hero immersif de l'accueil : lente dérive cinématographique du plan fixe. */
+  /* Hero immersif de l'accueil : lente dérive cinématographique du plan fixe.
+     Les marges d'échelle (≥ 3 %) couvrent toujours la translation (≤ 1 %). */
   @keyframes aime-hero-drift {
-    from { transform: scale(1.03) translateY(0); }
-    to   { transform: scale(1.12) translateY(-1.5%); }
+    from { transform: scale(1.06) translateY(0); }
+    to   { transform: scale(1.13) translateY(-1%); }
   }
   .aime-hero-drift {
     animation: aime-hero-drift 32s ease-in-out infinite alternate;
