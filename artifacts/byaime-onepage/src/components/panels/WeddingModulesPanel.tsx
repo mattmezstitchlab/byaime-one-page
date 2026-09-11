@@ -150,6 +150,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [recipients, setRecipients] = useState("");
+  const [freeOpen, setFreeOpen] = useState(false);
+  const [freeRecipients, setFreeRecipients] = useState("");
+  const [freeSubject, setFreeSubject] = useState("");
+  const [freeBody, setFreeBody] = useState("");
   const [rescheduleAt, setRescheduleAt] = useState<Record<string, string>>({});
   const [musicQuery, setMusicQuery] = useState("");
   const [musicResults, setMusicResults] = useState<MusicSearchResult[]>([]);
@@ -347,19 +351,18 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       setBusy(false);
     }
   };
-  const sendTemplate = async (template: typeof project.messageTemplates[number]) => {
-    const recipientList = recipients.split(",").map(value => value.trim()).filter(Boolean);
-    if (!recipientList.length || !template.title.trim() || !template.body.trim()) return;
+  // Unique point d'entrée de composition d'e-mail : les modèles et le message libre
+  // passent tous par ce journal (voir dédup « Messages = seul endroit de composition »).
+  const deliverMessage = async (recipientList: string[], subject: string, body: string) => {
+    if (!recipientList.length || !subject.trim() || !body.trim()) return;
     setBusy(true);
     setRemoteError("");
     try {
       const delivery = await api<SentMessage>(`/projects/${project.id}/messages`, {
         method: "POST",
-        body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: template.title.trim(), body: template.body.trim(), confirmed: true }),
+        body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: subject.trim(), body: body.trim(), confirmed: true }),
       });
       if (delivery.status !== "sent") throw new Error(delivery.providerError || "La livraison de l’e-mail n’a pas été confirmée");
-      setRecipients("");
-      setSelectedTemplateId(null);
       try {
         setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
       } catch {
@@ -375,6 +378,21 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     } finally {
       setBusy(false);
     }
+  };
+  const sendTemplate = async (template: typeof project.messageTemplates[number]) => {
+    const recipientList = recipients.split(",").map(value => value.trim()).filter(Boolean);
+    if (!recipientList.length || !template.title.trim() || !template.body.trim()) return;
+    await deliverMessage(recipientList, template.title, template.body);
+    setRecipients("");
+    setSelectedTemplateId(null);
+  };
+  const sendFreeMessage = async () => {
+    const recipientList = freeRecipients.split(",").map(value => value.trim()).filter(Boolean);
+    await deliverMessage(recipientList, freeSubject, freeBody);
+    setFreeRecipients("");
+    setFreeSubject("");
+    setFreeBody("");
+    setFreeOpen(false);
   };
   const cancelScheduledMessage = async (messageId: string) => {
     setBusy(true);
@@ -851,7 +869,16 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     return <div className="max-w-4xl mx-auto space-y-5">
       <PersistenceState status={syncStatus} error={syncError} />
       {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
-      <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
+      <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Message libre" onAdd={() => setFreeOpen(value => !value)} />}{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
+      {canManage && freeOpen && <div className="space-y-3 rounded-2xl border border-foreground/15 bg-foreground/[.05] p-4" data-testid="messages-free-composer">
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</span><input value={freeRecipients} onChange={event => setFreeRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="mt-1 w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Objet</span><input value={freeSubject} onChange={event => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Message</span><textarea value={freeBody} onChange={event => setFreeBody(event.target.value)} rows={4} placeholder="Écrire le message…" className="mt-1 w-full resize-none rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs leading-relaxed outline-none focus:border-foreground/30" /></label>
+        <div className="flex gap-2">
+          <button disabled={busy} onClick={() => setFreeOpen(false)} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Annuler</button>
+          <button disabled={busy || !freeRecipients.trim() || !freeSubject.trim() || !freeBody.trim()} onClick={() => void sendFreeMessage()} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-medium text-black disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}<Send className="h-3.5 w-3.5" />Confirmer et envoyer</button>
+        </div>
+      </div>}
       <div className="grid gap-3 md:grid-cols-2">{templates.map(template => <div key={template.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex justify-between gap-2"><input disabled={!canManage} value={template.title} onChange={event => updateEntity("messageTemplates", template.id, { title: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-foreground/60" />{canManage && <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-foreground/30 hover:text-rose-300"><Trash2 className="h-3.5 w-3.5" /></button>}</div><textarea disabled={!canManage} value={template.body} onChange={event => updateEntity("messageTemplates", template.id, { body: event.target.value })} placeholder="Écrire le message…" rows={3} className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none" />
         {canManage && selectedTemplateId !== template.id && <button disabled={!template.title.trim() || !template.body.trim()} onClick={() => setSelectedTemplateId(template.id)} className="mt-3 inline-flex items-center gap-2 text-xs text-foreground/70 hover:text-foreground disabled:opacity-30"><Send className="h-3.5 w-3.5" />Préparer l’envoi</button>}
         {selectedTemplateId === template.id && <div className="mt-4 space-y-3 border-t border-foreground/10 pt-4"><label className="block text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</label><input autoFocus value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /><p className="text-xs text-foreground/40">L’objet sera « {template.title} ». L’envoi ne partira qu’après votre confirmation.</p><div className="flex gap-2"><button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Annuler</button><button disabled={busy || !recipients.trim()} onClick={() => void sendTemplate(template)} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-medium text-black disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}Confirmer et envoyer</button></div></div>}

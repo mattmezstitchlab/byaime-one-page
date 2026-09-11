@@ -19,6 +19,7 @@ import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
 import { VisualImportControl } from "./VisualImportControl";
+import { WorldSwitcher } from "./WorldSwitcher";
 import { cn } from "@/lib/utils";
 import {
   auditTimelineConnections,
@@ -178,7 +179,6 @@ export function PortalControls({
     | "editor"
     | "sync"
     | "invite"
-    | "message"
     | "delete-file"
     | "delete-project"
     | "delete-account"
@@ -194,9 +194,6 @@ export function PortalControls({
   } | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<InvitationRole>("family");
-  const [recipients, setRecipients] = useState("");
-  const [subject, setSubject] = useState("");
-  const [messageBody, setMessageBody] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteAccountConfirmation, setDeleteAccountConfirmation] =
     useState("");
@@ -324,46 +321,6 @@ export function PortalControls({
     } catch (error) {
       setNotice(
         `Invitation non envoyée : ${error instanceof Error ? error.message : "erreur inconnue"}`,
-      );
-      setPanel("world-settings");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  const sendMessage = async () => {
-    if (!recipients.trim() || !subject.trim() || !messageBody.trim() || !project) return;
-    setSubmitting(true);
-    const recipientList = recipients
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
-    try {
-      const delivery = await api(`/projects/${project.id}/messages`, {
-        method: "POST",
-        body: JSON.stringify({
-          kind: "practical_info",
-          recipients: recipientList,
-          subject: subject.trim(),
-          body: messageBody.trim(),
-          confirmed: true,
-        }),
-      });
-      if (delivery?.status !== "sent")
-        throw new Error(
-          delivery?.providerError ||
-            "La livraison de l’e-mail n’a pas été confirmée",
-        );
-      trackEvent("message_sent");
-      setNotice(
-        `E-mail envoyé à ${recipientList.length} destinataire${recipientList.length > 1 ? "s" : ""}`,
-      );
-      setRecipients("");
-      setSubject("");
-      setMessageBody("");
-      setPanel("world-settings");
-    } catch (error) {
-      setNotice(
-        `E-mail non envoyé : ${error instanceof Error ? error.message : "erreur inconnue"}`,
       );
       setPanel("world-settings");
     } finally {
@@ -629,40 +586,17 @@ export function PortalControls({
               {meSection === "worlds" && (
                 <div className="space-y-4">
                   <h4 className="text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">Mondes accessibles</h4>
-                  {projects.length > 0 && (
-                    <select
-                      data-testid="active-project-select"
-                      value={project?.id ?? ""}
-                      onChange={(event) => void selectProject(event.target.value)}
-                      className="w-full rounded-2xl border border-border bg-card px-5 py-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {projects.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.title} · {item.role}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 hide-scrollbar">
-                    {projects.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => { selectProject(item.id); setPanel(null); }}
-                        className={cn("flex w-full items-center justify-between rounded-2xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", item.id === project?.id ? "border-brand-accent/30 bg-brand-accent/5" : "border-border bg-card hover:border-foreground/20 hover:bg-foreground/[.02]")}
-                      >
-                        <div>
-                          <div className={cn("mb-1 text-sm font-medium", item.id === project?.id ? "text-brand-accent" : "text-foreground")}>{item.title}</div>
-                          <div className="text-[10px] uppercase tracking-[.15em] text-foreground/50">{item.role}</div>
-                        </div>
-                        {item.id === project?.id && <div className="h-2.5 w-2.5 rounded-full bg-brand-accent shadow-[0_0_12px_hsl(var(--brand-accent)/0.7)]" />}
-                      </button>
-                    ))}
-                    {projects.length === 0 && (
-                      <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">
-                        Aucun Monde pour le moment. Votre compte reste accessible.
-                      </p>
-                    )}
-                  </div>
+                  <p className="text-xs font-light leading-relaxed text-foreground/45">
+                    Le même écran que celui ouvert depuis le menu du Monde, en haut du cinéma du mariage.
+                  </p>
+                  <WorldSwitcher
+                    projects={projects}
+                    activeProjectId={project?.id}
+                    onSelect={(projectId) => {
+                      if (projectId !== project?.id) void selectProject(projectId);
+                      setPanel(null);
+                    }}
+                  />
                 </div>
               )}
 
@@ -949,14 +883,6 @@ export function PortalControls({
             )}
             {canManage && (
               <button
-                onClick={() => setPanel("message")}
-                className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Envoyer un e-mail
-              </button>
-            )}
-            {canManage && (
-              <button
                 disabled={submitting}
                 onClick={() => fileRef.current?.click()}
                 className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
@@ -1219,56 +1145,6 @@ export function PortalControls({
               className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               {submitting ? "Envoi en cours…" : "Envoyer l’invitation"}
-            </button>
-          </div>
-        </CenteredBlock>
-      )}
-      {panel === "message" && project && (
-        <CenteredBlock
-          eyebrow="Communication"
-          title="Envoyer un e-mail"
-          description="Envoyer une information pratique ou relancer les professionnels."
-          onClose={() => setPanel("world-settings")}
-          size="lg"
-        >
-          <div className="space-y-5">
-            <Field label="Destinataires">
-              <input
-                value={recipients}
-                onChange={(e) => setRecipients(e.target.value)}
-                placeholder="Adresses séparées par des virgules"
-                className="field"
-                disabled={submitting}
-              />
-            </Field>
-            <Field label="Objet">
-              <input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="field"
-                disabled={submitting}
-              />
-            </Field>
-            <Field label="Message">
-              <textarea
-                value={messageBody}
-                onChange={(e) => setMessageBody(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                rows={6}
-                disabled={submitting}
-              />
-            </Field>
-            <button
-              onClick={() => void sendMessage()}
-              disabled={
-                submitting ||
-                !recipients.trim() ||
-                !subject.trim() ||
-                !messageBody.trim()
-              }
-              className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-            >
-              {submitting ? "Envoi en cours…" : "Envoyer l’e-mail"}
             </button>
           </div>
         </CenteredBlock>

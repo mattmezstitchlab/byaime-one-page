@@ -61,7 +61,7 @@ describe("Landing (accueil)", () => {
     expect(member).not.toContain('data-testid="landing-sign-in"');
   });
 
-  it("place les guides animés sous le hero, sur le fond cosmique sans ancienne photo de mariage", () => {
+  it("place les guides animés sous le hero, pilotés par une capsule sobre sans bande de boutons", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).toContain('data-testid="landing-guides"');
@@ -69,15 +69,16 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain("Comprendre avant de cliquer.");
     // Juste après le hero.
     expect(markup.indexOf('data-testid="landing-guides"')).toBeGreaterThan(markup.indexOf('data-testid="landing-composer"'));
-    // Une rangée par catégorie, et l'animation centrée — pas de grille de cartes ni de nuage de puces.
-    expect(markup).toContain('data-testid="landing-guides-menu"');
-    expect(markup).toContain("overflow-x-auto");
+    // La capsule flotte sur l'animation : précédent, chapitres au centre, suivant.
     expect(markup).toContain('data-testid="landing-guides-player"');
-    expect(markup).toContain('data-testid="landing-guides-group-panneaux"');
-    expect(markup).not.toContain('data-testid="landing-guides-group-monde"');
+    expect(markup).toContain('data-testid="guide-chapters-open"');
+    expect(markup).toContain('data-testid="guide-prev"');
+    expect(markup).toContain('data-testid="guide-next"');
+    expect(markup).toContain("1/6");
     expect(markup.match(/<h1/g)).toHaveLength(1);
-    // L'accueil ne garde qu'une sélection de guides ; le catalogue complet est sur /guides.
-    expect(markup.match(/data-testid="demo-select-/g)).toHaveLength(6);
+    // Aucune bande de cartes au-dessus ou au-dessous de l'animation sur l'accueil.
+    expect(markup).not.toContain('data-testid="landing-guides-menu"');
+    expect(markup).not.toContain('data-testid="landing-guides-screens"');
     // Les anciennes photos de mariage documentaires ont quitté l'accueil.
     expect(markup).not.toContain("images/wedding/wedding-reception.jpg");
     expect(markup).not.toContain("images/wedding/wedding-guests.jpg");

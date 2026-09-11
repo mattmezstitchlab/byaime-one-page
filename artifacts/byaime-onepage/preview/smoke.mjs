@@ -112,8 +112,8 @@ function checkHtml(label, html, needles, absent = []) {
 checkHtml(
   "Accueil visiteur, sans brouillon (capsule guidée complète)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-universe"', 'data-testid="landing-intention-submit"', "Notre mariage", "La date du mariage", "1/5", "Créer mon espace", 'data-testid="landing-guide-button"'],
-  ["Choisir l’univers", "1/6", "Laboratoire"],
+  ['data-testid="landing-composer"', 'data-testid="landing-universe"', 'data-testid="landing-intention-submit"', "Notre mariage", "La date du mariage", "1/5", "Créer mon espace", 'data-testid="landing-guide-button"', 'data-testid="guide-chapters-open"', "1/6"],
+  ["Choisir l’univers", "Laboratoire"],
 );
 
 /* Une intention posée avant la création du compte doit reprendre la main sur
@@ -136,7 +136,7 @@ async function renderApp(path) {
 }
 
 checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landing"'], ["Laboratoire"]);
-checkHtml("App complète (/guides)", await renderApp("/guides"), ["guides-page"], []);
+checkHtml("App complète (/guides)", await renderApp("/guides"), ["guides-page", 'data-testid="guide-chapters-open"', "1/25"], ["demo-select-"]);
 checkHtml("App complète (/confidentialite)", await renderApp("/confidentialite"), [], []);
 checkHtml("App complète (/creation)", await renderApp("/creation"), ["Clerk simulé"], []);
 

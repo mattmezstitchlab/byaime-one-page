@@ -105,7 +105,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
             </p>
           </div>
           <div className="mt-12">
-            <GuidesExplorer idPrefix="landing-guides" tone="onDark" screens="panneaux" featuredDemos={LANDING_FEATURED_GUIDES} />
+            <GuidesExplorer idPrefix="landing-guides" tone="onDark" featuredDemos={LANDING_FEATURED_GUIDES} />
           </div>
           <p className="mt-10 text-center">
             <Link href="/guides" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-3 text-xs text-white/80 transition hover:border-white/55 hover:bg-white/10 hover:text-white">

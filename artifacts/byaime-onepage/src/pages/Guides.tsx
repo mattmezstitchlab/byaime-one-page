@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Link } from "wouter";
 import { AppearanceToggle } from "@/components/AppearanceToggle";
-import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight, MousePointer2, Compass } from "lucide-react";
+import { CenteredBlock } from "@/components/CenteredBlock";
+import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight, MousePointer2, Compass, Plus, List, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEMOS, DEMO_CATEGORIES, type DemoConfig } from "./guides-demos";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
@@ -10,13 +11,13 @@ import { AIME_SCREENS, type AimeScreenId } from "@/lib/aime-architecture";
 import { useRouteMeta } from "@/lib/page-meta";
 
 /*
- * Les guides sont une rangée d'animations : on fait défiler les catégories,
- * l'animation répond au centre. Rien n'est empilé en grille ni en nuage de
- * puces — sur l'accueil comme ici, le même composant, juste un autre ton.
+ * Les guides sont une animation plein cadre, sobre : aucune bande de boutons
+ * au-dessus ni au-dessous. Une capsule flottante (à l'image de la capsule
+ * temporelle AVANT / JOUR J / APRÈS ou de AI + ME) fait défiler les guides ;
+ * son bouton central « + » ouvre le panneau de tous les chapitres.
  */
 
 type ReducedMotionFlag = boolean | null;
-type RailTone = "light" | "onDark";
 
 const FakeCursor = ({ x, y, active, reducedMotion }: { x: number; y: number; active: boolean; reducedMotion: ReducedMotionFlag }) => {
   if (reducedMotion) return null;
@@ -25,10 +26,10 @@ const FakeCursor = ({ x, y, active, reducedMotion }: { x: number; y: number; act
       initial={false}
       animate={{ left: `${x}%`, top: `${y}%`, scale: active ? 0.9 : 1 }}
       transition={{ type: "spring", stiffness: 100, damping: 20, mass: 15 }}
-      className="absolute z-50 pointer-events-none drop-shadow-xl"
+      className="pointer-events-none absolute z-50 drop-shadow-xl"
       style={{ marginLeft: -12, marginTop: -12 }}
     >
-      <MousePointer2 className="w-8 h-8 text-foreground fill-background" />
+      <MousePointer2 className="h-8 w-8 text-foreground fill-background" />
       {active && (
         <motion.div
           initial={{ scale: 0, opacity: 0.8 }}
@@ -41,10 +42,77 @@ const FakeCursor = ({ x, y, active, reducedMotion }: { x: number; y: number; act
   );
 };
 
-function ScriptedDemoPlayer({ config }: { config: DemoConfig }) {
+/* La capsule flottante de navigation entre guides, calée au bas de l'animation. */
+function GuideCapsule({
+  index,
+  total,
+  categoryLabel,
+  onPrev,
+  onNext,
+  onOpenChapters,
+}: {
+  index: number;
+  total: number;
+  categoryLabel: string;
+  onPrev: () => void;
+  onNext: () => void;
+  onOpenChapters: () => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Faire défiler les guides"
+      className="flex items-center gap-1 rounded-full border border-white/20 bg-black/55 p-1 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)] backdrop-blur-xl"
+    >
+      <button
+        type="button"
+        data-testid="guide-prev"
+        onClick={onPrev}
+        aria-label="Guide précédent"
+        className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        data-testid="guide-chapters-open"
+        onClick={onOpenChapters}
+        aria-haspopup="dialog"
+        className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[10px] font-medium uppercase tracking-[.18em] text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Chapitres</span>
+        <span className="tabular-nums opacity-55">{index + 1}/{total}</span>
+      </button>
+      <button
+        type="button"
+        data-testid="guide-next"
+        onClick={onNext}
+        aria-label="Guide suivant"
+        className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+      <span className="sr-only">{categoryLabel}</span>
+    </div>
+  );
+}
+
+function ScriptedDemoPlayer({
+  config,
+  chapter,
+}: {
+  config: DemoConfig;
+  chapter: { index: number; total: number; categoryLabel: string; onPrev: () => void; onNext: () => void; onOpenChapters: () => void };
+}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    setCurrentStep(0);
+    setIsPlaying(true);
+  }, [config.id]);
 
   useEffect(() => {
     if (!isPlaying || reducedMotion) return;
@@ -57,8 +125,16 @@ function ScriptedDemoPlayer({ config }: { config: DemoConfig }) {
   const step = config.steps[currentStep];
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-[2rem] border border-border bg-card/60 shadow-2xl">
-      <div className="relative h-[380px] w-full overflow-hidden border-b border-border bg-background sm:h-[420px]">
+    <div className="flex flex-col overflow-hidden rounded-[2rem] border border-white/15 bg-card/60 shadow-2xl">
+      <div
+        className="group relative h-[380px] w-full overflow-hidden border-b border-white/10 bg-background sm:h-[440px]"
+        onKeyDown={event => {
+          if (event.key === "ArrowLeft") { event.preventDefault(); chapter.onPrev(); }
+          if (event.key === "ArrowRight") { event.preventDefault(); chapter.onNext(); }
+        }}
+        tabIndex={0}
+        aria-label={`Animation du guide : ${config.title}. Flèches gauche et droite pour changer de guide.`}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -73,136 +149,91 @@ function ScriptedDemoPlayer({ config }: { config: DemoConfig }) {
         </AnimatePresence>
 
         <FakeCursor x={step.cursor.x} y={step.cursor.y} active reducedMotion={reducedMotion} />
+
+        {/* Étiquette sobre : catégorie du guide et position. */}
+        <p className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[9px] uppercase tracking-[.2em] text-white/75 backdrop-blur-md">
+          {chapter.categoryLabel}
+        </p>
+
+        {/* Lecture / replays, discrets en haut à droite. */}
+        <div className="absolute right-4 top-4 flex items-center gap-1.5">
+          <button
+            data-testid="demo-play-pause"
+            aria-label={isPlaying ? "Mettre en pause" : "Jouer"}
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
+          </button>
+          <button
+            data-testid="demo-replay"
+            aria-label="Rejouer la démonstration"
+            onClick={() => { setCurrentStep(0); setIsPlaying(true); }}
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* La capsule de chapitres, flottante sur l'animation. */}
+        <div className="absolute bottom-4 left-1/2 z-40 -translate-x-1/2">
+          <GuideCapsule
+            index={chapter.index}
+            total={chapter.total}
+            categoryLabel={chapter.categoryLabel}
+            onPrev={chapter.onPrev}
+            onNext={chapter.onNext}
+            onOpenChapters={chapter.onOpenChapters}
+          />
+        </div>
       </div>
 
-      <div className="flex flex-col items-center gap-5 bg-card/60 px-6 py-6 text-center">
+      <div className="flex flex-col items-center gap-4 bg-card/60 px-6 py-6 text-center">
         <div className="w-full max-w-xl">
           <h3 className="font-display text-xl text-foreground">{step.label}</h3>
           <p className="mt-2 min-h-[3rem] text-sm font-light leading-relaxed text-foreground/60">{step.content}</p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <button data-testid="demo-prev" aria-label="Étape précédente" onClick={() => { setIsPlaying(false); setCurrentStep(s => (s - 1 + config.steps.length) % config.steps.length); }} className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button data-testid="demo-play-pause" aria-label={isPlaying ? "Mettre en pause" : "Jouer"} onClick={() => setIsPlaying(!isPlaying)} className="grid h-12 w-12 place-items-center rounded-full bg-foreground text-background transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2">
-            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="ml-1 h-5 w-5" />}
-          </button>
-          <button data-testid="demo-next" aria-label="Étape suivante" onClick={() => { setIsPlaying(false); setCurrentStep(s => (s + 1) % config.steps.length); }} className="grid h-10 w-10 place-items-center rounded-full border border-border text-foreground/70 transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <button data-testid="demo-replay" aria-label="Rejouer la démonstration" onClick={() => { setCurrentStep(0); setIsPlaying(true); }} className="ml-2 flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-foreground/70 transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
-            <RotateCcw className="h-3.5 w-3.5" /> Rejouer
-          </button>
+        {/* Segments d'étapes : cliquables, ils remplacent la rangée de boutons. */}
+        <div className="flex items-center gap-1.5" role="tablist" aria-label="Étapes de la démonstration">
+          {config.steps.map((stepItem, idx) => (
+            <button
+              key={idx}
+              type="button"
+              role="tab"
+              aria-selected={idx === currentStep}
+              aria-label={`Étape ${idx + 1} : ${stepItem.label}`}
+              onClick={() => { setIsPlaying(false); setCurrentStep(idx); }}
+              className={cn(
+                "h-1.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
+                idx === currentStep ? "w-8 bg-foreground" : idx < currentStep ? "w-4 bg-foreground/55 hover:bg-foreground/80" : "w-4 bg-foreground/15 hover:bg-foreground/35",
+              )}
+            />
+          ))}
         </div>
       </div>
 
-      <div className="flex gap-1 bg-background/60 p-2">
-        {config.steps.map((_, idx) => (
-          <div key={idx} className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/10">
-            {idx === currentStep && isPlaying && !reducedMotion && (
-              <motion.div
-                initial={{ width: "0%" }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 4.5, ease: "linear" }}
-                className="h-full bg-foreground"
-                data-testid="demo-progress-active"
-              />
-            )}
-            {(idx < currentStep || (idx === currentStep && (!isPlaying || reducedMotion))) && (
-              <div className="h-full w-full bg-foreground" data-testid="demo-progress-static" />
-            )}
-          </div>
-        ))}
+      {/* Filet de progression temporel de l'étape courante. */}
+      <div className="h-0.5 w-full bg-foreground/10">
+        {isPlaying && !reducedMotion && (
+          <motion.div
+            key={currentStep}
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ duration: 4.5, ease: "linear" }}
+            className="h-full bg-foreground"
+            data-testid="demo-progress-active"
+          />
+        )}
       </div>
     </div>
   );
 }
 
 /* ————————————————————————————————————————————————
-   Rail horizontal : les catégories se suivent, on fait défiler.
+   Panneau des chapitres : tout le catalogue, sans
+   bande de boutons autour de l'animation.
 ———————————————————————————————————————————————— */
-
-const railClasses =
-  "hide-scrollbar flex snap-x snap-proximity gap-3 overflow-x-auto scroll-pl-6 px-6 pb-3 focus-visible:outline-none md:px-10";
-const cardWidth = "w-[15.5rem] shrink-0 snap-start sm:w-[17rem]";
-
-const toneCard = (tone: RailTone, active: boolean) =>
-  cn(
-    "group rounded-3xl border p-4 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2",
-    active
-      ? tone === "onDark"
-        ? "border-white bg-white text-black focus-visible:ring-white"
-        : "border-foreground bg-foreground text-background focus-visible:ring-foreground"
-      : tone === "onDark"
-        ? "border-white/15 bg-white/[.06] text-white/80 hover:border-white/45 hover:text-white focus-visible:ring-white/70"
-        : "border-border bg-card/40 text-foreground/75 hover:border-foreground/35 hover:text-foreground focus-visible:ring-foreground",
-  );
-
-function RailGroup({ label, tone, children }: { label: string; tone: RailTone; children: ReactNode }) {
-  return (
-    <div className="shrink-0 snap-start">
-      <p className={cn("mb-2 pl-1 text-[9px] uppercase tracking-[.22em]", tone === "onDark" ? "text-white/45" : "text-foreground/35")}>
-        {label}
-      </p>
-      <div className="flex gap-2">{children}</div>
-    </div>
-  );
-}
-
-function DemoRail({
-  idPrefix,
-  tone,
-  activeDemo,
-  onSelect,
-  featuredDemos,
-}: {
-  idPrefix: string;
-  tone: RailTone;
-  activeDemo: string;
-  onSelect: (demoId: string) => void;
-  /** Une sélection courte sur l'accueil ; tout le catalogue reste sur la page Guides. */
-  featuredDemos?: string[];
-}) {
-  const featured = featuredDemos ? new Set(featuredDemos) : null;
-  return (
-    <div
-      data-testid={`${idPrefix}-menu`}
-      role="group"
-      aria-label="Choisir un guide animé"
-      tabIndex={0}
-      className={railClasses}
-    >
-      {DEMO_CATEGORIES.map(category => {
-        let demos = DEMOS.filter(demo => demo.category === category.id);
-        if (featured) demos = demos.filter(demo => featured.has(demo.id));
-        if (!demos.length) return null;
-        return (
-          <RailGroup key={category.id} label={category.label} tone={tone}>
-            {demos.map(demo => {
-              const isActive = demo.id === activeDemo;
-              return (
-                <button
-                  key={demo.id}
-                  type="button"
-                  data-testid={`demo-select-${demo.id}`}
-                  onClick={() => onSelect(demo.id)}
-                  aria-current={isActive ? "true" : undefined}
-                  className={cn(cardWidth, toneCard(tone, isActive))}
-                >
-                  <span className="block font-display text-[15px] leading-snug">{demo.title}</span>
-                  <span className={cn("mt-1.5 block line-clamp-2 text-xs leading-relaxed", isActive ? "opacity-70" : "opacity-60")}>
-                    {demo.description}
-                  </span>
-                </button>
-              );
-            })}
-          </RailGroup>
-        );
-      })}
-    </div>
-  );
-}
 
 /** Écrans qu'aucune démo ne porte par leur seul nom : on les rattache à la démo la plus proche. */
 const DEMO_FOR_SCREEN: Record<string, string> = {
@@ -237,113 +268,209 @@ const SCREEN_GROUPS: { id: string; label: string; match: (screenId: AimeScreenId
   { id: "hors-monde", label: "Compte, portail et écrans publics", match: screenId => !screenId.startsWith("phase:") && !screenId.startsWith("view:") && !screenId.startsWith("panel:") },
 ];
 
+function ChapterRow({
+  active,
+  title,
+  description,
+  meta,
+  screenId,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  description: string;
+  meta?: string;
+  /** Identifiant d'écran du registre d'architecture, exposé aux tests/lecteurs d'écran. */
+  screenId?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group flex w-full items-center gap-4 rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        active ? "border-foreground bg-foreground text-background" : "border-border bg-card/50 hover:border-foreground/35 hover:bg-foreground/[.04]",
+      )}
+    >
+      {screenId && <span data-screen-id={screenId} className="sr-only">{screenId}</span>}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium">{title}</span>
+        <span className={cn("mt-0.5 block truncate text-xs", active ? "text-background/65" : "text-foreground/50")}>{description}</span>
+      </span>
+      {meta && (
+        <span className={cn("shrink-0 text-[9px] uppercase tracking-[.14em]", active ? "text-background/60" : "text-foreground/40")}>{meta}</span>
+      )}
+      <ChevronRight className={cn("h-4 w-4 shrink-0 transition group-hover:translate-x-0.5", active ? "text-background/70" : "text-foreground/30")} />
+    </button>
+  );
+}
+
 /**
- * Tous les écrans décrits par le registre d'architecture, en une rangée par
- * catégorie : le guide n'est jamais plus vague que l'interface.
+ * Le contenu du panneau des chapitres, rendu directement (sans portail) pour
+ * pouvoir être testé en rendu statique et réutilisé.
  */
-function ScreensRail({
-  idPrefix,
-  tone,
+export function GuideChaptersContent({
+  featuredDemos,
   activeDemo,
   onSelect,
-  only,
-  featuredDemos,
+  initialTab = "guides",
 }: {
-  idPrefix: string;
-  tone: RailTone;
-  activeDemo: string | null;
-  onSelect: (demoId: string) => void;
-  /** Une seule rangée sur l'accueil, les trois sur la page Guides. */
-  only?: string[];
-  /** Sur l'accueil, ne montre que les écrans reliés aux démos mises en avant. */
+  /** Sur l'accueil : seulement les guides en vedette. */
   featuredDemos?: string[];
+  activeDemo: string;
+  onSelect: (demoId: string) => void;
+  initialTab?: "guides" | "screens";
 }) {
+  const [tab, setTab] = useState<"guides" | "screens">(initialTab);
+  const featured = featuredDemos ? new Set(featuredDemos) : null;
+  const showScreensTab = !featured;
+
   const screens = useMemo(() => {
     const all = Object.keys(AIME_SCREENS) as AimeScreenId[];
-    if (!featuredDemos) return all;
-    const featured = new Set(featuredDemos);
+    if (!featured) return all;
     return all.filter(screenId => {
       const demoId = demoIdForScreen(screenId);
       return demoId !== null && featured.has(demoId);
     });
-  }, [featuredDemos]);
-  const groups = only ? SCREEN_GROUPS.filter(group => only.includes(group.id)) : SCREEN_GROUPS;
+  }, [featured]);
+
   return (
-    <div data-testid={`${idPrefix}-screens`} className="space-y-7">
-      {groups.map(group => {
-        const items = screens.filter(group.match);
-        if (!items.length) return null;
-        return (
-          <div key={group.id} data-testid={`${idPrefix}-group-${group.id}`} className={railClasses} role="group" aria-label={group.label} tabIndex={0}>
-            <RailGroup label={group.label} tone={tone}>
-              {items.map(screenId => {
-                const screen = AIME_SCREENS[screenId];
-                const demoId = demoIdForScreen(screenId);
-                const isActive = demoId !== null && demoId === activeDemo;
-                const inner = (
-                  <>
-                    <span data-screen-id={screenId} className="sr-only">{screenId}</span>
-                    <span className="block font-display text-[15px] leading-snug">{screen.label}</span>
-                    <span className="mt-1.5 block line-clamp-2 text-xs leading-relaxed opacity-60">{screen.purpose}</span>
-                    <span className="mt-2 block text-[10px] uppercase tracking-[.14em] opacity-45">{screen.where}</span>
-                    {demoId && (
-                      <span className={cn("mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px]", isActive ? "border-current opacity-80" : tone === "onDark" ? "border-white/25" : "border-foreground/20")}>
-                        <Play className="h-2.5 w-2.5" /> {isActive ? "à l’écran" : "voir la démo"}
-                      </span>
-                    )}
-                  </>
-                );
-                return demoId ? (
-                  <button
-                    key={screenId}
-                    type="button"
-                    onClick={() => onSelect(demoId)}
-                    className={cn(cardWidth, toneCard(tone, isActive))}
-                  >
-                    {inner}
-                  </button>
-                ) : (
-                  <div key={screenId} className={cn(cardWidth, toneCard(tone, false), "opacity-80")}>
-                    {inner}
-                  </div>
-                );
-              })}
-            </RailGroup>
-          </div>
-        );
-      })}
+    <div data-testid="guide-chapters-content">
+      {showScreensTab && (
+        <div className="mb-5 inline-flex rounded-full border border-border p-1" role="tablist" aria-label="Type de chapitres">
+          {([
+            ["guides", "Guides animés", List],
+            ["screens", "Écrans expliqués", LayoutGrid],
+          ] as const).map(([id, label, Icon]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                tab === id ? "bg-foreground text-background" : "text-foreground/60 hover:text-foreground",
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" /> {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === "guides" && (
+        <div className="space-y-6">
+          {DEMO_CATEGORIES.map(category => {
+            let demos = DEMOS.filter(demo => demo.category === category.id);
+            if (featured) demos = demos.filter(demo => featured.has(demo.id));
+            if (!demos.length) return null;
+            return (
+              <section key={category.id} data-testid={`guide-chapters-group-${category.id}`}>
+                <p className="mb-2 text-[9px] uppercase tracking-[.22em] text-foreground/40">{category.label}</p>
+                <div className="space-y-2">
+                  {demos.map(demo => (
+                    <ChapterRow
+                      key={demo.id}
+                      active={demo.id === activeDemo}
+                      title={demo.title}
+                      description={demo.description}
+                      meta={`${demo.steps.length} étapes`}
+                      onClick={() => onSelect(demo.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+          {featured && (
+            <p className="pt-2 text-center">
+              <Link
+                href="/guides"
+                className="inline-flex items-center gap-2 rounded-full border border-foreground/20 px-5 py-2.5 text-xs text-foreground/75 transition hover:bg-foreground/5 hover:text-foreground"
+              >
+                Tous les guides animés
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
+
+      {tab === "screens" && showScreensTab && (
+        <div className="space-y-6">
+          {SCREEN_GROUPS.map(group => {
+            const items = screens.filter(group.match);
+            if (!items.length) return null;
+            return (
+              <section key={group.id} data-testid={`guide-chapters-group-${group.id}`}>
+                <p className="mb-2 text-[9px] uppercase tracking-[.22em] text-foreground/40">{group.label}</p>
+                <div className="space-y-2">
+                  {items.map(screenId => {
+                    const screen = AIME_SCREENS[screenId];
+                    const demoId = demoIdForScreen(screenId);
+                    return (
+                      <ChapterRow
+                        key={screenId}
+                        screenId={screenId}
+                        active={demoId === activeDemo}
+                        title={screen.label}
+                        description={screen.purpose}
+                        meta={screen.where}
+                        onClick={() => demoId && onSelect(demoId)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 export function GuidesExplorer({
   idPrefix = "guides",
-  tone = "light",
-  screens = "all",
+  tone: _tone = "light",
   featuredDemos,
 }: {
   idPrefix?: string;
-  tone?: RailTone;
-  /** La page Guides garde les trois rangées ; l'accueil ne montre que les panneaux. */
-  screens?: "all" | "panneaux" | "none";
+  tone?: "light" | "onDark";
   /** Sélection courte pour l'accueil : le catalogue complet vit sur /guides. */
   featuredDemos?: string[];
 }) {
-  const initialDemo = featuredDemos && DEMOS.some(demo => demo.id === featuredDemos[0]) ? featuredDemos[0] : DEMOS[0].id;
+  const cycleDemos = useMemo(() => {
+    if (!featuredDemos) return DEMOS;
+    const featured = new Set(featuredDemos);
+    return DEMOS.filter(demo => featured.has(demo.id));
+  }, [featuredDemos]);
+
+  const initialDemo = cycleDemos[0]?.id ?? DEMOS[0].id;
   const [activeDemo, setActiveDemo] = useState(initialDemo);
-  const activeConfig = DEMOS.find(demo => demo.id === activeDemo) ?? DEMOS[0];
+  const [chaptersOpen, setChaptersOpen] = useState(false);
+  const activeConfig = DEMOS.find(demo => demo.id === activeDemo) ?? cycleDemos[0] ?? DEMOS[0];
+  const activeIndex = Math.max(0, cycleDemos.findIndex(demo => demo.id === activeConfig.id));
+  const categoryLabel = DEMO_CATEGORIES.find(category => category.id === activeConfig.category)?.label ?? "Guides";
 
   const selectDemo = (demoId: string) => {
     setActiveDemo(demoId);
+    setChaptersOpen(false);
     if (typeof document !== "undefined") {
       document.getElementById(`${idPrefix}-player`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
+  const stepDemo = (direction: 1 | -1) => {
+    if (cycleDemos.length < 2) return;
+    const nextIndex = (activeIndex + direction + cycleDemos.length) % cycleDemos.length;
+    setActiveDemo(cycleDemos[nextIndex].id);
+  };
 
   return (
-    <div data-testid={`${idPrefix}-explorer`} className="space-y-8">
-      <DemoRail idPrefix={idPrefix} tone={tone} activeDemo={activeDemo} onSelect={selectDemo} featuredDemos={featuredDemos} />
-
+    <div data-testid={`${idPrefix}-explorer`}>
       <div id={`${idPrefix}-player`} data-testid={`${idPrefix}-player`} className="mx-auto w-full max-w-3xl px-6 md:px-10">
         <AnimatePresence mode="wait">
           <motion.div
@@ -353,23 +480,36 @@ export function GuidesExplorer({
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4 }}
           >
-            <ScriptedDemoPlayer config={activeConfig} />
+            <ScriptedDemoPlayer
+              config={activeConfig}
+              chapter={{
+                index: activeIndex,
+                total: cycleDemos.length,
+                categoryLabel,
+                onPrev: () => stepDemo(-1),
+                onNext: () => stepDemo(1),
+                onOpenChapters: () => setChaptersOpen(true),
+              }}
+            />
           </motion.div>
         </AnimatePresence>
-        <p className={cn("mt-4 text-center text-sm font-light leading-relaxed", tone === "onDark" ? "text-white/60" : "text-foreground/55")}>
+        <p className="mt-4 text-center text-sm font-light leading-relaxed text-white/60">
           {activeConfig.description}
         </p>
       </div>
 
-      {screens !== "none" && (
-        <ScreensRail
-          idPrefix={idPrefix}
-          tone={tone}
-          activeDemo={activeDemo}
-          onSelect={selectDemo}
-          only={screens === "panneaux" ? ["panneaux"] : undefined}
-          featuredDemos={featuredDemos}
-        />
+      {chaptersOpen && (
+        <CenteredBlock
+          eyebrow="Guides"
+          title="Tous les chapitres"
+          description={featuredDemos ? "Les six repères de l’accueil. Le catalogue complet vous attend sur la page Guides." : "Choisissez un guide animé, ou parcourez chaque écran expliqué."}
+          onClose={() => setChaptersOpen(false)}
+          size="lg"
+          testId={`${idPrefix}-chapters-panel`}
+          showGuideHint={false}
+        >
+          <GuideChaptersContent featuredDemos={featuredDemos} activeDemo={activeDemo} onSelect={selectDemo} />
+        </CenteredBlock>
       )}
     </div>
   );
@@ -394,7 +534,7 @@ export function GuidesPage() {
         </Link>
       </nav>
 
-      <section className="relative overflow-hidden border-b border-border bg-black px-6 pb-20 pt-32 text-center md:pb-24 md:pt-40">
+      <section className="relative overflow-hidden border-b border-border bg-black px-6 pb-16 pt-32 text-center md:pb-20 md:pt-40">
         <div
           aria-hidden
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-45"
@@ -407,14 +547,14 @@ export function GuidesPage() {
             Comprendre avant de cliquer.
           </h1>
           <p className="mt-6 text-base font-light leading-relaxed text-white/70 md:text-lg">
-            {DEMOS.length} démonstrations animées, dans l&rsquo;ordre réel du mariage. Faites défiler les
-            catégories, l&rsquo;animation répond au centre.
+            {DEMOS.length} démonstrations animées, dans l&rsquo;ordre réel du mariage. Faites-les défiler avec la
+            capsule, ou ouvrez les chapitres avec le bouton central.
           </p>
         </div>
       </section>
 
-      <section className="border-b border-border py-14 md:py-16">
-        <GuidesExplorer idPrefix="guides" tone="light" />
+      <section className="relative overflow-hidden bg-black py-14 md:py-20">
+        <GuidesExplorer idPrefix="guides" tone="onDark" />
       </section>
 
       <section className="border-b border-border px-6 py-16 md:py-20">

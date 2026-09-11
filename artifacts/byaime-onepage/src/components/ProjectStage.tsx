@@ -20,6 +20,7 @@ import { AIME_SCREENS, setAimeScreenContext, type AimeScreenId } from '@/lib/aim
 import { WorldOverview } from './WorldOverview';
 import { VisibilityGraph } from './VisibilityGraph';
 import { WorldSearch } from './WorldSearch';
+import { WorldSwitcher } from './WorldSwitcher';
 import type { Guest, Provider } from '@/lib/types';
 import {
   isWeddingDestinationActive,
@@ -752,26 +753,15 @@ export function ProjectStage() {
         </CenteredBlock>
       )}
       {worldMenuOpen && (
-        <CenteredBlock eyebrow="Mariage" title="Choisir un mariage" description="Chaque mariage garde ses invités, ses Moments et son organisation dans un Monde dédié." onClose={() => setWorldMenuOpen(false)} size="lg">
-          <div className="divide-y divide-border">
-            {projects.map(item => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.id !== project.id) void selectProject(item.id);
-                  setWorldMenuOpen(false);
-                }}
-                className="group flex w-full items-center gap-4 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2"
-              >
-                <span className={cn("h-2.5 w-2.5 rounded-full border", item.id === project.id ? "border-foreground bg-foreground" : "border-foreground/25")} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-display text-xl font-light text-foreground/90">{item.title}</span>
-                   <span className="mt-1 block text-[9px] uppercase tracking-[.18em] text-foreground/50">{item.id === project.id ? "Mariage · Monde actif" : item.role}</span>
-                </span>
-                <ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1 group-hover:text-foreground/60" />
-              </button>
-            ))}
-          </div>
+        <CenteredBlock eyebrow="Mariage" title="Choisir un mariage" description="Chaque mariage garde ses invités, ses Moments et son organisation dans un Monde dédié." onClose={() => setWorldMenuOpen(false)} size="lg" testId="world-switcher-panel">
+          <WorldSwitcher
+            projects={projects}
+            activeProjectId={project.id}
+            onSelect={(projectId) => {
+              if (projectId !== project.id) void selectProject(projectId);
+              setWorldMenuOpen(false);
+            }}
+          />
           <p className="mt-6 text-xs font-light leading-relaxed text-foreground/40">Le + crée les éléments de ce mariage : personnes, Moments, tâches et documents.</p>
         </CenteredBlock>
       )}
