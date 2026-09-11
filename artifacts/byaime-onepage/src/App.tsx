@@ -63,11 +63,18 @@ function CacheInvalidator() {
   const { addListener } = useClerk();
   const client = useQueryClient();
   const previous = useRef<string | null | undefined>(undefined);
-  useEffect(() => addListener(({ user }) => {
-    const id = user?.id ?? null;
-    if (previous.current !== undefined && previous.current !== id) client.clear();
-    previous.current = id;
-  }), [addListener, client]);
+  useEffect(() => {
+    // `addListener` peut manquer selon la version de Clerk chargée (ou être
+    // absent d'un environnement de test) : un abonné indisponible ne doit pas
+    // faire tomber toute l'application, c'est juste le cache qui ne se vide
+    // plus tout seul au changement de compte.
+    if (typeof addListener !== 'function') return undefined;
+    return addListener(({ user }) => {
+      const id = user?.id ?? null;
+      if (previous.current !== undefined && previous.current !== id) client.clear();
+      previous.current = id;
+    });
+  }, [addListener, client]);
   return null;
 }
 
