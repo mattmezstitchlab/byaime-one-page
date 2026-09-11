@@ -87,6 +87,16 @@ Le site tourne, l'authentification et la landing sont fonctionnelles, et **aucun
 - ✅ Contrastes : les micro-libellés 10 px de la landing sur fond clair étaient sous le seuil AA (`text-foreground/40`, `/45`) → remontés à `/58`–`/62`, corps de texte `/65` → `/72`.
 - ✅ Nettoyage induit par les suppressions : props et imports devenus morts (`EventDrawer.currentRole` dans `UniversalTimeline`, `Sparkles` dans `guides-fake-uis`, `useReducedMotion` non utilisé dans `ProjectStage`) et écriture redondante du thème au niveau module d'`App.tsx` (déjà faite, avec `try/catch`, par le script inline d'`index.html`).
 
+**Onzième passe (traduction FR/EN — lot 1 de l'espace privé : la coque du Monde) :**
+- ✅ Le dictionnaire quitte le composant : `src/lib/i18n-dictionary.ts` (sans JSX) porte les deux langues, l'interpolation et `translate(locale, clé)`. `i18n.tsx` ne garde que le provider React, réexporte tout, et pose `document.documentElement.lang` à la langue choisie (lecteurs d'écran, césure, traduction automatique du navigateur).
+- ✅ **La navigation du Monde devient un modèle traduit à la source** : `getWeddingRailItems`, `getWeddingNavigation`, `getPanelContextGroup`, `getWeddingNavigationLabel`, `getWorldPhases`, `getWeddingPanelLabels` et `getPrivateNavigation` acceptent une locale **facultative qui vaut `fr`**. Les constantes historiques (`WORLD_PHASES`, `WEDDING_PANEL_LABELS`, `PRIVATE_PRIMARY_NAVIGATION`) sont conservées, dérivées de ces fabriques : aucun appelant non traduit — dont le registre d'architecture et ses tests — n'a bougé.
+- ✅ Surfaces traduites : rail gauche et tiroir mobile (`PrivateLayout`), centre d'action AI + ME, capsule temporelle (`PhaseTimeCapsule`), onboarding privé (`PortalOnboarding`), chrome des panneaux (`CenteredBlock` : fil d'ariane, navigation, fermeture), puce « Expliquer cet écran » (`AimeScreenHint`), sommaire des sections (`BottomDock`), et tout `ProjectStage` : barre du Monde, hero des trois phases, aperçu invité, comptes à rebours, progression, calendrier, choix de Monde, graphe, recherche, vues Musique et Personnes.
+- ✅ **Les dates suivent la langue** : `date-fns` reçoit `enUS` ou `fr` (hero, calendrier, comptes à rebours, échéances) et les initiales de la semaine sont dérivées de la locale (« L M M J V S D » / « M T W T F S S ») au lieu d'être écrites en dur.
+- ✅ La langue se change **depuis l'espace privé** (bouton dans le bas du rail), plus seulement depuis l'accueil ; le choix reste mémorisé dans `localStorage` et partagé avec la porte d'entrée.
+- ✅ `I18nProvider` accepte `initialLocale` : une surface peut être rendue dans une langue décidée ailleurs (rendu hors navigateur, test) sans dépendre du stockage.
+- ✅ Contrôles : `private-i18n.test.ts` (12 tests — parité stricte des deux dictionnaires, repli FR, égalité entre fabriques et constantes historiques, **aucun accent français dans la coque anglaise**) et `private-shell-i18n.test.tsx` (4 tests de rendu réel FR/EN). Le contrôle local `preview/smoke.mjs` vérifie désormais `/user-portal` dans les deux langues.
+- ⚠️ Hors périmètre de ce lot, donc **encore en français** : le contenu des panneaux (invités, tâches, prestataires, régie, modules du mariage), `PortalControls`, la Timeline et le Profil. Ce sont les lots suivants.
+
 ---
 
 ## 2. Suppression de la map réseau — périmètre réalisé

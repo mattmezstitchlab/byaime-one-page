@@ -1,12 +1,32 @@
+import { translate, type Locale } from "./i18n-dictionary";
 import type { TimelineView } from "./timeline-graph";
 import type { TimelineEntityKind } from "./types";
 
-export const WORLD_PHASES = [
-  { id: "avant", label: "Avant" },
-  { id: "pendant", label: "Le Jour J" },
-  { id: "apres", label: "Après" },
-] as const;
-export type WorldPhase = (typeof WORLD_PHASES)[number]["id"];
+/*
+ * Les libellés du Monde sont traduits ici, à la source : la navigation est un
+ * modèle de données, pas du texte figé. Chaque fabrique prend une locale, qui
+ * vaut FR par défaut — les appels historiques et les registres restent valides,
+ * et une clé manquante retombe en français plutôt que de disparaître.
+ */
+export const WORLD_PHASE_IDS = ["avant", "pendant", "apres"] as const;
+export type WorldPhase = (typeof WORLD_PHASE_IDS)[number];
+
+export function getWorldPhases(locale: Locale = "fr"): { id: WorldPhase; label: string }[] {
+  return WORLD_PHASE_IDS.map(id => ({ id, label: translate(locale, `world.phase.${id}`) }));
+}
+
+/**
+ * Le libellé court d'une période, pour les pastilles où « Le Jour J » est trop
+ * long. Une valeur inconnue retombe sur « Moment ».
+ */
+export function getWorldPhaseShortLabel(phase: string | undefined, locale: Locale = "fr"): string {
+  return (WORLD_PHASE_IDS as ReadonlyArray<string>).includes(phase ?? "")
+    ? translate(locale, `world.phase.short.${phase}` as never)
+    : translate(locale, "world.phase.short.moment");
+}
+
+/** Les trois périodes en français : conservé pour les appels non traduits. */
+export const WORLD_PHASES = getWorldPhases("fr") as ReadonlyArray<{ id: WorldPhase; label: string }>;
 export type WeddingRole = "owner" | "planner" | "family" | "viewer";
 
 export type WeddingCapabilities = {
@@ -45,26 +65,40 @@ export type WeddingDestination = { kind: "view"; view: TimelineView } | { kind: 
 export type WeddingNavigationItem = { id: string; label: string; description: string; destination: WeddingDestination };
 export type WeddingNavigation = { primary: WeddingNavigationItem[]; secondary: WeddingNavigationItem[] };
 
-const item = (id: string, label: string, description: string, destination: WeddingDestination): WeddingNavigationItem => ({ id, label, description, destination });
-const timeline = (label: string, description: string) => item("timeline", label, description, { kind: "view", view: "chronological" });
-const people = item("people", "Personnes", "Invités, réponses RSVP et besoins des personnes concernées.", { kind: "panel", panel: "guests" });
-const providers = item("providers", "Prestataires", "Les professionnels engagés ou encore recherchés.", { kind: "panel", panel: "providers" });
-const tasks = item("tasks", "Tâches", "Ce qu’il reste à préparer et à valider.", { kind: "panel", panel: "planning" });
-const documents = item("documents", "Documents", "Les fichiers privés reliés à ce Monde.", { kind: "panel", panel: "documents" });
-const finances = item("finances", "Finances", "Budget, engagements, paiements et échéances.", { kind: "panel", panel: "budget" });
-const music = (label = "Musique") => item("music", label, "La projection sonore des Moments du mariage.", { kind: "view", view: "music" });
-const dayof = item("day-of", "Régie du Jour J", "Le programme opérationnel du mariage en direct.", { kind: "panel", panel: "dayof" });
-const practical = item("public-info", "Infos pratiques", "Les informations utiles aux personnes concernées.", { kind: "view", view: "public-info" });
-const seating = item("seating", "Plan de table", "Les tables, capacités et placements.", { kind: "panel", panel: "seating" });
-const contributions = item("contributions", "Contributions", "Les contributions liées à cette célébration.", { kind: "panel", panel: "contributions" });
-const thanks = item("thanks", "Remerciements", "Les mots de remerciement après le mariage.", { kind: "panel", panel: "thanks" });
-const photos = item("memories", "Photos & vidéos", "Les images et vidéos à préserver.", { kind: "panel", panel: "memories" });
-const film = item("film", "Film du Jour J", "Le film et les séquences du mariage.", { kind: "panel", panel: "film" });
-const honeymoon = item("honeymoon", "Voyage de noces", "Les informations du voyage de noces.", { kind: "panel", panel: "honeymoon" });
-const ceremony = item("ceremony", "Cérémonie & réception", "Le déroulé, les lectures et le menu.", { kind: "panel", panel: "ceremony" });
-const logistics = item("logistics", "Logistique", "Accès, transports et hébergements.", { kind: "panel", panel: "logistics" });
-const messages = item("messages", "Messages", "Les informations envoyées aux personnes concernées.", { kind: "panel", panel: "messages" });
-const team = item("team", "Équipe", "Les responsabilités et la coordination.", { kind: "panel", panel: "team" });
+const item = (
+  locale: Locale,
+  id: string,
+  key: string,
+  destination: WeddingDestination,
+  labelKey = `world.item.${key}`,
+): WeddingNavigationItem => ({
+  id,
+  label: translate(locale, labelKey as never),
+  description: translate(locale, `world.item.${key}.desc` as never),
+  destination,
+});
+
+const timeline = (locale: Locale, variant: "" | ".live" | ".replay") =>
+  item(locale, "timeline", `timeline${variant}`, { kind: "view", view: "chronological" }, `world.item.timeline${variant}`);
+const people = (locale: Locale) => item(locale, "people", "people", { kind: "panel", panel: "guests" });
+const providers = (locale: Locale) => item(locale, "providers", "providers", { kind: "panel", panel: "providers" });
+const tasks = (locale: Locale) => item(locale, "tasks", "tasks", { kind: "panel", panel: "planning" });
+const documents = (locale: Locale) => item(locale, "documents", "documents", { kind: "panel", panel: "documents" });
+const finances = (locale: Locale) => item(locale, "finances", "finances", { kind: "panel", panel: "budget" });
+const music = (locale: Locale, live = false) =>
+  item(locale, "music", "music", { kind: "view", view: "music" }, live ? "world.item.music.live" : "world.item.music");
+const dayof = (locale: Locale) => item(locale, "day-of", "dayof", { kind: "panel", panel: "dayof" });
+const practical = (locale: Locale) => item(locale, "public-info", "publicInfo", { kind: "view", view: "public-info" });
+const seating = (locale: Locale) => item(locale, "seating", "seating", { kind: "panel", panel: "seating" });
+const contributions = (locale: Locale) => item(locale, "contributions", "contributions", { kind: "panel", panel: "contributions" });
+const thanks = (locale: Locale) => item(locale, "thanks", "thanks", { kind: "panel", panel: "thanks" });
+const photos = (locale: Locale) => item(locale, "memories", "memories", { kind: "panel", panel: "memories" });
+const film = (locale: Locale) => item(locale, "film", "film", { kind: "panel", panel: "film" });
+const honeymoon = (locale: Locale) => item(locale, "honeymoon", "honeymoon", { kind: "panel", panel: "honeymoon" });
+const ceremony = (locale: Locale) => item(locale, "ceremony", "ceremony", { kind: "panel", panel: "ceremony" });
+const logistics = (locale: Locale) => item(locale, "logistics", "logistics", { kind: "panel", panel: "logistics" });
+const messages = (locale: Locale) => item(locale, "messages", "messages", { kind: "panel", panel: "messages" });
+const team = (locale: Locale) => item(locale, "team", "team", { kind: "panel", panel: "team" });
 
 /**
  * Catégories communes aux trois périodes (Avant / Jour J / Après). Elles vivent
@@ -83,21 +117,25 @@ export function isWeddingEntryAllowed(entry: WeddingNavigationItem, capabilities
 }
 
 /** Barre latérale du Monde : les catégories communes, identiques d'un mode à l'autre. */
-export function getWeddingRailItems(phase: WorldPhase, capabilities: WeddingCapabilities): WeddingRailItem[] {
+export function getWeddingRailItems(
+  phase: WorldPhase,
+  capabilities: WeddingCapabilities,
+  locale: Locale = "fr",
+): WeddingRailItem[] {
   const timelineByPhase = {
-    avant: timeline("Timeline", "Tous les Moments du mariage dans leur ordre vivant."),
-    pendant: timeline("Timeline en direct", "Les Moments du Jour J, au fil de la journée."),
-    apres: timeline("Timeline · Replay", "Le replay vivant des Moments du mariage."),
+    avant: timeline(locale, ""),
+    pendant: timeline(locale, ".live"),
+    apres: timeline(locale, ".replay"),
   }[phase];
   const entries: WeddingRailItem[] = [
     { ...timelineByPhase, icon: "timeline" },
-    { ...people, icon: "people" },
-    { ...providers, icon: "providers" },
-    { ...tasks, icon: "tasks" },
-    { ...finances, icon: "finances" },
-    { ...documents, icon: "documents" },
-    { ...team, icon: "team" },
-    { ...music(phase === "pendant" ? "Musique en direct" : "Musique"), icon: "music" },
+    { ...people(locale), icon: "people" },
+    { ...providers(locale), icon: "providers" },
+    { ...tasks(locale), icon: "tasks" },
+    { ...finances(locale), icon: "finances" },
+    { ...documents(locale), icon: "documents" },
+    { ...team(locale), icon: "team" },
+    { ...music(locale, phase === "pendant"), icon: "music" },
   ];
   return entries.filter(entry => isWeddingEntryAllowed(entry, capabilities));
 }
@@ -107,30 +145,45 @@ export function getWeddingRailItems(phase: WorldPhase, capabilities: WeddingCapa
  * Le socle commun (Personnes, Prestataires, Tâches, Finances, Documents,
  * Équipe, Musique) est dans la barre latérale ; cette rangée décrit la période.
  */
-export function getWeddingNavigation(phase: WorldPhase, capabilities: WeddingCapabilities): WeddingNavigation {
+export function getWeddingNavigation(
+  phase: WorldPhase,
+  capabilities: WeddingCapabilities,
+  locale: Locale = "fr",
+): WeddingNavigation {
   let primary: WeddingNavigationItem[];
   let secondary: WeddingNavigationItem[];
   if (phase === "avant") {
-    primary = [ceremony, logistics, seating, messages];
+    primary = [ceremony(locale), logistics(locale), seating(locale), messages(locale)];
     secondary = [];
   } else if (phase === "pendant") {
-    primary = [dayof, practical, seating, contributions];
-    secondary = [ceremony, logistics, messages];
+    primary = [dayof(locale), practical(locale), seating(locale), contributions(locale)];
+    secondary = [ceremony(locale), logistics(locale), messages(locale)];
   } else {
-    primary = [thanks, photos, film, honeymoon, contributions, practical];
-    secondary = [ceremony, logistics, messages];
+    primary = [thanks(locale), photos(locale), film(locale), honeymoon(locale), contributions(locale), practical(locale)];
+    secondary = [ceremony(locale), logistics(locale), messages(locale)];
   }
   primary = primary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
   secondary = secondary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
   return { primary, secondary };
 }
 
-export const WEDDING_PANEL_LABELS: Record<WeddingPanelId, string> = {
-  planning: "Tâches", guests: "Liste des invités", providers: "Prestataires", dayof: "Régie du Jour J", sections: "Toutes les sections",
-  seating: "Plan de table", budget: "Finances", documents: "Documents", ceremony: "Cérémonie & réception", music: "Morceaux reliés",
-  logistics: "Logistique", messages: "Messages", team: "Équipe", memories: "Photos & vidéos", contributions: "Contributions",
-  thanks: "Remerciements", film: "Film du Jour J", honeymoon: "Voyage de noces",
-};
+export const WEDDING_PANEL_IDS = [
+  "planning", "guests", "providers", "dayof", "sections", "seating", "budget", "documents", "ceremony",
+  "music", "logistics", "messages", "team", "memories", "contributions", "thanks", "film", "honeymoon",
+] as const;
+
+export function getWeddingPanelLabels(locale: Locale = "fr"): Record<WeddingPanelId, string> {
+  return Object.fromEntries(
+    WEDDING_PANEL_IDS.map(panel => [panel, translate(locale, `world.panel.${panel}` as never)]),
+  ) as Record<WeddingPanelId, string>;
+}
+
+export function getWeddingPanelLabel(panel: WeddingPanelId, locale: Locale = "fr"): string {
+  return translate(locale, `world.panel.${panel}` as never);
+}
+
+/** Les libellés en français : conservé pour les appels et registres non traduits. */
+export const WEDDING_PANEL_LABELS: Record<WeddingPanelId, string> = getWeddingPanelLabels("fr");
 
 export function isWeddingDestinationActive(destination: WeddingDestination, view: TimelineView, panel: WeddingPanelId | null) {
   if (destination.kind === "view") return destination.view === "music" ? destination.view === view && (panel === null || panel === "music") : panel === null && destination.view === view;
@@ -154,14 +207,15 @@ export function getPanelContextGroup(
   rail: WeddingNavigationItem[],
   navigation: WeddingNavigation,
   view: TimelineView,
+  locale: Locale = "fr",
 ): PanelContextGroup {
-  if (panel === "sections") return { id: "sections", label: "Navigation du Monde", items: [] };
+  if (panel === "sections") return { id: "sections", label: translate(locale, "world.group.navigation"), items: [] };
   const phaseItems = [...navigation.primary, ...navigation.secondary];
   const belongsToRail =
     rail.some(item => item.destination.kind === "panel" && item.destination.panel === panel) ||
     (panel === "music" && view === "music");
-  if (belongsToRail) return { id: "rail", label: "Socle commun", items: rail };
-  return { id: "phase", label: "Outils du mode", items: phaseItems };
+  if (belongsToRail) return { id: "rail", label: translate(locale, "world.group.rail"), items: rail };
+  return { id: "phase", label: translate(locale, "world.group.phase"), items: phaseItems };
 }
 
 /**
@@ -177,7 +231,8 @@ export function findPhaseForPanel(
 ): WorldPhase | null {
   if (panel === "sections") return null;
   const capabilities = getWeddingCapabilities(role);
-  for (const phase of ["avant", "pendant", "apres"] as const) {
+  for (const phase of WORLD_PHASE_IDS) {
+    /* Question de structure, pas d'affichage : la locale n'entre pas en compte. */
     const rail = getWeddingRailItems(phase, capabilities);
     const navigation = getWeddingNavigation(phase, capabilities);
     if (isWeddingPanelAvailable(panel, navigation, view, rail)) return phase;
@@ -204,10 +259,12 @@ export function getWeddingNavigationLabel(
   panel: WeddingPanelId | null,
   navigation?: WeddingNavigation,
   rail: WeddingNavigationItem[] = [],
+  locale: Locale = "fr",
 ) {
-  if (panel) return WEDDING_PANEL_LABELS[panel];
+  if (panel) return getWeddingPanelLabel(panel, locale);
   return rail.concat(navigation?.primary ?? [], navigation?.secondary ?? [])
-    .find(entry => entry.destination.kind === "view" && entry.destination.view === view)?.label ?? "Timeline";
+    .find(entry => entry.destination.kind === "view" && entry.destination.view === view)?.label
+    ?? translate(locale, "world.item.timeline");
 }
 
 /** Associe chaque type d'entité de la Timeline au panneau du Monde qui l'édite. */

@@ -2,11 +2,13 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildTimelineIndex, ENTITY_KIND_LABELS } from "@/lib/timeline-graph";
-import { PANEL_FOR_KIND, type WeddingPanelId } from "@/lib/wedding-navigation";
+import { getWorldPhaseShortLabel, PANEL_FOR_KIND, type WeddingPanelId } from "@/lib/wedding-navigation";
+import { useI18n } from "@/lib/i18n";
 import { focusWorld } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 
 export function WorldSearch({ onClose, onOpenPanel }: { onClose: () => void; onOpenPanel: (panel: WeddingPanelId) => void }) {
+  const { locale } = useI18n();
   const { project } = useProject();
   const [query, setQuery] = useState("");
   const index = useMemo(() => (project ? buildTimelineIndex(project) : null), [project]);
@@ -70,7 +72,7 @@ export function WorldSearch({ onClose, onOpenPanel }: { onClose: () => void; onO
                 <span className="min-w-0">
                   <span className="block truncate text-sm">{event.title}</span>
                   <span className="mt-0.5 block truncate text-[10px] uppercase tracking-wider text-foreground/40">
-                    {event.phase === "avant" ? "Avant" : event.phase === "pendant" ? "Jour J" : "Après"}
+                    {getWorldPhaseShortLabel(event.phase, locale)}
                     {event.location ? ` · ${event.location}` : ""}
                   </span>
                 </span>

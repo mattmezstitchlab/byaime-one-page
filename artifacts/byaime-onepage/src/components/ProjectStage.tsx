@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { enUS, fr } from 'date-fns/locale';
 import { Link } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
@@ -26,6 +26,7 @@ import {
   isWeddingDestinationActive,
   getWeddingCapabilities,
   getWeddingNavigation,
+  getWeddingPanelLabel,
   getWeddingRailItems,
   isWeddingPanelAvailable,
   findPhaseForPanel,
@@ -38,6 +39,7 @@ import {
   type WeddingPanelId,
 } from '@/lib/wedding-navigation';
 import { setWorldNavState } from '@/lib/world-nav-state';
+import { useI18n } from '@/lib/i18n';
 import { heroVisualOverlayCss } from '@/lib/types';
 import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
 
@@ -95,6 +97,9 @@ function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; inde
 
 export function ProjectStage() {
   const { project, projects, selectProject, updateProject, canEdit, currentRole } = useProject();
+  const { t, locale } = useI18n();
+  /* Les dates suivent la langue : `date-fns` pour les libellés, `Intl` pour les listes. */
+  const dateLocale = locale === 'en' ? enUS : fr;
   const pivotDate = project?.pivot.value ?? Date.now();
   const [phase, setPhase] = useState<WorldPhase>(() => getInitialWorldPhase(pivotDate));
   const [view, setView] = useState<TimelineView>("chronological");
@@ -133,12 +138,12 @@ export function ProjectStage() {
   }, [project?.id]);
 
   const navigation = useMemo(
-    () => getWeddingNavigation(phase, getWeddingCapabilities(previewRole ?? currentRole)),
-    [phase, currentRole, previewRole],
+    () => getWeddingNavigation(phase, getWeddingCapabilities(previewRole ?? currentRole), locale),
+    [phase, currentRole, previewRole, locale],
   );
   const rail = useMemo(
-    () => getWeddingRailItems(phase, getWeddingCapabilities(previewRole ?? currentRole)),
-    [phase, currentRole, previewRole],
+    () => getWeddingRailItems(phase, getWeddingCapabilities(previewRole ?? currentRole), locale),
+    [phase, currentRole, previewRole, locale],
   );
 
   useEffect(() => {
@@ -264,16 +269,16 @@ export function ProjectStage() {
   const countdownTargets = useMemo(() => {
     if (!project) return [];
     const targets = [
-      ...(project.pivot.value > now ? [{ id: 'pivot', time: project.pivot.value, title: 'Le Jour J', kind: 'Date pivot' }] : []),
+      ...(project.pivot.value > now ? [{ id: 'pivot', time: project.pivot.value, title: t('world.title.dday'), kind: t('world.kind.pivot') }] : []),
       ...project.tasks
         .filter(task => task.status !== 'termine' && task.dueDate && task.dueDate > now)
-        .map(task => ({ id: `task-${task.id}`, time: task.dueDate as number, title: task.title, kind: 'Échéance' })),
+        .map(task => ({ id: `task-${task.id}`, time: task.dueDate as number, title: task.title, kind: t('world.kind.deadline') })),
       ...project.timeline
         .filter(event => event.time > now)
-        .map(event => ({ id: `moment-${event.id}`, time: event.time, title: event.title, kind: 'Moment' })),
+        .map(event => ({ id: `moment-${event.id}`, time: event.time, title: event.title, kind: t('world.kind.moment') })),
     ];
     return targets.sort((a, b) => a.time - b.time);
-  }, [now, project]);
+  }, [now, project, t]);
 
   const completion = useMemo(() => {
     if (!project?.tasks.length) return 0;
@@ -281,12 +286,12 @@ export function ProjectStage() {
   }, [project]);
   const subtitleIsRedundant = useMemo(() => {
     if (!project?.subtitle) return false;
-    const normalize = (value: string) => value.toLocaleLowerCase('fr').replace(/[^a-zà-ÿ0-9]/g, '');
+    const normalize = (value: string) => value.toLocaleLowerCase(locale).replace(/[^a-zà-ÿ0-9]/g, '');
     const subtitle = normalize(project.subtitle);
     const title = normalize(project.title);
     const universe = normalize(project.universe);
     return subtitle === title || subtitle === universe || subtitle === `${universe}${new Date(pivotDate).getFullYear()}`;
-  }, [pivotDate, project]);
+  }, [locale, pivotDate, project]);
 
   if (!project) return null;
 
@@ -298,40 +303,46 @@ export function ProjectStage() {
   const isPublicInfo = view === "public-info";
   const phaseHeroCopy = {
     avant: {
-      eyebrow: "Avant · Préparation",
+      eyebrow: t("world.hero.avant.eyebrow"),
       title: project.title,
-      description: "Les décisions, les étapes, les personnes et tout ce qu’il reste à préparer avant le grand jour.",
+      description: t("world.hero.avant.desc"),
     },
     pendant: {
-      eyebrow: liveEvent ? "Le Jour J · En direct" : "Le Jour J · Programme",
+      eyebrow: liveEvent ? t("world.hero.pendant.eyebrow.live") : t("world.hero.pendant.eyebrow"),
       title: project.title,
       description: featuredDayEvent
-        ? `${liveEvent ? "Maintenant" : "À venir"}${featuredDayEvent.location ? ` · ${featuredDayEvent.location}` : ""}${featuredDayEvent.responsible ? ` · ${featuredDayEvent.responsible}` : ""}`
-        : "Le programme en direct apparaîtra ici dès que les Moments du Jour J seront reliés.",
+        ? `${liveEvent ? t("world.hero.now") : t("world.hero.upcoming")}${featuredDayEvent.location ? ` · ${featuredDayEvent.location}` : ""}${featuredDayEvent.responsible ? ` · ${featuredDayEvent.responsible}` : ""}`
+        : t("world.hero.pendant.empty"),
     },
     apres: {
-      eyebrow: "Après · Mémoire",
+      eyebrow: t("world.hero.apres.eyebrow"),
       title: project.title,
       description: memoryCount
-        ? `${memoryCount} souvenir${memoryCount > 1 ? "s" : ""}, les messages et les images de celles et ceux qui ont partagé ce Moment.`
-        : "Les souvenirs, remerciements et médias des invités trouveront ici leur place.",
+        ? t("world.hero.apres.desc", { count: memoryCount })
+        : t("world.hero.apres.empty"),
     },
   }[phase];
   const heroCopy = isPublicInfo
     ? {
-        eyebrow: "Informations pratiques",
+        eyebrow: t("world.hero.publicInfo.eyebrow"),
         title: project.title,
         description: project.subtitle && !subtitleIsRedundant
           ? project.subtitle
-          : "Les informations que ce Monde a choisi de rendre visibles aux personnes concernées.",
+          : t("world.hero.publicInfo.desc"),
       }
     : phaseHeroCopy;
+  /* Les initiales de la semaine viennent de la locale : « L M M J V S D » en
+     français, « M T W T F S S » en anglais, toujours à partir du lundi. */
+  const weekdayInitials = eachDayOfInterval({
+    start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+    end: endOfWeek(new Date(), { weekStartsOn: 1 }),
+  }).map(day => format(day, "EEEEE", { locale: dateLocale }).toLocaleUpperCase(locale));
   const calendarDays = eachDayOfInterval({
     start: startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 1 }),
     end: endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }),
   });
   const selectedDayEvents = project.timeline.filter(event => isSameDay(event.time, selectedDate));
-  const nextCountdown = countdownTargets[0] || { id: 'pivot', time: pivotDate, title: 'Le Jour J', kind: 'Date pivot' };
+  const nextCountdown = countdownTargets[0] || { id: 'pivot', time: pivotDate, title: t('world.title.dday'), kind: t('world.kind.pivot') };
   const distanceToNext = Math.max(0, nextCountdown.time - now);
   const nextDays = Math.floor(distanceToNext / 86400000);
   const nextHours = Math.floor((distanceToNext % 86400000) / 3600000);
@@ -342,7 +353,11 @@ export function ProjectStage() {
     const days = Math.floor(distance / 86400000);
     const hours = Math.floor((distance % 86400000) / 3600000);
     const minutes = Math.floor((distance % 3600000) / 60000);
-    return days > 0 ? `${days} j · ${hours} h` : hours > 0 ? `${hours} h · ${minutes} min` : `${minutes} min`;
+    return days > 0
+      ? `${days} ${t("world.unit.d")} · ${hours} ${t("world.unit.h")}`
+      : hours > 0
+        ? `${hours} ${t("world.unit.h")} · ${minutes} ${t("world.unit.min")}`
+        : `${minutes} ${t("world.unit.min")}`;
   };
   const openWeddingDestination = (destination: WeddingDestination) => {
     if (destination.kind === "panel") {
@@ -365,7 +380,7 @@ export function ProjectStage() {
    * Le sommaire « sections » porte déjà toute la navigation dans son corps.
    */
   const contextGroup = activePanel
-    ? getPanelContextGroup(activePanel, rail, navigation, view)
+    ? getPanelContextGroup(activePanel, rail, navigation, view, locale)
     : null;
   const navigationSource: WeddingNavigationItem[] = activePanel === "sections"
     ? []
@@ -393,14 +408,14 @@ export function ProjectStage() {
   if (activePanel && activePanel !== "sections") {
     panelNavigation.push({
       id: "sections",
-      label: "Toutes les sections",
+      label: t("world.nav.allSections"),
       active: false,
       onClick: () => setActivePanel("sections"),
     });
   } else if (!activePanel) {
     panelNavigation.push({
       id: "sections",
-      label: "Sections",
+      label: t("world.nav.sections"),
       active: sectionsAreActive,
       onClick: () => setActivePanel("sections"),
     });
@@ -408,7 +423,7 @@ export function ProjectStage() {
   const panelChrome: PanelChrome = {
     breadcrumb: [
       { label: "AIME", href: "/" },
-      { label: "Monde", href: "/user-portal" },
+      { label: t("private.nav.world"), href: "/user-portal" },
       ...(project?.title ? [{ label: project.title }] : []),
     ],
     navigation: panelNavigation,
@@ -417,7 +432,7 @@ export function ProjectStage() {
   return (
     <PanelChromeProvider chrome={panelChrome}>
     <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
-      <nav aria-label="Navigation principale du Mariage" className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
+      <nav aria-label={t("world.nav.main")} className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
         <div className="flex justify-center px-3 pt-2.5">
           <PhaseTimeCapsule
             phase={phase}
@@ -443,7 +458,7 @@ export function ProjectStage() {
               type="button"
               onClick={() => openWeddingDestination(item.destination)}
               aria-current={isWeddingDestinationActive(item.destination, view, activePanel) ? "page" : undefined}
-              aria-label={`${item.label} — ${item.description}`}
+              aria-label={t("world.nav.item.aria", { label: item.label, description: item.description })}
               className={cn(
                 "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isWeddingDestinationActive(item.destination, view, activePanel)
@@ -456,26 +471,26 @@ export function ProjectStage() {
           ))}
           <span className="mx-1 h-5 w-px shrink-0 bg-border" />
           <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
-            <Grid2X2 className="h-3.5 w-3.5" /> Sections
+            <Grid2X2 className="h-3.5 w-3.5" /> {t("world.nav.sections")}
           </button>
           <button type="button" onClick={() => setOverviewOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            Synthèse
+            {t("world.nav.overview")}
           </button>
           <button type="button" onClick={() => setGraphOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            Graphe de visibilité
+            {t("world.nav.graph")}
           </button>
           <button type="button" onClick={() => setSearchOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Search className="h-3.5 w-3.5" /> Rechercher
+            <Search className="h-3.5 w-3.5" /> {t("world.nav.search")}
           </button>
           <button type="button" onClick={() => setPreviewRole(role => role ? null : "viewer")} aria-pressed={previewRole === "viewer"} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", previewRole === "viewer" ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
-            {previewRole === "viewer" ? "Aperçu invité · actif" : "Aperçu invité"}
+            {previewRole === "viewer" ? t("world.nav.preview.active") : t("world.nav.preview")}
           </button>
           <TimelinePlayback events={visibleEvents} />
         </div>
         {previewRole && (
           <div className="border-t border-border bg-brand-accent/10 px-3 py-2 text-center text-[10px] uppercase tracking-[.14em] text-foreground/70 sm:px-6">
-            Aperçu vu comme un invité — navigation et contenus restreints.{" "}
-            <button type="button" onClick={() => setPreviewRole(null)} className="underline underline-offset-2 transition hover:text-foreground">Quitter l'aperçu</button>
+            {t("world.preview.notice")}{" "}
+            <button type="button" onClick={() => setPreviewRole(null)} className="underline underline-offset-2 transition hover:text-foreground">{t("world.preview.exit")}</button>
           </div>
         )}
       </nav>
@@ -511,7 +526,7 @@ export function ProjectStage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex w-fit items-center gap-2 rounded-full border border-white/20 bg-black/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition hover:bg-white hover:text-black"
-            aria-label="Choisir un Monde"
+            aria-label={t("world.hero.chooseWorld")}
           >
             {heroCopy.eyebrow}
             <ChevronDown className="h-3 w-3" />
@@ -532,7 +547,7 @@ export function ProjectStage() {
             transition={{ delay: 0.2 }}
             className={cn("min-h-12 max-w-2xl text-[15px] font-light leading-relaxed text-white/70 md:text-base", !heroCopy.description && "invisible")}
           >
-            {heroCopy.description || "Le Monde reste à la même place."}
+            {heroCopy.description || t("world.hero.fallback")}
           </motion.p>
 
           {(isPublicInfo || phase !== "apres") && <motion.div
@@ -545,10 +560,10 @@ export function ProjectStage() {
               type="button"
               onClick={() => setCalendarOpen(true)}
               className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm transition hover:border-white/30 hover:bg-white/10"
-              aria-label="Ouvrir le calendrier du Monde"
+              aria-label={t("world.hero.calendar")}
             >
               <CalendarDays className="h-3.5 w-3.5 text-white/55" />
-              {format(pivotDate, 'd MMMM yyyy', { locale: fr })}
+              {format(pivotDate, 'd MMMM yyyy', { locale: dateLocale })}
             </button>
             {project.city.value && (
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
@@ -562,7 +577,7 @@ export function ProjectStage() {
             )}
             {project.guestsCount.value && (
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
-                {project.guestsCount.value} invités
+                {t("world.hero.guests", { count: project.guestsCount.value })}
               </span>
             )}
           </motion.div>}
@@ -577,20 +592,20 @@ export function ProjectStage() {
               type="button"
               onClick={() => setView("person")}
               className="group flex items-center gap-2 py-1 pr-2 text-xs text-white/80 transition hover:text-white"
-               aria-label={`Voir les personnes, ${project.guests.length + project.providers.length} personnes et professionnels`}
+               aria-label={t("world.hero.people.aria", { count: project.guests.length + project.providers.length })}
             >
               <span className="flex -space-x-4 py-1">
                 {project.guests.slice(0, 5).map((guest, index) => <GuestPortrait key={guest.id} guest={guest} index={index} />)}
                 {project.guests.length === 0 && <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-black bg-white/10 text-[10px]">0</span>}
               </span>
-               <span>{project.guests.length + project.providers.length} personnes et professionnels</span>
+               <span>{t("world.hero.people", { count: project.guests.length + project.providers.length })}</span>
             </button>
             {!previewRole && <button
               type="button"
               onClick={() => setTasksOpen(true)}
               className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               style={{ background: `conic-gradient(from -90deg, #ff375f 0deg, #ff9f0a ${completion * 1.2}deg, #ffe620 ${completion * 2.1}deg, #30d158 ${completion * 2.8}deg, #64d2ff ${completion * 3.25}deg, #bf5af2 ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
-              aria-label={`Ouvrir les étapes, ${completion}% complété`}
+              aria-label={t("world.hero.tasks.aria", { percent: completion })}
             >
               <span className="grid h-full w-full place-items-center rounded-full bg-black/90 text-[11px] font-medium tabular-nums text-white">{completion}%</span>
             </button>}
@@ -603,20 +618,20 @@ export function ProjectStage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
             className="mt-6 block w-full border-t border-white/10 pt-7 text-left transition hover:border-white/25"
-            aria-label="Voir tous les comptes à rebours"
+            aria-label={t("world.countdown.aria")}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[10px] uppercase tracking-[.24em] text-white/42">Prochain compte à rebours · {nextCountdown.kind}</p>
-              <p className="text-[10px] uppercase tracking-[.18em] text-white/28">Voir les {countdownTargets.length || 1} à venir</p>
+              <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{t("world.countdown.next", { kind: nextCountdown.kind })}</p>
+              <p className="text-[10px] uppercase tracking-[.18em] text-white/28">{t("world.countdown.seeAll", { count: countdownTargets.length || 1 })}</p>
             </div>
             <p className="mt-3 text-sm text-white/65">{nextCountdown.title}</p>
             {distanceToNext > 0 ? (
               <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2 font-display font-light tabular-nums text-white">
                 {[
-                  [nextDays, "jours"],
-                  [nextHours, "heures"],
-                  [nextMinutes, "minutes"],
-                  [nextSeconds, "secondes"],
+                  [nextDays, t("world.unit.days")],
+                  [nextHours, t("world.unit.hours")],
+                  [nextMinutes, t("world.unit.minutes")],
+                  [nextSeconds, t("world.unit.seconds")],
                 ].map(([value, label]) => (
                   <span key={label} className="inline-flex items-baseline gap-1.5">
                     <span className="text-3xl sm:text-4xl md:text-5xl">{String(value).padStart(2, "0")}</span>
@@ -625,31 +640,35 @@ export function ProjectStage() {
                 ))}
               </div>
             ) : (
-              <p className="mt-3 font-display text-4xl font-light">Le Moment est arrivé</p>
+              <p className="mt-3 font-display text-4xl font-light">{t("world.countdown.arrived")}</p>
             )}
           </motion.button>}
           {!isPublicInfo && phase === "pendant" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-white/10 pt-7">
-              <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? "En ce moment" : "Prochain Moment"}</p>
+              <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? t("world.hero.live.now") : t("world.hero.live.next")}</p>
               {featuredDayEvent ? (
                 <div className="mt-4 flex flex-wrap items-center gap-5">
                   <span className="font-display text-4xl font-light tabular-nums sm:text-5xl">{format(featuredDayEvent.time, "HH:mm")}</span>
-                  <div><p className="text-base text-white/85">{featuredDayEvent.title}</p><p className="mt-1 text-xs text-white/40">{featuredDayEvent.location || "Lieu à préciser"}</p></div>
+                  <div><p className="text-base text-white/85">{featuredDayEvent.title}</p><p className="mt-1 text-xs text-white/40">{featuredDayEvent.location || t("world.hero.live.placeLater")}</p></div>
                 </div>
-              ) : <p className="mt-4 text-sm text-white/45">Ajoutez les Moments du Jour J pour activer le direct.</p>}
+              ) : <p className="mt-4 text-sm text-white/45">{t("world.hero.live.empty")}</p>}
             </motion.div>
           )}
           {!isPublicInfo && phase === "apres" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-white/10 pt-7">
-              <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Souvenirs</p></div>
-              <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Médias</p></div>
-              <div><p className="font-display text-3xl font-light">{project.messages.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">Messages</p></div>
+              <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.memories")}</p></div>
+              <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.media")}</p></div>
+              <div><p className="font-display text-3xl font-light">{project.messages.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.messages")}</p></div>
             </motion.div>
           )}
           {project.missing.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-white/55">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
-              <span><span className="text-white/75">Suggestion AIME :</span> préciser {project.missing[0]}{project.missing.length > 1 ? ` et ${project.missing.length - 1} autre${project.missing.length > 2 ? 's' : ''}` : ''} pour que la suite se passe bien.</span>
+              <span><span className="text-white/75">{t("world.hero.suggestion")}</span>{" "}{t("world.hero.suggestion.body", {
+                subject: project.missing.length > 1
+                  ? t("world.hero.suggestion.more", { subject: project.missing[0], count: project.missing.length - 1 })
+                  : project.missing[0],
+              })}</span>
             </motion.div>
           )}
         </div>
@@ -663,12 +682,12 @@ export function ProjectStage() {
           <section className="border-b border-border bg-card px-6 py-16">
             <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[1fr_auto] md:items-end">
               <div className="max-w-2xl">
-                <p className="flex items-center gap-2 text-[10px] uppercase tracking-[.24em] text-foreground/45"><Waves className="h-4 w-4" /> Projection sonore</p>
-                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">La musique suit les Moments.</h2>
-                <p className="mt-5 text-sm font-light leading-relaxed text-foreground/60">Ici, la musique n’est pas une playlist isolée : elle révèle les morceaux, les silences et les intentions reliés à la Timeline du mariage.</p>
+                <p className="flex items-center gap-2 text-[10px] uppercase tracking-[.24em] text-foreground/45"><Waves className="h-4 w-4" /> {t("world.music.eyebrow")}</p>
+                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">{t("world.music.title")}</h2>
+                <p className="mt-5 text-sm font-light leading-relaxed text-foreground/60">{t("world.music.desc")}</p>
               </div>
               <button type="button" onClick={() => setActivePanel("music")} className="w-fit rounded-full border border-foreground/15 px-5 py-3 text-[10px] uppercase tracking-[.16em] text-foreground/75 transition hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                Gérer les morceaux reliés
+                {t("world.music.cta")}
               </button>
             </div>
           </section>
@@ -677,9 +696,9 @@ export function ProjectStage() {
           <section className="overflow-hidden border-b border-border bg-card px-6 py-20">
             <div className="mx-auto max-w-5xl">
               <div className="max-w-2xl">
-                <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Les personnes de ce Monde</p>
-                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">Celles et ceux qui en font partie.</h2>
-                <p className="mt-5 max-w-xl text-sm font-light leading-relaxed text-foreground/60">Témoins, famille, invités et professionnels : chacun à sa place, avec les droits et les informations adaptés à son rôle.</p>
+                <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">{t("world.people.eyebrow")}</p>
+                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">{t("world.people.title")}</h2>
+                <p className="mt-5 max-w-xl text-sm font-light leading-relaxed text-foreground/60">{t("world.people.desc")}</p>
               </div>
               {project.guests.length ? (
                 <div className="mt-14 flex flex-wrap items-end gap-x-2 gap-y-8 sm:gap-x-4">
@@ -696,7 +715,7 @@ export function ProjectStage() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-12 rounded-3xl border border-dashed border-foreground/20 px-8 py-12 text-center text-sm text-foreground/50">Les personnes reliées à ce Monde apparaîtront ici.</p>
+                <p className="mt-12 rounded-3xl border border-dashed border-foreground/20 px-8 py-12 text-center text-sm text-foreground/50">{t("world.people.empty")}</p>
               )}
             </div>
           </section>
@@ -716,9 +735,9 @@ export function ProjectStage() {
       }} />
       {tasksOpen && (
         <CenteredBlock
-          eyebrow="Progression du Monde"
-          title={`${completion}% accompli`}
-          description={`${project.tasks.filter(task => task.status === "termine").length} étape${project.tasks.filter(task => task.status === "termine").length > 1 ? "s" : ""} terminée${project.tasks.filter(task => task.status === "termine").length > 1 ? "s" : ""} sur ${project.tasks.length}.`}
+          eyebrow={t("world.tasks.eyebrow")}
+          title={t("world.tasks.title", { percent: completion })}
+          description={t("world.tasks.desc", { done: project.tasks.filter(task => task.status === "termine").length, total: project.tasks.length })}
           onClose={() => setTasksOpen(false)}
           size="lg"
           leading={
@@ -740,20 +759,20 @@ export function ProjectStage() {
                     <div className="min-w-0 flex-1">
                       <p className={cn("text-sm", task.status === "termine" ? "text-foreground/35 line-through" : "text-foreground/85")}>{task.title}</p>
                       <p className="mt-1 text-[10px] uppercase tracking-[.14em] text-foreground/40">
-                        {task.priority === "haute" ? "Très important" : task.priority === "basse" ? "Peu important" : "Importance normale"}
-                        {task.dueDate ? ` · ${format(task.dueDate, "d MMMM yyyy", { locale: fr })}` : ""}
+                        {task.priority === "haute" ? t("world.tasks.priority.high") : task.priority === "basse" ? t("world.tasks.priority.low") : t("world.tasks.priority.normal")}
+                        {task.dueDate ? ` · ${format(task.dueDate, "d MMMM yyyy", { locale: dateLocale })}` : ""}
                       </p>
                     </div>
                   </div>
                 ))}
             </div>
           ) : (
-            <p className="py-10 text-center text-sm text-foreground/40">Aucune étape n’a encore été créée.</p>
+            <p className="py-10 text-center text-sm text-foreground/40">{t("world.tasks.empty")}</p>
           )}
         </CenteredBlock>
       )}
       {worldMenuOpen && (
-        <CenteredBlock eyebrow="Mariage" title="Choisir un mariage" description="Chaque mariage garde ses invités, ses Moments et son organisation dans un Monde dédié." onClose={() => setWorldMenuOpen(false)} size="lg" testId="world-switcher-panel">
+        <CenteredBlock eyebrow={t("world.switcher.eyebrow")} title={t("world.switcher.title")} description={t("world.switcher.desc")} onClose={() => setWorldMenuOpen(false)} size="lg" testId="world-switcher-panel">
           <WorldSwitcher
             projects={projects}
             activeProjectId={project.id}
@@ -762,20 +781,20 @@ export function ProjectStage() {
               setWorldMenuOpen(false);
             }}
           />
-          <p className="mt-6 text-xs font-light leading-relaxed text-foreground/40">Le + crée les éléments de ce mariage : personnes, Moments, tâches et documents.</p>
+          <p className="mt-6 text-xs font-light leading-relaxed text-foreground/40">{t("world.switcher.hint")}</p>
         </CenteredBlock>
       )}
       {calendarOpen && (
-        <CenteredBlock eyebrow="Calendrier du Monde" title={format(calendarMonth, "MMMM yyyy", { locale: fr })} description="Le temps du Monde, ses Moments et sa date pivot réunis dans une seule vue." onClose={() => setCalendarOpen(false)} size="lg" leading={
+        <CenteredBlock eyebrow={t("world.calendar.eyebrow")} title={format(calendarMonth, "MMMM yyyy", { locale: dateLocale })} description={t("world.calendar.desc")} onClose={() => setCalendarOpen(false)} size="lg" leading={
           <span className="mt-4 grid h-11 w-11 shrink-0 place-items-center rounded-full border border-foreground/[.12] bg-foreground/[.04]"><CalendarDays className="h-5 w-5 text-foreground/65" /></span>
         }>
           <div className="flex items-center justify-between border-y border-foreground/[.08] py-3">
-            <button type="button" onClick={() => setCalendarMonth(month => subMonths(month, 1))} className="rounded-full p-2 text-foreground/45 transition hover:bg-foreground/[.08] hover:text-foreground" aria-label="Mois précédent"><ChevronLeft className="h-4 w-4" /></button>
-            <button type="button" onClick={() => setCalendarMonth(new Date(project.pivot.value))} className="text-[10px] uppercase tracking-[.18em] text-foreground/45 transition hover:text-foreground">Revenir au Moment pivot</button>
-            <button type="button" onClick={() => setCalendarMonth(month => addMonths(month, 1))} className="rounded-full p-2 text-foreground/45 transition hover:bg-foreground/[.08] hover:text-foreground" aria-label="Mois suivant"><ChevronRight className="h-4 w-4" /></button>
+            <button type="button" onClick={() => setCalendarMonth(month => subMonths(month, 1))} className="rounded-full p-2 text-foreground/45 transition hover:bg-foreground/[.08] hover:text-foreground" aria-label={t("world.calendar.prev")}><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" onClick={() => setCalendarMonth(new Date(project.pivot.value))} className="text-[10px] uppercase tracking-[.18em] text-foreground/45 transition hover:text-foreground">{t("world.calendar.backToPivot")}</button>
+            <button type="button" onClick={() => setCalendarMonth(month => addMonths(month, 1))} className="rounded-full p-2 text-foreground/45 transition hover:bg-foreground/[.08] hover:text-foreground" aria-label={t("world.calendar.next")}><ChevronRight className="h-4 w-4" /></button>
           </div>
           <div className="mt-5 grid grid-cols-7 gap-1">
-            {["L", "M", "M", "J", "V", "S", "D"].map((day, index) => <span key={`${day}-${index}`} className="pb-2 text-center text-[9px] uppercase tracking-[.14em] text-foreground/25">{day}</span>)}
+            {weekdayInitials.map((day, index) => <span key={`${day}-${index}`} className="pb-2 text-center text-[9px] uppercase tracking-[.14em] text-foreground/25">{day}</span>)}
             {calendarDays.map(day => {
               const momentCount = project.timeline.filter(event => isSameDay(event.time, day)).length;
               const isPivot = isSameDay(day, project.pivot.value);
@@ -801,8 +820,8 @@ export function ProjectStage() {
           </div>
           <div className="mt-6 grid gap-4 border-t border-foreground/[.08] pt-6 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
-              <p className="font-display text-2xl font-light capitalize">{format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })}</p>
-              <p className="mt-2 text-xs font-light text-foreground/38">{selectedDayEvents.length ? `${selectedDayEvents.length} Moment${selectedDayEvents.length > 1 ? "s" : ""} ce jour-là : ${selectedDayEvents.map(event => event.title).join(" · ")}` : "Aucun Moment n’est encore placé ce jour-là."}</p>
+              <p className="font-display text-2xl font-light capitalize">{format(selectedDate, "EEEE d MMMM yyyy", { locale: dateLocale })}</p>
+              <p className="mt-2 text-xs font-light text-foreground/38">{selectedDayEvents.length ? t("world.calendar.dayMoments", { count: selectedDayEvents.length, titles: selectedDayEvents.map(event => event.title).join(" · ") }) : t("world.calendar.dayEmpty")}</p>
             </div>
             <button
               type="button"
@@ -816,13 +835,13 @@ export function ProjectStage() {
               }}
               className="rounded-full bg-white px-5 py-2.5 text-xs font-medium text-black disabled:cursor-default disabled:opacity-25"
             >
-              {isSameDay(selectedDate, project.pivot.value) ? "Date actuelle" : "Choisir comme date pivot"}
+              {isSameDay(selectedDate, project.pivot.value) ? t("world.calendar.currentDate") : t("world.calendar.setPivot")}
             </button>
           </div>
         </CenteredBlock>
       )}
       {countdownsOpen && (
-        <CenteredBlock eyebrow="Temps du Monde" title="Tous les comptes à rebours" description="Les prochains rendez-vous, échéances, Moments et la date pivot, réunis sans les confondre avec la progression du Monde." onClose={() => setCountdownsOpen(false)} size="lg">
+        <CenteredBlock eyebrow={t("world.countdown.eyebrow")} title={t("world.countdown.title")} description={t("world.countdown.desc")} onClose={() => setCountdownsOpen(false)} size="lg">
           {countdownTargets.length ? (
             <div className="divide-y divide-border">
               {countdownTargets.map((target, index) => (
@@ -830,23 +849,23 @@ export function ProjectStage() {
                   <span className={cn("grid h-9 w-9 place-items-center rounded-full text-xs tabular-nums", index === 0 ? "bg-foreground text-background" : "bg-foreground/5 text-foreground/50")}>{String(index + 1).padStart(2, "0")}</span>
                   <div>
                     <p className="text-sm text-foreground/90">{target.title}</p>
-                    <p className="mt-1 text-[9px] uppercase tracking-[.16em] text-foreground/50">{target.kind} · {format(target.time, "d MMMM yyyy · HH:mm", { locale: fr })}</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[.16em] text-foreground/50">{target.kind} · {format(target.time, "d MMMM yyyy · HH:mm", { locale: dateLocale })}</p>
                   </div>
                   <p className="font-display text-xl font-light tabular-nums text-foreground/70">{formatRemaining(target.time)}</p>
                 </article>
               ))}
             </div>
-          ) : <p className="py-10 text-center text-sm text-foreground/40">Aucun rendez-vous, Moment ou délai à venir.</p>}
+          ) : <p className="py-10 text-center text-sm text-foreground/40">{t("world.countdown.empty")}</p>}
         </CenteredBlock>
       )}
       {overviewOpen && <WorldOverview onClose={() => setOverviewOpen(false)} onOpenPanel={openPanelSafely} />}
       {graphOpen && (
-        <CenteredBlock eyebrow="Graphe du Monde" title="Ce qui est visible, rôle par rôle" description="Le même Monde, vu selon les frontières de chaque rôle. Chaque Moment est relié aux personnes, documents, paiements et décisions qu'il mobilise." onClose={() => setGraphOpen(false)} size="xl">
+        <CenteredBlock eyebrow={t("world.graph.eyebrow")} title={t("world.graph.title")} description={t("world.graph.desc")} onClose={() => setGraphOpen(false)} size="xl">
           <VisibilityGraph onOpenPanel={panel => { setGraphOpen(false); openPanelSafely(panel); }} />
         </CenteredBlock>
       )}
       {searchOpen && (
-        <CenteredBlock eyebrow="Recherche" title="Trouver dans ce Monde" description="La recherche traverse les personnes, prestataires, tâches, documents, musique, messages et Moments." onClose={() => setSearchOpen(false)} size="lg">
+        <CenteredBlock eyebrow={t("world.search.eyebrow")} title={t("world.search.title")} description={t("world.search.desc")} onClose={() => setSearchOpen(false)} size="lg">
           <WorldSearch onClose={() => setSearchOpen(false)} onOpenPanel={panel => { setSearchOpen(false); openPanelSafely(panel); }} />
         </CenteredBlock>
       )}

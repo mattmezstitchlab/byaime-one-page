@@ -6,6 +6,7 @@ import { AIME_SCREENS, getAimeScreen, type AimeScreenAction, type AimeScreenId }
 import { answerAime, nextBestActions, runAimeAction, useAimeScreenContext, type AimeNextStep } from "@/lib/aime-guidance";
 import type { WorldProject } from "@/lib/types";
 import type { WorldPhase } from "@/lib/wedding-navigation";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * Le visage de l'agent de guidage : un panneau « AIME, explique-moi » qui connaît
@@ -254,7 +255,8 @@ export function AimeGuide({ project, phase, role, fallbackScreen, onJumped, comp
 }
 
 /** Le bouton discret que chaque écran affiche dans son chrome. */
-export function AimeScreenHint({ label = "Expliquer cet écran" }: { label?: string }) {
+export function AimeScreenHint({ label }: { label?: string }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -266,7 +268,7 @@ export function AimeScreenHint({ label = "Expliquer cet écran" }: { label?: str
       data-testid="aime-guide-hint"
     >
       <Compass className="h-3 w-3" aria-hidden />
-      {label}
+      {label ?? t("panel.explain")}
     </button>
   );
 }

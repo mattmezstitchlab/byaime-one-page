@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { WORLD_PHASES, type WorldPhase } from "@/lib/wedding-navigation";
+import { getWorldPhases, type WorldPhase } from "@/lib/wedding-navigation";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /*
@@ -18,13 +19,15 @@ export function PhaseTimeCapsule({
   className?: string;
   compact?: boolean;
 }) {
+  const { t, locale } = useI18n();
+  const phases = getWorldPhases(locale);
   const previousPhase: WorldPhase | null = phase === "avant" ? null : phase === "pendant" ? "avant" : "pendant";
   const nextPhase: WorldPhase | null = phase === "avant" ? "pendant" : phase === "pendant" ? "apres" : null;
 
   return (
     <div
       role="group"
-      aria-label="Contrôles temporels du Monde"
+      aria-label={t("world.capsule.group")}
       className={cn(
         "flex h-11 shrink-0 items-center rounded-full border border-foreground/15 bg-card/90 p-1 shadow-lg backdrop-blur-xl",
         compact ? "w-[min(310px,calc(100vw-2rem))]" : "w-[min(340px,calc(100vw-2rem))] sm:w-[390px]",
@@ -36,12 +39,14 @@ export function PhaseTimeCapsule({
         disabled={!previousPhase}
         onClick={() => previousPhase && onPhaseChange(previousPhase)}
         className="grid h-9 w-8 shrink-0 place-items-center rounded-full text-foreground/45 transition hover:bg-foreground/[.06] hover:text-foreground disabled:opacity-15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-9"
-        aria-label={previousPhase ? `Aller vers ${WORLD_PHASES.find(p => p.id === previousPhase)?.label}` : "Aucune période précédente"}
+        aria-label={previousPhase
+          ? t("world.capsule.goto", { label: phases.find(p => p.id === previousPhase)?.label ?? "" })
+          : t("world.capsule.noPrev")}
       >
         <ChevronLeft className="h-5 w-5" />
       </button>
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-0.5" role="tablist" aria-label="Période du Monde">
-        {WORLD_PHASES.map(phaseItem => (
+      <div className="flex min-w-0 flex-1 items-center justify-center gap-0.5" role="tablist" aria-label={t("world.capsule.tabs")}>
+        {phases.map(phaseItem => (
           <button
             key={phaseItem.id}
             type="button"
@@ -62,7 +67,9 @@ export function PhaseTimeCapsule({
         disabled={!nextPhase}
         onClick={() => nextPhase && onPhaseChange(nextPhase)}
         className="grid h-9 w-8 shrink-0 place-items-center rounded-full text-foreground/45 transition hover:bg-foreground/[.06] hover:text-foreground disabled:opacity-15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-9"
-        aria-label={nextPhase ? `Aller vers ${WORLD_PHASES.find(p => p.id === nextPhase)?.label}` : "Aucune période suivante"}
+        aria-label={nextPhase
+          ? t("world.capsule.goto", { label: phases.find(p => p.id === nextPhase)?.label ?? "" })
+          : t("world.capsule.noNext")}
       >
         <ChevronRight className="h-5 w-5" />
       </button>

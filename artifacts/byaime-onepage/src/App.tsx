@@ -107,11 +107,12 @@ function PrivateRoute({ children }: { children: ReactNode }) {
 
 function ProfilePageWrapper() {
   const { hasProject, isHydrated } = useProject();
+  const { t } = useI18n();
 
   if (!isHydrated) {
     return (
       <main className="grid min-h-full place-items-center bg-background text-foreground" role="status">
-        <p className="text-[10px] uppercase tracking-[.28em] text-foreground/40">Ouverture du Profil…</p>
+        <p className="text-[10px] uppercase tracking-[.28em] text-foreground/40">{t('private.loading.profile')}</p>
       </main>
     );
   }
