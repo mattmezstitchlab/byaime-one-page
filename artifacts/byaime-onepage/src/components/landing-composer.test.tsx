@@ -17,34 +17,38 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("LandingComposer", () => {
-  it("ouvre l'accueil sur le champ de saisie : univers d'abord, puis une information à la fois", () => {
+  it("ouvre l'accueil sur une capsule spécialisée mariage, une information à la fois", () => {
     const markup = render(<LandingComposer />);
 
     expect(markup).toContain('data-testid="landing-composer"');
-    expect(markup).toContain("Choisir l’univers");
-    expect(markup).toContain("L’univers d’abord");
-    expect(markup).toContain("1/6");
-    expect(markup).toContain("Choisissez d’abord l’univers de votre projet.");
+    // Le seul univers que l'app sait accompagner est affiché, il n'est pas proposé au choix.
+    expect(markup).toContain("Notre mariage");
+    expect(markup).toContain("La date du mariage, même approximative ?");
+    expect(markup).toContain("1/5");
     expect(markup).toContain("Raconter autrement, en une phrase");
   });
 
-  it("garde le select et le champ accessibles hors souris", () => {
+  it("ne promet aucun autre univers : pas de sélecteur, saisie immédiate", () => {
     const markup = render(<LandingComposer />);
 
-    expect(markup).toContain('aria-label="Univers du projet"');
-    expect(markup).toContain('aria-label="Quelle date, même approximative ?"');
+    expect(markup).not.toContain("<select");
+    expect(markup).not.toContain("Choisir l’univers");
+    expect(markup).not.toContain("Anniversaire");
+    expect(markup).not.toContain("Séminaire");
+    // Le champ de la première question est atteignable au clavier sans étape préalable.
+    expect(markup).toContain('aria-label="La date du mariage, même approximative ?"');
     expect(markup).toContain('aria-describedby="landing-intention-hint"');
-    // Aucune question ne peut être saisie avant l'univers : le champ est désactivé.
-    expect(markup).toContain("disabled");
   });
 
   it("propose la phrase libre et son retour aux questions", () => {
     const markup = render(<LandingComposer />);
     expect(markup).toContain('data-testid="landing-intention-mode"');
+    // La zone de texte libre n'apparaît qu'après bascule.
+    expect(markup).not.toContain('data-testid="landing-intention-free"');
   });
 
   it("compose une phrase que le parseur local du Monde comprend déjà", () => {
-    const sentence = composeIntention("Mariage", {
+    const sentence = composeIntention({
       date: "14 août 2027",
       place: "Lille",
       guests: "120",
@@ -63,8 +67,8 @@ describe("LandingComposer", () => {
   });
 
   it("n'invente aucune information absente", () => {
-    const sentence = composeIntention("Autre événement", {});
-    expect(sentence).toBe("Notre événement.");
+    const sentence = composeIntention({});
+    expect(sentence).toBe("Notre mariage.");
 
     const draft = parseIntention(sentence);
     expect(draft.guestsCount?.value).toBeNull();
@@ -73,7 +77,7 @@ describe("LandingComposer", () => {
   });
 
   it("accepte une réponse déjà formulée avec sa préposition", () => {
-    const sentence = composeIntention("Mariage", { place: "près de Nantes" });
+    const sentence = composeIntention({ place: "près de Nantes" });
     expect(sentence).toContain("près de Nantes");
   });
 });

@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { AppearanceToggle } from "@/components/AppearanceToggle";
+import { Compass } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
 import { useRouteMeta } from "@/lib/page-meta";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
+import { AimeGuide } from "@/components/AimeGuide";
+import { CenteredBlock } from "@/components/CenteredBlock";
 
 const features = [
   { title: "Invités", text: "Suivez les réponses RSVP, les groupes, les régimes et les besoins importants." },
@@ -45,6 +49,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
             <span className="font-display text-lg font-light tracking-[.3em] text-white">AIME</span>
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <LandingGuideButton />
             <AppearanceToggle className="text-white/70 hover:bg-white/10 hover:text-white" />
             {signedIn ? (
               <Link data-testid="landing-open-space" href="/user-portal" className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-white/90">
@@ -180,4 +185,36 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
       </footer>
     </main>
   );
+}
+
+/**
+ * L'aide est disponible avant même d'avoir un compte : la même connaissance de
+ * l'architecture que dans l'espace privé, sans projet, sans saisie, sans envoi.
+ */
+function LandingGuideButton() {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      data-testid="landing-guide-button"
+      className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-2 text-[11px] text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+    >
+      <Compass aria-hidden className="h-3.5 w-3.5" />
+      Comment ça marche
+    </button>
+    {open && (
+      <CenteredBlock
+        eyebrow="AIME · guide"
+        title="Accueil"
+        description="Posez une question sur un écran, ou laissez AIME vous dire par où commencer."
+        onClose={() => setOpen(false)}
+        size="lg"
+        testId="landing-guide"
+        showGuideHint={false}
+      >
+        <AimeGuide project={null} fallbackScreen="home" onJumped={() => setOpen(false)} />
+      </CenteredBlock>
+    )}
+  </>;
 }

@@ -483,7 +483,7 @@ export function PortalControls({
       )}
 
       {panel === "me" && (
-        <CenteredBlock eyebrow="ME" title="Votre compte personnel" description="Identité, accès et sécurité." onClose={() => setPanel(null)} size="lg" testId="settings-panel">
+        <CenteredBlock eyebrow="ME" title="Votre compte personnel" screenId="portal:me" description="Identité, accès et sécurité." onClose={() => setPanel(null)} size="lg" testId="settings-panel">
           <div data-testid="me-panel" className="grid gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
             <aside className="space-y-1 rounded-2xl border border-border bg-card p-2">
               {[
@@ -890,6 +890,7 @@ export function PortalControls({
         <CenteredBlock
           eyebrow="Réglages du Monde"
           title={project.title}
+          screenId="portal:world-settings"
           description={`Rôle actuel : ${currentRole}`}
           onClose={() => setPanel(null)}
           size="lg"
@@ -1151,6 +1152,7 @@ export function PortalControls({
         <CenteredBlock
           eyebrow="Équipe"
           title="Inviter à collaborer"
+          screenId="portal:invite"
           description="Les personnes invitées pourront se connecter pour consulter ou modifier ce Monde selon leur rôle."
           onClose={() => setPanel("world-settings")}
         >

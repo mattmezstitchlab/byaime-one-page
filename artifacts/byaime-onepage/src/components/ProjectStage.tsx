@@ -15,6 +15,7 @@ import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/world-focus';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import { PanelChromeProvider, type PanelChrome, type PanelNavItem } from './PanelChrome';
+import { AIME_SCREENS, setAimeScreenContext, type AimeScreenId } from '@/lib/aime-guidance';
 import { WorldOverview } from './WorldOverview';
 import { VisibilityGraph } from './VisibilityGraph';
 import { WorldSearch } from './WorldSearch';
@@ -149,6 +150,18 @@ export function ProjectStage() {
     };
   }, []);
 
+  /*
+   * L'écran courant est publié à l'agent de guidage : panneau ouvert en priorité,
+   * sinon la vue de la Timeline, et toujours la phase. C'est ce qui permet au
+   * panneau AI d'expliquer « là où vous êtes » sans que chaque écran ait à le
+   * déclarer lui-même.
+   */
+  useEffect(() => {
+    const candidate = activePanel ? `panel:${activePanel}` : `view:${view}`;
+    const screen = (candidate in AIME_SCREENS ? candidate : 'portal') as AimeScreenId;
+    setAimeScreenContext({ screen, phase, view, panel: activePanel });
+  }, [activePanel, view, phase]);
+
   useEffect(() => {
     const applyFocus = (request?: WorldFocusRequest) => {
       if (!request) return;
@@ -156,6 +169,7 @@ export function ProjectStage() {
       if (request.view) setView(request.view as TimelineView);
       if (request.panel) setActivePanel(request.panel as WeddingPanelId);
       if (request.graph) setGraphOpen(true);
+      if (request.overview) setOverviewOpen(true);
     };
     const pending = consumeWorldFocus();
     if (pending) {

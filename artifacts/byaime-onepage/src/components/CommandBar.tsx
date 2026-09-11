@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { executeCommand, parseFrenchCommand, proposeCommand, type CommandProposal } from "@/lib/command-agent";
 import { CenteredBlock } from "@/components/CenteredBlock";
+import { AimeGuide } from "@/components/AimeGuide";
+import { useAimeScreenContext } from "@/lib/aime-guidance";
 import type { PrivateDestinationId } from "@/lib/private-navigation";
 
 const contextCopy: Record<PrivateDestinationId, { label: string; description: string }> = {
@@ -25,7 +27,27 @@ export function CommandBar({ context = "world" }: { context?: PrivateDestination
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [scheduleAt, setScheduleAt] = useState("");
   const [notificationBusy, setNotificationBusy] = useState(false);
-  const { project, updateProject, canEdit } = useProject();
+  const { project, updateProject, canEdit, currentRole } = useProject();
+  const guideScreen = useAimeScreenContext();
+  const [tab, setTab] = useState<"guide" | "command">("guide");
+  const tabs = (
+    <div className="mt-5 flex gap-1.5" role="tablist" aria-label="Ce que fait AIME">
+      {([["guide", "Me guider"], ["command", "Commander une action"]] as const).map(([id, label]) => (
+        <button
+          key={id}
+          role="tab"
+          aria-selected={tab === id}
+          onClick={() => setTab(id)}
+          className={
+            `rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50 `
+            + (tab === id ? "border-foreground bg-foreground text-background" : "border-foreground/15 text-foreground/55 hover:text-foreground")
+          }
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
   useEffect(() => {
     const listener = (event: KeyboardEvent) => { if (event.key === "k" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); setOpen(value => !value); } };
     const openAI = () => setOpen(true);
@@ -94,12 +116,21 @@ export function CommandBar({ context = "world" }: { context?: PrivateDestination
   if (!open) return null;
   const currentContext = contextCopy[context];
   if (!project) {
-    return <CenteredBlock eyebrow={`AI · ${currentContext.label}`} title="Commençons par un Monde" description="AIME pourra vous aider dès qu’un Monde réunira les informations à comprendre, vérifier ou transformer." onClose={() => setOpen(false)}>
-      <p className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-sm font-light leading-relaxed text-foreground/60">Utilisez le + permanent pour commencer votre premier Monde. Rien ne sera créé ni modifié sans une action explicite de votre part.</p>
+    return <CenteredBlock eyebrow={`AI · ${currentContext.label}`} title="Commençons par un Monde" description="AIME pourra vous aider dès qu’un Monde réunira les informations à comprendre, vérifier ou transformer." onClose={() => setOpen(false)} showGuideHint={false}>
+      <AimeGuide project={null} role={currentRole} fallbackScreen="home" onJumped={() => setOpen(false)} />
+      <p className="mt-5 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-sm font-light leading-relaxed text-foreground/60">Utilisez le + permanent pour commencer votre premier Monde. Rien ne sera créé ni modifié sans une action explicite de votre part.</p>
     </CenteredBlock>;
   }
   return <>
-    <CenteredBlock eyebrow={`AI · ${currentContext.label}`} title="Que souhaitez-vous faire ?" description={currentContext.description} onClose={() => setOpen(false)} size="lg">
+    <CenteredBlock eyebrow={`AI · ${currentContext.label}`} title="Que souhaitez-vous faire ?" description={currentContext.description} onClose={() => setOpen(false)} size="lg" showGuideHint={false}>
+        {tabs}
+        {tab === "guide" && (
+          <div className="mt-4">
+            <AimeGuide project={project} phase={guideScreen.phase} role={currentRole} fallbackScreen={context === "profile" ? "profile" : "portal"} onJumped={() => setOpen(false)} />
+          </div>
+        )}
+        {tab === "command" && (
+          <>
         <form onSubmit={event => { event.preventDefault(); inspect(); }} className="mt-5 flex gap-2"><input autoFocus value={input} onChange={event => setInput(event.target.value)} placeholder="Décaler la cérémonie de 15 minutes…" className="min-w-0 flex-1 rounded-xl border border-border bg-foreground/5 px-4 py-3 text-sm outline-none focus:border-foreground/30 focus:ring-1 focus:ring-foreground/30" /><button className="rounded-xl bg-foreground px-4 text-sm text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50">Vérifier</button></form>
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">{["Voir les tâches restantes", "Repérer les horaires qui se chevauchent", "Vérifier les besoins alimentaires", "Préparer le programme des professionnels", "Ajouter 2 invités"].map(example => <button key={example} onClick={() => setInput(example)} className="text-[10px] uppercase tracking-[.12em] text-foreground/40 transition hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50 rounded px-1">{example}</button>)}</div>
         {error && <p className="mt-4 border-l border-destructive/50 py-1 pl-3 text-sm text-destructive/90">{error}</p>}
@@ -127,6 +158,8 @@ export function CommandBar({ context = "world" }: { context?: PrivateDestination
              <button type="button" disabled={notificationBusy || !selectedRecipients.length || !notification.subject.trim() || !notification.body.trim()} onClick={() => void sendNotification()} className="rounded-full bg-foreground px-4 py-2 text-xs text-background disabled:opacity-35">{notificationBusy ? "Enregistrement…" : scheduleAt ? "Confirmer et programmer" : "Confirmer et envoyer"}</button>
            </div>
          </div>}
+          </>
+        )}
     </CenteredBlock>
   </>;
 }

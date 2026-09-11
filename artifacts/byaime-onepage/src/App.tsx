@@ -13,6 +13,7 @@ import { LegalPage } from '@/pages/Legal';
 import { GuidesPage } from '@/pages/Guides';
 import { LandingPage } from '@/pages/Landing';
 import { ComposerHero } from '@/components/ComposerHero';
+import { AimePublicGuide } from '@/components/AimePublicGuide';
 import { ProjectProvider, useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
@@ -174,6 +175,7 @@ function InvitePage({ params }: { params: { token: string } }) {
       }
     }}>{pending ? 'Acceptation…' : "Accepter l’accès au Monde"}</button>}
     {error && <p data-testid="invite-error" className="mt-4 text-sm text-destructive">{error}</p>}
+    <AimePublicGuide screen="invite" testId="invite-guide-button" label="Comprendre cette invitation" />
   </div></div>;
 }
 function RsvpPage({ params }: { params: { token: string } }) {
@@ -231,6 +233,7 @@ function RsvpPage({ params }: { params: { token: string } }) {
       : { day: "numeric", month: "long", year: "numeric" });
   };
   return <main data-testid="rsvp-page" data-rsvp-state={status} className="min-h-screen bg-background text-foreground p-5 py-8 md:p-10"><div className="mx-auto max-w-5xl">
+    <AimePublicGuide screen="rsvp" testId="rsvp-guide-button" label="Une question sur cette réponse ?" />
     <header className="mb-7"><p className="text-xs tracking-[.3em] text-foreground/50">AIME · PARTICIPATION PERSONNELLE</p><h1 data-testid="rsvp-title" className="mt-2 font-display text-4xl">{projectTitle}</h1><p data-testid="rsvp-guest" className="mt-2 text-foreground/60">{portal.guest?.name ? `Bonjour ${portal.guest.name}` : 'Votre invitation'} · aucun accès au Monde</p>
       <nav aria-label="Sections de votre participation" className="mt-5 flex gap-2 overflow-x-auto pb-2">{[['rsvp', 'RSVP'], ['jour-j', 'Le Jour J'], ['partager', 'Partager'], ['musique', 'Musique'], ['apres', 'Après']].map(([id, label]) => <a data-testid={`link-rsvp-${id}`} key={id} href={`#${id}`} className="shrink-0 rounded-full border border-border px-4 py-2 text-sm hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{label}</a>)}</nav>
     </header>

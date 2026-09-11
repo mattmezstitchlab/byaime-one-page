@@ -13,6 +13,8 @@ export type WorldFocusRequest = {
   panel?: string;
   auditView?: string;
   graph?: boolean;
+  /** Ouvre la synthèse du Monde (budget, progression, alertes de conflits). */
+  overview?: boolean;
   momentId?: string;
   entityKind?: string;
   entityId?: string;

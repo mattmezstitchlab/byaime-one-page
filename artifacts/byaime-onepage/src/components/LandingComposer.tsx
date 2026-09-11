@@ -3,7 +3,6 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   CalendarDays,
-  ChevronDown,
   Coins,
   MapPin,
   PencilLine,
@@ -18,19 +17,19 @@ import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 /**
- * Le champ de saisie de l'accueil : l'univers d'abord, puis une information
- * fine à la fois — la barre reste la même que celle du Monde pour qu'on
- * n'ait pas à réapprendre un geste en entrant dans l'application.
+ * Le champ de saisie de l'accueil, spécialisé pour le mariage : une information
+ * fine à la fois, dans l'ordre où l'on décide réellement. La barre reprend
+ * exactement celle du Monde pour qu'on n'ait pas à réapprendre un geste en
+ * entrant dans l'application.
+ *
+ * Il n'y a pas de choix d'univers ici : le site ne sait tenir qu'un Monde
+ * mariage, et la phrase produite est écrite pour `parseIntention` (univers
+ * « mariage »), donc elle n'est pas réécrite plus loin.
  */
 type FieldKey = "date" | "place" | "guests" | "budget" | "tone";
 
-const UNIVERSES = [
-  { value: "Mariage", word: "mariage" },
-  { value: "Anniversaire", word: "anniversaire" },
-  { value: "Séminaire d'entreprise", word: "séminaire d'entreprise" },
-  { value: "Voyage", word: "voyage" },
-  { value: "Autre événement", word: "événement" },
-] as const;
+/** Le seul univers que l'app sait accompagner. */
+const WEDDING_UNIVERSE = "mariage";
 
 const QUESTIONS: ReadonlyArray<{
   key: FieldKey;
@@ -43,42 +42,42 @@ const QUESTIONS: ReadonlyArray<{
   {
     key: "date",
     icon: CalendarDays,
-    question: "Quelle date, même approximative ?",
+    question: "La date du mariage, même approximative ?",
     placeholder: "14 août 2027",
     hint: "Une saison ou une année suffisent : AIME ajuste ensuite.",
   },
   {
     key: "place",
     icon: MapPin,
-    question: "Près de quelle ville ?",
+    question: "Près de quelle ville, ou de quel lieu ?",
     placeholder: "Lille",
-    hint: "La région, le département ou la ville du souhait.",
+    hint: "La région, le département, la ville ou déjà le domaine.",
   },
   {
     key: "guests",
     icon: Users,
-    question: "Combien d'invités en tête ?",
+    question: "Combien d'invités au repas ?",
     placeholder: "120",
-    hint: "Une estimation, personne ne vous en voudra.",
+    hint: "Une estimation : les réponses viendront des RSVP.",
     inputMode: "numeric",
   },
   {
     key: "budget",
     icon: Coins,
-    question: "Quel budget vous ressemble ?",
+    question: "Quel budget pour le mariage ?",
     placeholder: "20 000 €",
     hint: "Le montant de départ, il évoluera avec vos choix.",
   },
   {
     key: "tone",
     icon: Sparkles,
-    question: "Et l'ambiance, en un mot ?",
+    question: "L'ambiance du mariage, en un mot ?",
     placeholder: "champêtre, intime, festif…",
     hint: "Le ton que vous voulez donner à ce jour.",
   },
 ];
 
-const TOTAL_FIELDS = QUESTIONS.length + 1; // l'univers compte comme première étape
+const TOTAL_FIELDS = QUESTIONS.length; // cinq informations, une à la fois
 
 const digits = (value: string) => value.replace(/[^\d]/g, "");
 /* Un espace ordinaire : le parseur local le lit, et le résultat reste lisible. */
@@ -86,8 +85,7 @@ const groupThousands = (value: string) => value.replace(/\B(?=(\d{3})+(?!\d))/g,
 const capitalise = (value: string) => value.charAt(0).toLocaleUpperCase("fr-FR") + value.slice(1);
 
 /** Une phrase lisible que le parseur local sait déjà comprendre. */
-export function composeIntention(universe: string, answers: Partial<Record<FieldKey, string>>): string {
-  const subject = UNIVERSES.find(item => item.value === universe)?.word ?? "événement";
+export function composeIntention(answers: Partial<Record<FieldKey, string>>): string {
   const parts: string[] = [];
   const date = answers.date?.trim();
   const place = answers.place?.trim();
@@ -105,7 +103,7 @@ export function composeIntention(universe: string, answers: Partial<Record<Field
   if (budget) parts.push(`${groupThousands(budget)} €`);
   if (answers.tone?.trim()) parts.push(`ambiance ${answers.tone.trim().toLocaleLowerCase("fr-FR")}`);
 
-  return `Notre ${subject}${parts.length ? ` ${parts.join(", ")}` : ""}.`;
+  return `Notre ${WEDDING_UNIVERSE}${parts.length ? ` ${parts.join(", ")}` : ""}.`;
 }
 
 export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
@@ -114,7 +112,6 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
   const reduceMotion = useReducedMotion();
   /* Une intention déjà posée (compte créé en cours de route) reprend la main. */
   const [savedDraft] = useState(() => (typeof window === "undefined" ? "" : readIntentionDraft()));
-  const [universe, setUniverse] = useState<string>("");
   const [answers, setAnswers] = useState<Partial<Record<FieldKey, string>>>({});
   const [index, setIndex] = useState(0);
   const [text, setText] = useState("");
@@ -131,8 +128,8 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
     [answers],
   );
   const sentence = useMemo(
-    () => (mode === "free" ? freeText.trim() : composeIntention(universe, answers)),
-    [answers, freeText, mode, universe],
+    () => (mode === "free" ? freeText.trim() : composeIntention(answers)),
+    [answers, freeText, mode],
   );
   const facts = useMemo(() => {
     if (sentence.trim().length < MIN_INTENTION_LENGTH) return [] as string[];
@@ -157,12 +154,6 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
     setError("");
   };
 
-  const pickUniverse = (value: string) => {
-    setUniverse(value);
-    setIndex(current => (value ? Math.max(current, 1) : 0));
-    setError("");
-  };
-
   const reopen = (position: number) => {
     setIndex(position);
     setText(answers[QUESTIONS[position]?.key] ?? "");
@@ -176,7 +167,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
       return;
     }
     setError("");
-    trackEvent("landing_intention_composed", { mode, universe, facts: facts.length });
+    trackEvent("landing_intention_composed", { mode, universe: WEDDING_UNIVERSE, facts: facts.length });
     if (signedIn) {
       setIntentionText(intention);
       if (createProjectFromIntention(intention)) navigate("/user-portal");
@@ -187,7 +178,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
     navigate("/creation");
   };
 
-  const canFinish = mode === "free" ? freeText.trim().length >= MIN_INTENTION_LENGTH : Boolean(universe);
+  const canFinish = mode === "free" ? freeText.trim().length >= MIN_INTENTION_LENGTH : answered.length > 0;
 
   return (
     <div data-testid="landing-composer" className="mx-auto w-full max-w-2xl text-left">
@@ -196,10 +187,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
         onSubmit={event => {
           event.preventDefault();
           if (mode === "free" || done) finish();
-          else if (!universe) {
-            setError("Choisissez d’abord l’univers de votre projet.");
-            setIndex(0);
-          } else submitAnswer();
+          else submitAnswer();
         }}
         className="group relative"
       >
@@ -212,21 +200,11 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
             {mode === "free" ? (
               <span className="px-1 text-[13px] font-medium text-white/70">Une seule phrase</span>
             ) : (
-              <>
-                <select
-                  data-testid="landing-universe"
-                  aria-label="Univers du projet"
-                  value={universe}
-                  onChange={event => pickUniverse(event.target.value)}
-                  className="h-10 min-w-0 max-w-[13rem] cursor-pointer appearance-none truncate rounded-full bg-transparent pl-1 pr-7 text-[13.5px] font-medium text-white outline-none transition-colors [color-scheme:dark] hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40"
-                >
-                  <option value="">Choisir l’univers</option>
-                  {UNIVERSES.map(item => (
-                    <option key={item.value} value={item.value}>{item.value}</option>
-                  ))}
-                </select>
-                <ChevronDown aria-hidden className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-white/60" />
-              </>
+              /* Le Monde ne sait tenir qu'un mariage : l'afficher vaut mieux
+                 qu'un sélecteur qui promettrait ce que l'app ne fait pas. */
+              <span data-testid="landing-universe" className="whitespace-nowrap px-1 text-[13.5px] font-medium text-white">
+                Notre mariage
+              </span>
             )}
           </div>
 
@@ -269,13 +247,12 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
                 aria-describedby="landing-intention-hint"
                 autoComplete="off"
                 value={text}
-                disabled={!universe}
                 inputMode={field?.inputMode}
                 onChange={event => {
                   setText(event.target.value);
                   if (error) setError("");
                 }}
-                placeholder={universe ? field?.placeholder : "L’univers d’abord, puis une information à la fois."}
+                placeholder={field?.placeholder ?? "Le 14 août 2027 près de Lille…"}
                 className="h-10 min-w-0 flex-1 bg-transparent px-3 text-[14.5px] text-white outline-none transition-opacity placeholder:text-white/45 focus:placeholder:opacity-0 disabled:cursor-not-allowed disabled:opacity-60"
               />
             )}
@@ -296,9 +273,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
           <p id="landing-intention-hint" aria-live="polite" className="min-w-0 flex-1">
             {error || (mode === "free"
               ? "Écrivez librement : dates, lieu, invités, ambiance, ce qui vous tient à cœur."
-              : !universe
-                ? "Choisissez d’abord l’univers de votre projet."
-                : done
+              : done
                   ? "Touchez une pastille pour modifier une réponse."
                   : (field?.hint ?? ""))}
           </p>
@@ -307,11 +282,8 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
           </span>
         </div>
 
-        {mode === "guided" && answered.length > 0 && (
+        {mode === "guided" && (
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {!universe && (
-              <span className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-[12.5px] text-white/85">Univers à choisir</span>
-            )}
             {QUESTIONS.map((item, position) => {
               const value = answers[item.key];
               if (!value) return null;
