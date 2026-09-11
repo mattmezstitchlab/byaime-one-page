@@ -4,6 +4,7 @@ import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { ArrowRight, ChevronDown, Compass } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
 import { ImmersiveBackdrop } from "@/components/ImmersiveBackdrop";
+import { ParallaxImage } from "@/components/ParallaxImage";
 import { useRouteMeta } from "@/lib/page-meta";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { AimeGuide } from "@/components/AimeGuide";
@@ -45,6 +46,12 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
     <main data-testid="landing" className="min-h-[100dvh] text-foreground">
       {/* Le hero est un plan fixe plein écran : tout le contenu suivant glisse par-dessus. */}
       <ImmersiveBackdrop image={AIME_VISUALS.hero.backgroundImage} />
+      {/* Même voile sombre que la section guides, mais allégé et étendu à toute
+          la page : continuité de lisibilité sans toucher aux couleurs des visuels. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(120%_95%_at_50%_0%,rgba(0,0,0,.5)_0%,rgba(0,0,0,.32)_45%,rgba(0,0,0,.5)_100%)]"
+      />
 
       <header className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 md:px-8">
@@ -101,8 +108,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
 
       {/* ——— Les guides animés : la démonstration remplace les longs discours. ——— */}
       <section id="landing-guides" data-testid="landing-guides" className="relative z-10 overflow-hidden py-20 md:py-28">
-        {/* Voile lisibilité local, le cosmos reste visible autour. */}
-        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_0%,rgba(0,0,0,.72)_0%,rgba(0,0,0,.5)_55%,rgba(0,0,0,.72)_100%)]" />
+        {/* Le voile global fixe assure la lisibilité ; pas de voile local ici. */}
         <div className="relative">
           <div className="aime-landing-copy mx-auto max-w-3xl px-6 text-center">
             <p className="text-[10px] uppercase tracking-[.35em] text-white/60">{t("guides.eyebrow")}</p>
@@ -127,40 +133,39 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
 
       {/* ——— Une seule section de repérage, dans le même univers visuel. ——— */}
       <section className="relative z-10 overflow-hidden border-y border-white/10">
-        <img
+        <ParallaxImage
           src={getAssetUrl(AIME_VISUALS.hero.guestsImage)}
           alt={t("spot.alt")}
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          distance={10}
+          className="absolute inset-0"
         />
-        <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,.85)_0%,rgba(0,0,0,.62)_45%,rgba(0,0,0,.25)_100%)]" />
-        <div className="aime-landing-copy relative mx-auto max-w-6xl px-6 py-24 md:px-10 md:py-32">
-          <div className="max-w-xl">
-            <p className="text-[10px] uppercase tracking-[.3em] text-white/55">{t("spot.eyebrow")}</p>
-            <h2 className="mt-6 font-display text-4xl font-light leading-tight text-white md:text-5xl">
-              {t("spot.title")}
-            </h2>
-            <ul className="mt-10 space-y-5">
-              {([1, 2, 3] as const).map(index => (
-                <li key={index} className="border-l border-white/25 pl-4">
-                  <p className="font-display text-lg font-light text-white">{t(`spot.${index}.title` as I18nKey)}</p>
-                  <p className="mt-1 text-sm font-light leading-relaxed text-white/65">{t(`spot.${index}.text` as I18nKey)}</p>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-11 flex flex-wrap gap-3">
-              <Link data-testid="hero-sign-up" href="/creation" className="rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-white/90">
-                {t("spot.cta")}
-              </Link>
-              <Link data-testid="landing-guides-cta" href="/guides" className="rounded-full border border-white/30 px-7 py-3.5 text-sm text-white/85 transition hover:bg-white/10 hover:text-white">
-                {t("spot.guides")}
-              </Link>
-            </div>
+        {/* Voile uniforme et doux : le visuel garde ses couleurs, le texte reste lisible. */}
+        <div aria-hidden className="absolute inset-0 bg-black/45" />
+        <div className="aime-landing-copy relative mx-auto max-w-3xl px-6 py-28 text-center md:px-10 md:py-36">
+          <p className="text-[10px] uppercase tracking-[.3em] text-white/55">{t("spot.eyebrow")}</p>
+          <h2 className="mt-6 font-display text-4xl font-light leading-tight text-white md:text-5xl">
+            {t("spot.title")}
+          </h2>
+          <ul className="mx-auto mt-10 max-w-xl space-y-5">
+            {([1, 2, 3] as const).map(index => (
+              <li key={index} className="border-t border-white/20 pt-4">
+                <p className="font-display text-lg font-light text-white">{t(`spot.${index}.title` as I18nKey)}</p>
+                <p className="mt-1 text-sm font-light leading-relaxed text-white/70">{t(`spot.${index}.text` as I18nKey)}</p>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-11 flex flex-wrap justify-center gap-3">
+            <Link data-testid="hero-sign-up" href="/creation" className="rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-white/90">
+              {t("spot.cta")}
+            </Link>
+            <Link data-testid="landing-guides-cta" href="/guides" className="rounded-full border border-white/30 px-7 py-3.5 text-sm text-white/85 transition hover:bg-white/10 hover:text-white">
+              {t("spot.guides")}
+            </Link>
           </div>
         </div>
       </section>
 
-      <footer className="relative z-10 px-6 py-12 md:px-10">
+      <footer className="relative z-10 bg-black px-6 py-12 md:px-10">
         <div className="aime-landing-copy mx-auto flex max-w-6xl flex-col gap-6 text-xs text-white/70 md:flex-row md:items-center md:justify-between">
           <p className="font-display tracking-[.28em] text-white/80">AIME</p>
           <nav aria-label="Pages du site" className="flex flex-wrap gap-x-5 gap-y-2">

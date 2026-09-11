@@ -155,9 +155,31 @@ async function renderApp(path) {
 }
 
 checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landing"'], ["Laboratoire"]);
-checkHtml("App complète (/guides)", await renderApp("/guides"), ["guides-page", 'data-testid="guide-chapters-open"', "1/25"], ["demo-select-"]);
+checkHtml("App complète (/guides)", await renderApp("/guides"), ["guides-page", 'data-testid="guide-chapters-open"', "1/25", "Comprendre avant de cliquer", "Chapitres"], ["demo-select-"]);
 checkHtml("App complète (/confidentialite)", await renderApp("/confidentialite"), [], []);
 checkHtml("App complète (/creation)", await renderApp("/creation"), ["Clerk simulé"], []);
+
+// Page invité RSVP : français par défaut, puis tout le parcours en anglais.
+checkHtml(
+  "RSVP invité en français (formulaire, sections, statuts)",
+  await renderApp("/rsvp/invite-test"),
+  ['data-testid="rsvp-page"', 'data-testid="rsvp-form"', "Votre présence", "Confirmer ma réponse", "PARTAGER", "MUSIQUE", "APRÈS"],
+  ["Confirm my reply", "Your attendance"],
+);
+setNavigatorLanguage("en-US", ["en-US", "en"]);
+checkHtml(
+  "Guides en anglais (capsule, titre, FakeUI du guide actif)",
+  await renderApp("/guides"),
+  ["Understand before you click", "Chapters", 'aria-label="Next guide"', "Explain this screen"],
+  ["Chapitres", "Guide suivant", "Expliquer cet écran"],
+);
+checkHtml(
+  "RSVP invité en anglais (formulaire, navigation, sections)",
+  await renderApp("/rsvp/invite-test"),
+  ["Your attendance", "Confirm my reply", "SHARE", "MUSIC", "AFTER", "I’ll be there", "Ceremony"],
+  ["Votre présence", "Confirmer ma réponse", "Je serai présent·e", "Cérémonie"],
+);
+setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
 await vite.close();
 console.log(failures === 0 ? "CONTRÔLE LOCAL OK" : `CONTRÔLE LOCAL : ${failures} problème(s)`);

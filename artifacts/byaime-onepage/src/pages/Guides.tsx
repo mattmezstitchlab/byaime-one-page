@@ -5,10 +5,21 @@ import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { CenteredBlock } from "@/components/CenteredBlock";
 import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight, MousePointer2, Compass, Plus, List, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DEMOS, DEMO_CATEGORIES, type DemoConfig } from "./guides-demos";
+import {
+  DEMOS,
+  DEMO_CATEGORIES,
+  type DemoConfig,
+  demoTitle,
+  demoDescription,
+  demoStepLabel,
+  demoStepContent,
+  demoCategoryLabel,
+} from "./guides-demos";
+import { DemoLangProvider } from "./guides-fake-uis";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { AIME_SCREENS, type AimeScreenId } from "@/lib/aime-architecture";
 import { useRouteMeta } from "@/lib/page-meta";
+import { useI18n } from "@/lib/i18n";
 
 /*
  * Les guides sont une animation plein cadre, sobre : aucune bande de boutons
@@ -58,17 +69,18 @@ function GuideCapsule({
   onNext: () => void;
   onOpenChapters: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div
       role="group"
-      aria-label="Faire défiler les guides"
+      aria-label={t("capsule.group")}
       className="flex items-center gap-1 rounded-full border border-white/20 bg-black/55 p-1 text-white shadow-[0_18px_50px_rgba(0,0,0,.55)] backdrop-blur-xl"
     >
       <button
         type="button"
         data-testid="guide-prev"
         onClick={onPrev}
-        aria-label="Guide précédent"
+        aria-label={t("capsule.prev")}
         className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -81,14 +93,14 @@ function GuideCapsule({
         className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[10px] font-medium uppercase tracking-[.18em] text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <Plus className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Chapitres</span>
+        <span className="hidden sm:inline">{t("capsule.chapters")}</span>
         <span className="tabular-nums opacity-55">{index + 1}/{total}</span>
       </button>
       <button
         type="button"
         data-testid="guide-next"
         onClick={onNext}
-        aria-label="Guide suivant"
+        aria-label={t("capsule.next")}
         className="grid h-9 w-9 place-items-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <ChevronRight className="h-4 w-4" />
@@ -108,6 +120,7 @@ function ScriptedDemoPlayer({
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const reducedMotion = useReducedMotion();
+  const { t, locale } = useI18n();
 
   useEffect(() => {
     setCurrentStep(0);
@@ -133,7 +146,7 @@ function ScriptedDemoPlayer({
           if (event.key === "ArrowRight") { event.preventDefault(); chapter.onNext(); }
         }}
         tabIndex={0}
-        aria-label={`Animation du guide : ${config.title}. Flèches gauche et droite pour changer de guide.`}
+        aria-label={t("player.frame", { title: demoTitle(config, locale) })}
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -144,7 +157,7 @@ function ScriptedDemoPlayer({
             transition={{ duration: 0.6 }}
             className="absolute inset-0"
           >
-            {step.ui}
+            <DemoLangProvider lang={locale}>{step.ui}</DemoLangProvider>
           </motion.div>
         </AnimatePresence>
 
@@ -159,7 +172,7 @@ function ScriptedDemoPlayer({
         <div className="absolute right-4 top-4 flex items-center gap-1.5">
           <button
             data-testid="demo-play-pause"
-            aria-label={isPlaying ? "Mettre en pause" : "Jouer"}
+            aria-label={isPlaying ? t("player.pause") : t("player.play")}
             onClick={() => setIsPlaying(!isPlaying)}
             className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
@@ -167,7 +180,7 @@ function ScriptedDemoPlayer({
           </button>
           <button
             data-testid="demo-replay"
-            aria-label="Rejouer la démonstration"
+            aria-label={t("player.replay")}
             onClick={() => { setCurrentStep(0); setIsPlaying(true); }}
             className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
@@ -190,19 +203,19 @@ function ScriptedDemoPlayer({
 
       <div className="flex flex-col items-center gap-4 bg-card/60 px-6 py-6 text-center">
         <div className="w-full max-w-xl">
-          <h3 className="font-display text-xl text-foreground">{step.label}</h3>
-          <p className="mt-2 min-h-[3rem] text-sm font-light leading-relaxed text-foreground/60">{step.content}</p>
+          <h3 className="font-display text-xl text-foreground">{demoStepLabel(step, locale)}</h3>
+          <p className="mt-2 min-h-[3rem] text-sm font-light leading-relaxed text-foreground/60">{demoStepContent(step, locale)}</p>
         </div>
 
         {/* Segments d'étapes : cliquables, ils remplacent la rangée de boutons. */}
-        <div className="flex items-center gap-1.5" role="tablist" aria-label="Étapes de la démonstration">
+        <div className="flex items-center gap-1.5" role="tablist" aria-label={t("player.steps")}>
           {config.steps.map((stepItem, idx) => (
             <button
               key={idx}
               type="button"
               role="tab"
               aria-selected={idx === currentStep}
-              aria-label={`Étape ${idx + 1} : ${stepItem.label}`}
+              aria-label={t("player.step", { index: idx + 1, label: demoStepLabel(stepItem, locale) })}
               onClick={() => { setIsPlaying(false); setCurrentStep(idx); }}
               className={cn(
                 "h-1.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
@@ -262,10 +275,10 @@ export function demoIdForScreen(screenId: AimeScreenId) {
   return DEMO_FOR_SCREEN[screenId] ?? null;
 }
 
-const SCREEN_GROUPS: { id: string; label: string; match: (screenId: AimeScreenId) => boolean }[] = [
-  { id: "monde", label: "Le Monde, ses phases et ses vues", match: screenId => screenId.startsWith("phase:") || screenId.startsWith("view:") },
-  { id: "panneaux", label: "Les panneaux du Monde", match: screenId => screenId.startsWith("panel:") },
-  { id: "hors-monde", label: "Compte, portail et écrans publics", match: screenId => !screenId.startsWith("phase:") && !screenId.startsWith("view:") && !screenId.startsWith("panel:") },
+const SCREEN_GROUPS: { id: "monde" | "panneaux" | "hors-monde"; labelKey: "chapters.group.monde" | "chapters.group.panneaux" | "chapters.group.hors-monde"; match: (screenId: AimeScreenId) => boolean }[] = [
+  { id: "monde", labelKey: "chapters.group.monde", match: screenId => screenId.startsWith("phase:") || screenId.startsWith("view:") },
+  { id: "panneaux", labelKey: "chapters.group.panneaux", match: screenId => screenId.startsWith("panel:") },
+  { id: "hors-monde", labelKey: "chapters.group.hors-monde", match: screenId => !screenId.startsWith("phase:") && !screenId.startsWith("view:") && !screenId.startsWith("panel:") },
 ];
 
 function ChapterRow({
@@ -326,6 +339,7 @@ export function GuideChaptersContent({
   const [tab, setTab] = useState<"guides" | "screens">(initialTab);
   const featured = featuredDemos ? new Set(featuredDemos) : null;
   const showScreensTab = !featured;
+  const { t, locale } = useI18n();
 
   const screens = useMemo(() => {
     const all = Object.keys(AIME_SCREENS) as AimeScreenId[];
@@ -339,10 +353,10 @@ export function GuideChaptersContent({
   return (
     <div data-testid="guide-chapters-content">
       {showScreensTab && (
-        <div className="mb-5 inline-flex rounded-full border border-border p-1" role="tablist" aria-label="Type de chapitres">
+        <div className="mb-5 inline-flex rounded-full border border-border p-1" role="tablist" aria-label={t("chapters.type")}>
           {([
-            ["guides", "Guides animés", List],
-            ["screens", "Écrans expliqués", LayoutGrid],
+            ["guides", t("chapters.tab.guides"), List],
+            ["screens", t("chapters.tab.screens"), LayoutGrid],
           ] as const).map(([id, label, Icon]) => (
             <button
               key={id}
@@ -369,15 +383,15 @@ export function GuideChaptersContent({
             if (!demos.length) return null;
             return (
               <section key={category.id} data-testid={`guide-chapters-group-${category.id}`}>
-                <p className="mb-2 text-[9px] uppercase tracking-[.22em] text-foreground/40">{category.label}</p>
+                <p className="mb-2 text-[9px] uppercase tracking-[.22em] text-foreground/40">{demoCategoryLabel(category.id, locale)}</p>
                 <div className="space-y-2">
                   {demos.map(demo => (
                     <ChapterRow
                       key={demo.id}
                       active={demo.id === activeDemo}
-                      title={demo.title}
-                      description={demo.description}
-                      meta={`${demo.steps.length} étapes`}
+                      title={demoTitle(demo, locale)}
+                      description={demoDescription(demo, locale)}
+                      meta={t("chapters.steps", { count: demo.steps.length })}
                       onClick={() => onSelect(demo.id)}
                     />
                   ))}
@@ -391,7 +405,7 @@ export function GuideChaptersContent({
                 href="/guides"
                 className="inline-flex items-center gap-2 rounded-full border border-foreground/20 px-5 py-2.5 text-xs text-foreground/75 transition hover:bg-foreground/5 hover:text-foreground"
               >
-                Tous les guides animés
+                {t("chapters.all")}
                 <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </p>
@@ -406,7 +420,7 @@ export function GuideChaptersContent({
             if (!items.length) return null;
             return (
               <section key={group.id} data-testid={`guide-chapters-group-${group.id}`}>
-                <p className="mb-2 text-[9px] uppercase tracking-[.22em] text-foreground/40">{group.label}</p>
+                <p className="mb-2 text-[9px] uppercase tracking-[.22em] text-foreground/40">{t(group.labelKey)}</p>
                 <div className="space-y-2">
                   {items.map(screenId => {
                     const screen = AIME_SCREENS[screenId];
@@ -449,12 +463,13 @@ export function GuidesExplorer({
     return DEMOS.filter(demo => featured.has(demo.id));
   }, [featuredDemos]);
 
+  const { t, locale } = useI18n();
   const initialDemo = cycleDemos[0]?.id ?? DEMOS[0].id;
   const [activeDemo, setActiveDemo] = useState(initialDemo);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const activeConfig = DEMOS.find(demo => demo.id === activeDemo) ?? cycleDemos[0] ?? DEMOS[0];
   const activeIndex = Math.max(0, cycleDemos.findIndex(demo => demo.id === activeConfig.id));
-  const categoryLabel = DEMO_CATEGORIES.find(category => category.id === activeConfig.category)?.label ?? "Guides";
+  const categoryLabel = demoCategoryLabel(activeConfig.category, locale);
 
   const selectDemo = (demoId: string) => {
     setActiveDemo(demoId);
@@ -494,15 +509,15 @@ export function GuidesExplorer({
           </motion.div>
         </AnimatePresence>
         <p className="mt-4 text-center text-sm font-light leading-relaxed text-white/60">
-          {activeConfig.description}
+          {demoDescription(activeConfig, locale)}
         </p>
       </div>
 
       {chaptersOpen && (
         <CenteredBlock
-          eyebrow="Guides"
-          title="Tous les chapitres"
-          description={featuredDemos ? "Les six repères de l’accueil. Le catalogue complet vous attend sur la page Guides." : "Choisissez un guide animé, ou parcourez chaque écran expliqué."}
+          eyebrow={t("guides.eyebrow")}
+          title={t("chapters.title")}
+          description={featuredDemos ? t("chapters.desc.featured") : t("chapters.desc.full")}
           onClose={() => setChaptersOpen(false)}
           size="lg"
           testId={`${idPrefix}-chapters-panel`}
@@ -516,10 +531,10 @@ export function GuidesExplorer({
 }
 
 export function GuidesPage() {
+  const { t, locale } = useI18n();
   useRouteMeta({
-    title: "Guides — Comprendre AIME, pas à pas",
-    description:
-      `${DEMOS.length} démonstrations animées pour comprendre comment AIME organise un mariage : Monde, invités, budget, Jour J, rôles et partage.`,
+    title: t("guides.meta.title"),
+    description: t("guides.meta.description", { count: DEMOS.length }),
   });
 
   return (
@@ -530,7 +545,7 @@ export function GuidesPage() {
         </Link>
         <AppearanceToggle />
         <Link href="/creation" className="rounded-full bg-foreground px-5 py-2 text-xs font-semibold text-background transition-colors hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
-          Commencer
+          {t("guides.nav.start")}
         </Link>
       </nav>
 
@@ -542,13 +557,12 @@ export function GuidesPage() {
         />
         <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/35 to-black/90" />
         <div className="relative mx-auto max-w-3xl">
-          <p className="text-[10px] uppercase tracking-[.35em] text-white/55">Guides AIME</p>
+          <p className="text-[10px] uppercase tracking-[.35em] text-white/55">{t("guides.hero.eyebrow")}</p>
           <h1 className="mt-6 font-display text-4xl font-light leading-tight text-white md:text-6xl">
-            Comprendre avant de cliquer.
+            {t("guides.title")}
           </h1>
           <p className="mt-6 text-base font-light leading-relaxed text-white/70 md:text-lg">
-            {DEMOS.length} démonstrations animées, dans l&rsquo;ordre réel du mariage. Faites-les défiler avec la
-            capsule, ou ouvrez les chapitres avec le bouton central.
+            {t("guides.hero.subtitle", { count: DEMOS.length })}
           </p>
         </div>
       </section>
@@ -560,19 +574,18 @@ export function GuidesPage() {
       <section className="border-b border-border px-6 py-16 md:py-20">
         <div className="mx-auto max-w-3xl text-center">
           <Compass className="mx-auto h-5 w-5 text-foreground/45" aria-hidden />
-          <h2 className="mt-4 font-display text-2xl font-light md:text-3xl">Un doute, sur place ?</h2>
+          <h2 className="mt-4 font-display text-2xl font-light md:text-3xl">{t("guides.doubt.title")}</h2>
           <p className="mt-3 text-sm font-light leading-relaxed text-foreground/55">
-            Dans votre espace, chaque panneau porte la puce « Expliquer cet écran » et le panneau AI ouvre
-            sur l&rsquo;onglet « Me guider ». Ces guides racontent exactement la même chose, sans quitter le site.
+            {t("guides.doubt.body")}
           </p>
           <Link href="/creation" className="mt-6 inline-flex rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition hover:bg-foreground/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            Créer mon espace
+            {t("composer.create")}
           </Link>
         </div>
       </section>
 
       <footer className="border-t border-border px-6 py-12 text-center text-xs text-foreground/40">
-        <p>AIME · {new Date().getFullYear()} · Pensé pour garder le contrôle.</p>
+        <p>{t("guides.footer", { year: new Date().getFullYear() })}</p>
       </footer>
     </main>
   );
