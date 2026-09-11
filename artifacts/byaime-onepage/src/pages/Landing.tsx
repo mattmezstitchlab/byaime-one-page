@@ -3,10 +3,8 @@ import { Link } from "wouter";
 import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { ArrowRight, ChevronDown, Compass } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
-import { ImmersiveBackdrop } from "@/components/ImmersiveBackdrop";
-import { ParallaxImage } from "@/components/ParallaxImage";
+import { ShaderBackdrop } from "@/components/ShaderBackdrop";
 import { useRouteMeta } from "@/lib/page-meta";
-import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { AimeGuide } from "@/components/AimeGuide";
 import { CenteredBlock } from "@/components/CenteredBlock";
 import { GuidesExplorer } from "@/pages/Guides";
@@ -20,7 +18,8 @@ const LANDING_FEATURED_GUIDES = ["architecture", "intention", "ai-plus-me", "bud
  * L'accueil d'AIME — court, immersif. Le hero demande d'abord qui vous êtes
  * (couple ou professionnel), puis un seul onboarding en cinq questions dans
  * la langue et la devise du visiteur. Viennent les guides animés, une seule
- * section de repérage et un appel à créer. Le fond cosmique reste fixe.
+ * section de repérage et un appel à créer. Le shader Mesh reste fixe :
+ * aucun visuel photo, un seul fond animé continu.
  */
 export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
   return (
@@ -44,13 +43,14 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
 
   return (
     <main data-testid="landing" className="min-h-[100dvh] text-foreground">
-      {/* Le hero est un plan fixe plein écran : tout le contenu suivant glisse par-dessus. */}
-      <ImmersiveBackdrop image={AIME_VISUALS.hero.backgroundImage} />
-      {/* Même voile sombre que la section guides, mais allégé et étendu à toute
-          la page : continuité de lisibilité sans toucher aux couleurs des visuels. */}
+      {/* Le shader est un plan fixe plein écran : tout le contenu suivant glisse par-dessus. */}
+      <ShaderBackdrop />
+      {/* Voile teinté bleu nuit, dans l'harmonie du shader : il garantit le
+          contraste du texte blanc tout en laissant respirer le dégradé —
+          soutenu en haut (titre) et en bas (pied de page), léger au milieu. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(120%_95%_at_50%_0%,rgba(0,0,0,.5)_0%,rgba(0,0,0,.32)_45%,rgba(0,0,0,.5)_100%)]"
+        className="pointer-events-none fixed inset-0 z-[1] bg-[linear-gradient(to_bottom,rgba(2,24,43,.6)_0%,rgba(2,24,43,.26)_28%,rgba(2,24,43,.16)_55%,rgba(2,24,43,.52)_100%)]"
       />
 
       <header className="absolute inset-x-0 top-0 z-30">
@@ -131,16 +131,8 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </div>
       </section>
 
-      {/* ——— Une seule section de repérage, dans le même univers visuel. ——— */}
-      <section className="relative z-10 overflow-hidden border-y border-white/10">
-        <ParallaxImage
-          src={getAssetUrl(AIME_VISUALS.hero.guestsImage)}
-          alt={t("spot.alt")}
-          distance={10}
-          className="absolute inset-0"
-        />
-        {/* Voile uniforme et doux : le visuel garde ses couleurs, le texte reste lisible. */}
-        <div aria-hidden className="absolute inset-0 bg-black/45" />
+      {/* ——— Une seule section de repérage, sur le shader continu. ——— */}
+      <section className="relative z-10 overflow-hidden border-y border-white/10 bg-[rgba(2,20,36,.42)]">
         <div className="aime-landing-copy relative mx-auto max-w-3xl px-6 py-28 text-center md:px-10 md:py-36">
           <p className="text-[10px] uppercase tracking-[.3em] text-white/55">{t("spot.eyebrow")}</p>
           <h2 className="mt-6 font-display text-4xl font-light leading-tight text-white md:text-5xl">
