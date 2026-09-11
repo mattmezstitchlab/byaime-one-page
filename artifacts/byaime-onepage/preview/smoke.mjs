@@ -139,31 +139,31 @@ function checkHtml(label, html, needles, absent = []) {
 }
 
 checkHtml(
-  "Accueil visiteur, hero simplifié (un CTA, questions fermées)",
+  "Accueil visiteur, sans brouillon (deux choix, questions à venir)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="hero-cta"', 'data-testid="hero-secondary"', "un seul espace privé", "Sans carte bancaire", "Créer mon espace", "Voir comment ça marche", 'data-testid="landing-guide-button"', 'data-testid="guide-chapters-open"', "1/6"],
-  ['data-testid="landing-composer"', 'data-testid="landing-persona"', 'data-testid="hero-questions"', "Choisir l’univers", "Laboratoire"],
+  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire", 'data-testid="landing-guide-button"', 'data-testid="guide-chapters-open"', "1/6"],
+  ['data-testid="landing-intention-input"', 'data-testid="landing-intention-finish"', "Choisir l’univers", "Laboratoire"],
 );
 
-/* Le brouillon ne fuit pas dans le hero : il ne repeuple les réponses qu'à
-   l'ouverture des questions (derrière le CTA), jamais au premier rendu. */
+/* Le brouillon ne fuit pas dans le hero : l'écran des deux choix passe
+   d'abord, les réponses repeuplées n'apparaissent qu'ensuite. */
 globalThis.localStorage.setItem("aime-intention-draft", DRAFT);
 checkHtml(
-  "Accueil visiteur, avec brouillon (questions fermées, brouillon invisible)",
+  "Accueil visiteur, avec brouillon (choix d'abord, brouillon invisible)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="hero-cta"', "Créer mon espace"],
-  ["Lille", 'data-testid="landing-composer"', "AIME retient déjà", "Laboratoire"],
+  ['data-testid="landing-persona"', "Wedding planner"],
+  ["Lille", 'data-testid="landing-intention-input"', "Laboratoire"],
 );
 globalThis.localStorage.removeItem("aime-intention-draft");
 checkHtml("Accueil membre", renderAt("/", createElement(LandingPage, { signedIn: true })), ["Accéder à mon espace"], ["Créer un compte gratuit"]);
 
-/* La porte d'entrée doit passer entièrement en anglais (promesse, CTA, réassurance). */
+/* La porte d'entrée doit passer entièrement en anglais (promesse, choix, réassurance). */
 setNavigatorLanguage("en-US", ["en-US", "en"]);
 checkHtml(
-  "Accueil visiteur en anglais (hero simplifié EN)",
+  "Accueil visiteur en anglais (deux choix EN)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-locale-en"', 'data-testid="hero-cta"', "Your whole wedding", "No credit card", "See how it works", "Create my space", "Sign in"],
-  ["Notre mariage", "Créer mon espace", "un seul espace privé", 'data-testid="landing-persona"'],
+  ['data-testid="landing-locale-en"', 'data-testid="landing-persona"', "A couple", "Wedding planner", "Your whole wedding", "No credit card", "Create my space", "Sign in"],
+  ["Notre mariage", "Créer mon espace", "un seul espace privé", 'data-testid="landing-intention-input"'],
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
