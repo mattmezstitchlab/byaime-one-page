@@ -17,64 +17,6 @@ export const HealthCheckResponse = zod.object({
 })
 
 
-/**
- * @summary Read the authorized multi-World network projection
- */
-export const listNetworkSubjectsResponseSubjectsItemLatitudeMin = -90;
-export const listNetworkSubjectsResponseSubjectsItemLatitudeMax = 90;
-
-export const listNetworkSubjectsResponseSubjectsItemLongitudeMin = -180;
-export const listNetworkSubjectsResponseSubjectsItemLongitudeMax = 180;
-
-
-
-export const ListNetworkSubjectsResponse = zod.object({
-  "generatedAt": zod.coerce.date(),
-  "subjects": zod.array(zod.object({
-  "ref": zod.object({
-  "kind": zod.enum(['card', 'world', 'place', 'moment', 'resource']),
-  "id": zod.string()
-}),
-  "worldRef": zod.object({
-  "kind": zod.enum(['card', 'world', 'place', 'moment', 'resource']),
-  "id": zod.string()
-}),
-  "label": zod.string(),
-  "summary": zod.string().optional(),
-  "imageUrl": zod.string().url().optional(),
-  "locationLevel": zod.enum(['public', 'network', 'world', 'operations', 'private', 'exact_location']),
-  "latitude": zod.number().min(listNetworkSubjectsResponseSubjectsItemLatitudeMin).max(listNetworkSubjectsResponseSubjectsItemLatitudeMax).optional(),
-  "longitude": zod.number().min(listNetworkSubjectsResponseSubjectsItemLongitudeMin).max(listNetworkSubjectsResponseSubjectsItemLongitudeMax).optional(),
-  "city": zod.string().optional(),
-  "primaryCapability": zod.enum(['card.view', 'card.contact', 'world.view', 'world.edit', 'moment.edit']).optional(),
-  "legacy": zod.object({
-  "source": zod.enum(['world_project_json', 'supabase']),
-  "entityKind": zod.string(),
-  "legacyId": zod.string()
-}).optional().describe('Auditable source identifier; never the canonical subject key'),
-  "capabilities": zod.record(zod.string(), zod.object({
-  "allowed": zod.boolean(),
-  "reason": zod.string(),
-  "requiresAuthentication": zod.boolean().optional(),
-  "requiresConfirmation": zod.boolean().optional()
-}))
-})),
-  "relations": zod.array(zod.object({
-  "id": zod.string(),
-  "from": zod.object({
-  "kind": zod.enum(['card', 'world', 'place', 'moment', 'resource']),
-  "id": zod.string()
-}),
-  "to": zod.object({
-  "kind": zod.enum(['card', 'world', 'place', 'moment', 'resource']),
-  "id": zod.string()
-}),
-  "kind": zod.string(),
-  "visibility": zod.enum(['public', 'network', 'world', 'operations', 'financial', 'private', 'exact_location', 'moderation'])
-}))
-})
-
-
 export const ListProjectsResponseItem = zod.object({
   "id": zod.string().uuid(),
   "title": zod.string(),
@@ -446,6 +388,192 @@ export const SubmitPublicRsvpBody = zod.object({
 })
 
 export const SubmitPublicRsvpResponse = zod.unknown()
+
+
+export const CreateAimeLocalPairingTokenResponse = zod.object({
+  "token": zod.string(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+export const PairAimeLocalBridgeBody = zod.object({
+  "token": zod.string(),
+  "bridgeId": zod.string(),
+  "bridgeVersion": zod.string().optional()
+})
+
+export const PairAimeLocalBridgeResponse = zod.object({
+  "bridgeSessionId": zod.string().uuid(),
+  "sessionToken": zod.string(),
+  "expiresAt": zod.coerce.date(),
+  "userId": zod.string()
+})
+
+
+export const GetAimeLocalBridgeStatusResponse = zod.object({
+  "connected": zod.boolean(),
+  "bridgeId": zod.string().nullish(),
+  "bridgeVersion": zod.string().nullish(),
+  "lastSeenAt": zod.coerce.date().nullish(),
+  "expiresAt": zod.coerce.date().nullish()
+})
+
+
+export const RevokeAimeLocalBridgeStatusResponse = zod.void()
+
+
+export const GetAimeLocalFoldersParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetAimeLocalFoldersResponse = zod.object({
+  "folders": zod.array(zod.string())
+})
+
+
+export const UpdateAimeLocalFoldersParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const UpdateAimeLocalFoldersBody = zod.object({
+  "folders": zod.array(zod.string())
+})
+
+export const UpdateAimeLocalFoldersResponse = zod.object({
+  "folders": zod.array(zod.string())
+})
+
+
+export const RequestAimeLocalScanParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const RequestAimeLocalScanResponse = zod.void()
+
+
+export const GetAimeLocalLatestScanParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetAimeLocalLatestScanResponse = zod.object({
+  "job": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "status": zod.enum(['queued', 'done', 'failed']),
+  "createdAt": zod.coerce.date(),
+  "completedAt": zod.coerce.date().optional(),
+  "folders": zod.array(zod.string()),
+  "results": zod.array(zod.object({
+  "name": zod.string(),
+  "extension": zod.string(),
+  "fileType": zod.string(),
+  "documentType": zod.string().optional(),
+  "size": zod.number().int(),
+  "modifiedAt": zod.coerce.date(),
+  "relativePath": zod.string(),
+  "sourceFolder": zod.string(),
+  "localIdentifier": zod.string(),
+  "fingerprint": zod.string().optional(),
+  "entities": zod.record(zod.string(), zod.unknown()).optional()
+})),
+  "suggestions": zod.array(zod.object({
+  "localIdentifier": zod.string(),
+  "score": zod.number(),
+  "reason": zod.string(),
+  "actions": zod.array(zod.enum(['link_project', 'add_timeline', 'import', 'ignore']))
+})),
+  "error": zod.string().optional()
+}),zod.null()])
+})
+
+
+export const ListAimeLocalReferencesParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const ListAimeLocalReferencesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "ownerUserId": zod.string(),
+  "localIdentifier": zod.string(),
+  "fingerprint": zod.string().nullish(),
+  "filename": zod.string(),
+  "relativePath": zod.string(),
+  "sourceFolder": zod.string(),
+  "extension": zod.string().nullish(),
+  "fileType": zod.string(),
+  "size": zod.number().int(),
+  "modifiedAt": zod.coerce.date(),
+  "state": zod.enum(['local', 'linked', 'imported', 'ignored']),
+  "importedFileId": zod.string().uuid().nullish()
+})
+export const ListAimeLocalReferencesResponse = zod.array(ListAimeLocalReferencesResponseItem)
+
+
+export const CreateAimeLocalReferenceParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const CreateAimeLocalReferenceBody = zod.object({
+  "localIdentifier": zod.string(),
+  "fingerprint": zod.string().optional(),
+  "filename": zod.string(),
+  "relativePath": zod.string(),
+  "sourceFolder": zod.string(),
+  "extension": zod.string().optional(),
+  "fileType": zod.string(),
+  "size": zod.number().int(),
+  "modifiedAt": zod.coerce.date(),
+  "linkedEntityKind": zod.string().optional(),
+  "linkedEntityId": zod.string().optional(),
+  "linkedTimelineEventId": zod.string().optional(),
+  "metadata": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+export const CreateAimeLocalReferenceResponse = zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "ownerUserId": zod.string(),
+  "localIdentifier": zod.string(),
+  "fingerprint": zod.string().nullish(),
+  "filename": zod.string(),
+  "relativePath": zod.string(),
+  "sourceFolder": zod.string(),
+  "extension": zod.string().nullish(),
+  "fileType": zod.string(),
+  "size": zod.number().int(),
+  "modifiedAt": zod.coerce.date(),
+  "state": zod.enum(['local', 'linked', 'imported', 'ignored']),
+  "importedFileId": zod.string().uuid().nullish()
+})
+
+
+export const RequestAimeLocalImportParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "referenceId": zod.coerce.string().uuid()
+})
+
+export const RequestAimeLocalImportResponse = zod.object({
+  "jobId": zod.string().uuid(),
+  "status": zod.enum(['queued'])
+})
+
+
+export const GetAimeLocalImportJobParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "jobId": zod.coerce.string().uuid()
+})
+
+export const GetAimeLocalImportJobResponse = zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "ownerUserId": zod.string(),
+  "localReferenceId": zod.string().uuid(),
+  "status": zod.enum(['queued', 'uploading', 'done', 'failed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "error": zod.string().optional()
+})
 
 
 /**

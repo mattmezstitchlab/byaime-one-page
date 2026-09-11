@@ -22,7 +22,7 @@ export const laboratoryFeedbackStatuses = [
 export const laboratoryContextSchema = z.object({
   projectId: z.string().uuid().optional(),
   role: z.enum(["owner", "planner", "family", "viewer"]).optional(),
-  route: z.enum(["profile", "world", "network", "laboratory"]).optional(),
+  route: z.enum(["profile", "world", "laboratory"]).optional(),
   path: z.string().max(120).optional(),
   source: z.string().trim().min(1).max(60).optional(),
   view: z.string().trim().min(1).max(40).optional(),

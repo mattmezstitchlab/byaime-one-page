@@ -10,16 +10,14 @@ describe("private navigation", () => {
     expect(PRIVATE_PRIMARY_NAVIGATION.map(item => item.label)).toEqual([
       "Profil",
       "Monde",
-      "Carte",
       "Laboratoire",
     ]);
-    expect(new Set(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).size).toBe(4);
+    expect(new Set(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).size).toBe(3);
   });
 
   it("uses the Profile as the safe private home", () => {
     expect(getPrivateDestinationId("/profile")).toBe("profile");
     expect(getPrivateDestinationId("/user-portal")).toBe("world");
-    expect(getPrivateDestinationId("/network")).toBe("network");
     expect(getPrivateDestinationId("/laboratoire")).toBe("laboratory");
     expect(getPrivateDestinationId("/")).toBe("profile");
   });
@@ -28,7 +26,6 @@ describe("private navigation", () => {
     expect(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).toEqual([
       "/profile",
       "/user-portal",
-      "/network",
       "/laboratoire",
     ]);
     expect(PRIVATE_PRIMARY_NAVIGATION.some(item => item.href === "/budget")).toBe(

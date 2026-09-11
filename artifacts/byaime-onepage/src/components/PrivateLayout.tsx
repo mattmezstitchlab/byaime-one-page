@@ -5,7 +5,6 @@ import {
   FlaskConical,
   Globe2,
   HelpCircle,
-  Map,
   Menu,
   Moon,
   Settings,
@@ -211,7 +210,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
   const activeDestination = getPrivateDestinationId(location);
   const activeItem = PRIVATE_PRIMARY_NAVIGATION.find(item => item.id === activeDestination)!;
-  const icons = { profile: User, world: Globe2, network: Map, laboratory: FlaskConical } satisfies Record<PrivateDestinationId, ComponentType<{ className?: string }>>;
+  const icons = { profile: User, world: Globe2, laboratory: FlaskConical } satisfies Record<PrivateDestinationId, ComponentType<{ className?: string }>>;
 
   useEffect(() => {
     document.documentElement.dataset.aimeTheme = appearance;

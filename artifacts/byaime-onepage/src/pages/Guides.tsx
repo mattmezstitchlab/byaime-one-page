@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Link } from "wouter";
-import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight, MousePointer2, User, Globe2, Network, Plus, Shield, PenLine, Settings, CheckCircle2 } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight, MousePointer2, User, Globe2, FlaskConical, Plus, Shield, PenLine, Settings, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type DemoStep = {
@@ -81,23 +81,17 @@ const WorldFakeUI = () => (
   </div>
 );
 
-const NetworkFakeUI = () => (
-  <div className="flex items-center justify-center h-full bg-card/50 p-6 relative overflow-hidden">
-    <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-    <div className="relative">
-      <div className="w-16 h-16 rounded-full bg-foreground/10 border-2 border-border flex items-center justify-center absolute -top-12 -left-12">
-        <User className="w-6 h-6 text-foreground/40" />
-      </div>
-      <div className="w-20 h-20 rounded-2xl bg-brand-accent/20 border-2 border-brand-accent/30 flex items-center justify-center z-10 relative shadow-2xl">
-        <Globe2 className="w-8 h-8 text-brand-accent" />
-      </div>
-      <div className="w-14 h-14 rounded-full bg-foreground/10 border-2 border-border flex items-center justify-center absolute -bottom-10 -right-10">
-        <Shield className="w-5 h-5 text-foreground/40" />
-      </div>
-      <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible">
-         <line x1="-24" y1="-24" x2="40" y2="40" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2" strokeDasharray="4 4" />
-         <line x1="40" y1="40" x2="100" y2="100" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2" strokeDasharray="4 4" />
-      </svg>
+const LaboratoryFakeUI = () => (
+  <div className="flex flex-col items-center justify-center h-full bg-card/50 p-8 text-center">
+    <div className="w-20 h-20 rounded-full bg-foreground/10 flex items-center justify-center mb-6">
+      <FlaskConical className="w-8 h-8 text-foreground/40" />
+    </div>
+    <h3 className="font-display text-2xl mb-2">Le Laboratoire</h3>
+    <p className="text-sm text-foreground/50 max-w-xs">Vos retours volontaires, reliés à leur contexte, pour améliorer AIME sans se substituer à vos données.</p>
+    <div className="mt-8 w-full max-w-sm space-y-3">
+      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
+      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
+      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
     </div>
   </div>
 );
@@ -221,11 +215,11 @@ const DEMOS: DemoConfig[] = [
   {
     id: "architecture",
     title: "Un seul système, plusieurs réalités",
-    description: "Votre vie n'est pas une succession de tableaux de bord jetables. Découvrez comment Profil, Monde et Carte interagissent durablement.",
+    description: "Votre vie n'est pas une succession de tableaux de bord jetables. Découvrez comment Profil, Monde et Laboratoire interagissent durablement.",
     steps: [
       { label: "Profil", content: "Votre identité durable. Une projection unique qui réunit ce qui vous concerne à travers tous les Mondes.", ui: <ProfileFakeUI />, cursor: { x: 15, y: 30 } },
       { label: "Monde", content: "L'espace collaboratif et privé. C'est ici que s'organise l'événement avec les rôles stricts et les outils dédiés.", ui: <WorldFakeUI />, cursor: { x: 50, y: 50 } },
-      { label: "Carte", content: "Le réseau sous-jacent. AIME comprend les relations entre les personnes et les professionnels sans dupliquer les données.", ui: <NetworkFakeUI />, cursor: { x: 85, y: 70 } }
+      { label: "Laboratoire", content: "Le recueil de vos retours volontaires, reliés à leur contexte, pour faire évoluer AIME sans mélanger vos données et vos remarques.", ui: <LaboratoryFakeUI />, cursor: { x: 85, y: 70 } }
     ]
   },
   {

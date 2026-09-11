@@ -193,36 +193,3 @@ export type WorldMembership = {
   status: "invited" | "active" | "declined" | "removed";
 };
 
-export type MapSubject = {
-  ref: UniversalReference;
-  label: string;
-  summary?: string;
-  imageUrl?: string;
-  locationLevel: Exclude<DataLevel, "financial" | "moderation">;
-  latitude?: number;
-  longitude?: number;
-  city?: string;
-  primaryCapability?: Capability;
-};
-
-/**
- * Trace left by a read adapter. The legacy identifier is searchable and
- * auditable, but must never be used as the canonical entity reference.
- */
-export type LegacyTrace = {
-  source: "world_project_json" | "supabase";
-  entityKind: string;
-  legacyId: EntityId;
-};
-
-export type AuthorizedMapSubject = MapSubject & {
-  worldRef: UniversalReference<"world">;
-  legacy?: LegacyTrace;
-  capabilities: Partial<Record<Capability, CapabilityDecision>>;
-};
-
-export type NetworkProjection = {
-  generatedAt: string;
-  subjects: AuthorizedMapSubject[];
-  relations: UniversalRelation[];
-};

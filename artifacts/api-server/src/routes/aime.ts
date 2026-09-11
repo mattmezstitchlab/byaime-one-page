@@ -58,7 +58,6 @@ import {
   verifyUploadAuthorization,
 } from "../lib/security";
 import { logger } from "../lib/logger";
-import { buildNetworkProjection } from "../lib/networkProjection";
 import { suggestForProject } from "../lib/aimeLocalScan";
 import { sendResendEmail } from "../lib/resend";
 
@@ -618,28 +617,6 @@ function parseBody<T>(
   }
   return result.data;
 }
-
-router.get(
-  "/network/subjects",
-  auth,
-  async (req: AuthedRequest, res): Promise<void> => {
-    const rows = await db
-      .select({
-        id: projectsTable.id,
-        title: projectsTable.title,
-        data: projectsTable.data,
-        role: membershipsTable.role,
-      })
-      .from(membershipsTable)
-      .innerJoin(
-        projectsTable,
-        eq(projectsTable.id, membershipsTable.projectId),
-      )
-      .where(eq(membershipsTable.userId, req.userId!));
-    res.setHeader("Cache-Control", "private, no-store");
-    res.json(buildNetworkProjection(rows));
-  },
-);
 
 router.get(
   "/projects",

@@ -20,13 +20,22 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AimeLocalBridgeSession,
+  AimeLocalBridgeStatus,
+  AimeLocalFolders,
+  AimeLocalImportJob,
+  AimeLocalImportRequested,
+  AimeLocalLatestScanResponse,
+  AimeLocalPairInput,
+  AimeLocalPairingToken,
+  AimeLocalReference,
+  AimeLocalReferenceInput,
   DeleteConfirmation,
   HealthStatus,
   InvitationInput,
   Message,
   MessageInput,
   MessageScheduleInput,
-  NetworkProjection,
   ProfileFil,
   Project,
   ProjectInput,
@@ -132,83 +141,6 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export const getListNetworkSubjectsUrl = () => {
-
-
-
-
-  return `/api/network/subjects`
-}
-
-/**
- * @summary Read the authorized multi-World network projection
- */
-export const listNetworkSubjects = async ( options?: Parameters<typeof customFetch>[1]): Promise<NetworkProjection> => {
-
-  return customFetch<NetworkProjection>(getListNetworkSubjectsUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListNetworkSubjectsQueryKey = () => {
-    return [
-    `/api/network/subjects`
-    ] as const;
-    }
-
-
-export const getListNetworkSubjectsQueryOptions = <TData = Awaited<ReturnType<typeof listNetworkSubjects>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNetworkSubjects>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListNetworkSubjectsQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listNetworkSubjects>>> = ({ signal }) => listNetworkSubjects({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listNetworkSubjects>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type ListNetworkSubjectsQueryResult = NonNullable<Awaited<ReturnType<typeof listNetworkSubjects>>>
-export type ListNetworkSubjectsQueryError = ErrorType<void>
-
-
-/**
- * @summary Read the authorized multi-World network projection
- */
-
-export function useListNetworkSubjects<TData = Awaited<ReturnType<typeof listNetworkSubjects>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNetworkSubjects>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getListNetworkSubjectsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1303,6 +1235,825 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getSubmitPublicRsvpMutationOptions(options));
     }
+
+export const getCreateAimeLocalPairingTokenUrl = () => {
+
+
+
+
+  return `/api/aime-local/pairing-token`
+}
+
+export const createAimeLocalPairingToken = async ( options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalPairingToken> => {
+
+  return customFetch<AimeLocalPairingToken>(getCreateAimeLocalPairingTokenUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreateAimeLocalPairingTokenMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAimeLocalPairingToken>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAimeLocalPairingToken>>, TError,void, TContext> => {
+
+const mutationKey = ['createAimeLocalPairingToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAimeLocalPairingToken>>, void> = () => {
+
+
+          return  createAimeLocalPairingToken(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAimeLocalPairingTokenMutationResult = NonNullable<Awaited<ReturnType<typeof createAimeLocalPairingToken>>>
+
+    export type CreateAimeLocalPairingTokenMutationError = ErrorType<unknown>
+
+    export const useCreateAimeLocalPairingToken = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAimeLocalPairingToken>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAimeLocalPairingToken>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCreateAimeLocalPairingTokenMutationOptions(options));
+    }
+
+export const getPairAimeLocalBridgeUrl = () => {
+
+
+
+
+  return `/api/aime-local/bridge/pair`
+}
+
+export const pairAimeLocalBridge = async (aimeLocalPairInput: AimeLocalPairInput, options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalBridgeSession> => {
+
+  return customFetch<AimeLocalBridgeSession>(getPairAimeLocalBridgeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(aimeLocalPairInput)
+  }
+);}
+
+
+
+
+
+export const getPairAimeLocalBridgeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof pairAimeLocalBridge>>, TError,{data: BodyType<AimeLocalPairInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof pairAimeLocalBridge>>, TError,{data: BodyType<AimeLocalPairInput>}, TContext> => {
+
+const mutationKey = ['pairAimeLocalBridge'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof pairAimeLocalBridge>>, {data: BodyType<AimeLocalPairInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  pairAimeLocalBridge(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PairAimeLocalBridgeMutationResult = NonNullable<Awaited<ReturnType<typeof pairAimeLocalBridge>>>
+    export type PairAimeLocalBridgeMutationBody = BodyType<AimeLocalPairInput>
+    export type PairAimeLocalBridgeMutationError = ErrorType<unknown>
+
+    export const usePairAimeLocalBridge = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof pairAimeLocalBridge>>, TError,{data: BodyType<AimeLocalPairInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof pairAimeLocalBridge>>,
+        TError,
+        {data: BodyType<AimeLocalPairInput>},
+        TContext
+      > => {
+      return useMutation(getPairAimeLocalBridgeMutationOptions(options));
+    }
+
+export const getGetAimeLocalBridgeStatusUrl = () => {
+
+
+
+
+  return `/api/aime-local/bridge/status`
+}
+
+export const getAimeLocalBridgeStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalBridgeStatus> => {
+
+  return customFetch<AimeLocalBridgeStatus>(getGetAimeLocalBridgeStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAimeLocalBridgeStatusQueryKey = () => {
+    return [
+    `/api/aime-local/bridge/status`
+    ] as const;
+    }
+
+
+export const getGetAimeLocalBridgeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAimeLocalBridgeStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalBridgeStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAimeLocalBridgeStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAimeLocalBridgeStatus>>> = ({ signal }) => getAimeLocalBridgeStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalBridgeStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAimeLocalBridgeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getAimeLocalBridgeStatus>>>
+export type GetAimeLocalBridgeStatusQueryError = ErrorType<unknown>
+
+
+
+export function useGetAimeLocalBridgeStatus<TData = Awaited<ReturnType<typeof getAimeLocalBridgeStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalBridgeStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAimeLocalBridgeStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRevokeAimeLocalBridgeStatusUrl = () => {
+
+
+
+
+  return `/api/aime-local/bridge/status`
+}
+
+export const revokeAimeLocalBridgeStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRevokeAimeLocalBridgeStatusUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeAimeLocalBridgeStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAimeLocalBridgeStatus>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeAimeLocalBridgeStatus>>, TError,void, TContext> => {
+
+const mutationKey = ['revokeAimeLocalBridgeStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeAimeLocalBridgeStatus>>, void> = () => {
+
+
+          return  revokeAimeLocalBridgeStatus(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeAimeLocalBridgeStatusMutationResult = NonNullable<Awaited<ReturnType<typeof revokeAimeLocalBridgeStatus>>>
+
+    export type RevokeAimeLocalBridgeStatusMutationError = ErrorType<unknown>
+
+    export const useRevokeAimeLocalBridgeStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAimeLocalBridgeStatus>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeAimeLocalBridgeStatus>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRevokeAimeLocalBridgeStatusMutationOptions(options));
+    }
+
+export const getGetAimeLocalFoldersUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/aime-local/folders`
+}
+
+export const getAimeLocalFolders = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalFolders> => {
+
+  return customFetch<AimeLocalFolders>(getGetAimeLocalFoldersUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAimeLocalFoldersQueryKey = (id: string,) => {
+    return [
+    `/api/projects/${id}/aime-local/folders`
+    ] as const;
+    }
+
+
+export const getGetAimeLocalFoldersQueryOptions = <TData = Awaited<ReturnType<typeof getAimeLocalFolders>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalFolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAimeLocalFoldersQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAimeLocalFolders>>> = ({ signal }) => getAimeLocalFolders(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalFolders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAimeLocalFoldersQueryResult = NonNullable<Awaited<ReturnType<typeof getAimeLocalFolders>>>
+export type GetAimeLocalFoldersQueryError = ErrorType<unknown>
+
+
+
+export function useGetAimeLocalFolders<TData = Awaited<ReturnType<typeof getAimeLocalFolders>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalFolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAimeLocalFoldersQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAimeLocalFoldersUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/aime-local/folders`
+}
+
+export const updateAimeLocalFolders = async (id: string,
+    aimeLocalFolders: AimeLocalFolders, options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalFolders> => {
+
+  return customFetch<AimeLocalFolders>(getUpdateAimeLocalFoldersUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(aimeLocalFolders)
+  }
+);}
+
+
+
+
+
+export const getUpdateAimeLocalFoldersMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAimeLocalFolders>>, TError,{id: string;data: BodyType<AimeLocalFolders>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAimeLocalFolders>>, TError,{id: string;data: BodyType<AimeLocalFolders>}, TContext> => {
+
+const mutationKey = ['updateAimeLocalFolders'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAimeLocalFolders>>, {id: string;data: BodyType<AimeLocalFolders>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAimeLocalFolders(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAimeLocalFoldersMutationResult = NonNullable<Awaited<ReturnType<typeof updateAimeLocalFolders>>>
+    export type UpdateAimeLocalFoldersMutationBody = BodyType<AimeLocalFolders>
+    export type UpdateAimeLocalFoldersMutationError = ErrorType<unknown>
+
+    export const useUpdateAimeLocalFolders = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAimeLocalFolders>>, TError,{id: string;data: BodyType<AimeLocalFolders>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAimeLocalFolders>>,
+        TError,
+        {id: string;data: BodyType<AimeLocalFolders>},
+        TContext
+      > => {
+      return useMutation(getUpdateAimeLocalFoldersMutationOptions(options));
+    }
+
+export const getRequestAimeLocalScanUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/aime-local/scan`
+}
+
+export const requestAimeLocalScan = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRequestAimeLocalScanUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRequestAimeLocalScanMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAimeLocalScan>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAimeLocalScan>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['requestAimeLocalScan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAimeLocalScan>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  requestAimeLocalScan(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAimeLocalScanMutationResult = NonNullable<Awaited<ReturnType<typeof requestAimeLocalScan>>>
+
+    export type RequestAimeLocalScanMutationError = ErrorType<unknown>
+
+    export const useRequestAimeLocalScan = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAimeLocalScan>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestAimeLocalScan>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getRequestAimeLocalScanMutationOptions(options));
+    }
+
+export const getGetAimeLocalLatestScanUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/aime-local/scans/latest`
+}
+
+export const getAimeLocalLatestScan = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalLatestScanResponse> => {
+
+  return customFetch<AimeLocalLatestScanResponse>(getGetAimeLocalLatestScanUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAimeLocalLatestScanQueryKey = (id: string,) => {
+    return [
+    `/api/projects/${id}/aime-local/scans/latest`
+    ] as const;
+    }
+
+
+export const getGetAimeLocalLatestScanQueryOptions = <TData = Awaited<ReturnType<typeof getAimeLocalLatestScan>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalLatestScan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAimeLocalLatestScanQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAimeLocalLatestScan>>> = ({ signal }) => getAimeLocalLatestScan(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalLatestScan>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAimeLocalLatestScanQueryResult = NonNullable<Awaited<ReturnType<typeof getAimeLocalLatestScan>>>
+export type GetAimeLocalLatestScanQueryError = ErrorType<unknown>
+
+
+
+export function useGetAimeLocalLatestScan<TData = Awaited<ReturnType<typeof getAimeLocalLatestScan>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalLatestScan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAimeLocalLatestScanQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAimeLocalReferencesUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/aime-local/references`
+}
+
+export const listAimeLocalReferences = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalReference[]> => {
+
+  return customFetch<AimeLocalReference[]>(getListAimeLocalReferencesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAimeLocalReferencesQueryKey = (id: string,) => {
+    return [
+    `/api/projects/${id}/aime-local/references`
+    ] as const;
+    }
+
+
+export const getListAimeLocalReferencesQueryOptions = <TData = Awaited<ReturnType<typeof listAimeLocalReferences>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAimeLocalReferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAimeLocalReferencesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAimeLocalReferences>>> = ({ signal }) => listAimeLocalReferences(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAimeLocalReferences>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAimeLocalReferencesQueryResult = NonNullable<Awaited<ReturnType<typeof listAimeLocalReferences>>>
+export type ListAimeLocalReferencesQueryError = ErrorType<unknown>
+
+
+
+export function useListAimeLocalReferences<TData = Awaited<ReturnType<typeof listAimeLocalReferences>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAimeLocalReferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAimeLocalReferencesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAimeLocalReferenceUrl = (id: string,) => {
+
+
+
+
+  return `/api/projects/${id}/aime-local/references`
+}
+
+export const createAimeLocalReference = async (id: string,
+    aimeLocalReferenceInput: AimeLocalReferenceInput, options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalReference> => {
+
+  return customFetch<AimeLocalReference>(getCreateAimeLocalReferenceUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(aimeLocalReferenceInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAimeLocalReferenceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAimeLocalReference>>, TError,{id: string;data: BodyType<AimeLocalReferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAimeLocalReference>>, TError,{id: string;data: BodyType<AimeLocalReferenceInput>}, TContext> => {
+
+const mutationKey = ['createAimeLocalReference'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAimeLocalReference>>, {id: string;data: BodyType<AimeLocalReferenceInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createAimeLocalReference(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAimeLocalReferenceMutationResult = NonNullable<Awaited<ReturnType<typeof createAimeLocalReference>>>
+    export type CreateAimeLocalReferenceMutationBody = BodyType<AimeLocalReferenceInput>
+    export type CreateAimeLocalReferenceMutationError = ErrorType<unknown>
+
+    export const useCreateAimeLocalReference = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAimeLocalReference>>, TError,{id: string;data: BodyType<AimeLocalReferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAimeLocalReference>>,
+        TError,
+        {id: string;data: BodyType<AimeLocalReferenceInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAimeLocalReferenceMutationOptions(options));
+    }
+
+export const getRequestAimeLocalImportUrl = (id: string,
+    referenceId: string,) => {
+
+
+
+
+  return `/api/projects/${id}/aime-local/references/${referenceId}/import`
+}
+
+export const requestAimeLocalImport = async (id: string,
+    referenceId: string, options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalImportRequested> => {
+
+  return customFetch<AimeLocalImportRequested>(getRequestAimeLocalImportUrl(id,referenceId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRequestAimeLocalImportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAimeLocalImport>>, TError,{id: string;referenceId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestAimeLocalImport>>, TError,{id: string;referenceId: string}, TContext> => {
+
+const mutationKey = ['requestAimeLocalImport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestAimeLocalImport>>, {id: string;referenceId: string}> = (props) => {
+          const {id,referenceId} = props ?? {};
+
+          return  requestAimeLocalImport(id,referenceId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestAimeLocalImportMutationResult = NonNullable<Awaited<ReturnType<typeof requestAimeLocalImport>>>
+
+    export type RequestAimeLocalImportMutationError = ErrorType<unknown>
+
+    export const useRequestAimeLocalImport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestAimeLocalImport>>, TError,{id: string;referenceId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestAimeLocalImport>>,
+        TError,
+        {id: string;referenceId: string},
+        TContext
+      > => {
+      return useMutation(getRequestAimeLocalImportMutationOptions(options));
+    }
+
+export const getGetAimeLocalImportJobUrl = (id: string,
+    jobId: string,) => {
+
+
+
+
+  return `/api/projects/${id}/aime-local/import-jobs/${jobId}`
+}
+
+export const getAimeLocalImportJob = async (id: string,
+    jobId: string, options?: Parameters<typeof customFetch>[1]): Promise<AimeLocalImportJob> => {
+
+  return customFetch<AimeLocalImportJob>(getGetAimeLocalImportJobUrl(id,jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAimeLocalImportJobQueryKey = (id: string,
+    jobId: string,) => {
+    return [
+    `/api/projects/${id}/aime-local/import-jobs/${jobId}`
+    ] as const;
+    }
+
+
+export const getGetAimeLocalImportJobQueryOptions = <TData = Awaited<ReturnType<typeof getAimeLocalImportJob>>, TError = ErrorType<unknown>>(id: string,
+    jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalImportJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAimeLocalImportJobQueryKey(id,jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAimeLocalImportJob>>> = ({ signal }) => getAimeLocalImportJob(id,jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && jobId !== null && jobId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalImportJob>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAimeLocalImportJobQueryResult = NonNullable<Awaited<ReturnType<typeof getAimeLocalImportJob>>>
+export type GetAimeLocalImportJobQueryError = ErrorType<unknown>
+
+
+
+export function useGetAimeLocalImportJob<TData = Awaited<ReturnType<typeof getAimeLocalImportJob>>, TError = ErrorType<unknown>>(
+ id: string,
+    jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAimeLocalImportJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAimeLocalImportJobQueryOptions(id,jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetPublicProfileUrl = (id: string,) => {
 

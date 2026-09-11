@@ -1,23 +1,23 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { Link } from "wouter";
+import { AlertCircle } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">
-              404 Page Not Found
-            </h1>
-          </div>
-
-          <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <main className="flex min-h-[100dvh] w-full items-center justify-center bg-background px-6 text-foreground">
+      <div className="flex max-w-md flex-col items-center text-center">
+        <AlertCircle className="h-10 w-10 text-foreground/30" />
+        <p className="mt-8 text-[10px] uppercase tracking-[.3em] text-foreground/40">Erreur 404</p>
+        <h1 className="mt-4 font-display text-4xl font-light">Cette page n’existe pas.</h1>
+        <p className="mt-4 text-sm font-light leading-relaxed text-foreground/55">
+          L’adresse demandée est introuvable ou n’est plus disponible.
+        </p>
+        <Link
+          href="/"
+          className="mt-8 rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition hover:bg-foreground/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Retour à l’accueil
+        </Link>
+      </div>
+    </main>
   );
 }

@@ -8,7 +8,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Home } from '@/pages/Home';
-import { NetworkPage } from '@/pages/Network';
 import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LaboratoryPage } from '@/pages/Laboratory';
 import { LeMondeAimePage } from '@/pages/LeMondeAime';
@@ -98,10 +97,10 @@ function Landing() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_55%)]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background to-transparent" />
         <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center text-center">
-          <p className="text-[10px] uppercase tracking-[.35em] text-foreground/45">L’ancien esprit connexion</p>
+          <p className="text-[10px] uppercase tracking-[.35em] text-foreground/45">L’art de créer des liens</p>
           <h1 className="mt-6 font-display text-6xl font-light tracking-[.14em] md:text-8xl">AIME</h1>
           <p className="mt-6 max-w-2xl text-sm font-light leading-relaxed text-foreground/65 md:text-lg">
-            L’art de créer des liens, avec une entrée claire avant de retrouver toute la landing actuelle.
+            Un espace privé pour organiser votre mariage à plusieurs, de la première idée au Jour J.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a data-testid="hero-sign-up" href={`${basePath}/creation`} className="rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background">Créer mon espace</a>
@@ -113,7 +112,7 @@ function Landing() {
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
           <div>
             <p className="text-[10px] uppercase tracking-[.3em] text-foreground/45">Tout votre mariage au même endroit</p>
-            <h1 className="mt-6 font-display text-4xl font-light leading-tight md:text-6xl">AIME accompagne votre mariage, de la première idée au Jour J.</h1>
+            <h2 className="mt-6 font-display text-4xl font-light leading-tight md:text-6xl">AIME accompagne votre mariage, de la première idée au Jour J.</h2>
             <p className="mt-6 max-w-2xl text-base font-light leading-relaxed text-foreground/65 md:text-lg">Centralisez vos invités, votre budget, vos prestataires, vos décisions et vos moments importants dans un espace privé pensé pour avancer sereinement à plusieurs.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a data-testid="landing-sign-up" href={`${basePath}/creation`} className="rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background">Créer mon espace gratuitement</a>
@@ -458,7 +457,6 @@ function Routes() {
     <Route path="/app">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
     <Route path="/user-portal">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
     <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
-    <Route path="/network">{() => <PrivateRoute><NetworkPage /></PrivateRoute>}</Route>
     <Route path="/laboratoire">{() => <PrivateRoute><LaboratoryPage /></PrivateRoute>}</Route>
     <Route path="/connexion/*?">{() => <AuthPage />}</Route>
     <Route path="/creation/*?">{() => <AuthPage signup />}</Route>

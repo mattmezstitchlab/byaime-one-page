@@ -274,6 +274,41 @@ export function ProjectStage() {
 
   return (
     <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
+      <nav aria-label="Navigation principale du Mariage" className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-3 hide-scrollbar sm:px-6">
+          {navigation.primary.map(item => item.destination.kind === "route" ? (
+            <Link
+              key={item.id}
+              href={item.destination.href}
+              title={item.description}
+              className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {item.label}
+            </Link>
+          ) : (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => openWeddingDestination(item.destination)}
+              aria-current={isWeddingDestinationActive(item.destination, view, activePanel) ? "page" : undefined}
+              aria-label={`${item.label} — ${item.description}`}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isWeddingDestinationActive(item.destination, view, activePanel)
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground"
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+          <span className="mx-1 h-5 w-px shrink-0 bg-border" />
+          <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
+            <Grid2X2 className="h-3.5 w-3.5" /> Sections
+          </button>
+          <TimelinePlayback events={visibleEvents} />
+        </div>
+      </nav>
       {/* Cinematic Header */}
       <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
         <div
@@ -346,17 +381,18 @@ export function ProjectStage() {
             transition={{ delay: 0.4 }}
             className="flex flex-wrap gap-2 pt-4"
           >
-            <Link
-              href="/network"
+            <button
+              type="button"
+              onClick={() => setView("person")}
               className="group flex items-center gap-2 py-1 pr-2 text-xs text-white/80 transition hover:text-white"
-               aria-label={`Ouvrir le Registre, ${project.guests.length + project.providers.length} personnes et professionnels`}
+               aria-label={`Voir les personnes, ${project.guests.length + project.providers.length} personnes et professionnels`}
             >
               <span className="flex -space-x-4 py-1">
                 {project.guests.slice(0, 5).map((guest, index) => <GuestPortrait key={guest.id} guest={guest} index={index} />)}
                 {project.guests.length === 0 && <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-black bg-white/10 text-[10px]">0</span>}
               </span>
-               <span>{project.guests.length + project.providers.length} dans le Registre</span>
-            </Link>
+               <span>{project.guests.length + project.providers.length} personnes et professionnels</span>
+            </button>
             {stats.open > 0 && (
               <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
                 {stats.open} professionnels à trouver
@@ -437,41 +473,7 @@ export function ProjectStage() {
         </div>
       </header>
 
-      <nav aria-label="Navigation principale du Mariage" className="sticky top-[57px] z-40 border-y border-border bg-card/95 backdrop-blur-xl sm:top-[61px]">
-        <div className="mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-3 hide-scrollbar sm:px-6">
-          {navigation.primary.map(item => item.destination.kind === "route" ? (
-            <Link
-              key={item.id}
-              href={item.destination.href}
-              title={item.description}
-              className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {item.label}
-            </Link>
-          ) : (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => openWeddingDestination(item.destination)}
-              aria-current={isWeddingDestinationActive(item.destination, view, activePanel) ? "page" : undefined}
-              aria-label={`${item.label} — ${item.description}`}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isWeddingDestinationActive(item.destination, view, activePanel)
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground"
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-          <span className="mx-1 h-5 w-px shrink-0 bg-border" />
-          <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
-            <Grid2X2 className="h-3.5 w-3.5" /> Sections
-          </button>
-          <TimelinePlayback events={visibleEvents} />
-        </div>
-      </nav>
+
 
       {/* Main Content Area */}
       <main className="w-full">
@@ -500,20 +502,19 @@ export function ProjectStage() {
               {project.guests.length ? (
                 <div className="mt-14 flex flex-wrap items-end gap-x-2 gap-y-8 sm:gap-x-4">
                   {project.guests.map((guest, index) => (
-                    <Link
+                    <div
                       key={guest.id}
-                      href="/network"
                       className={cn("group flex flex-col items-center", index % 3 === 1 && "sm:translate-y-8")}
-                      aria-label={`Ouvrir ${guest.name} dans le Registre`}
+                      aria-label={guest.name}
                     >
                       <span className="transition duration-300 group-hover:-translate-y-2 group-hover:scale-105"><GuestPortrait guest={guest} index={index} large /></span>
                       <span className="mt-3 max-w-24 truncate text-[10px] text-foreground/70 transition group-hover:text-foreground">{guest.name}</span>
                       <span className="mt-1 text-[8px] uppercase tracking-[.14em] text-foreground/40">{guest.role}</span>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <Link href="/network" className="mt-12 block rounded-3xl border border-dashed border-foreground/20 px-8 py-12 text-center text-sm text-foreground/50 hover:border-foreground/40 transition-colors">Le Registre accueillera ici les personnes reliées à ce Monde.</Link>
+                <p className="mt-12 rounded-3xl border border-dashed border-foreground/20 px-8 py-12 text-center text-sm text-foreground/50">Les personnes reliées à ce Monde apparaîtront ici.</p>
               )}
             </div>
           </section>

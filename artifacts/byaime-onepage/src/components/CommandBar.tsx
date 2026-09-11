@@ -13,10 +13,6 @@ const contextCopy: Record<PrivateDestinationId, { label: string; description: st
     label: "Monde",
     description: "AIME comprend le Monde actif, vérifie votre demande et demande votre accord avant tout changement.",
   },
-  network: {
-    label: "Carte",
-    description: "AIME garde le contexte des personnes et des Mondes reliés. Elle n’invente ni relation ni localisation et agit seulement sur les données confirmées du Monde actif.",
-  },
   laboratory: {
     label: "Laboratoire",
     description: "Le Laboratoire recueille vos retours volontaires sans se confondre avec la boîte « À vérifier » d’AIME.",

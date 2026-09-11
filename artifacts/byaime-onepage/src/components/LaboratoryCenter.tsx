@@ -19,7 +19,6 @@ import {
 
 function routeFromLocation(pathname: string): LaboratoryContext["route"] {
   if (pathname.startsWith("/user-portal")) return "world";
-  if (pathname.startsWith("/network")) return "network";
   if (pathname.startsWith("/laboratoire")) return "laboratory";
   return "profile";
 }
