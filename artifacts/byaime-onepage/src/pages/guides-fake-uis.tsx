@@ -1,9 +1,9 @@
 import { type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  CalendarDays, CheckCircle2, Check, Clock, Copy, FolderOpen, Globe2, Heart, Image as ImageIcon,
-  Link2, ListChecks, Lock, MapPin, Music, PenLine, Plus, Send, Settings, Shield, Sparkles,
-  User, Users, Wallet,
+  AlertTriangle, CalendarDays, CheckCircle2, Check, Clock, Copy, Eye, EyeOff, FolderOpen, Globe2,
+  Heart, Image as ImageIcon, Link2, ListChecks, Lock, MapPin, Music, PenLine, Plus, Send, Settings,
+  Shield, Sparkles, User, Users, Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -766,3 +766,114 @@ export const MeFakeUI = ({ step }: { step: number }) => (
     </div>
   </div>
 );
+
+export const SynthesisFakeUI = ({ step }: { step: number }) => (
+  <div className="flex h-full flex-col bg-card/50 p-5">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-[8px] uppercase tracking-[.28em] text-foreground/40">Synthèse du Monde</p>
+        <h4 className="mt-1 font-display text-lg">Votre mariage en un coup d'œil</h4>
+      </div>
+      <Chip tone="brand">En direct</Chip>
+    </div>
+    <div className="mt-4 grid flex-1 grid-cols-2 gap-2">
+      <div className={cn("rounded-2xl border p-3 transition", step === 0 ? "border-brand-accent/40 bg-brand-accent/5" : "border-foreground/10 bg-foreground/[.035]")}>
+        <p className="text-[8px] uppercase tracking-wider text-foreground/40">Budget engagé</p>
+        <p className="mt-2 font-display text-xl tabular-nums">14 200 €</p>
+        <p className="mt-1 text-[9px] text-foreground/45">sur 20 000 € prévus</p>
+      </div>
+      <div className={cn("rounded-2xl border p-3 transition", step === 0 ? "border-brand-accent/40 bg-brand-accent/5" : "border-foreground/10 bg-foreground/[.035]")}>
+        <p className="text-[8px] uppercase tracking-wider text-foreground/40">Progression</p>
+        <p className="mt-2 font-display text-xl tabular-nums">67%</p>
+        <p className="mt-1 text-[9px] text-foreground/45">8 étapes sur 12</p>
+      </div>
+      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-3">
+        <p className="text-[8px] uppercase tracking-wider text-foreground/40">Invités</p>
+        <p className="mt-2 font-display text-xl tabular-nums">42</p>
+        <p className="mt-1 text-[9px] text-foreground/45">38 oui · 4 en attente</p>
+      </div>
+      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-3">
+        <p className="text-[8px] uppercase tracking-wider text-foreground/40">Prestataires</p>
+        <p className="mt-2 font-display text-xl tabular-nums">3/5</p>
+        <p className="mt-1 text-[9px] text-foreground/45">2 à trouver</p>
+      </div>
+    </div>
+    {step === 1 && (
+      <div className="mt-3 rounded-2xl border border-amber-300/20 bg-amber-300/5 p-3">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
+          <p className="text-[9px] uppercase tracking-wider text-amber-200/80">Alertes de planning</p>
+        </div>
+        <p className="mt-1.5 text-[10px] text-amber-100/70">Prestataire mobilisé simultanément · « Cérémonie » ⇄ « Cocktail »</p>
+      </div>
+    )}
+    {step === 2 && (
+      <div className="mt-3 flex items-center gap-2 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-3 text-[10px] text-foreground/55">
+        Chaque carte ouvre directement son panneau — la salle de contrôle du Monde.
+      </div>
+    )}
+  </div>
+);
+
+const GRAPH_EVENTS = [
+  { label: "Cérémonie", y: 34 },
+  { label: "Cocktail", y: 96 },
+  { label: "Repas", y: 158 },
+];
+const GRAPH_ENTITIES = [
+  { label: "Traiteur", kind: "Prestataire", masked: false, y: 34 },
+  { label: "Acompte", kind: "Finances", masked: true, y: 96 },
+  { label: "Contrat", kind: "Document", masked: true, y: 158 },
+];
+const GRAPH_EDGES = [
+  [0, 0], [0, 2], [1, 0], [2, 1],
+] as const;
+
+export const GraphFakeUI = ({ step }: { step: number }) => {
+  const inviteView = step >= 1;
+  return (
+    <div className="flex h-full flex-col bg-card/50 p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-[8px] uppercase tracking-[.28em] text-foreground/40">Graphe de visibilité</p>
+        <div className="flex gap-1">
+          {["Propriétaire", "Planificateur", "Proche", "Invité"].map((r, i) => (
+            <span key={r} className={cn(
+              "rounded-full border px-2 py-1 text-[8px] uppercase tracking-wider",
+              (inviteView && i === 3) || (!inviteView && i === 0) ? "border-foreground bg-foreground text-background" : "border-foreground/15 text-foreground/45",
+            )}>{r}</span>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 flex-1 rounded-2xl border border-foreground/10 bg-background p-2">
+        <svg viewBox="0 0 340 200" className="h-full w-full" role="img" aria-label="Graphe du Monde simulé">
+          {GRAPH_EDGES.map(([e, n], i) => {
+            const masked = inviteView && GRAPH_ENTITIES[n].masked;
+            return <line key={i} x1={86} y1={GRAPH_EVENTS[e].y} x2={240} y2={GRAPH_ENTITIES[n].y} stroke="currentColor" opacity={masked ? 0.12 : 0.3} strokeWidth={1} strokeDasharray={masked ? "3 4" : undefined} />;
+          })}
+          {GRAPH_EVENTS.map((e, i) => (
+            <g key={`e-${i}`}>
+              <circle cx={70} cy={e.y} r={6} fill="#ffffff" stroke="#ffffff" strokeWidth={1.5} />
+              <text x={84} y={e.y + 3} fill="currentColor" fontSize="10">{e.label}</text>
+            </g>
+          ))}
+          {GRAPH_ENTITIES.map((n, i) => {
+            const masked = inviteView && n.masked;
+            const color = n.masked ? "#bf5af2" : "#64d2ff";
+            return (
+              <g key={`n-${i}`} opacity={masked ? 0.32 : 1}>
+                {step === 2 && !masked && <circle cx={256} cy={n.y} r={12} fill="none" stroke={color} strokeWidth={1} strokeDasharray="2 3" />}
+                <circle cx={256} cy={n.y} r={6} fill={masked ? "transparent" : color} stroke={color} strokeWidth={1.5} strokeDasharray={masked ? "2 3" : undefined} />
+                <text x={270} y={n.y + 3} fill="currentColor" fontSize="10">{n.label}</text>
+                <text x={270} y={n.y + 15} fill="currentColor" opacity="0.35" fontSize="7" className="uppercase">{n.kind}{masked ? " · masqué" : ""}</text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <p className="mt-2 text-[10px] text-foreground/50">
+        {inviteView ? "Vu comme un invité, les finances et documents disparaissent." : "Le propriétaire voit tout, finances et documents compris."}
+        {step === 2 ? " Cliquez un élément pour l'ouvrir." : ""}
+      </p>
+    </div>
+  );
+};

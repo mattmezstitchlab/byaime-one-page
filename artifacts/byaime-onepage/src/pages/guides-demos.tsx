@@ -1,9 +1,9 @@
 import { type ReactNode } from "react";
 import {
   ActionPillFakeUI, BudgetFakeUI, CeremonyFakeUI, CreateMondeFakeUI, DayofFakeUI, DocumentsFakeUI,
-  GuestsFakeUI, InfosFakeUI, LaboratoryFakeUI, LaboratoryTutoFakeUI, MeFakeUI, MemoriesFakeUI,
+  GraphFakeUI, GuestsFakeUI, InfosFakeUI, LaboratoryFakeUI, LaboratoryTutoFakeUI, MeFakeUI, MemoriesFakeUI,
   MessagesFakeUI, MusicFakeUI, ProfileFakeUI, ProfileTimelineFakeUI, ProvidersFakeUI, RolesFakeUI,
-  RsvpInviteFakeUI, SeatingFakeUI, TasksFakeUI, ThanksFakeUI, TimelineFakeUI, WorldFakeUI,
+  RsvpInviteFakeUI, SeatingFakeUI, SynthesisFakeUI, TasksFakeUI, ThanksFakeUI, TimelineFakeUI, WorldFakeUI,
 } from "./guides-fake-uis";
 
 export type DemoStep = {
@@ -75,6 +75,17 @@ export const DEMOS: DemoConfig[] = [
       { label: "Comprendre", content: "Demandez à l'AI de vérifier un horaire, d'analyser un conflit ou de rédiger une relance sans agir à votre place.", ui: <ActionPillFakeUI focus="ai" />, cursor: { x: 42, y: 88 } },
       { label: "Créer", content: "Le bouton + centralise toute création ou liaison de donnée dans le Monde actif de façon contextuelle.", ui: <ActionPillFakeUI focus="plus" />, cursor: { x: 50, y: 88 } },
       { label: "Contrôler", content: "ME est votre espace souverain. Gérez vos accès, votre sécurité, vos exports et passez d'un Monde à l'autre.", ui: <ActionPillFakeUI focus="me" />, cursor: { x: 58, y: 88 } },
+    ],
+  },
+  {
+    id: "graph",
+    title: "Le Graphe de visibilité",
+    description: "Le même Monde, vu selon les frontières de chaque rôle — rien n'est caché derrière une statistique.",
+    category: "comprendre",
+    steps: [
+      { label: "Le graphe", content: "Chaque Moment est relié aux personnes, documents, paiements et décisions qu'il mobilise.", ui: <GraphFakeUI step={0} />, cursor: { x: 40, y: 46 } },
+      { label: "Changer de rôle", content: "Vu comme un invité, les finances et les documents disparaissent : chacun ne voit que sa part.", ui: <GraphFakeUI step={1} />, cursor: { x: 78, y: 12 } },
+      { label: "Agir", content: "Cliquez un élément visible pour l'ouvrir directement dans son panneau.", ui: <GraphFakeUI step={2} />, cursor: { x: 72, y: 46 } },
     ],
   },
 
@@ -184,6 +195,17 @@ export const DEMOS: DemoConfig[] = [
       { label: "Le déroulé", content: "Structure numérotée du Jour J.", ui: <CeremonyFakeUI step={0} />, cursor: { x: 40, y: 58 } },
       { label: "Lectures & vœux", content: "Textes et vœux de chacun, conservés au même endroit.", ui: <CeremonyFakeUI step={1} />, cursor: { x: 40, y: 66 } },
       { label: "Le menu", content: "Menu, boissons, gâteau, première danse.", ui: <CeremonyFakeUI step={2} />, cursor: { x: 40, y: 66 } },
+    ],
+  },
+  {
+    id: "synthesis",
+    title: "La Synthèse du Monde",
+    description: "Budget, progression, invités et alertes réunis en un coup d'œil.",
+    category: "organiser",
+    steps: [
+      { label: "La salle de contrôle", content: "Budget engagé, progression, invités, prestataires : tout ce qui avance au même endroit.", ui: <SynthesisFakeUI step={0} />, cursor: { x: 30, y: 42 } },
+      { label: "Les alertes", content: "AIME détecte les conflits de planning et vous les montre avant qu'ils ne posent problème.", ui: <SynthesisFakeUI step={1} />, cursor: { x: 50, y: 88 } },
+      { label: "Ouvrir", content: "Chaque carte ouvre directement le panneau correspondant.", ui: <SynthesisFakeUI step={2} />, cursor: { x: 50, y: 90 } },
     ],
   },
 

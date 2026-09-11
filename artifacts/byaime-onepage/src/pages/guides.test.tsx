@@ -25,6 +25,12 @@ describe("GuidesPage", () => {
     expect(markup).toContain('data-testid="demo-select-creation"');
   });
 
+  it("covers the new control tools of the World", () => {
+    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
+    expect(markup).toContain('data-testid="demo-select-synthesis"');
+    expect(markup).toContain('data-testid="demo-select-graph"');
+  });
+
   it("renders player controls with correct aria-labels", () => {
     const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
     expect(markup).toContain('data-testid="demo-play-pause"');

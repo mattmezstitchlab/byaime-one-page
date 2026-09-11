@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeVisibilityModel, ENTITY_KIND_LABELS, type RoleVisibility } from "@/lib/timeline-graph";
+import { PANEL_FOR_KIND, type WeddingPanelId } from "@/lib/wedding-navigation";
 import { useProject } from "@/store/project-store";
 
 const ROLE_LABELS: Record<RoleVisibility, string> = {
@@ -44,7 +45,7 @@ function useVisibilityGraph(role: RoleVisibility) {
   return useMemo(() => (project ? computeVisibilityModel(project, role) : null), [project, role]);
 }
 
-export function VisibilityGraph() {
+export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: WeddingPanelId) => void }) {
   const [role, setRole] = useState<RoleVisibility>("viewer");
   const model = useVisibilityGraph(role);
 
@@ -132,10 +133,18 @@ export function VisibilityGraph() {
           {/* entity nodes */}
           {entities.map((node, i) => {
             const color = KIND_COLORS[node.kind] ?? "#ffffff";
+            const panel = node.kind !== "event" ? PANEL_FOR_KIND[node.kind as keyof typeof PANEL_FOR_KIND] : undefined;
+            const clickable = Boolean(node.visible && panel && onOpenPanel);
             return (
-              <g key={node.key} opacity={node.visible ? 1 : 0.32}>
-                <circle cx={ENTITY_X} cy={entityY(i)} r={NODE_R} fill={node.visible ? color : "transparent"} stroke={color} strokeWidth={1.5} strokeDasharray={node.visible ? undefined : "2 3"} />
-                <text x={ENTITY_X + NODE_R + 10} y={entityY(i) + 3.5} fill="currentColor" fontSize="11">
+              <g
+                key={node.key}
+                opacity={node.visible ? 1 : 0.32}
+                onClick={clickable ? () => onOpenPanel?.(panel as WeddingPanelId) : undefined}
+                style={clickable ? { cursor: "pointer" } : undefined}
+              >
+                {clickable && <title>Ouvrir dans son panneau</title>}
+                <circle cx={ENTITY_X} cy={entityY(i)} r={NODE_R} fill={node.visible ? color : "transparent"} stroke={color} strokeWidth={clickable ? 2 : 1.5} strokeDasharray={node.visible ? undefined : "2 3"} />
+                <text x={ENTITY_X + NODE_R + 10} y={entityY(i) + 3.5} fill="currentColor" fontSize="11" className={clickable ? "font-medium underline decoration-dotted underline-offset-2" : undefined}>
                   {node.label.length > 28 ? `${node.label.slice(0, 28)}…` : node.label}
                 </text>
                 <text x={ENTITY_X + NODE_R + 10} y={entityY(i) + 15} fill="currentColor" opacity="0.35" fontSize="8" className="uppercase">
@@ -151,6 +160,7 @@ export function VisibilityGraph() {
       <p className="text-xs font-light leading-relaxed text-foreground/45">
         Chaque Moment est relié aux personnes, documents, paiements et décisions qu'il mobilise. Selon le rôle, AIME
         masque ce qui dépasse ses frontières : c'est le même Monde, mais chacun n'en voit que sa part.
+        {onOpenPanel ? " Les éléments visibles et soulignés s'ouvrent d'un clic dans leur panneau." : ""}
       </p>
     </div>
   );

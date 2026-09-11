@@ -8,7 +8,7 @@ import { Link } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
 import { BottomDock } from './BottomDock';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Grid2X2, Waves } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Grid2X2, Search, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/laboratory';
@@ -17,6 +17,7 @@ import { CenteredBlock } from './CenteredBlock';
 import { PanelChromeProvider, type PanelChrome, type PanelNavItem } from './PanelChrome';
 import { WorldOverview } from './WorldOverview';
 import { VisibilityGraph } from './VisibilityGraph';
+import { WorldSearch } from './WorldSearch';
 import type { Guest, Provider } from '@/lib/types';
 import {
   isWeddingDestinationActive,
@@ -90,6 +91,7 @@ export function ProjectStage() {
   const [countdownsOpen, setCountdownsOpen] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [previewRole, setPreviewRole] = useState<WeddingRole | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -353,6 +355,9 @@ export function ProjectStage() {
           </button>
           <button type="button" onClick={() => setGraphOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             Graphe de visibilité
+          </button>
+          <button type="button" onClick={() => setSearchOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Search className="h-3.5 w-3.5" /> Rechercher
           </button>
           <button type="button" onClick={() => setPreviewRole(role => role ? null : "viewer")} aria-pressed={previewRole === "viewer"} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", previewRole === "viewer" ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
             {previewRole === "viewer" ? "Aperçu invité · actif" : "Aperçu invité"}
@@ -728,7 +733,12 @@ export function ProjectStage() {
       {overviewOpen && <WorldOverview onClose={() => setOverviewOpen(false)} onOpenPanel={setActivePanel} />}
       {graphOpen && (
         <CenteredBlock eyebrow="Graphe du Monde" title="Ce qui est visible, rôle par rôle" description="Le même Monde, vu selon les frontières de chaque rôle. Chaque Moment est relié aux personnes, documents, paiements et décisions qu'il mobilise." onClose={() => setGraphOpen(false)} size="xl">
-          <VisibilityGraph />
+          <VisibilityGraph onOpenPanel={panel => { setGraphOpen(false); setActivePanel(panel); }} />
+        </CenteredBlock>
+      )}
+      {searchOpen && (
+        <CenteredBlock eyebrow="Recherche" title="Trouver dans ce Monde" description="La recherche traverse les personnes, prestataires, tâches, documents, musique, messages et Moments." onClose={() => setSearchOpen(false)} size="lg">
+          <WorldSearch onClose={() => setSearchOpen(false)} onOpenPanel={panel => setActivePanel(panel)} />
         </CenteredBlock>
       )}
     </div>

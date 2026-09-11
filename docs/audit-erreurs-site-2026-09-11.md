@@ -51,6 +51,11 @@ Le site tourne, l'authentification et la landing sont fonctionnelles, et **aucun
 - ✅ **Menu contextuel d'un Moment** (`UniversalTimeline` EventDrawer) : liste « Relié à ce Moment » avec saut vers le panneau correspondant (invités, budget, plan de table, musique…) + bouton « Graphe de visibilité ».
 - ✅ Tests unitaires du modèle de visibilité (`visibility.test.ts`, 4 tests).
 
+**Septième passe (polissage + page Guides complète) :**
+- ✅ **Graphe de visibilité cliquable** : les éléments visibles s'ouvrent d'un clic dans leur panneau (mapping partagé `PANEL_FOR_KIND` dans `wedding-navigation.ts`).
+- ✅ **Recherche transverse** (`WorldSearch.tsx`) : bouton « Rechercher » dans la barre du Monde, traverse personnes, prestataires, tâches, documents, musique, messages et Moments, chaque résultat s'ouvrant dans son panneau (ou son Moment).
+- ✅ **Page Guides à jour** : 2 nouveaux tutoriels (« Le Graphe de visibilité », « La Synthèse du Monde ») → **20 tutoriels** au total, avec FakeUIs fidèles (tableau de bord + graphe rôle par rôle).
+
 ---
 
 ## 2. Suppression de la map réseau — périmètre réalisé

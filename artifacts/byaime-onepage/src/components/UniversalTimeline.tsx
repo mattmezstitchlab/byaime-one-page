@@ -7,7 +7,7 @@ import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
 import { openLaboratory, type WorldFocusRequest } from "@/lib/laboratory";
 import { useProject } from "@/store/project-store";
 import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KIND_LABELS, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
-import type { WeddingPanelId } from "@/lib/wedding-navigation";
+import { PANEL_FOR_KIND } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { ContextPanel } from "@/components/ContextPanel";
@@ -259,10 +259,6 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
 
 function EventDrawer({ event, project, currentRole, onClose, onEdit, onApplyRipple, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; currentRole: ReturnType<typeof useProject>["currentRole"]; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onApplyRipple: (plan: PropagationPlan, dependentIds: string[]) => void; onDelete: () => void; canEdit: boolean }) {
   const impact = analyzeEventImpact(project, event.id, {});
-  const PANEL_FOR_KIND: Partial<Record<TimelineEntityKind, WeddingPanelId>> = {
-    guest: "guests", table: "seating", provider: "providers", task: "planning", payment: "budget",
-    document: "documents", music: "music", team: "team", message: "messages", logistics: "logistics", memory: "memories",
-  };
   const related = (event.relations || [])
     .map(relation => ({ relation, entity: buildTimelineIndex(project).entities.get(`${relation.kind}:${relation.id}`) }))
     .filter(item => item.entity);
