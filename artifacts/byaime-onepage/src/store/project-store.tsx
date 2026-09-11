@@ -37,7 +37,7 @@ type ProjectStore = {
   
   updateProject: (updates: Partial<WorldProject>) => void;
   updateEntity: <K extends keyof WorldProject>(collection: K, id: string, updates: any) => void;
-  addEntity: <K extends keyof WorldProject>(collection: K, item: any) => void;
+  addEntity: <K extends keyof WorldProject>(collection: K, item: any) => string;
   removeEntity: <K extends keyof WorldProject>(collection: K, id: string) => void;
 };
 
@@ -357,17 +357,19 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const addEntity = useCallback(<K extends keyof WorldProject>(collection: K, item: any) => {
+  const addEntity = useCallback(<K extends keyof WorldProject>(collection: K, item: any): string => {
+    const id = Math.random().toString(36).substring(2);
     setProject(prev => {
       if (!prev) return null;
       const list = prev[collection] as any[];
       if (!Array.isArray(list)) return prev;
-      const newItem = { ...item, id: Math.random().toString(36).substring(2) };
+      const newItem = { ...item, id };
       return {
         ...prev,
         [collection]: [...list, newItem]
       };
     });
+    return id;
   }, []);
 
   const removeEntity = useCallback(<K extends keyof WorldProject>(collection: K, id: string) => {

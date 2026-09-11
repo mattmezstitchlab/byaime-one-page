@@ -16,12 +16,12 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("Landing (accueil)", () => {
-  it("ouvre le hero sur le champ de saisie, avant toute autre section", () => {
+  it("ouvre le hero sur l'onboarding, avant toute autre section", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).toContain('data-testid="landing"');
     expect(markup).toContain('data-testid="landing-composer"');
-    expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf("Aperçu produit"));
+    expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-guides"'));
   });
 
   it("pose un hero immersif plein écran à fond fixe, avec le visuel des astronautes et un appel à défiler", () => {
@@ -61,15 +61,14 @@ describe("Landing (accueil)", () => {
     expect(member).not.toContain('data-testid="landing-sign-in"');
   });
 
-  it("place les guides sous le hero, en rangées défilantes et sur un grand visuel", () => {
+  it("place les guides animés sous le hero, sur le fond cosmique sans ancienne photo de mariage", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).toContain('data-testid="landing-guides"');
     expect(markup).toContain('data-testid="landing-guides-explorer"');
     expect(markup).toContain("Comprendre avant de cliquer.");
-    // Sous le hero, avant la section produit.
+    // Juste après le hero.
     expect(markup.indexOf('data-testid="landing-guides"')).toBeGreaterThan(markup.indexOf('data-testid="landing-composer"'));
-    expect(markup.indexOf('data-testid="landing-guides"')).toBeLessThan(markup.indexOf("Aperçu produit"));
     // Une rangée par catégorie, et l'animation centrée — pas de grille de cartes ni de nuage de puces.
     expect(markup).toContain('data-testid="landing-guides-menu"');
     expect(markup).toContain("overflow-x-auto");
@@ -77,13 +76,18 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain('data-testid="landing-guides-group-panneaux"');
     expect(markup).not.toContain('data-testid="landing-guides-group-monde"');
     expect(markup.match(/<h1/g)).toHaveLength(1);
-    // Le visuel de fond est bien servi depuis le manifeste, pas un chemin codé en dur.
-    expect(markup).toContain("images/wedding/wedding-reception.jpg");
     // L'accueil ne garde qu'une sélection de guides ; le catalogue complet est sur /guides.
     expect(markup.match(/data-testid="demo-select-/g)).toHaveLength(6);
-    // Les filtres noirs superposés aux visuels ont disparu de l'accueil.
-    expect(markup).not.toContain("from-black/85");
-    expect(markup).not.toContain("via-black/55");
+    // Les anciennes photos de mariage documentaires ont quitté l'accueil.
+    expect(markup).not.toContain("images/wedding/wedding-reception.jpg");
+    expect(markup).not.toContain("images/wedding/wedding-guests.jpg");
+    expect(markup).not.toContain("images/wedding/wedding-music.jpg");
+    // Une seule section de repérage, illustrée dans le même univers (invités astronautes).
+    expect(markup).toContain("landing-guests-astronauts.jpg");
+    // Les longs doublons de texte ont été supprimés (les guides animés les remplacent).
+    expect(markup).not.toContain("Aperçu produit");
+    expect(markup).not.toContain("Organiser un mariage, ce n’est pas");
+    expect(markup).not.toContain("Prêts à organiser votre mariage autrement");
   });
 
   it("ne parle plus jamais de Laboratoire", () => {

@@ -1,5 +1,5 @@
 import { useProject } from '@/store/project-store';
-import { ComposerHero } from '@/components/ComposerHero';
+import { PortalOnboarding } from '@/components/PortalOnboarding';
 import { ProjectStage } from '@/components/ProjectStage';
 
 function AppContent() {
@@ -8,7 +8,7 @@ function AppContent() {
   return (
     <div data-testid="portal" className="aime-world-surface h-full w-full bg-background text-foreground font-sans antialiased selection:bg-foreground/20 selection:text-foreground">
       {!hasProject ? (
-        <ComposerHero />
+        <PortalOnboarding />
       ) : (
         <ProjectStage />
       )}

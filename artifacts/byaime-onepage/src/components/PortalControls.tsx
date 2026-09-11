@@ -12,6 +12,7 @@ import {
   LogOut,
   Trash2,
 } from "lucide-react";
+import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { useProject } from "@/store/project-store";
 import { focusWorld } from "@/lib/world-focus";
 import { trackEvent } from "@/lib/analytics";
@@ -516,7 +517,13 @@ export function PortalControls({
               {meSection === "overview" && (
                 <div className="space-y-6">
                   <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center">
-                    <img src={user?.imageUrl} alt="" className="h-14 w-14 rounded-full border border-border bg-background object-cover" />
+                    {user?.imageUrl ? (
+                      <img src={user.imageUrl} alt="" className="h-14 w-14 rounded-full border border-border bg-background object-cover" />
+                    ) : (
+                      <span className="grid h-14 w-14 place-items-center rounded-full border border-border bg-background text-lg font-display font-light text-foreground/70">
+                        {(user?.firstName || user?.fullName || "?").charAt(0).toUpperCase()}
+                      </span>
+                    )}
                     <div className="min-w-0">
                       <p className="text-lg font-display font-light">{user?.fullName || user?.firstName || "Utilisateur"}</p>
                       <p className="truncate text-sm text-foreground/55">{user?.primaryEmailAddress?.emailAddress}</p>
@@ -549,8 +556,8 @@ export function PortalControls({
                       Créé le: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "Indisponible"}
                     </p>
                   </div>
-                  <button type="button" onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground/5">
-                    Modifier dans l’espace sécurisé
+                  <button type="button" onClick={() => setMeSection("security")} className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground/5">
+                    Gérer la connexion et la sécurité
                   </button>
                 </div>
               )}
@@ -563,13 +570,13 @@ export function PortalControls({
                       <span>Adresse e-mail principale</span>
                       <span className="text-xs text-foreground/55">{user?.primaryEmailAddress?.verification?.status === "verified" ? "Vérifiée" : "À vérifier"}</span>
                     </div>
-                    {user?.externalAccounts.map((account) => (
+                    {(user?.externalAccounts ?? []).map((account) => (
                       <div key={account.id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                         <span className="capitalize">{account.provider.replace("oauth_", "")}</span>
                         <span className="text-xs text-emerald-500">Connecté</span>
                       </div>
                     ))}
-                    {user?.externalAccounts.length === 0 && (
+                    {(user?.externalAccounts?.length ?? 0) === 0 && (
                       <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                         <span>E-mail & mot de passe</span>
                         <span className="text-xs text-foreground/55">Actif</span>
@@ -595,9 +602,9 @@ export function PortalControls({
                     <Link href="/confidentialite" className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
                       Politique de confidentialité
                     </Link>
-                    <a href="/api/account/export" className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
-                      Exporter mes données
-                    </a>
+                    <button type="button" onClick={() => setMeSection("sensitive")} className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
+                      Export et actions sensibles
+                    </button>
                   </div>
                 </div>
               )}
@@ -605,11 +612,16 @@ export function PortalControls({
               {meSection === "preferences" && (
                 <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
                   <h4 className="text-sm font-medium">Préférences</h4>
-                  <p className="text-sm text-foreground/65">
-                    Les préférences globales (ex: apparence claire/sombre) restent accessibles depuis le menu principal.
-                  </p>
-                  <p className="text-xs text-foreground/50">
-                    Langue, fuseau horaire et notifications avancées seront intégrés dans cette section.
+                  <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-3 py-2.5">
+                    <div>
+                      <p className="text-sm">Apparence</p>
+                      <p className="mt-0.5 text-xs text-foreground/45">Mode clair ou sombre, sur tout AIME.</p>
+                    </div>
+                    <AppearanceToggle />
+                  </div>
+                  <p className="text-xs text-foreground/45">
+                    D’autres préférences (langue, notifications) seront ajoutées ici ; le réglage de l’apparence est
+                    aussi disponible en bas de la barre latérale.
                   </p>
                 </div>
               )}

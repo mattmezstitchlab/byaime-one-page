@@ -137,6 +137,54 @@ export function isWeddingDestinationActive(destination: WeddingDestination, view
   return destination.kind === "panel" ? destination.panel === panel : false;
 }
 
+/**
+ * Navigation contextuelle DANS un panneau : à quelle catégorie de navigation
+ * il appartient, et donc quels panneaux voisins proposer en raccourcis.
+ *  - « Socle commun » : les catégories présentes toute l'année dans le rail
+ *    gauche (Personnes, Prestataires, Tâches, Finances, Documents, Équipe,
+ *    Musique) ;
+ *  - « Outils du mode » : les outils propres à la phase courante, de la
+ *    rangée horizontale.
+ * Le panneau « sections » est le sommaire complet et n'a pas de groupe.
+ */
+export type PanelContextGroup = { id: "rail" | "phase" | "sections"; label: string; items: WeddingNavigationItem[] };
+
+export function getPanelContextGroup(
+  panel: WeddingPanelId,
+  rail: WeddingNavigationItem[],
+  navigation: WeddingNavigation,
+  view: TimelineView,
+): PanelContextGroup {
+  if (panel === "sections") return { id: "sections", label: "Navigation du Monde", items: [] };
+  const phaseItems = [...navigation.primary, ...navigation.secondary];
+  const belongsToRail =
+    rail.some(item => item.destination.kind === "panel" && item.destination.panel === panel) ||
+    (panel === "music" && view === "music");
+  if (belongsToRail) return { id: "rail", label: "Socle commun", items: rail };
+  return { id: "phase", label: "Outils du mode", items: phaseItems };
+}
+
+/**
+ * Trouve la phase (Avant / Jour J / Après) dans laquelle un panneau donné est
+ * accessible pour un rôle. Sert à ouvrir le bon mode quand on arrive sur un
+ * panneau depuis une statistique, une recherche ou un graphe (ex. « Souvenirs »
+ * cliqué en mode Avant doit basculer en Après, pas se refermer en silence).
+ */
+export function findPhaseForPanel(
+  panel: WeddingPanelId,
+  role: string,
+  view: TimelineView,
+): WorldPhase | null {
+  if (panel === "sections") return null;
+  const capabilities = getWeddingCapabilities(role);
+  for (const phase of ["avant", "pendant", "apres"] as const) {
+    const rail = getWeddingRailItems(phase, capabilities);
+    const navigation = getWeddingNavigation(phase, capabilities);
+    if (isWeddingPanelAvailable(panel, navigation, view, rail)) return phase;
+  }
+  return null;
+}
+
 export function isWeddingPanelAvailable(
   panel: WeddingPanelId,
   navigation: WeddingNavigation,

@@ -17,7 +17,7 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("LandingComposer", () => {
-  it("ouvre l'accueil sur une capsule spécialisée mariage, une information à la fois", () => {
+  it("ouvre l'accueil sur un onboarding mariage, une information à la fois", () => {
     const markup = render(<LandingComposer />);
 
     expect(markup).toContain('data-testid="landing-composer"');
@@ -25,7 +25,21 @@ describe("LandingComposer", () => {
     expect(markup).toContain("Notre mariage");
     expect(markup).toContain("La date du mariage, même approximative ?");
     expect(markup).toContain("1/5");
-    expect(markup).toContain("Raconter autrement, en une phrase");
+    // Les cinq questions sont toutes visibles en pastilles, la première active.
+    expect(markup).toContain('aria-current="true"');
+  });
+
+  it("ne propose qu'un seul parcours : plus aucun champ libre alternatif", () => {
+    const markup = render(<LandingComposer />);
+
+    // Pas de bascule « une phrase », pas de textarea libre : l'onboarding guidé est l'unique entrée.
+    expect(markup).not.toContain("Raconter autrement");
+    expect(markup).not.toContain('data-testid="landing-intention-mode"');
+    expect(markup).not.toContain('data-testid="landing-intention-free"');
+    // Chaque question est facultative.
+    expect(markup).toContain('data-testid="landing-intention-skip"');
+    // Le bouton de création reste discret tant qu'aucune réponse n'est donnée.
+    expect(markup).toContain('data-testid="landing-intention-finish"');
   });
 
   it("ne promet aucun autre univers : pas de sélecteur, saisie immédiate", () => {
@@ -38,13 +52,6 @@ describe("LandingComposer", () => {
     // Le champ de la première question est atteignable au clavier sans étape préalable.
     expect(markup).toContain('aria-label="La date du mariage, même approximative ?"');
     expect(markup).toContain('aria-describedby="landing-intention-hint"');
-  });
-
-  it("propose la phrase libre et son retour aux questions", () => {
-    const markup = render(<LandingComposer />);
-    expect(markup).toContain('data-testid="landing-intention-mode"');
-    // La zone de texte libre n'apparaît qu'après bascule.
-    expect(markup).not.toContain('data-testid="landing-intention-free"');
   });
 
   it("compose une phrase que le parseur local du Monde comprend déjà", () => {

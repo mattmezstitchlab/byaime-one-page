@@ -12,7 +12,7 @@ import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LegalPage } from '@/pages/Legal';
 import { GuidesPage } from '@/pages/Guides';
 import { LandingPage } from '@/pages/Landing';
-import { ComposerHero } from '@/components/ComposerHero';
+import { PortalOnboarding } from '@/components/PortalOnboarding';
 import { AimePublicGuide } from '@/components/AimePublicGuide';
 import { ProjectProvider, useProject } from '@/store/project-store';
 import { trackEvent } from '@/lib/analytics';
@@ -115,7 +115,7 @@ function ProfilePageWrapper() {
     );
   }
 
-  if (!hasProject) return <ComposerHero />;
+  if (!hasProject) return <PortalOnboarding />;
 
   return (
     <PublicProfilePage privatePreview />

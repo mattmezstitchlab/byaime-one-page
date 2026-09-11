@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
@@ -27,10 +27,13 @@ import {
   getWeddingNavigation,
   getWeddingRailItems,
   isWeddingPanelAvailable,
+  findPhaseForPanel,
+  getPanelContextGroup,
   getInitialWorldPhase,
   type WorldPhase,
   type WeddingRole,
   type WeddingDestination,
+  type WeddingNavigationItem,
   type WeddingPanelId,
 } from '@/lib/wedding-navigation';
 import { setWorldNavState } from '@/lib/world-nav-state';
@@ -39,10 +42,15 @@ import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
 
 const CREATE_PANEL_TARGETS: Partial<Record<UniversalCreateActionId, WeddingPanelId>> = {
   person: "guests",
-  moment: "dayof",
   task: "planning",
   "document-media": "documents",
 };
+/*
+ * Créer un Moment n'ouvre pas un panneau : c'est un jalon de la Timeline. On
+ * revient à la vue chronologique et on demande l'ajout d'un jalon (la Timeline
+ * écoute l'événement et ouvre le tiroir d'édition, dans la bonne phase).
+ */
+const MOMENT_CREATE_ACTION: UniversalCreateActionId = "moment";
 
 const providerImages: Partial<Record<Provider['category'], string>> = {
   ...AIME_VISUALS.providersByCategory,
@@ -137,6 +145,33 @@ export function ProjectStage() {
     if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
   }, [activePanel, navigation, view, rail]);
 
+  /*
+   * Ouverture de panneau « sûre » : si le panneau demandé n'existe pas dans la
+   * phase courante (ex. « Souvenirs » en Avant), on bascule d'abord vers la
+   * phase qui le porte, au lieu de le voir se refermer aussitôt.
+   */
+  const openPanelSafely = (panel: WeddingPanelId) => {
+    if (panel === "sections") {
+      setActivePanel("sections");
+      return;
+    }
+    const role = previewRole ?? currentRole;
+    const effectiveView: TimelineView = panel === "music" ? "music" : view;
+    if (panel === "music") setView("music");
+    if (isWeddingPanelAvailable(panel, navigation, effectiveView, rail)) {
+      setActivePanel(panel);
+      return;
+    }
+    const targetPhase = findPhaseForPanel(panel, role, effectiveView);
+    if (targetPhase) {
+      setPhase(targetPhase);
+      if (view === "public-info" && targetPhase === "avant") setView("chronological");
+    }
+    setActivePanel(panel);
+  };
+  const openPanelSafelyRef = useRef(openPanelSafely);
+  openPanelSafelyRef.current = openPanelSafely;
+
   /* La barre latérale globale éclaire la catégorie du Monde active. */
   useEffect(() => {
     setWorldNavState({ active: true, phase, view, panel: activePanel, role: previewRole ?? currentRole });
@@ -146,15 +181,22 @@ export function ProjectStage() {
   useEffect(() => {
     const openCreateTarget = (action: UniversalCreateActionId | undefined) => {
       if (!action) return;
+      if (action === MOMENT_CREATE_ACTION) {
+        // Un Moment se crée dans la Timeline, pas dans un panneau.
+        setActivePanel(null);
+        setView("chronological");
+        window.dispatchEvent(new Event("aime:new-moment"));
+        return;
+      }
       const panel = CREATE_PANEL_TARGETS[action];
-      if (panel) setActivePanel(panel);
+      if (panel) openPanelSafelyRef.current(panel);
     };
     const listener = (event: Event) => openCreateTarget((event as CustomEvent<UniversalCreateActionId>).detail);
     const closeWorldPanel = () => setActivePanel(null);
     window.addEventListener("aime:open-create-target", listener);
     window.addEventListener("aime:close-world-panel", closeWorldPanel);
     const requestedAction = new URLSearchParams(window.location.search).get("create") as UniversalCreateActionId | null;
-    if (requestedAction && CREATE_PANEL_TARGETS[requestedAction]) {
+    if (requestedAction && (requestedAction === MOMENT_CREATE_ACTION || CREATE_PANEL_TARGETS[requestedAction])) {
       openCreateTarget(requestedAction);
       window.history.replaceState(null, "", window.location.pathname);
     }
@@ -179,13 +221,20 @@ export function ProjectStage() {
   useEffect(() => {
     const applyFocus = (request?: WorldFocusRequest) => {
       if (!request) return;
-      if (request.phase === "avant" || request.phase === "pendant" || request.phase === "apres") setPhase(request.phase);
-      if (request.view) {
-        setView(request.view as TimelineView);
+      const explicitPhase = request.phase === "avant" || request.phase === "pendant" || request.phase === "apres";
+      if (explicitPhase) setPhase(request.phase as WorldPhase);
+      if (request.view) setView(request.view as TimelineView);
+      if (request.panel) {
+        if (explicitPhase) {
+          setActivePanel(request.panel as WeddingPanelId);
+        } else {
+          // Pas de phase demandée : ouvrir la phase qui porte réellement ce panneau.
+          openPanelSafelyRef.current(request.panel as WeddingPanelId);
+        }
+      } else if (request.view) {
         /* Une destination de vue (Timeline, Musique) referme le panneau ouvert. */
-        if (!request.panel) setActivePanel(null);
+        setActivePanel(null);
       }
-      if (request.panel) setActivePanel(request.panel as WeddingPanelId);
       if (request.graph) setGraphOpen(true);
       if (request.overview) setOverviewOpen(true);
     };
@@ -308,7 +357,21 @@ export function ProjectStage() {
     || (activePanel !== null && !["documents", "budget", "music"].includes(activePanel))
     || view === "public-info";
 
-  const panelNavigation: PanelNavItem[] = [...rail, ...navigation.primary].map(item => {
+  /*
+   * Navigation en tête des panneaux : quand un panneau est ouvert, on ne montre
+   * que les panneaux de SA catégorie (socle commun du rail, ou outils du mode),
+   * pour une navigation cohérente entre voisins. Sans panneau, on montre tout.
+   * Le sommaire « sections » porte déjà toute la navigation dans son corps.
+   */
+  const contextGroup = activePanel
+    ? getPanelContextGroup(activePanel, rail, navigation, view)
+    : null;
+  const navigationSource: WeddingNavigationItem[] = activePanel === "sections"
+    ? []
+    : contextGroup && activePanel
+      ? contextGroup.items
+      : [...rail, ...navigation.primary];
+  const panelNavigation: PanelNavItem[] = navigationSource.map(item => {
     const destination = item.destination;
     if (destination.kind === "route") return { id: item.id, label: item.label, href: destination.href };
     if (destination.kind === "view") {
@@ -326,12 +389,21 @@ export function ProjectStage() {
       onClick: () => setActivePanel(destination.panel),
     };
   });
-  panelNavigation.push({
-    id: "sections",
-    label: "Sections",
-    active: sectionsAreActive,
-    onClick: () => setActivePanel("sections"),
-  });
+  if (activePanel && activePanel !== "sections") {
+    panelNavigation.push({
+      id: "sections",
+      label: "Toutes les sections",
+      active: false,
+      onClick: () => setActivePanel("sections"),
+    });
+  } else if (!activePanel) {
+    panelNavigation.push({
+      id: "sections",
+      label: "Sections",
+      active: sectionsAreActive,
+      onClick: () => setActivePanel("sections"),
+    });
+  }
   const panelChrome: PanelChrome = {
     breadcrumb: [
       { label: "AIME", href: "/" },
@@ -606,7 +678,7 @@ export function ProjectStage() {
               <div className="max-w-2xl">
                 <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">Les personnes de ce Monde</p>
                 <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">Celles et ceux qui en font partie.</h2>
-                <p className="mt-5 max-w-xl text-sm font-light leading-relaxed text-foreground/60">Invités pour un mariage, artistes pour un spectacle, membres pour une association ou collaborateurs pour une entreprise : le Kit adapte les rôles, pas les personnes.</p>
+                <p className="mt-5 max-w-xl text-sm font-light leading-relaxed text-foreground/60">Témoins, famille, invités et professionnels : chacun à sa place, avec les droits et les informations adaptés à son rôle.</p>
               </div>
               {project.guests.length ? (
                 <div className="mt-14 flex flex-wrap items-end gap-x-2 gap-y-8 sm:gap-x-4">
@@ -777,15 +849,15 @@ export function ProjectStage() {
           ) : <p className="py-10 text-center text-sm text-foreground/40">Aucun rendez-vous, Moment ou délai à venir.</p>}
         </CenteredBlock>
       )}
-      {overviewOpen && <WorldOverview onClose={() => setOverviewOpen(false)} onOpenPanel={setActivePanel} />}
+      {overviewOpen && <WorldOverview onClose={() => setOverviewOpen(false)} onOpenPanel={openPanelSafely} />}
       {graphOpen && (
         <CenteredBlock eyebrow="Graphe du Monde" title="Ce qui est visible, rôle par rôle" description="Le même Monde, vu selon les frontières de chaque rôle. Chaque Moment est relié aux personnes, documents, paiements et décisions qu'il mobilise." onClose={() => setGraphOpen(false)} size="xl">
-          <VisibilityGraph onOpenPanel={panel => { setGraphOpen(false); setActivePanel(panel); }} />
+          <VisibilityGraph onOpenPanel={panel => { setGraphOpen(false); openPanelSafely(panel); }} />
         </CenteredBlock>
       )}
       {searchOpen && (
         <CenteredBlock eyebrow="Recherche" title="Trouver dans ce Monde" description="La recherche traverse les personnes, prestataires, tâches, documents, musique, messages et Moments." onClose={() => setSearchOpen(false)} size="lg">
-          <WorldSearch onClose={() => setSearchOpen(false)} onOpenPanel={panel => setActivePanel(panel)} />
+          <WorldSearch onClose={() => setSearchOpen(false)} onOpenPanel={panel => { setSearchOpen(false); openPanelSafely(panel); }} />
         </CenteredBlock>
       )}
     </div>

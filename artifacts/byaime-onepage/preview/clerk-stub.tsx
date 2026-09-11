@@ -239,7 +239,8 @@ export function useUser() {
           firstName: "Camille",
           lastName: "Thomas",
           createdAt: "2026-09-01T09:00:00.000Z",
-          primaryEmailAddress: { emailAddress: "camille@exemple.fr" },
+          primaryEmailAddress: { emailAddress: "camille@exemple.fr", verification: { status: "verified" } },
+          externalAccounts: [],
           imageUrl: "",
         }
       : null,

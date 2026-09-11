@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getInitialWorldPhase,
+  getPanelContextGroup,
   getWeddingCapabilities,
   getWeddingNavigation,
   getWeddingRailItems,
@@ -89,6 +90,37 @@ describe("wedding navigation", () => {
     const navigation = getWeddingNavigation("avant", getWeddingCapabilities("owner"));
     expect(isWeddingPanelAvailable("music", navigation, "music", rail)).toBe(true);
     expect(isWeddingPanelAvailable("music", navigation, "chronological", rail)).toBe(false);
+  });
+
+  it("range un panneau du rail dans la catégorie « Socle commun » avec les catégories voisines", () => {
+    const rail = getWeddingRailItems("avant", getWeddingCapabilities("owner"));
+    const navigation = getWeddingNavigation("avant", getWeddingCapabilities("owner"));
+
+    const budget = getPanelContextGroup("budget", rail, navigation, "chronological");
+    expect(budget.id).toBe("rail");
+    expect(budget.label).toBe("Socle commun");
+    // Les voisins incluent les autres catégories communes, pas les outils du mode.
+    expect(budget.items.map(item => item.id)).toContain("documents");
+    expect(budget.items.map(item => item.id)).not.toContain("seating");
+
+    const guests = getPanelContextGroup("guests", rail, navigation, "chronological");
+    expect(guests.id).toBe("rail");
+    expect(guests.items.map(item => item.id)).toContain("people");
+  });
+
+  it("range un outil du mode dans « Outils du mode » avec les outils voisins de la phase", () => {
+    const rail = getWeddingRailItems("pendant", getWeddingCapabilities("owner"));
+    const navigation = getWeddingNavigation("pendant", getWeddingCapabilities("owner"));
+
+    const dayof = getPanelContextGroup("dayof", rail, navigation, "chronological");
+    expect(dayof.id).toBe("phase");
+    expect(dayof.label).toBe("Outils du mode");
+    expect(dayof.items.map(item => item.id)).toContain("seating");
+    expect(dayof.items.map(item => item.id)).not.toContain("finances");
+
+    const sections = getPanelContextGroup("sections", rail, navigation, "chronological");
+    expect(sections.id).toBe("sections");
+    expect(sections.items).toEqual([]);
   });
 
   it("keeps the World capsule strictly temporal", () => {

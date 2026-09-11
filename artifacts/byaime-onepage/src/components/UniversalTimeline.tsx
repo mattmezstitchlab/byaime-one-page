@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Link2, MapPin, Plus, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints } from "lucide-react";
 import { format } from "date-fns";
@@ -7,7 +7,7 @@ import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
 import type { WorldFocusRequest } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KIND_LABELS, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
-import { PANEL_FOR_KIND } from "@/lib/wedding-navigation";
+import { getInitialWorldPhase, PANEL_FOR_KIND } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { momentVisualOverlayAlpha } from "@/lib/types";
@@ -216,8 +216,20 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
 
   const add = () => {
     if (!canEdit) return;
-    addEntity("timeline", { time: project.pivot.value, durationMinutes: 60, kind: "evenement", title: "Nouveau jalon", status: "prepare", confidence: "confirme", phase: "pendant", universe: project.universe, provenance: "real", visibility: "equipe", relations: [], dependencyIds: [], resources: [], propagation: { state: "none" } });
+    // Le jalon naît dans la période courante (Avant / Jour J / Après) : sinon
+    // il serait filtré de la vue immédiatement après sa création.
+    const phase = getInitialWorldPhase(project.pivot.value);
+    const id = addEntity("timeline", { time: project.pivot.value, durationMinutes: 60, kind: "evenement", title: "Nouveau jalon", status: "prepare", confidence: "confirme", phase, universe: project.universe, provenance: "real", visibility: "equipe", relations: [], dependencyIds: [], resources: [], propagation: { state: "none" } });
+    setSelected(id);
   };
+  const addRef = useRef(add);
+  addRef.current = add;
+
+  useEffect(() => {
+    const onCreate = () => addRef.current();
+    window.addEventListener("aime:new-moment", onCreate);
+    return () => window.removeEventListener("aime:new-moment", onCreate);
+  }, []);
 
   let currentSubchapter = "";
   const pivotTime = project.pivot.value;

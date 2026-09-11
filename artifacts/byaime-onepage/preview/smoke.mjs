@@ -117,13 +117,14 @@ checkHtml(
 );
 
 /* Une intention posée avant la création du compte doit reprendre la main sur
-   l'accueil, en mode phrase libre. */
+   l'accueil : l'onboarding guidé (unique parcours) repeuple ses réponses depuis
+   le brouillon, il n'existe plus de champ libre alternatif. */
 globalThis.localStorage.setItem("aime-intention-draft", DRAFT);
 checkHtml(
-  "Accueil visiteur, avec brouillon (phrase reprise)",
+  "Accueil visiteur, avec brouillon (réponses guidées repeuplées)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-intention-free"', "Revenir aux questions", DRAFT],
-  ["Laboratoire"],
+  ['data-testid="landing-composer"', 'data-testid="landing-intention-input"', "Lille", "AIME retient déjà"],
+  ["Laboratoire", 'data-testid="landing-intention-free"', "Revenir aux questions"],
 );
 globalThis.localStorage.removeItem("aime-intention-draft");
 checkHtml("Accueil membre", renderAt("/", createElement(LandingPage, { signedIn: true })), ["Accéder à mon espace"], ["Créer un compte gratuit"]);
