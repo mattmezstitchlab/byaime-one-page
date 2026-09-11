@@ -21,6 +21,7 @@ import { GlobalCreateCenter } from '@/components/GlobalCreateCenter';
 import { PortalControls } from '@/components/PortalControls';
 import { openLaboratory } from '@/lib/laboratory';
 import { LaboratoryCenter } from '@/components/LaboratoryCenter';
+import { PanelChromeProvider, type PanelChrome } from '@/components/PanelChrome';
 import { useProject } from '@/store/project-store';
 import {
   getPrivateDestinationId,
@@ -336,6 +337,13 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   );
 
   return (
+    <PanelChromeProvider chrome={{
+      breadcrumb: [
+        { label: "AIME", href: basePath },
+        { label: activeItem.label },
+      ],
+      navigation: PRIVATE_PRIMARY_NAVIGATION.map(item => ({ id: item.id, label: item.label, href: item.href })),
+    }}>
     <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       {/* Desktop Rail Spacer */}
       <div
@@ -448,5 +456,6 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         </div>
       )}
     </div>
+    </PanelChromeProvider>
   );
 }

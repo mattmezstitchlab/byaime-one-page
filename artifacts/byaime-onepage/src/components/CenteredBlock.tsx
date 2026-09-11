@@ -1,8 +1,10 @@
-import { useEffect, type ReactNode } from "react";
+import { Fragment, useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { Link } from "wouter";
+import { ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePanelChrome, type PanelNavItem } from "./PanelChrome";
 
 type CenteredBlockProps = {
   eyebrow: string;
@@ -15,7 +17,52 @@ type CenteredBlockProps = {
   testId?: string;
 };
 
+const navPillClasses = (active?: boolean) =>
+  cn(
+    "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    active
+      ? "border-foreground bg-foreground text-background"
+      : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground",
+  );
+
+function PanelNavigation({ items, onClose }: { items: PanelNavItem[]; onClose: () => void }) {
+  if (items.length === 0) return null;
+  return (
+    <nav aria-label="Navigation de la page" className="mt-2 flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
+      {items.map(item =>
+        item.href ? (
+          <Link
+            key={item.id}
+            href={item.href}
+            onClick={onClose}
+            aria-current={item.active ? "page" : undefined}
+            className={navPillClasses(item.active)}
+          >
+            {item.label}
+          </Link>
+        ) : (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => {
+              onClose();
+              item.onClick?.();
+            }}
+            aria-current={item.active ? "page" : undefined}
+            className={navPillClasses(item.active)}
+          >
+            {item.label}
+          </button>
+        ),
+      )}
+    </nav>
+  );
+}
+
 export function CenteredBlock({ eyebrow, title, description, onClose, children, leading, size = "md", testId }: CenteredBlockProps) {
+  const chrome = usePanelChrome();
+  const crumbs = [...chrome.breadcrumb, { label: title }];
+
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -56,6 +103,28 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
             <X className="h-4 w-4" />
           </button>
         </header>
+
+        <div className="shrink-0 border-b border-border/70 px-7 py-2.5 sm:px-10">
+          <nav aria-label="Fil d’ariane" className="flex items-center gap-1 overflow-x-auto hide-scrollbar text-[11px]">
+            {crumbs.map((crumb, index) => {
+              const isLast = index === crumbs.length - 1;
+              return (
+                <Fragment key={`${crumb.label}-${index}`}>
+                  {index > 0 && <ChevronRight aria-hidden="true" className="h-3 w-3 shrink-0 text-foreground/30" />}
+                  {isLast ? (
+                    <span aria-current="page" className="shrink-0 whitespace-nowrap text-foreground/85">{crumb.label}</span>
+                  ) : crumb.href ? (
+                    <Link href={crumb.href} onClick={onClose} className="shrink-0 whitespace-nowrap text-foreground/45 transition-colors hover:text-foreground">{crumb.label}</Link>
+                  ) : (
+                    <span className="shrink-0 whitespace-nowrap text-foreground/45">{crumb.label}</span>
+                  )}
+                </Fragment>
+              );
+            })}
+          </nav>
+          <PanelNavigation items={chrome.navigation} onClose={onClose} />
+        </div>
+
         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-8 sm:px-10 sm:py-10 hide-scrollbar">{children}</div>
       </motion.section>
     </motion.div>,

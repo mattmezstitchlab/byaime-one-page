@@ -33,6 +33,11 @@ Le site tourne, l'authentification et la landing sont fonctionnelles, et **aucun
 - ✅ Isolation des accès `document`/`localStorage`/`window` hors du niveau module (`App.tsx`), avec garde `typeof window !== "undefined"` (compatible pré-rendu/SSR).
 - ✅ Dates légales centralisées en une constante `LEGAL_VERSION_DATE` (`Legal.tsx`).
 
+**Quatrième passe (UX des panneaux + SEO) :**
+- ✅ Chaque panneau (`CenteredBlock`) affiche désormais un **fil d'ariane** et la **navigation de la page** d'où il a été ouvert, via un contexte partagé `PanelChrome` : Monde Mariage (`ProjectStage`) expose ses sections, Profil (`PublicProfile`) expose Identité/Histoire/Archives/Réseau, et l'espace privé (`PrivateLayout`) expose la navigation globale Profil/Monde/Laboratoire en repli.
+- ✅ `og:image`, `og:url`, `og:site_name`, `canonical` et `twitter:image` ajoutés à `index.html`.
+- ✅ `public/sitemap.xml` créé (routes publiques uniquement) + référence `Sitemap:` dans `robots.txt`.
+
 ---
 
 ## 2. Suppression de la map réseau — périmètre réalisé
@@ -123,7 +128,8 @@ Le site tourne, l'authentification et la landing sont fonctionnelles, et **aucun
 - ~~`lang="en"` sur contenu français~~ → **✅ corrigé** (`lang="fr"`).
 - ~~`viewport` avec `maximum-scale=1` empêche le zoom utilisateur (WCAG 1.4.4)~~ → **✅ corrigé** (`maximum-scale` retiré).
 - ~~Double `<h1>` sur la landing~~ → **✅ corrigé**.
-- `robots.txt` minimaliste (`Allow: /`), pas de référence de sitemap. `sitemap.xml` **à vérifier** (non testable depuis cet environnement).
+- ~~Pas d'`og:image` ni de `canonical`~~ → **✅ corrigé** (`canonical`, `og:url`, `og:site_name`, `og:image` et `twitter:image` ajoutés dans `index.html`).
+- ~~`robots.txt` minimaliste sans référence de sitemap~~ → **✅ corrigé** (`public/sitemap.xml` créé + référence `Sitemap:` dans `robots.txt`).
 - Icônes/boutons : les boutons interactifs ont des `aria-label` cohérents (ex. `ActionCenter`). Bon point général, mais vérifier les contrastes (`text-foreground/40` et `opacity-55` très faibles) sur les petits libellés.
 
 ---
@@ -132,6 +138,7 @@ Le site tourne, l'authentification et la landing sont fonctionnelles, et **aucun
 
 - ~~**Confidentialité vs réalité de stockage** (Replit vs GCP App Storage)~~ → **✅ corrigé** (mention GCP alignée).
 - L'endpoint `/network/subjects` (lecture de la projection multi-mondes) a été **supprimé** : réduction de surface d'exposition — cohérent avec le retrait de la carte.
+- **Dérive OpenAPI restante (précise)** : `InvitePage` et `RsvpPage` (`App.tsx`) appellent en `fetch` direct des endpoints **absents de la spec** : `POST /invitations/{token}/accept`, `POST /rsvp/{token}/song-requests`, `POST /rsvp/{token}/media/uploads/request-url`, `POST /rsvp/{token}/media`. Seuls `GET`/`PUT /rsvp/{token}` (`getPublicRsvp`/`submitPublicRsvp`) sont décrits. Résorber cette dérive implique : ajouter ces 4 opérations + schémas à `openapi.yaml`, régénérer les clients (orval), puis réécrire `InvitePage`/`RsvpPage` sur le client généré.
 - Rappel déjà documenté dans `docs/audit-fonctionnel-complet.md` : une partie des routes n'est pas décrite dans OpenAPI, et le frontend mêle client généré et `fetch` directs. Le `codegen` de cette session a resynchronisé les types `api-zod` manquants (`aimeLocal*`) — la dérive OpenAPI reste à réduire côté routes.
 
 ---
@@ -144,7 +151,7 @@ Le site tourne, l'authentification et la landing sont fonctionnelles, et **aucun
 | **✅ P1 (fait)** | page 404 refondue · mention « stockage privé de Replit » → GCP · route `/concept` supprimée · date « Version pilote » centralisée en constante. |
 | **✅ P2 (fait)** | `BottomBar.tsx` supprimé · `/le-monde-aime` + `maplibre-gl` supprimés · `<html className>` corrigé · accès `document`/`localStorage` isolés hors du module. |
 | **✅ P3 (fait)** | sélecteurs de `/guides` dédoublonnés · `maximum-scale=1` retiré · `/app` et `/user-portal` fusionnés. |
-| **Restant (décorrélé de la map)** | `robots.txt`/`sitemap` · `og:image`/`canonical` · dérive OpenAPI des `fetch` directs (`InvitePage`/`RsvpPage`) · contrastes des petits libellés · alias d'URL d'auth `/sign-in` `/sign-up`. |
+| **Restant (décorrélé de la map)** | dérive OpenAPI des `fetch` directs (`InvitePage`/`RsvpPage`, voir §7) · contrastes des petits libellés · alias d'URL d'auth `/sign-in` `/sign-up`. |
 
 ---
 

@@ -14,6 +14,7 @@ import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/laboratory';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
+import { PanelChromeProvider, type PanelChrome, type PanelNavItem } from './PanelChrome';
 import type { Guest, Provider } from '@/lib/types';
 import {
   isWeddingDestinationActive,
@@ -272,7 +273,41 @@ export function ProjectStage() {
     || (activePanel !== null && !["documents", "budget", "music"].includes(activePanel))
     || view === "public-info";
 
+  const panelNavigation: PanelNavItem[] = navigation.primary.map(item => {
+    const destination = item.destination;
+    if (destination.kind === "route") return { id: item.id, label: item.label, href: destination.href };
+    if (destination.kind === "view") {
+      return {
+        id: item.id,
+        label: item.label,
+        active: isWeddingDestinationActive(destination, view, activePanel),
+        onClick: () => { setActivePanel(null); setView(destination.view); },
+      };
+    }
+    return {
+      id: item.id,
+      label: item.label,
+      active: isWeddingDestinationActive(destination, view, activePanel),
+      onClick: () => setActivePanel(destination.panel),
+    };
+  });
+  panelNavigation.push({
+    id: "sections",
+    label: "Sections",
+    active: sectionsAreActive,
+    onClick: () => setActivePanel("sections"),
+  });
+  const panelChrome: PanelChrome = {
+    breadcrumb: [
+      { label: "AIME", href: "/" },
+      { label: "Monde", href: "/user-portal" },
+      ...(project?.title ? [{ label: project.title }] : []),
+    ],
+    navigation: panelNavigation,
+  };
+
   return (
+    <PanelChromeProvider chrome={panelChrome}>
     <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
       <nav aria-label="Navigation principale du Mariage" className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-3 hide-scrollbar sm:px-6">
@@ -669,5 +704,6 @@ export function ProjectStage() {
         </CenteredBlock>
       )}
     </div>
+    </PanelChromeProvider>
   );
 }

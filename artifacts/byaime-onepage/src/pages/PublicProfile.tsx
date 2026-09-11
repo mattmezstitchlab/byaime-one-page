@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useProject } from "@/store/project-store";
 import { EntityEditor } from "@/components/EntityEditor";
 import { CenteredBlock } from "@/components/CenteredBlock";
+import { PanelChromeProvider, type PanelChrome } from "@/components/PanelChrome";
 
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
@@ -347,7 +348,24 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   ] : [];
   const guests = isPrivatePreview ? (project?.guests || []) : [];
 
+  const profileChrome: PanelChrome = {
+    breadcrumb: [
+      { label: "AIME", href: "/" },
+      ...(isPrivatePreview ? [{ label: "Profil", href: "/profile" }] : [{ label: profile.title }]),
+    ],
+    navigation: SECTIONS.map(section => ({
+      id: section.id,
+      label: section.label,
+      active: activeSection === section.id,
+      onClick: () => {
+        setActiveSection(section.id);
+        scrollToSection(section.x);
+      },
+    })),
+  };
+
   return (
+    <PanelChromeProvider chrome={profileChrome}>
     <main data-testid="public-profile-page" className="relative h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       {/* Background Depth */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-background">
@@ -696,5 +714,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         )}
       </AnimatePresence>
     </main>
+    </PanelChromeProvider>
   );
 }
