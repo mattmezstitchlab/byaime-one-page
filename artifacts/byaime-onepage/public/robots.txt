@@ -1,4 +1,12 @@
 User-agent: *
 Allow: /
+# Espaces privés et interfaces machines : rien d'indexable ici.
+Disallow: /user-portal
+Disallow: /profile
+Disallow: /app
+Disallow: /invite/
+Disallow: /rsvp/
+Disallow: /profil/
+Disallow: /api
 
 Sitemap: https://www.byaime.fr/sitemap.xml

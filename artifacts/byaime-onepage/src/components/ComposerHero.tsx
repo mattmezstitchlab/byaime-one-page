@@ -5,6 +5,7 @@ import { useProject } from '@/store/project-store';
 import { AIME_VISUALS, getAssetUrl, getOptionalAssetUrl } from '@/lib/assets';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { MIN_INTENTION_LENGTH } from '@/lib/intention-draft';
 
 export function ComposerHero() {
   const { intentionText, setIntentionText, draft, commitDraft, createWeddingDemo } = useProject();
@@ -12,7 +13,7 @@ export function ComposerHero() {
   const heroVideoUrl = getOptionalAssetUrl(AIME_VISUALS.hero.backgroundVideo);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey && intentionText.length > 10) {
+    if (e.key === 'Enter' && !e.shiftKey && intentionText.trim().length >= MIN_INTENTION_LENGTH) {
       e.preventDefault();
       commitDraft();
     }
@@ -103,7 +104,7 @@ export function ComposerHero() {
                 <button
                   data-testid="create-project"
                   onClick={commitDraft}
-                  disabled={intentionText.length < 10}
+                  disabled={intentionText.trim().length < MIN_INTENTION_LENGTH}
                   className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/10 text-white transition-all hover:scale-105 hover:bg-white/16 active:scale-95 disabled:border-white/5 disabled:bg-white/5 disabled:text-white/35"
                 >
                   <ArrowRight className="w-5 h-5" />

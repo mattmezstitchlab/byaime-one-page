@@ -1,7 +1,9 @@
 import { Link } from "wouter";
 import { AlertCircle } from "lucide-react";
+import { useRouteMeta } from "@/lib/page-meta";
 
 export default function NotFound() {
+  useRouteMeta({ title: "Page introuvable — AIME" });
   return (
     <main className="flex min-h-[100dvh] w-full items-center justify-center bg-background px-6 text-foreground">
       <div className="flex max-w-md flex-col items-center text-center">

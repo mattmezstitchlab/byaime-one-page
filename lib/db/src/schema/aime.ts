@@ -4,7 +4,6 @@ import {
   jsonb,
   pgEnum,
   pgTable,
-  serial,
   text,
   timestamp,
   uniqueIndex,
@@ -16,23 +15,7 @@ import { createInsertSchema } from "drizzle-zod";
 export const memberRole = pgEnum("aime_member_role", ["owner", "planner", "family", "viewer"]);
 export const deliveryStatus = pgEnum("aime_delivery_status", ["scheduled", "pending", "sent", "failed", "cancelled"]);
 export const localReferenceState = pgEnum("aime_local_reference_state", ["local", "linked", "imported", "ignored"]);
-export const laboratoryFeedbackType = pgEnum("aime_laboratory_feedback_type", [
-  "bug",
-  "remarque",
-  "suggestion",
-  "idee",
-  "question",
-  "positif",
-  "ux",
-  "contenu_donnees",
-]);
-export const laboratoryFeedbackStatus = pgEnum("aime_laboratory_feedback_status", [
-  "nouveau",
-  "en_cours",
-  "a_verifier",
-  "resolu",
-  "archive",
-]);
+
 
 export const projectsTable = pgTable("aime_projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -199,20 +182,6 @@ export const songRequestsTable = pgTable("aime_song_requests", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const laboratoryFeedbackTable = pgTable("aime_laboratory_feedback", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  sequence: serial("sequence").notNull(),
-  projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
-  authorUserId: text("author_user_id").notNull(),
-  type: laboratoryFeedbackType("type").notNull(),
-  status: laboratoryFeedbackStatus("status").notNull().default("nouveau"),
-  message: text("message").notNull(),
-  context: jsonb("context").notNull().default(sql`'{}'::jsonb`),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  uniqueIndex("aime_laboratory_feedback_sequence").on(table.sequence),
-]);
 
 export const insertProjectSchema = createInsertSchema(projectsTable);
 export const insertMembershipSchema = createInsertSchema(membershipsTable);
@@ -226,7 +195,6 @@ export const insertLocalImportJobSchema = createInsertSchema(localImportJobsTabl
 export const insertMessageSchema = createInsertSchema(messagesTable);
 export const insertRsvpSchema = createInsertSchema(rsvpsTable);
 export const insertSongRequestSchema = createInsertSchema(songRequestsTable);
-export const insertLaboratoryFeedbackSchema = createInsertSchema(laboratoryFeedbackTable);
 
 export type Project = typeof projectsTable.$inferSelect;
 export type Membership = typeof membershipsTable.$inferSelect;
@@ -236,4 +204,3 @@ export type LocalReference = typeof localReferencesTable.$inferSelect;
 export type LocalScanJob = typeof localScanJobsTable.$inferSelect;
 export type LocalImportJob = typeof localImportJobsTable.$inferSelect;
 export type SongRequest = typeof songRequestsTable.$inferSelect;
-export type LaboratoryFeedback = typeof laboratoryFeedbackTable.$inferSelect;

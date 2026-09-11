@@ -4,7 +4,7 @@ import { Link2, MapPin, Plus, X, Clock3, CalendarDays, Undo2, Waves, ChevronRigh
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
-import { openLaboratory, type WorldFocusRequest } from "@/lib/laboratory";
+import type { WorldFocusRequest } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KIND_LABELS, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
 import { PANEL_FOR_KIND } from "@/lib/wedding-navigation";
@@ -169,7 +169,7 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
 }
 
 export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
-  const { project, addEntity, updateEntity, updateProject, removeEntity, canEdit, currentRole } = useProject();
+  const { project, addEntity, updateEntity, updateProject, removeEntity, canEdit } = useProject();
   const [selected, setSelected] = useState<string>();
   const [undoTimeline, setUndoTimeline] = useState<TimelineEvent[]>();
 
@@ -234,7 +234,6 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
         <EventDrawer
           event={event}
           project={project}
-          currentRole={currentRole}
           onClose={() => setSelected(undefined)}
           onEdit={updates => updateEntity("timeline", event.id, updates)}
           onApplyRipple={(plan, dependentIds) => {
@@ -257,7 +256,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
   );
 }
 
-function EventDrawer({ event, project, currentRole, onClose, onEdit, onApplyRipple, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; currentRole: ReturnType<typeof useProject>["currentRole"]; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onApplyRipple: (plan: PropagationPlan, dependentIds: string[]) => void; onDelete: () => void; canEdit: boolean }) {
+function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onApplyRipple: (plan: PropagationPlan, dependentIds: string[]) => void; onDelete: () => void; canEdit: boolean }) {
   const impact = analyzeEventImpact(project, event.id, {});
   const related = (event.relations || [])
     .map(relation => ({ relation, entity: buildTimelineIndex(project).entities.get(`${relation.kind}:${relation.id}`) }))
@@ -279,9 +278,6 @@ function EventDrawer({ event, project, currentRole, onClose, onEdit, onApplyRipp
             <input disabled={!canEdit} className={cn(input, "text-2xl font-display font-medium")} value={event.title} onChange={e => onEdit({ title: e.target.value })} placeholder="Titre de l'événement" />
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => openLaboratory({ type: "remarque", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "timeline-event-drawer", phase: event.phase, view: "chronological", momentId: event.id, momentTitle: event.title, narrative: "Moment ouvert depuis la Timeline universelle." } })} className="rounded-full border border-foreground/15 px-3 py-2 text-[10px] uppercase tracking-[.14em] text-foreground/65 hover:bg-foreground/5">
-              Ouvrir le Laboratoire
-            </button>
             <button type="button" onClick={() => { onClose(); window.dispatchEvent(new CustomEvent("aime:focus-world", { detail: { route: "/user-portal", graph: true } })); }} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-[10px] uppercase tracking-[.14em] text-foreground/65 hover:bg-foreground/5">
               <Waypoints className="h-3.5 w-3.5" /> Graphe de visibilité
             </button>

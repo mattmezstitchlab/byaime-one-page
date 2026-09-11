@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle, CalendarDays, CheckCircle2, Check, Clock, Copy, Eye, EyeOff, FolderOpen, Globe2,
   Heart, Image as ImageIcon, Link2, ListChecks, Lock, MapPin, Music, PenLine, Plus, Send, Settings,
-  Shield, Sparkles, User, Users, Wallet,
+  Shield, User, Users, Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -119,21 +119,6 @@ export const WorldFakeUI = () => (
            </div>
          ))}
        </div>
-    </div>
-  </div>
-);
-
-export const LaboratoryFakeUI = () => (
-  <div className="flex flex-col items-center justify-center h-full bg-card/50 p-8 text-center">
-    <div className="w-20 h-20 rounded-full bg-foreground/10 flex items-center justify-center mb-6">
-      <Sparkles className="w-8 h-8 text-foreground/40" />
-    </div>
-    <h3 className="font-display text-2xl mb-2">Le Laboratoire</h3>
-    <p className="text-sm text-foreground/50 max-w-xs">Vos retours volontaires, reliés à leur contexte, pour améliorer AIME sans se substituer à vos données.</p>
-    <div className="mt-8 w-full max-w-sm space-y-3">
-      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
-      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
-      <div className="h-12 w-full rounded-xl bg-foreground/5 border border-border" />
     </div>
   </div>
 );
@@ -704,38 +689,6 @@ export const ProfileTimelineFakeUI = ({ step }: { step: number }) => (
   </div>
 );
 
-export const LaboratoryTutoFakeUI = ({ step }: { step: number }) => (
-  <div className="flex h-full flex-col items-center justify-center bg-card/50 p-5">
-    <div className="flex items-center gap-3">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground/10">
-        <Sparkles className="h-6 w-6 text-foreground/40" />
-      </div>
-      <div>
-        <h4 className="font-display text-lg">Le Laboratoire</h4>
-        <p className="text-[10px] text-foreground/45">Vos retours, reliés à leur contexte</p>
-      </div>
-    </div>
-    <div className="mt-4 w-full max-w-sm space-y-2">
-      <div className={cn("rounded-xl border p-3", step === 0 ? "border-foreground/25 bg-foreground/[.06]" : "border-foreground/10 bg-foreground/[.035] opacity-60")}>
-        <p className="text-xs">⚠️ Problème — « Plan de table illisible sur mobile »</p>
-        <p className="mt-1 text-[10px] text-foreground/45">Contexte : Monde Mariage · plan de table</p>
-      </div>
-      <div className={cn("rounded-xl border p-3", step === 1 ? "border-foreground/25 bg-foreground/[.06]" : "border-foreground/10 bg-foreground/[.035] opacity-60")}>
-        <p className="text-xs">✨ Suggestion — « Pouvoir dupliquer un modèle de message »</p>
-        <p className="mt-1 text-[10px] text-foreground/45">Contexte : Monde Mariage · messages</p>
-      </div>
-      <div className={cn("flex items-center justify-between rounded-xl border p-3", step === 2 ? "border-foreground/25 bg-foreground/[.06]" : "border-foreground/10 bg-foreground/[.035] opacity-60")}>
-        <p className="text-xs">Suivi de votre retour</p>
-        <div className="flex gap-1">
-          <Chip tone="ok">Reçu</Chip>
-          <Chip tone="warn">En cours</Chip>
-          <Chip>Résolu</Chip>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
 export const MeFakeUI = ({ step }: { step: number }) => (
   <div className="flex h-full flex-col bg-card/50 p-5">
     <div className="flex items-center gap-3 border-b border-border/60 pb-3">
@@ -874,6 +827,123 @@ export const GraphFakeUI = ({ step }: { step: number }) => {
         {inviteView ? "Vu comme un invité, les finances et documents disparaissent." : "Le propriétaire voit tout, finances et documents compris."}
         {step === 2 ? " Cliquez un élément pour l'ouvrir." : ""}
       </p>
+    </div>
+  );
+};
+
+/* ————————————————————————————————————————————————
+   Guidage contextuel et première phrase du mariage
+———————————————————————————————————————————————— */
+
+const GuidePanel = ({ focus, lines }: { focus: string; lines: string[] }) => (
+  <div className="mx-auto h-full w-[min(100%,560px)] rounded-2xl border border-foreground/10 bg-foreground/[.02] p-4">
+    <p className="text-[8px] uppercase tracking-[.24em] text-foreground/40">{focus}</p>
+    <div className="mt-3 space-y-2">
+      {lines.map((line, index) => (
+        <div key={line} className="flex items-start gap-2 rounded-xl border border-foreground/10 bg-background/40 px-3 py-2">
+          <span className="mt-0.5 text-[8px] font-mono text-foreground/35">{`0${index + 1}`}</span>
+          <span className="text-[10px] leading-relaxed text-foreground/70">{line}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export const GuidanceFakeUI = ({ step = 0 }: { step?: number }) => (
+  <div className="flex h-full flex-col bg-background">
+    <div className="flex items-center justify-between border-b border-foreground/10 px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-[8px] uppercase tracking-[.24em] text-foreground/35">Monde · Mariage</p>
+        <p className="truncate text-[12px] text-foreground">Plan de table</p>
+      </div>
+      <Chip tone={step === 0 ? "brand" : "muted"}>
+        <span className="mr-1">◎</span> Expliquer cet écran
+      </Chip>
+    </div>
+    {step === 0 && (
+      <div className="flex-1 p-4">
+        <div className="h-full rounded-2xl border border-dashed border-brand-accent/30 bg-brand-accent/[.04] p-4">
+          <p className="text-[8px] uppercase tracking-[.24em] text-brand-accent">Vous êtes ici : Plan de table</p>
+          <p className="mt-2 text-[11px] leading-relaxed text-foreground/75">
+            Les tables et leurs capacités, le placement, les régimes alimentaires.
+          </p>
+          <p className="mt-2 text-[9px] leading-relaxed text-foreground/45">
+            Erreur classique : placer les invités avant d'avoir reçu toutes les réponses.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Chip tone="ok">Ouvrir le plan de table</Chip>
+            <Chip>Voir les réponses</Chip>
+          </div>
+        </div>
+      </div>
+    )}
+    {step === 1 && <GuidePanel focus="Panneau AI · onglet « Me guider »" lines={[
+      "Confirmer la date du Jour J — tout le compte à rebours en dépend.",
+      "Relancer les 7 réponses en attente — le traiteur ne peut pas attendre.",
+      "Ouvrir le plan de table — 120 invités, aucune table.",
+    ]} />}
+    {step === 2 && (
+      <div className="flex-1 p-4">
+        <div className="rounded-full border border-foreground/15 bg-foreground/[.03] px-3 py-2 text-[10px] text-foreground/70">
+          AIME, où je saisis les réponses des invités ?
+        </div>
+        <div className="mt-3 rounded-2xl border border-foreground/10 bg-foreground/[.02] p-4">
+          <p className="text-[8px] uppercase tracking-[.24em] text-foreground/40">Cet écran</p>
+          <p className="mt-2 text-[11px] leading-relaxed text-foreground/75">
+            Liste des invités : chaque ligne porte le statut de réponse, le régime et le foyer. Le saut proposé ouvre exactement ce panneau.
+          </p>
+          <div className="mt-3 flex gap-2"><Chip tone="ok">Ouvrir la liste des invités</Chip><Chip>Plan de table</Chip></div>
+        </div>
+      </div>
+    )}
+  </div>
+);
+
+export const IntentionFakeUI = ({ step = 0 }: { step?: number }) => {
+  const questions = [
+    ["La date du mariage, même approximative ?", "14 août 2027"],
+    ["Près de quelle ville, ou de quel lieu ?", "Lille"],
+    ["Combien d'invités au repas ?", "120"],
+    ["Quel budget pour le mariage ?", "20 000 €"],
+    ["L'ambiance du mariage, en un mot ?", "champêtre"],
+  ];
+  const answered = step === 0 ? 1 : step === 1 ? 5 : 5;
+  return (
+    <div className="flex h-full items-center justify-center bg-foreground px-5">
+      <div className="w-full max-w-[440px]">
+        <div className="flex items-center gap-2 text-[10px] text-white/70">
+          <span className="rounded-full border border-white/25 px-2 py-0.5 text-white">Notre mariage</span>
+          <span className="ml-auto font-mono">{Math.min(step + 1, 5)}/5</span>
+        </div>
+        <div className="mt-3 rounded-2xl bg-white/[.07] p-4">
+          {step < 2 ? (
+            <>
+              <p className="text-[11px] text-white">{questions[step][0]}</p>
+              <div className="mt-2 flex items-center justify-between rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-[10px] text-white/85">
+                <span>{questions[step][1]}</span>
+                <span className="text-white/50">Entrée ↵</span>
+              </div>
+              <div className="mt-3 flex gap-1.5">
+                {questions.map((_, index) => (
+                  <span key={index} className={cn("h-1 flex-1 rounded-full", index < answered ? "bg-white" : "bg-white/25")} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] leading-relaxed text-white">
+                Notre mariage le 14 août 2027, près de Lille, 120 invités, 20 000 €, ambiance champêtre.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-1.5 text-[9px] text-white/75">
+                <span className="rounded-full border border-white/25 px-2 py-0.5">date confirmée</span>
+                <span className="rounded-full border border-white/25 px-2 py-0.5">120 invités</span>
+                <span className="rounded-full border border-white/25 px-2 py-0.5">20 000 €</span>
+              </div>
+              <p className="mt-3 text-[9px] uppercase tracking-[.2em] text-white/50">Le Monde est ouvert · Timeline, invités, budget déjà reliés</p>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

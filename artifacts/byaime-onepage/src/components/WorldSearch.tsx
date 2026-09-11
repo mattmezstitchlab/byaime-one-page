@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildTimelineIndex, ENTITY_KIND_LABELS } from "@/lib/timeline-graph";
 import { PANEL_FOR_KIND, type WeddingPanelId } from "@/lib/wedding-navigation";
-import { focusWorld } from "@/lib/laboratory";
+import { focusWorld } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 
 export function WorldSearch({ onClose, onOpenPanel }: { onClose: () => void; onOpenPanel: (panel: WeddingPanelId) => void }) {

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
@@ -11,10 +11,11 @@ import { BottomDock } from './BottomDock';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Grid2X2, Search, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
-import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/laboratory';
+import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/world-focus';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import { PanelChromeProvider, type PanelChrome, type PanelNavItem } from './PanelChrome';
+import { AIME_SCREENS, setAimeScreenContext, type AimeScreenId } from '@/lib/aime-guidance';
 import { WorldOverview } from './WorldOverview';
 import { VisibilityGraph } from './VisibilityGraph';
 import { WorldSearch } from './WorldSearch';
@@ -46,7 +47,7 @@ const providerImages: Partial<Record<Provider['category'], string>> = {
 const guestPortraitImages = [...AIME_VISUALS.guestPortraitImages];
 
 function ProviderPortrait({ provider, index = 0 }: { provider: Provider; index?: number }) {
-  const image = providerImages[provider.category] || 'images/visual-service-DXmeWatY.jpg';
+  const image = providerImages[provider.category] || AIME_VISUALS.universes.service;
   return (
     <span
       className="relative block h-9 w-9 overflow-hidden rounded-full border-2 border-black bg-zinc-800"
@@ -96,12 +97,15 @@ export function ProjectStage() {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [now, setNow] = useState(() => Date.now());
-  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    // Le tick à la seconde n'est utile que pendant le Jour J (événement en cours,
+    // horaires qui défilent). Hors Jour J, une minute suffit : sinon tout le Monde
+    // se re-rend chaque seconde pour un décompte affiché en jours.
+    const delay = phase === 'pendant' ? 1000 : 60000;
+    const timer = window.setInterval(() => setNow(Date.now()), delay);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [phase]);
 
   useEffect(() => {
     if (!project) return;
@@ -146,6 +150,18 @@ export function ProjectStage() {
     };
   }, []);
 
+  /*
+   * L'écran courant est publié à l'agent de guidage : panneau ouvert en priorité,
+   * sinon la vue de la Timeline, et toujours la phase. C'est ce qui permet au
+   * panneau AI d'expliquer « là où vous êtes » sans que chaque écran ait à le
+   * déclarer lui-même.
+   */
+  useEffect(() => {
+    const candidate = activePanel ? `panel:${activePanel}` : `view:${view}`;
+    const screen = (candidate in AIME_SCREENS ? candidate : 'portal') as AimeScreenId;
+    setAimeScreenContext({ screen, phase, view, panel: activePanel });
+  }, [activePanel, view, phase]);
+
   useEffect(() => {
     const applyFocus = (request?: WorldFocusRequest) => {
       if (!request) return;
@@ -153,6 +169,7 @@ export function ProjectStage() {
       if (request.view) setView(request.view as TimelineView);
       if (request.panel) setActivePanel(request.panel as WeddingPanelId);
       if (request.graph) setGraphOpen(true);
+      if (request.overview) setOverviewOpen(true);
     };
     const pending = consumeWorldFocus();
     if (pending) {

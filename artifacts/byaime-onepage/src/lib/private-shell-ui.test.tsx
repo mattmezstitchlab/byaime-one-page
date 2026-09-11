@@ -12,7 +12,7 @@ describe("private shell controls", () => {
     <Router hook={() => ["/profile", () => {}]}>{children}</Router>
   );
 
-  it.each<PrivateDestinationId>(["profile", "world", "laboratory"])(
+  it.each<PrivateDestinationId>(["profile", "world"])(
     "keeps AI, create and ME visible from %s",
     destination => {
       const markup = renderToStaticMarkup(

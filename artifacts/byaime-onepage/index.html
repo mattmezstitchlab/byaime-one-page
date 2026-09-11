@@ -12,18 +12,41 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.byaime.fr/" />
     <meta property="og:site_name" content="AIME" />
-    <meta property="og:image" content="https://www.byaime.fr/icon-512.png" />
-    <meta property="og:image:alt" content="AIME — Organisez votre mariage sereinement" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:image" content="https://www.byaime.fr/og-cover.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AIME — L’univers d’abord, puis une information à la fois." />
+    <meta name="theme-color" content="#050506" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="AIME — Organisez votre mariage sereinement" />
     <meta name="twitter:description" content="AIME rassemble vos invités, votre budget, vos prestataires et vos décisions dans un espace privé, pour préparer votre mariage de la première idée au Jour J." />
-    <meta name="twitter:image" content="https://www.byaime.fr/icon-512.png" />
+    <meta name="twitter:image" content="https://www.byaime.fr/og-cover.jpg" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap"
+    />
+    <script>
+      // L'apparence est lue avant la première peinture : pas de flash sombre
+      // pour les personnes qui ont choisi le mode clair.
+      try {
+        var appearance = localStorage.getItem('aime-appearance');
+        document.documentElement.dataset.aimeTheme = appearance === 'light' ? 'light' : 'dark';
+      } catch (error) {
+        document.documentElement.dataset.aimeTheme = 'dark';
+      }
+    </script>
     <style>
       body {
         margin: 0;
-        background-color: #0a0a0a;
-        color: #f4f4f4;
+        background-color: hsl(var(--background, 0 0% 2%));
+        color: hsl(var(--foreground, 40 10% 98%));
       }
     </style>
   </head>

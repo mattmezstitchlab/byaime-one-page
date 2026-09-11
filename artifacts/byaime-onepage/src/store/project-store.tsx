@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from '@clerk/react';
 import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication, type ParticipantLink } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
+import { INTENTION_DRAFT_KEY, MIN_INTENTION_LENGTH } from '@/lib/intention-draft';
 import { normalizeProject } from '../lib/project-migration';
 import { trackEvent } from '@/lib/analytics';
 import { isCurrentRevision } from '@/lib/project-sync';
@@ -27,6 +28,7 @@ type ProjectStore = {
   
   setIntentionText: (text: string) => void;
   commitDraft: () => void;
+  createProjectFromIntention: (text: string) => boolean;
   createWeddingDemo: () => void;
   clearProject: () => void;
   selectProject: (id: string) => Promise<boolean>;
@@ -187,6 +189,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(`aime-active-project:${userId}`, row.id);
       } else {
         const cached = localStorage.getItem(`aime-project:${userId}`);
+        if (!cached) {
+          /* L'intention posée sur l'accueil avant la création du compte rejoint
+             le compositeur : personne n'a à la retaper. */
+          const pending = localStorage.getItem(INTENTION_DRAFT_KEY);
+          if (pending) setIntentionText(pending);
+        }
         serverSyncedProjectRef.current = null;
         setProject(cached ? normalizeStoredProject(JSON.parse(cached)) : null);
       }
@@ -264,23 +272,27 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const setIntentionText = useCallback((text: string) => {
     setIntentionTextState(text);
-    if (text.length > 5) {
-      setDraft(parseIntention(text));
-    } else {
-      setDraft(null);
-    }
+    setDraft(text.trim().length >= MIN_INTENTION_LENGTH ? parseIntention(text) : null);
   }, []);
 
+  /* Une phrase, un seuil, une création : l'accueil et le compositeur du Monde
+     passent par la même porte pour éviter deux règles de validation. */
+  const createProjectFromIntention = useCallback((text: string) => {
+    const intention = text.trim();
+    if (intention.length < MIN_INTENTION_LENGTH) return false;
+    projectCreationSourceRef.current = 'created';
+    const newProject = createInitialProject(parseIntention(intention), intention);
+    setPendingOwnedProjectId(newProject.id);
+    setProject(newProject);
+    setDraft(null);
+    setIntentionTextState('');
+    if (userId) window.localStorage.removeItem(INTENTION_DRAFT_KEY);
+    return true;
+  }, [userId]);
+
   const commitDraft = useCallback(() => {
-    if (draft && intentionText) {
-      projectCreationSourceRef.current = 'created';
-      const newProject = createInitialProject(draft, intentionText);
-      setPendingOwnedProjectId(newProject.id);
-      setProject(newProject);
-      setDraft(null);
-      setIntentionTextState('');
-    }
-  }, [draft, intentionText]);
+    if (draft && intentionText) createProjectFromIntention(intentionText);
+  }, [createProjectFromIntention, draft, intentionText]);
 
   const createWeddingDemo = useCallback(() => {
     projectCreationSourceRef.current = 'created';
@@ -370,6 +382,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       participantLinks,
       setIntentionText,
       commitDraft,
+      createProjectFromIntention,
       createWeddingDemo,
       clearProject,
       selectProject,
