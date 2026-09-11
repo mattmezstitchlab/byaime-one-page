@@ -149,8 +149,12 @@ Les pictogrammes sont des **icônes fines en SVG** (pas d'emojis), comme demand�
    les bibliothèques lourdes (react, clerk, framer-motion, react-query, date-fns, recharts,
    shaders, icônes) sont chargées en parallèle et restent en cache d'un déploiement à l'autre.
    Aucun composant modifié : rendu serveur et contrôles intacts. ✅ **fait**
-   Un découpage par route (`React.lazy`) pourra s'ajouter ensuite, piloté par une mesure
-   Lighthouse sur le déploiement réel.
+6. **Code-splitting par route** — `React.lazy` + `Suspense` sur `/user-portal`, `/profile` et
+   `/profil/:id` : l'espace privé (Monde Mariage, panneaux, Timeline) et le profil public ne
+   sont plus téléchargés par le visiteur de l'accueil. Entrée applicative **607 kB → 400 kB**
+   (gzip 161 → 113 kB), `Home` (165 kB) et `PublicProfile` (47 kB) chargés à la demande et
+   non préchargés sur l'accueil. Le contrôle SSR (`preview/smoke.mjs`) rend désormais en flux
+   (`renderToPipeableStream`) pour vérifier le contenu réel des routes différées. ✅ **fait**
 
 ---
 
