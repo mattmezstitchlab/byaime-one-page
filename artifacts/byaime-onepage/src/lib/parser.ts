@@ -113,7 +113,7 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
   return normalizeProject({
     schemaVersion: 2,
     storyVersion: 1,
-    id: Math.random().toString(36).substring(2, 9),
+    id: crypto.randomUUID(),
     title: draft.title || "Projet",
     subtitle: intentionText,
     universe: draft.universe || "Général",

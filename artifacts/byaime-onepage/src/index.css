@@ -60,11 +60,14 @@
       hsl(var(--background));
   }
   .aime-world-hero-overlay {
+    /* Voile noir sur tout le visuel, dans les deux modes : le texte du hero
+       est blanc en mode sombre comme en mode clair, et aucun fondu vers la
+       couleur de page ne doit blanchir le visuel en mode clair. */
     background: linear-gradient(
       to bottom,
       rgb(0 0 0 / 0.34) 0%,
       rgb(0 0 0 / 0.6) 42%,
-      hsl(var(--background) / 0.96) 100%
+      rgb(0 0 0 / 0.8) 100%
     );
   }
   :root[data-aime-theme="light"] .aime-world-surface {
@@ -73,14 +76,8 @@
       radial-gradient(120% 100% at 84% 10%, hsl(var(--foreground) / 0.06) 0%, transparent 60%),
       hsl(var(--background));
   }
-  :root[data-aime-theme="light"] .aime-world-hero-overlay {
-    background: linear-gradient(
-      to bottom,
-      rgb(0 0 0 / 0.28) 0%,
-      rgb(0 0 0 / 0.5) 40%,
-      hsl(var(--background) / 0.9) 100%
-    );
-  }
+  /* Pas d'override du voile du hero en mode clair : il reste noir (voir
+     .aime-world-hero-overlay) pour ne jamais blanchir le visuel. */
 }
 
 /* Media is source content, never a theme surface. */

@@ -364,7 +364,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addEntity = useCallback(<K extends keyof WorldProject>(collection: K, item: any): string => {
-    const id = Math.random().toString(36).substring(2);
+    const id = crypto.randomUUID();
     setProject(prev => {
       if (!prev) return null;
       const list = prev[collection] as any[];
