@@ -43,6 +43,15 @@ globalThis.document.defaultView = globalThis.window;
 globalThis.location = globalThis.window.location;
 globalThis.history = globalThis.window.history;
 globalThis.matchMedia = globalThis.window.matchMedia;
+// Épingler la porte d'entrée en français : la détection de langue respecte
+// navigator.language dans un vrai navigateur (l'anglais est testé plus bas).
+const setNavigatorLanguage = (language, languages) =>
+  Object.defineProperty(globalThis, "navigator", {
+    value: { language, languages, serviceWorker: undefined },
+    configurable: true,
+    writable: true,
+  });
+setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 globalThis.addEventListener = globalThis.window.addEventListener;
 globalThis.removeEventListener = globalThis.window.removeEventListener;
 
@@ -112,21 +121,32 @@ function checkHtml(label, html, needles, absent = []) {
 checkHtml(
   "Accueil visiteur, sans brouillon (capsule guidée complète)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-universe"', 'data-testid="landing-intention-submit"', "Notre mariage", "La date du mariage", "1/5", "Créer mon espace", 'data-testid="landing-guide-button"'],
-  ["Choisir l’univers", "1/6", "Laboratoire"],
+  ['data-testid="landing-composer"', 'data-testid="landing-universe"', 'data-testid="landing-intention-submit"', "Notre mariage", "La date du mariage", "1/5", "Créer mon espace", 'data-testid="landing-guide-button"', 'data-testid="guide-chapters-open"', "1/6"],
+  ["Choisir l’univers", "Laboratoire"],
 );
 
 /* Une intention posée avant la création du compte doit reprendre la main sur
-   l'accueil, en mode phrase libre. */
+   l'accueil : l'onboarding guidé (unique parcours) repeuple ses réponses depuis
+   le brouillon, il n'existe plus de champ libre alternatif. */
 globalThis.localStorage.setItem("aime-intention-draft", DRAFT);
 checkHtml(
-  "Accueil visiteur, avec brouillon (phrase reprise)",
+  "Accueil visiteur, avec brouillon (réponses guidées repeuplées)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-intention-free"', "Revenir aux questions", DRAFT],
-  ["Laboratoire"],
+  ['data-testid="landing-composer"', 'data-testid="landing-intention-input"', "Lille", "AIME retient déjà"],
+  ["Laboratoire", 'data-testid="landing-intention-free"', "Revenir aux questions"],
 );
 globalThis.localStorage.removeItem("aime-intention-draft");
 checkHtml("Accueil membre", renderAt("/", createElement(LandingPage, { signedIn: true })), ["Accéder à mon espace"], ["Créer un compte gratuit"]);
+
+/* La porte d'entrée doit passer entièrement en anglais (persona, onboarding, CTA). */
+setNavigatorLanguage("en-US", ["en-US", "en"]);
+checkHtml(
+  "Accueil visiteur en anglais (persona Couple/Pro + onboarding EN)",
+  renderAt("/", createElement(LandingPage, { signedIn: false })),
+  ['data-testid="landing-locale-en"', 'data-testid="landing-persona"', "Our wedding", "A couple", "A professional", "Sign in", "The wedding date"],
+  ["Notre mariage", "Créer mon espace"],
+);
+setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
 async function renderApp(path) {
   globalThis.window.location.pathname = path;
@@ -135,9 +155,31 @@ async function renderApp(path) {
 }
 
 checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landing"'], ["Laboratoire"]);
-checkHtml("App complète (/guides)", await renderApp("/guides"), ["guides-page"], []);
+checkHtml("App complète (/guides)", await renderApp("/guides"), ["guides-page", 'data-testid="guide-chapters-open"', "1/25", "Comprendre avant de cliquer", "Chapitres"], ["demo-select-"]);
 checkHtml("App complète (/confidentialite)", await renderApp("/confidentialite"), [], []);
 checkHtml("App complète (/creation)", await renderApp("/creation"), ["Clerk simulé"], []);
+
+// Page invité RSVP : français par défaut, puis tout le parcours en anglais.
+checkHtml(
+  "RSVP invité en français (formulaire, sections, statuts)",
+  await renderApp("/rsvp/invite-test"),
+  ['data-testid="rsvp-page"', 'data-testid="rsvp-form"', "Votre présence", "Confirmer ma réponse", "PARTAGER", "MUSIQUE", "APRÈS"],
+  ["Confirm my reply", "Your attendance"],
+);
+setNavigatorLanguage("en-US", ["en-US", "en"]);
+checkHtml(
+  "Guides en anglais (capsule, titre, FakeUI du guide actif)",
+  await renderApp("/guides"),
+  ["Understand before you click", "Chapters", 'aria-label="Next guide"', "Explain this screen"],
+  ["Chapitres", "Guide suivant", "Expliquer cet écran"],
+);
+checkHtml(
+  "RSVP invité en anglais (formulaire, navigation, sections)",
+  await renderApp("/rsvp/invite-test"),
+  ["Your attendance", "Confirm my reply", "SHARE", "MUSIC", "AFTER", "I’ll be there", "Ceremony"],
+  ["Votre présence", "Confirmer ma réponse", "Je serai présent·e", "Cérémonie"],
+);
+setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
 await vite.close();
 console.log(failures === 0 ? "CONTRÔLE LOCAL OK" : `CONTRÔLE LOCAL : ${failures} problème(s)`);

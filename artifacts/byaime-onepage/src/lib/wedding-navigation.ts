@@ -61,37 +61,67 @@ const thanks = item("thanks", "Remerciements", "Les mots de remerciement après 
 const photos = item("memories", "Photos & vidéos", "Les images et vidéos à préserver.", { kind: "panel", panel: "memories" });
 const film = item("film", "Film du Jour J", "Le film et les séquences du mariage.", { kind: "panel", panel: "film" });
 const honeymoon = item("honeymoon", "Voyage de noces", "Les informations du voyage de noces.", { kind: "panel", panel: "honeymoon" });
-const extras = [
-  item("ceremony", "Cérémonie & réception", "Le déroulé, les lectures et le menu.", { kind: "panel", panel: "ceremony" }),
-  item("logistics", "Logistique", "Accès, transports et hébergements.", { kind: "panel", panel: "logistics" }),
-  item("messages", "Messages", "Les informations envoyées aux personnes concernées.", { kind: "panel", panel: "messages" }),
-  item("team", "Équipe", "Les responsabilités et la coordination.", { kind: "panel", panel: "team" }),
-];
+const ceremony = item("ceremony", "Cérémonie & réception", "Le déroulé, les lectures et le menu.", { kind: "panel", panel: "ceremony" });
+const logistics = item("logistics", "Logistique", "Accès, transports et hébergements.", { kind: "panel", panel: "logistics" });
+const messages = item("messages", "Messages", "Les informations envoyées aux personnes concernées.", { kind: "panel", panel: "messages" });
+const team = item("team", "Équipe", "Les responsabilités et la coordination.", { kind: "panel", panel: "team" });
 
-/** Pure phase- and capability-aware private World navigation manifest. */
+/**
+ * Catégories communes aux trois périodes (Avant / Jour J / Après). Elles vivent
+ * dans la barre latérale verticale gauche, comme la navigation globale, pour ne
+ * plus encombrer la navigation horizontale de chaque mode.
+ */
+export const WEDDING_RAIL_ICONS = ["timeline", "people", "providers", "tasks", "finances", "documents", "team", "music"] as const;
+export type WeddingRailIcon = (typeof WEDDING_RAIL_ICONS)[number];
+export type WeddingRailItem = WeddingNavigationItem & { icon: WeddingRailIcon };
+
+export function isWeddingEntryAllowed(entry: WeddingNavigationItem, capabilities: WeddingCapabilities): boolean {
+  if (entry.id === "finances") return capabilities.seeFinances;
+  if (entry.id === "documents" || entry.id === "film") return capabilities.managePrivateDocuments;
+  if (capabilities.manage || capabilities.editOperational) return true;
+  return ["timeline", "people", "public-info", "music", "contributions", "thanks", "memories", "film", "honeymoon"].includes(entry.id);
+}
+
+/** Barre latérale du Monde : les catégories communes, identiques d'un mode à l'autre. */
+export function getWeddingRailItems(phase: WorldPhase, capabilities: WeddingCapabilities): WeddingRailItem[] {
+  const timelineByPhase = {
+    avant: timeline("Timeline", "Tous les Moments du mariage dans leur ordre vivant."),
+    pendant: timeline("Timeline en direct", "Les Moments du Jour J, au fil de la journée."),
+    apres: timeline("Timeline · Replay", "Le replay vivant des Moments du mariage."),
+  }[phase];
+  const entries: WeddingRailItem[] = [
+    { ...timelineByPhase, icon: "timeline" },
+    { ...people, icon: "people" },
+    { ...providers, icon: "providers" },
+    { ...tasks, icon: "tasks" },
+    { ...finances, icon: "finances" },
+    { ...documents, icon: "documents" },
+    { ...team, icon: "team" },
+    { ...music(phase === "pendant" ? "Musique en direct" : "Musique"), icon: "music" },
+  ];
+  return entries.filter(entry => isWeddingEntryAllowed(entry, capabilities));
+}
+
+/**
+ * Navigation horizontale : ne reste que ce qui est propre au MODE courant.
+ * Le socle commun (Personnes, Prestataires, Tâches, Finances, Documents,
+ * Équipe, Musique) est dans la barre latérale ; cette rangée décrit la période.
+ */
 export function getWeddingNavigation(phase: WorldPhase, capabilities: WeddingCapabilities): WeddingNavigation {
-  const full = capabilities.manage;
-  const operational = capabilities.editOperational;
   let primary: WeddingNavigationItem[];
   let secondary: WeddingNavigationItem[];
   if (phase === "avant") {
-    primary = [timeline("Timeline", "Tous les Moments du mariage dans leur ordre vivant."), people, providers, tasks, documents, finances, music()];
-    secondary = [...extras, seating];
+    primary = [ceremony, logistics, seating, messages];
+    secondary = [];
   } else if (phase === "pendant") {
-    primary = [timeline("Timeline en direct", "Les Moments du Jour J, au fil de la journée."), dayof, practical, seating, contributions, music("Musique en direct")];
-    secondary = [people, providers, tasks, ...extras, documents, finances];
+    primary = [dayof, practical, seating, contributions];
+    secondary = [ceremony, logistics, messages];
   } else {
-    primary = [timeline("Timeline / Replay", "Le replay vivant des Moments du mariage."), people, thanks, photos, film, honeymoon];
-    secondary = [music(), practical, contributions, providers, tasks, ...extras, documents, finances];
+    primary = [thanks, photos, film, honeymoon, contributions, practical];
+    secondary = [ceremony, logistics, messages];
   }
-  const allowed = (entry: WeddingNavigationItem) => {
-    if (entry.id === "finances") return capabilities.seeFinances;
-    if (entry.id === "documents" || entry.id === "film") return capabilities.managePrivateDocuments;
-    if (full || operational) return true;
-    return ["timeline", "people", "public-info", "music", "contributions", "thanks", "memories", "film", "honeymoon"].includes(entry.id);
-  };
-  primary = primary.filter(allowed);
-  secondary = secondary.filter(allowed).filter(entry => !primary.some(primaryEntry => primaryEntry.id === entry.id || primaryEntry.label === entry.label));
+  primary = primary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
+  secondary = secondary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
   return { primary, secondary };
 }
 
@@ -107,22 +137,77 @@ export function isWeddingDestinationActive(destination: WeddingDestination, view
   return destination.kind === "panel" ? destination.panel === panel : false;
 }
 
+/**
+ * Navigation contextuelle DANS un panneau : à quelle catégorie de navigation
+ * il appartient, et donc quels panneaux voisins proposer en raccourcis.
+ *  - « Socle commun » : les catégories présentes toute l'année dans le rail
+ *    gauche (Personnes, Prestataires, Tâches, Finances, Documents, Équipe,
+ *    Musique) ;
+ *  - « Outils du mode » : les outils propres à la phase courante, de la
+ *    rangée horizontale.
+ * Le panneau « sections » est le sommaire complet et n'a pas de groupe.
+ */
+export type PanelContextGroup = { id: "rail" | "phase" | "sections"; label: string; items: WeddingNavigationItem[] };
+
+export function getPanelContextGroup(
+  panel: WeddingPanelId,
+  rail: WeddingNavigationItem[],
+  navigation: WeddingNavigation,
+  view: TimelineView,
+): PanelContextGroup {
+  if (panel === "sections") return { id: "sections", label: "Navigation du Monde", items: [] };
+  const phaseItems = [...navigation.primary, ...navigation.secondary];
+  const belongsToRail =
+    rail.some(item => item.destination.kind === "panel" && item.destination.panel === panel) ||
+    (panel === "music" && view === "music");
+  if (belongsToRail) return { id: "rail", label: "Socle commun", items: rail };
+  return { id: "phase", label: "Outils du mode", items: phaseItems };
+}
+
+/**
+ * Trouve la phase (Avant / Jour J / Après) dans laquelle un panneau donné est
+ * accessible pour un rôle. Sert à ouvrir le bon mode quand on arrive sur un
+ * panneau depuis une statistique, une recherche ou un graphe (ex. « Souvenirs »
+ * cliqué en mode Avant doit basculer en Après, pas se refermer en silence).
+ */
+export function findPhaseForPanel(
+  panel: WeddingPanelId,
+  role: string,
+  view: TimelineView,
+): WorldPhase | null {
+  if (panel === "sections") return null;
+  const capabilities = getWeddingCapabilities(role);
+  for (const phase of ["avant", "pendant", "apres"] as const) {
+    const rail = getWeddingRailItems(phase, capabilities);
+    const navigation = getWeddingNavigation(phase, capabilities);
+    if (isWeddingPanelAvailable(panel, navigation, view, rail)) return phase;
+  }
+  return null;
+}
+
 export function isWeddingPanelAvailable(
   panel: WeddingPanelId,
   navigation: WeddingNavigation,
   view: TimelineView,
+  rail: WeddingNavigationItem[] = [],
 ) {
   if (panel === "sections") return true;
-  const available = [...navigation.primary, ...navigation.secondary].some(
+  const available = [...rail, ...navigation.primary, ...navigation.secondary].some(
     item => item.destination.kind === "panel" && item.destination.panel === panel,
   );
   if (available) return true;
   return panel === "music" && view === "music";
 }
 
-export function getWeddingNavigationLabel(view: TimelineView, panel: WeddingPanelId | null, navigation?: WeddingNavigation) {
+export function getWeddingNavigationLabel(
+  view: TimelineView,
+  panel: WeddingPanelId | null,
+  navigation?: WeddingNavigation,
+  rail: WeddingNavigationItem[] = [],
+) {
   if (panel) return WEDDING_PANEL_LABELS[panel];
-  return navigation?.primary.concat(navigation.secondary).find(entry => entry.destination.kind === "view" && entry.destination.view === view)?.label ?? "Timeline";
+  return rail.concat(navigation?.primary ?? [], navigation?.secondary ?? [])
+    .find(entry => entry.destination.kind === "view" && entry.destination.view === view)?.label ?? "Timeline";
 }
 
 /** Associe chaque type d'entité de la Timeline au panneau du Monde qui l'édite. */

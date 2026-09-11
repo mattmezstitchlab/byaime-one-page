@@ -14,6 +14,8 @@ export function getAssetUrl(path: string) {
  * inchangés.
  */
 const wedding = {
+  heroImmersif: 'images/wedding/landing-hero-astronauts.jpg',
+  guestsImmersif: 'images/wedding/landing-guests-astronauts.jpg',
   ceremony: 'images/wedding/wedding-ceremony.jpg',
   reception: 'images/wedding/wedding-reception.jpg',
   table: 'images/wedding/wedding-table.jpg',
@@ -30,7 +32,8 @@ const wedding = {
 
 export const AIME_VISUALS = {
   hero: {
-    backgroundImage: wedding.ceremony,
+    backgroundImage: wedding.heroImmersif,
+    guestsImage: wedding.guestsImmersif,
     backgroundVideo: null as string | null,
   },
   concept: {

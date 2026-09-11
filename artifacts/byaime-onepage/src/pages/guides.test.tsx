@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { GuidesPage, GuidesExplorer } from "./Guides";
+import { GuidesPage, GuideChaptersContent } from "./Guides";
 import { DEMOS, DEMO_CATEGORIES } from "./guides-demos";
 import { AIME_SCREENS, type AimeScreenId } from "@/lib/aime-architecture";
 import { Router } from "wouter";
@@ -12,89 +12,110 @@ describe("GuidesPage", () => {
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <Router hook={() => ["/guides", () => {}]}>{children}</Router>
   );
+  const page = () => renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
 
-  it("renders the main title and all four demo concepts", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
+  it("anime le premier guide directement dans le player, sobrement", () => {
+    const markup = page();
     expect(markup).toContain('data-testid="guides-page"');
-    
-    // Check main conceptual headers
-    expect(markup).toContain("Un seul système, plusieurs réalités");
-    expect(markup).toContain("Créer un Monde");
-    expect(markup).toContain("Les Rôles et Frontières");
-    expect(markup).toContain("AI · + · ME");
+    // Le titre du premier guide est celui de son étape courante, pas une carte du rail.
+    expect(markup).toContain("Profil");
   });
 
-  it("renders a single responsive demo selector with data-testids", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
-    expect(markup).toContain('data-testid="demo-select-roles"');
-    expect(markup).toContain('data-testid="demo-select-creation"');
+  it("remplace les bandes de boutons par une capsule flottante sur l'animation", () => {
+    const markup = page();
+
+    // La capsule : précédent, chapitres au centre avec le compteur, suivant.
+    expect(markup).toContain('data-testid="guide-prev"');
+    expect(markup).toContain('data-testid="guide-next"');
+    expect(markup).toContain('data-testid="guide-chapters-open"');
+    expect(markup).toContain("1/25");
+    expect(markup).toContain('aria-label="Faire défiler les guides"');
+
+    // Plus aucune bande de cartes au-dessus ou au-dessous de l'animation.
+    expect(markup).not.toContain('data-testid="guides-menu"');
+    expect(markup).not.toContain('data-testid="guides-screens"');
+    expect(markup).not.toContain('data-testid="demo-select-roles"');
   });
 
-  it("covers the new control tools of the World", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
-    expect(markup).toContain('data-testid="demo-select-synthesis"');
-    expect(markup).toContain('data-testid="demo-select-graph"');
-  });
-
-  it("renders player controls with correct aria-labels", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
+  it("garde des contrôles de lecture discrets et les segments d'étapes", () => {
+    const markup = page();
     expect(markup).toContain('data-testid="demo-play-pause"');
     expect(markup).toContain('aria-label="Mettre en pause"');
     expect(markup).toContain('data-testid="demo-replay"');
     expect(markup).toContain('aria-label="Rejouer la démonstration"');
+    expect(markup).toContain('aria-label="Étapes de la démonstration"');
   });
 
-  it("ranged the menu by category, horizontally", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
-    expect(markup).toContain('data-testid="guides-menu"');
-    for (const category of DEMO_CATEGORIES) {
-      expect(markup).toContain(renderable(category.label));
-    }
-    expect(markup).toContain('aria-label="Choisir un guide animé"');
-    // Une seule rangée défilable, les catégories se suivent horizontalement.
-    const menu = markup.slice(markup.indexOf('data-testid="guides-menu"'), markup.indexOf('data-testid="guides-player"'));
-    expect(menu).toContain("overflow-x-auto");
-    expect(menu).toContain("snap-x");
-    expect(menu).toContain("snap-start");
-    expect(menu).not.toContain("lg:sticky");
-    // Le nuage de puces a disparu : une carte par démonstration, pas plus.
-    expect(menu).not.toContain("flex-wrap");
-    expect(menu.match(/data-testid="demo-select-/g)).toHaveLength(DEMOS.length);
-  });
-
-  it("centers the animation in the section", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
-    const player = markup.slice(markup.indexOf('data-testid="guides-player"'), markup.indexOf('data-testid="guides-screens"'));
+  it("centre l'animation dans la page", () => {
+    const markup = page();
+    expect(markup).toContain('data-testid="guides-player"');
+    const player = markup.slice(markup.indexOf('data-testid="guides-player"'), markup.indexOf('data-testid="guide-prev"'));
     expect(player).toContain("mx-auto");
     expect(player).toContain("max-w-3xl");
-    expect(player).toContain("text-center");
   });
 
-  it("explains the first sentence and the contextual guide", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
-    expect(markup).toContain('data-testid="demo-select-intention"');
-    expect(markup).toContain('data-testid="demo-select-guidance"');
-    expect(markup).toContain("La première phrase du mariage");
-    expect(markup).toContain("AIME vous guide à chaque écran");
+  it("ne mentionne jamais de chiffrement non garanti dans les démos", () => {
+    expect(page()).not.toContain("chiffré");
+  });
+});
+
+describe("GuideChaptersContent", () => {
+  const render = (node: React.ReactNode) =>
+    renderToStaticMarkup(<Router hook={() => ["/guides", () => {}]}>{node}</Router>);
+
+  it("réunit tous les guides, groupés par catégorie", () => {
+    const markup = render(<GuideChaptersContent activeDemo="architecture" onSelect={() => {}} />);
+
+    expect(markup).toContain('data-testid="guide-chapters-content"');
+    for (const category of DEMO_CATEGORIES) {
+      expect(markup).toContain(renderable(category.label));
+      expect(markup).toContain(`guide-chapters-group-${category.id}`);
+    }
+    for (const demo of DEMOS) {
+      expect(markup, `guide « ${demo.id} » absent`).toContain(renderable(demo.title));
+      expect(markup, `description du guide « ${demo.id} » absente`).toContain(renderable(demo.description));
+    }
+    // La phrase sur les frontières de rôles est celle de la démo Rôles, elle reste dans le catalogue.
+    expect(markup).toContain(
+      "Quatre rôles font varier les actions disponibles et masquent les informations d’organisation sensibles.",
+    );
+    // Le guide actif est signalé.
+    expect(markup).toContain('aria-current="page"');
   });
 
-  it("covers every screen described by the architecture registry", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesExplorer /></Wrapper>);
+  it("couvre chaque écran décrit par le registre d'architecture dans l'onglet écrans", () => {
+    const markup = render(
+      <GuideChaptersContent activeDemo="architecture" onSelect={() => {}} initialTab="screens" />,
+    );
     const ids = Object.keys(AIME_SCREENS) as AimeScreenId[];
     for (const id of ids) {
-      expect(markup, `écran « ${id} » absent des guides`).toContain(`data-screen-id="${id}"`);
+      expect(markup, `écran « ${id} » absent des chapitres`).toContain(`data-screen-id="${id}"`);
       expect(markup).toContain(renderable(AIME_SCREENS[id].label));
     }
     expect(ids.length).toBeGreaterThan(30);
-    expect(markup).toContain('data-testid="guides-group-panneaux"');
-    expect(markup).toContain('data-testid="guides-group-hors-monde"');
-    // Les écrans forment aussi une rangée défilante, plus une grille de cartes.
-    const screens = markup.slice(markup.indexOf('data-testid="guides-screens"'));
-    expect(screens.match(/overflow-x-auto/g)?.length).toBeGreaterThanOrEqual(3);
-    expect(screens).not.toContain("lg:grid-cols-3");
+    expect(markup).toContain('guide-chapters-group-panneaux');
+    expect(markup).toContain('guide-chapters-group-hors-monde');
+    expect(markup).toContain('guide-chapters-group-monde');
   });
 
-  it("keeps every demo attached to a valid category and unique", () => {
+  it("ne montre que les guides en vedette sur l'accueil, avec un lien vers le catalogue", () => {
+    const featured = ["architecture", "intention", "ai-plus-me", "budget", "dayof", "memories"];
+    const markup = render(
+      <GuideChaptersContent featuredDemos={featured} activeDemo="budget" onSelect={() => {}} />,
+    );
+
+    // L'onglet « écrans » n'existe pas en mode vedette.
+    expect(markup).not.toContain("Écrans expliqués");
+    // Un lien mène au catalogue complet.
+    expect(markup).toContain('href="/guides"');
+    expect(markup).toContain("Tous les guides animés");
+    // Un guide hors vedette n'apparaît pas.
+    expect(markup).not.toContain("Les Rôles et Frontières");
+  });
+});
+
+describe("Données de démonstration", () => {
+  it("attache chaque démo à une catégorie valide, sans doublon, avec des curseurs dans le cadre", () => {
     const categories = new Set(DEMO_CATEGORIES.map(category => category.id));
     const ids = DEMOS.map(demo => demo.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -108,14 +129,5 @@ describe("GuidesPage", () => {
         expect(step.cursor.y).toBeLessThanOrEqual(100);
       }
     }
-  });
-
-  it("describes only the role boundaries enforced by the server", () => {
-    const markup = renderToStaticMarkup(<Wrapper><GuidesPage /></Wrapper>);
-    expect(markup).toContain(
-      "Quatre rôles font varier les actions disponibles et masquent les informations d’organisation sensibles.",
-    );
-    expect(markup).not.toContain("chiffré");
-    expect(markup).not.toContain("les autres invités");
   });
 });

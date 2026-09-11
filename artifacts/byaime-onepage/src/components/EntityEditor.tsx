@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { User, Folder, Network, MapPin, Globe, ImageIcon, Lock, Globe2, Users, Calendar } from "lucide-react";
 import { CenteredBlock } from "./CenteredBlock";
+import { VisualImportControl } from "./VisualImportControl";
 import { cn } from "@/lib/utils";
 
 export function EntityEditor({ node, onClose, project, updateProject, updateEntity, openUserProfile, currentRole, canEdit }: any) {
@@ -170,6 +171,15 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                      onBlur={(e) => updateEntity("timeline", event.id, { location: e.target.value })}
                   />
                </div>
+            </div>
+
+            <div className="pt-6 border-t border-foreground/10">
+               <VisualImportControl
+                 label="Visuel du Moment"
+                 value={event.visual}
+                 disabled={!canEdit}
+                 onChange={visual => updateEntity("timeline", event.id, { visual })}
+               />
             </div>
 
             {canEdit && (

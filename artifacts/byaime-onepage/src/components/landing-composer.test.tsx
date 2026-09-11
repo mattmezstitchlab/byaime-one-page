@@ -17,7 +17,7 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("LandingComposer", () => {
-  it("ouvre l'accueil sur une capsule spécialisée mariage, une information à la fois", () => {
+  it("ouvre l'accueil sur un onboarding mariage, une information à la fois", () => {
     const markup = render(<LandingComposer />);
 
     expect(markup).toContain('data-testid="landing-composer"');
@@ -25,7 +25,21 @@ describe("LandingComposer", () => {
     expect(markup).toContain("Notre mariage");
     expect(markup).toContain("La date du mariage, même approximative ?");
     expect(markup).toContain("1/5");
-    expect(markup).toContain("Raconter autrement, en une phrase");
+    // Les cinq questions sont toutes visibles en pastilles, la première active.
+    expect(markup).toContain('aria-current="true"');
+  });
+
+  it("ne propose qu'un seul parcours : plus aucun champ libre alternatif", () => {
+    const markup = render(<LandingComposer />);
+
+    // Pas de bascule « une phrase », pas de textarea libre : l'onboarding guidé est l'unique entrée.
+    expect(markup).not.toContain("Raconter autrement");
+    expect(markup).not.toContain('data-testid="landing-intention-mode"');
+    expect(markup).not.toContain('data-testid="landing-intention-free"');
+    // Chaque question est facultative.
+    expect(markup).toContain('data-testid="landing-intention-skip"');
+    // Le bouton de création reste discret tant qu'aucune réponse n'est donnée.
+    expect(markup).toContain('data-testid="landing-intention-finish"');
   });
 
   it("ne promet aucun autre univers : pas de sélecteur, saisie immédiate", () => {
@@ -38,13 +52,6 @@ describe("LandingComposer", () => {
     // Le champ de la première question est atteignable au clavier sans étape préalable.
     expect(markup).toContain('aria-label="La date du mariage, même approximative ?"');
     expect(markup).toContain('aria-describedby="landing-intention-hint"');
-  });
-
-  it("propose la phrase libre et son retour aux questions", () => {
-    const markup = render(<LandingComposer />);
-    expect(markup).toContain('data-testid="landing-intention-mode"');
-    // La zone de texte libre n'apparaît qu'après bascule.
-    expect(markup).not.toContain('data-testid="landing-intention-free"');
   });
 
   it("compose une phrase que le parseur local du Monde comprend déjà", () => {
@@ -79,5 +86,52 @@ describe("LandingComposer", () => {
   it("accepte une réponse déjà formulée avec sa préposition", () => {
     const sentence = composeIntention({ place: "près de Nantes" });
     expect(sentence).toContain("près de Nantes");
+  });
+
+  it("propose dès le hero le choix Couple / Professionnel, avec le couple présélectionné", () => {
+    const markup = render(<LandingComposer />);
+    expect(markup).toContain('data-testid="landing-persona"');
+    expect(markup).toContain('data-testid="landing-persona-couple" aria-pressed="true"');
+    expect(markup).toContain('data-testid="landing-persona-pro" aria-pressed="false"');
+  });
+
+  it("compose une phrase « mariage client » pour le persona professionnel", () => {
+    const sentence = composeIntention(
+      { date: "14 août 2027", place: "Lyon", guests: "80", budget: "15000", tone: "élégant" },
+      { persona: "pro", currency: "EUR", locale: "fr" },
+    );
+    expect(sentence.startsWith("Le mariage client")).toBe(true);
+    const draft = parseIntention(sentence);
+    expect(draft.universe).toBe("Mariage");
+    expect(draft.budget?.value).toBe(15000);
+  });
+
+  it("compose et fait comprendre une intention en anglais, en dollars", () => {
+    const sentence = composeIntention(
+      { date: "August 14, 2027", place: "Austin, Texas", guests: "120", budget: "25000", tone: "intimate" },
+      { persona: "couple", currency: "USD", locale: "en" },
+    );
+    expect(sentence).toContain("Our wedding on August 14, 2027, near Austin");
+    expect(sentence).toContain("120 guests");
+    expect(sentence).toContain("$25,000");
+    expect(sentence).toContain("intimate mood");
+
+    const draft = parseIntention(sentence);
+    expect(draft.universe).toBe("Mariage");
+    expect(draft.guestsCount?.value).toBe(120);
+    expect(draft.budget?.value).toBe(25000);
+    expect(draft.currency).toBe("USD");
+    expect(draft.city?.value).toMatch(/Austin/);
+    expect(new Date(draft.pivot!.value as number).getFullYear()).toBe(2027);
+  });
+
+  it("respecte la devise choisie dans la phrase et le parseur", () => {
+    const gbp = composeIntention({ budget: "20000" }, { currency: "GBP", locale: "en" });
+    expect(gbp).toContain("£20,000");
+    expect(parseIntention(gbp).currency).toBe("GBP");
+
+    const mad = composeIntention({ budget: "200000" }, { currency: "MAD", locale: "fr" });
+    expect(mad).toContain("200 000 DH");
+    expect(parseIntention(mad).currency).toBe("MAD");
   });
 });

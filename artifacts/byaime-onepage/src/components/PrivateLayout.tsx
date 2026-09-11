@@ -1,14 +1,22 @@
 import { type ComponentType, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
+  Briefcase,
   CircleUserRound,
+  Clock3,
+  FolderClosed,
   Globe2,
   HelpCircle,
+  ListChecks,
   Menu,
   Moon,
+  Music,
   Settings,
   Sun,
   User,
+  UserCog,
+  Users,
+  Wallet,
   X,
   Plus,
   Pin,
@@ -26,6 +34,24 @@ import {
   PRIVATE_PRIMARY_NAVIGATION,
   type PrivateDestinationId,
 } from '@/lib/private-navigation';
+import {
+  getWeddingCapabilities,
+  getWeddingRailItems,
+  isWeddingDestinationActive,
+  type WeddingRailIcon,
+} from '@/lib/wedding-navigation';
+import { focusWorldDestination, getWorldNavState, subscribeWorldNav, type WorldNavState } from '@/lib/world-nav-state';
+
+const WORLD_RAIL_ICONS: Record<WeddingRailIcon, ComponentType<{ className?: string }>> = {
+  timeline: Clock3,
+  people: Users,
+  providers: Briefcase,
+  tasks: ListChecks,
+  finances: Wallet,
+  documents: FolderClosed,
+  team: UserCog,
+  music: Music,
+};
 
 const PRIVATE_HOME_ARIA_LABEL = "Retour à l’accueil AIME";
 
@@ -56,10 +82,7 @@ export function ActionCenter({ destination, onOpenMe }: { destination: PrivateDe
   return (
     <nav
       aria-label="Centre d’action AI plus ME"
-      className={cn(
-        "fixed left-1/2 z-[65] flex h-12 -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/40 bg-background/80 p-1 shadow-xl backdrop-blur-xl",
-        destination === "world" ? "bottom-[8.5rem] md:bottom-8 md:left-auto md:right-8 md:translate-x-0" : "bottom-6 md:bottom-8",
-      )}
+      className="fixed bottom-6 left-1/2 z-[65] flex h-12 -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/40 bg-background/80 p-1 shadow-xl backdrop-blur-xl md:bottom-8"
     >
       <button
         type="button"
@@ -146,6 +169,69 @@ function NavItem({
   );
 }
 
+/**
+ * Les catégories communes du Monde (Personnes, Prestataires, Tâches, Finances,
+ * Documents, Équipe, Musique…) rangées dans la barre latérale gauche, comme la
+ * navigation globale. La position active est publiée par ProjectStage.
+ */
+function WorldRailSection({ isPinnedContext }: { isPinnedContext?: boolean }) {
+  const { currentRole } = useProject();
+  const [worldNav, setWorldNav] = useState<WorldNavState>(() => getWorldNavState());
+
+  useEffect(() => subscribeWorldNav(setWorldNav), []);
+
+  if (!worldNav.active) return null;
+
+  const capabilities = getWeddingCapabilities(worldNav.role || currentRole);
+  const rail = getWeddingRailItems(worldNav.phase, capabilities);
+
+  return (
+    <div className="border-t border-border/30 pt-3">
+      <p className={cn(
+        "mb-2 pl-[20px] text-[9px] uppercase tracking-[.2em] text-foreground/35 transition-opacity duration-200",
+        isPinnedContext === false && "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100"
+      )}>
+        Monde
+      </p>
+      <div className="space-y-1">
+        {rail.map(item => {
+          const Icon = WORLD_RAIL_ICONS[item.icon];
+          const active = isWeddingDestinationActive(item.destination, worldNav.view, worldNav.panel);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                if (item.destination.kind !== "route") focusWorldDestination(item.destination);
+              }}
+              title={item.label}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "group/railitem relative flex w-full items-center rounded-xl text-left transition-all motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                active ? "text-foreground" : "text-foreground/65 hover:bg-foreground/[.07] hover:text-foreground",
+              )}
+            >
+              <span className="flex h-12 w-[60px] shrink-0 items-center justify-center">
+                <Icon className="h-[20px] w-[20px]" />
+              </span>
+              <span className={cn(
+                "min-w-0 flex-1 truncate pr-4 transition-opacity duration-200",
+                isPinnedContext === false && "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100"
+              )}>
+                <span className={cn("block text-sm font-medium", active && "text-foreground")}>{item.label}</span>
+                <span className={cn("mt-0.5 block truncate text-[9px] uppercase tracking-wider", active ? "text-foreground/60" : "text-foreground/35 group-hover/railitem:text-foreground/50")}>{item.description}</span>
+              </span>
+              {active && (
+                <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-brand-accent shadow-[0_0_12px_hsl(var(--brand-accent)/0.7)]" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function BottomActionButton({
   onClick, icon: Icon, label, description, title, disabled, isPinned, href
 }: {
@@ -225,6 +311,10 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location]);
+
+  // Une destination du Monde (rail gauche) est une action, pas une URL :
+  // fermer aussi le tiroir mobile quand on en sélectionne une.
+  useEffect(() => subscribeWorldNav(() => setMobileMenuOpen(false)), []);
 
   const toggleAppearance = () => setAppearance(a => a === "dark" ? "light" : "dark");
   const togglePin = () => {
@@ -375,8 +465,9 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
 
-          <nav aria-label="Navigation globale" className="flex-1 space-y-2 px-2">
+          <nav aria-label="Navigation globale" className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 hide-scrollbar">
             <NavItems isPinnedContext={isPinned} />
+            <WorldRailSection isPinnedContext={isPinned} />
           </nav>
 
           <div className="mt-auto space-y-1 border-t border-border/30 p-2 pt-4 mx-2">
@@ -436,8 +527,9 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav aria-label="Navigation globale" className="flex-1 space-y-2">
+            <nav aria-label="Navigation globale" className="flex-1 space-y-2 overflow-y-auto hide-scrollbar">
               <NavItems />
+              <WorldRailSection />
             </nav>
             <div className="mt-auto space-y-1 border-t border-border/50 pt-4">
               <BottomItems />

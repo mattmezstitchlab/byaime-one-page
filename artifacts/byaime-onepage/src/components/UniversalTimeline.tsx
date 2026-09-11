@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Link2, MapPin, Plus, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints } from "lucide-react";
 import { format } from "date-fns";
@@ -7,10 +7,12 @@ import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
 import type { WorldFocusRequest } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KIND_LABELS, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
-import { PANEL_FOR_KIND } from "@/lib/wedding-navigation";
+import { getInitialWorldPhase, PANEL_FOR_KIND } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
+import { momentVisualOverlayAlpha } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
+import { VisualImportControl } from "@/components/VisualImportControl";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
 
@@ -58,8 +60,35 @@ function getSubchapter(event: TimelineEvent, pivotTime: number): string {
 
 const images = AIME_VISUALS.timelineAmbientImages;
 
-const AmbientBackground = ({ index }: { index: number }) => {
+const AmbientBackground = ({ event, index }: { event: TimelineEvent; index: number }) => {
   const prefersReducedMotion = useReducedMotion();
+
+  // Un visuel importé sur le Moment devient son décor, avec le filtre noir réglé à l'édition.
+  if (event.visual?.url) {
+    return (
+      <div className="absolute inset-0 z-0 overflow-hidden bg-black">
+        {event.visual.kind === "video" ? (
+          <video
+            data-preserve-color
+            key={event.visual.url}
+            src={event.visual.url}
+            className="h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <div
+            data-preserve-color
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${event.visual.url})` }}
+          />
+        )}
+        <div className="absolute inset-0 bg-black" style={{ opacity: momentVisualOverlayAlpha(event.visual) }} aria-hidden />
+      </div>
+    );
+  }
 
   // Alternate every other scene with an image
   if (index % 2 === 0) {
@@ -116,7 +145,7 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
       onClick={onClick}
       className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-white/5 px-6 py-24 text-center text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 group"
     >
-      <AmbientBackground index={index} />
+      <AmbientBackground event={event} index={index} />
 
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
         <motion.div
@@ -187,8 +216,20 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
 
   const add = () => {
     if (!canEdit) return;
-    addEntity("timeline", { time: project.pivot.value, durationMinutes: 60, kind: "evenement", title: "Nouveau jalon", status: "prepare", confidence: "confirme", phase: "pendant", universe: project.universe, provenance: "real", visibility: "equipe", relations: [], dependencyIds: [], resources: [], propagation: { state: "none" } });
+    // Le jalon naît dans la période courante (Avant / Jour J / Après) : sinon
+    // il serait filtré de la vue immédiatement après sa création.
+    const phase = getInitialWorldPhase(project.pivot.value);
+    const id = addEntity("timeline", { time: project.pivot.value, durationMinutes: 60, kind: "evenement", title: "Nouveau jalon", status: "prepare", confidence: "confirme", phase, universe: project.universe, provenance: "real", visibility: "equipe", relations: [], dependencyIds: [], resources: [], propagation: { state: "none" } });
+    setSelected(id);
   };
+  const addRef = useRef(add);
+  addRef.current = add;
+
+  useEffect(() => {
+    const onCreate = () => addRef.current();
+    window.addEventListener("aime:new-moment", onCreate);
+    return () => window.removeEventListener("aime:new-moment", onCreate);
+  }, []);
 
   let currentSubchapter = "";
   const pivotTime = project.pivot.value;
@@ -368,6 +409,13 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
             <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Lieu</label>
             <input disabled={!canEdit} className={input} placeholder="Où cela se passe-t-il ?" value={event.location || ""} onChange={e => onEdit({ location: e.target.value })} />
           </div>
+
+          <VisualImportControl
+            label="Visuel du Moment"
+            value={event.visual}
+            disabled={!canEdit}
+            onChange={visual => onEdit({ visual })}
+          />
 
           <div className="grid grid-cols-2 gap-6">
             <div>

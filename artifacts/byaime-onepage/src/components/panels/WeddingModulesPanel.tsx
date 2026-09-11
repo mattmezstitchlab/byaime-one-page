@@ -8,10 +8,11 @@ import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import type { WeddingModule } from "@/lib/wedding-navigation";
 import { LOCAL_IMPORT_POLICY, guessMimeType, localImportSupport, pickLocalFolder, planLocalImports, readableLocalPath } from "@/lib/local-files";
+import { formatCents, currencySymbol } from "@/lib/money";
 
 export type { WeddingModule } from "@/lib/wedding-navigation";
 
-const euro = (cents: number) => `${(cents / 100).toLocaleString("fr-FR")} €`;
+const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 const newId = () => Math.random().toString(36).slice(2, 9);
 type StoredFile = { id: string; name: string; contentType: string; size: number; guestId?: string | null; createdAt?: string };
 type SentMessage = { id: string; projectId: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; timelineEventId?: string | null; scheduledAt?: string | null; cancelledAt?: string | null; sentAt?: string | null; createdAt: string };
@@ -150,6 +151,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [recipients, setRecipients] = useState("");
+  const [freeOpen, setFreeOpen] = useState(false);
+  const [freeRecipients, setFreeRecipients] = useState("");
+  const [freeSubject, setFreeSubject] = useState("");
+  const [freeBody, setFreeBody] = useState("");
   const [rescheduleAt, setRescheduleAt] = useState<Record<string, string>>({});
   const [musicQuery, setMusicQuery] = useState("");
   const [musicResults, setMusicResults] = useState<MusicSearchResult[]>([]);
@@ -347,19 +352,31 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       setBusy(false);
     }
   };
-  const sendTemplate = async (template: typeof project.messageTemplates[number]) => {
-    const recipientList = recipients.split(",").map(value => value.trim()).filter(Boolean);
-    if (!recipientList.length || !template.title.trim() || !template.body.trim()) return;
+  // Pied de message obligatoire pour les envois groupés : mécanisme de
+  // désabonnement clair (CAN-SPAM) et identification de l'expéditeur (RGPD).
+  // Le désabonnement par réponse fonctionne sans bout de chaîne supplémentaire.
+  const withLegalFooter = (body: string) => {
+    const footer = [
+      "",
+      "—",
+      "Vous recevez cet e-mail de la part des organisateurs de ce mariage, via AIME. Pour ne plus recevoir ces messages, répondez en indiquant « Désabonnement ».",
+      "You are receiving this email from the wedding organizers via AIME. Reply with “STOP” to opt out of future messages.",
+    ].join("\n");
+    return /Désabonnement|opt out/i.test(body) ? body : `${body.trimEnd()}${footer}`;
+  };
+
+  // Unique point d'entrée de composition d'e-mail : les modèles et le message libre
+  // passent tous par ce journal (voir dédup « Messages = seul endroit de composition »).
+  const deliverMessage = async (recipientList: string[], subject: string, body: string) => {
+    if (!recipientList.length || !subject.trim() || !body.trim()) return;
     setBusy(true);
     setRemoteError("");
     try {
       const delivery = await api<SentMessage>(`/projects/${project.id}/messages`, {
         method: "POST",
-        body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: template.title.trim(), body: template.body.trim(), confirmed: true }),
+        body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: subject.trim(), body: withLegalFooter(body), confirmed: true }),
       });
       if (delivery.status !== "sent") throw new Error(delivery.providerError || "La livraison de l’e-mail n’a pas été confirmée");
-      setRecipients("");
-      setSelectedTemplateId(null);
       try {
         setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
       } catch {
@@ -375,6 +392,21 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     } finally {
       setBusy(false);
     }
+  };
+  const sendTemplate = async (template: typeof project.messageTemplates[number]) => {
+    const recipientList = recipients.split(",").map(value => value.trim()).filter(Boolean);
+    if (!recipientList.length || !template.title.trim() || !template.body.trim()) return;
+    await deliverMessage(recipientList, template.title, template.body);
+    setRecipients("");
+    setSelectedTemplateId(null);
+  };
+  const sendFreeMessage = async () => {
+    const recipientList = freeRecipients.split(",").map(value => value.trim()).filter(Boolean);
+    await deliverMessage(recipientList, freeSubject, freeBody);
+    setFreeRecipients("");
+    setFreeSubject("");
+    setFreeBody("");
+    setFreeOpen(false);
   };
   const cancelScheduledMessage = async (messageId: string) => {
     setBusy(true);
@@ -587,10 +619,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     const paid = project.payments.filter(p => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
     const remaining = Math.max(0, (project.budget.value || estimated / 100) * 100 - paid);
     return <div className="max-w-4xl mx-auto space-y-6">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{[["Estimé", estimated], ["Engagé", committed], ["Payé", paid], ["Restant", remaining]].map(([label, value]) => <div key={label as string} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p><p className="mt-2 font-mono text-lg">{euro(value as number)}</p></div>)}</div>
-      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.025] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p><div className="mt-4 space-y-3">{Array.from(new Set(project.providers.map(p => p.category))).map(category => { const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0); const pct = estimated ? Math.min(100, Math.round(amount / estimated * 100)) : 0; return <div key={category}><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-foreground/65">{category}</span><span className="font-mono text-foreground/45">{euro(amount)}</span></div><div className="h-1 rounded-full bg-foreground/10"><div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} /></div></div> })}</div></div>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{[["Estimé", estimated], ["Engagé", committed], ["Payé", paid], ["Restant", remaining]].map(([label, value]) => <div key={label as string} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p><p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p></div>)}</div>
+      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.025] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p><div className="mt-4 space-y-3">{Array.from(new Set(project.providers.map(p => p.category))).map(category => { const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0); const pct = estimated ? Math.min(100, Math.round(amount / estimated * 100)) : 0; return <div key={category}><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-foreground/65">{category}</span><span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span></div><div className="h-1 rounded-full bg-foreground/10"><div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} /></div></div> })}</div></div>
       <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Échéancier</h4><p className="text-xs text-foreground/40 mt-1">Chaque modification est enregistrée dans ce Monde.</p></div><AddBar label="Ajouter un paiement" onAdd={addPayment} /></div>
-      {project.payments.length === 0 ? <Empty>Aucun paiement à suivre.</Empty> : <div className="space-y-2">{project.payments.map(p => <PaymentRow key={p.id} payment={p} onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })} onDelete={() => removeEntity("payments", p.id)} onEdit={updates => updateEntity("payments", p.id, updates)} />)}</div>}
+      {project.payments.length === 0 ? <Empty>Aucun paiement à suivre.</Empty> : <div className="space-y-2">{project.payments.map(p => <PaymentRow key={p.id} payment={p} currency={project.currency} onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })} onDelete={() => removeEntity("payments", p.id)} onEdit={updates => updateEntity("payments", p.id, updates)} />)}</div>}
     </div>;
   }
 
@@ -851,7 +883,16 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     return <div className="max-w-4xl mx-auto space-y-5">
       <PersistenceState status={syncStatus} error={syncError} />
       {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
-      <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
+      <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Message libre" onAdd={() => setFreeOpen(value => !value)} />}{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
+      {canManage && freeOpen && <div className="space-y-3 rounded-2xl border border-foreground/15 bg-foreground/[.05] p-4" data-testid="messages-free-composer">
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</span><input value={freeRecipients} onChange={event => setFreeRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="mt-1 w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Objet</span><input value={freeSubject} onChange={event => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Message</span><textarea value={freeBody} onChange={event => setFreeBody(event.target.value)} rows={4} placeholder="Écrire le message…" className="mt-1 w-full resize-none rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs leading-relaxed outline-none focus:border-foreground/30" /></label>
+        <div className="flex gap-2">
+          <button disabled={busy} onClick={() => setFreeOpen(false)} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Annuler</button>
+          <button disabled={busy || !freeRecipients.trim() || !freeSubject.trim() || !freeBody.trim()} onClick={() => void sendFreeMessage()} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-medium text-black disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}<Send className="h-3.5 w-3.5" />Confirmer et envoyer</button>
+        </div>
+      </div>}
       <div className="grid gap-3 md:grid-cols-2">{templates.map(template => <div key={template.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex justify-between gap-2"><input disabled={!canManage} value={template.title} onChange={event => updateEntity("messageTemplates", template.id, { title: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-foreground/60" />{canManage && <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-foreground/30 hover:text-rose-300"><Trash2 className="h-3.5 w-3.5" /></button>}</div><textarea disabled={!canManage} value={template.body} onChange={event => updateEntity("messageTemplates", template.id, { body: event.target.value })} placeholder="Écrire le message…" rows={3} className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none" />
         {canManage && selectedTemplateId !== template.id && <button disabled={!template.title.trim() || !template.body.trim()} onClick={() => setSelectedTemplateId(template.id)} className="mt-3 inline-flex items-center gap-2 text-xs text-foreground/70 hover:text-foreground disabled:opacity-30"><Send className="h-3.5 w-3.5" />Préparer l’envoi</button>}
         {selectedTemplateId === template.id && <div className="mt-4 space-y-3 border-t border-foreground/10 pt-4"><label className="block text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</label><input autoFocus value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /><p className="text-xs text-foreground/40">L’objet sera « {template.title} ». L’envoi ne partira qu’après votre confirmation.</p><div className="flex gap-2"><button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Annuler</button><button disabled={busy || !recipients.trim()} onClick={() => void sendTemplate(template)} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-medium text-black disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}Confirmer et envoyer</button></div></div>}
@@ -1008,8 +1049,8 @@ function MusicTrackRow({
   </div>;
 }
 
-function PaymentRow({ payment, onToggle, onDelete, onEdit }: { payment: Payment; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {
-  return <div className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><button onClick={onToggle} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", payment.state === "paye" ? "bg-emerald-300 text-black border-emerald-300" : "border-foreground/20")}>{payment.state === "paye" && <Check className="w-3.5 h-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="bg-transparent text-sm outline-none w-full" /><p className="text-xs text-foreground/40 mt-1">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><input type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-lg bg-foreground/5 px-2 py-1.5 text-right font-mono text-sm outline-none" /><button onClick={onDelete} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>;
+function PaymentRow({ payment, currency, onToggle, onDelete, onEdit }: { payment: Payment; currency?: string; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {
+  return <div className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><button onClick={onToggle} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", payment.state === "paye" ? "bg-emerald-300 text-black border-emerald-300" : "border-foreground/20")}>{payment.state === "paye" && <Check className="w-3.5 h-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="bg-transparent text-sm outline-none w-full" /><p className="text-xs text-foreground/40 mt-1">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><div className="flex items-center gap-1"><input aria-label="Montant du paiement" type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-lg bg-foreground/5 px-2 py-1.5 text-right font-mono text-sm outline-none" /><span className="w-8 text-xs text-foreground/45" aria-hidden>{currencySymbol(currency)}</span></div><button onClick={onDelete} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>;
 }
 
 function EditableArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {

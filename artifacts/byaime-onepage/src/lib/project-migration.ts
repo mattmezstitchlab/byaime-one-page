@@ -1,9 +1,10 @@
-import type { TimelineEvent, WorldProject } from "./types";
+import { normalizeWorldVisual, type TimelineEvent, type WorldProject } from "./types";
 import { generateWeddingTimeline } from "./seed-data";
 import { TIMELINE_SCHEMA_VERSION } from "./timeline-graph";
 
 const defaults = (event: TimelineEvent): TimelineEvent => ({
   ...event,
+  visual: normalizeWorldVisual(event.visual),
   durationMinutes: event.durationMinutes ?? (event.kind === "evenement" ? 60 : undefined),
   relations: Array.isArray(event.relations) ? event.relations : [],
   dependencyIds: Array.isArray(event.dependencyIds) ? event.dependencyIds : [],
@@ -31,6 +32,7 @@ export function normalizeProject(value: WorldProject): WorldProject {
 
   return {
     ...value,
+    heroVisual: normalizeWorldVisual(value.heroVisual),
     schemaVersion: TIMELINE_SCHEMA_VERSION,
     storyVersion: value.universe === "Mariage" ? 1 : value.storyVersion,
     timeline: enrichedTimeline.sort((a, b) => a.time - b.time),
@@ -45,6 +47,8 @@ export function normalizeProject(value: WorldProject): WorldProject {
     team: Array.isArray(value.team) ? value.team : [], memories: Array.isArray(value.memories) ? value.memories : [],
     messageTemplates: Array.isArray(value.messageTemplates) ? value.messageTemplates : [], messageLogs: Array.isArray(value.messageLogs) ? value.messageLogs : [],
     guestsCount: value.guestsCount ?? { value: null, confidence: "manquant" }, budget: value.budget ?? { value: null, confidence: "manquant" },
+    persona: value.persona === "pro" ? "pro" : "couple",
+    currency: typeof value.currency === "string" && value.currency ? value.currency : "EUR",
     city: value.city ?? { value: null, confidence: "manquant" }, venue: value.venue ?? { value: null, confidence: "manquant" },
     logistics: { ...emptyLogistics, ...(value.logistics || {}) }, missing: Array.isArray(value.missing) ? value.missing : [],
   };

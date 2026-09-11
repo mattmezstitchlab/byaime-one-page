@@ -12,11 +12,14 @@ import {
   LogOut,
   Trash2,
 } from "lucide-react";
+import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { useProject } from "@/store/project-store";
 import { focusWorld } from "@/lib/world-focus";
 import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
+import { VisualImportControl } from "./VisualImportControl";
+import { WorldSwitcher } from "./WorldSwitcher";
 import { cn } from "@/lib/utils";
 import {
   auditTimelineConnections,
@@ -176,7 +179,6 @@ export function PortalControls({
     | "editor"
     | "sync"
     | "invite"
-    | "message"
     | "delete-file"
     | "delete-project"
     | "delete-account"
@@ -192,9 +194,6 @@ export function PortalControls({
   } | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<InvitationRole>("family");
-  const [recipients, setRecipients] = useState("");
-  const [subject, setSubject] = useState("");
-  const [messageBody, setMessageBody] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteAccountConfirmation, setDeleteAccountConfirmation] =
     useState("");
@@ -322,46 +321,6 @@ export function PortalControls({
     } catch (error) {
       setNotice(
         `Invitation non envoyée : ${error instanceof Error ? error.message : "erreur inconnue"}`,
-      );
-      setPanel("world-settings");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  const sendMessage = async () => {
-    if (!recipients.trim() || !subject.trim() || !messageBody.trim() || !project) return;
-    setSubmitting(true);
-    const recipientList = recipients
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
-    try {
-      const delivery = await api(`/projects/${project.id}/messages`, {
-        method: "POST",
-        body: JSON.stringify({
-          kind: "practical_info",
-          recipients: recipientList,
-          subject: subject.trim(),
-          body: messageBody.trim(),
-          confirmed: true,
-        }),
-      });
-      if (delivery?.status !== "sent")
-        throw new Error(
-          delivery?.providerError ||
-            "La livraison de l’e-mail n’a pas été confirmée",
-        );
-      trackEvent("message_sent");
-      setNotice(
-        `E-mail envoyé à ${recipientList.length} destinataire${recipientList.length > 1 ? "s" : ""}`,
-      );
-      setRecipients("");
-      setSubject("");
-      setMessageBody("");
-      setPanel("world-settings");
-    } catch (error) {
-      setNotice(
-        `E-mail non envoyé : ${error instanceof Error ? error.message : "erreur inconnue"}`,
       );
       setPanel("world-settings");
     } finally {
@@ -515,7 +474,13 @@ export function PortalControls({
               {meSection === "overview" && (
                 <div className="space-y-6">
                   <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center">
-                    <img src={user?.imageUrl} alt="" className="h-14 w-14 rounded-full border border-border bg-background object-cover" />
+                    {user?.imageUrl ? (
+                      <img src={user.imageUrl} alt="" className="h-14 w-14 rounded-full border border-border bg-background object-cover" />
+                    ) : (
+                      <span className="grid h-14 w-14 place-items-center rounded-full border border-border bg-background text-lg font-display font-light text-foreground/70">
+                        {(user?.firstName || user?.fullName || "?").charAt(0).toUpperCase()}
+                      </span>
+                    )}
                     <div className="min-w-0">
                       <p className="text-lg font-display font-light">{user?.fullName || user?.firstName || "Utilisateur"}</p>
                       <p className="truncate text-sm text-foreground/55">{user?.primaryEmailAddress?.emailAddress}</p>
@@ -548,8 +513,8 @@ export function PortalControls({
                       Créé le: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "Indisponible"}
                     </p>
                   </div>
-                  <button type="button" onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground/5">
-                    Modifier dans l’espace sécurisé
+                  <button type="button" onClick={() => setMeSection("security")} className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground/5">
+                    Gérer la connexion et la sécurité
                   </button>
                 </div>
               )}
@@ -562,13 +527,13 @@ export function PortalControls({
                       <span>Adresse e-mail principale</span>
                       <span className="text-xs text-foreground/55">{user?.primaryEmailAddress?.verification?.status === "verified" ? "Vérifiée" : "À vérifier"}</span>
                     </div>
-                    {user?.externalAccounts.map((account) => (
+                    {(user?.externalAccounts ?? []).map((account) => (
                       <div key={account.id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                         <span className="capitalize">{account.provider.replace("oauth_", "")}</span>
                         <span className="text-xs text-emerald-500">Connecté</span>
                       </div>
                     ))}
-                    {user?.externalAccounts.length === 0 && (
+                    {(user?.externalAccounts?.length ?? 0) === 0 && (
                       <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                         <span>E-mail & mot de passe</span>
                         <span className="text-xs text-foreground/55">Actif</span>
@@ -594,9 +559,9 @@ export function PortalControls({
                     <Link href="/confidentialite" className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
                       Politique de confidentialité
                     </Link>
-                    <a href="/api/account/export" className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
-                      Exporter mes données
-                    </a>
+                    <button type="button" onClick={() => setMeSection("sensitive")} className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
+                      Export et actions sensibles
+                    </button>
                   </div>
                 </div>
               )}
@@ -604,11 +569,16 @@ export function PortalControls({
               {meSection === "preferences" && (
                 <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
                   <h4 className="text-sm font-medium">Préférences</h4>
-                  <p className="text-sm text-foreground/65">
-                    Les préférences globales (ex: apparence claire/sombre) restent accessibles depuis le menu principal.
-                  </p>
-                  <p className="text-xs text-foreground/50">
-                    Langue, fuseau horaire et notifications avancées seront intégrés dans cette section.
+                  <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-3 py-2.5">
+                    <div>
+                      <p className="text-sm">Apparence</p>
+                      <p className="mt-0.5 text-xs text-foreground/45">Mode clair ou sombre, sur tout AIME.</p>
+                    </div>
+                    <AppearanceToggle />
+                  </div>
+                  <p className="text-xs text-foreground/45">
+                    D’autres préférences (langue, notifications) seront ajoutées ici ; le réglage de l’apparence est
+                    aussi disponible en bas de la barre latérale.
                   </p>
                 </div>
               )}
@@ -616,40 +586,17 @@ export function PortalControls({
               {meSection === "worlds" && (
                 <div className="space-y-4">
                   <h4 className="text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">Mondes accessibles</h4>
-                  {projects.length > 0 && (
-                    <select
-                      data-testid="active-project-select"
-                      value={project?.id ?? ""}
-                      onChange={(event) => void selectProject(event.target.value)}
-                      className="w-full rounded-2xl border border-border bg-card px-5 py-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {projects.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.title} · {item.role}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 hide-scrollbar">
-                    {projects.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => { selectProject(item.id); setPanel(null); }}
-                        className={cn("flex w-full items-center justify-between rounded-2xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", item.id === project?.id ? "border-brand-accent/30 bg-brand-accent/5" : "border-border bg-card hover:border-foreground/20 hover:bg-foreground/[.02]")}
-                      >
-                        <div>
-                          <div className={cn("mb-1 text-sm font-medium", item.id === project?.id ? "text-brand-accent" : "text-foreground")}>{item.title}</div>
-                          <div className="text-[10px] uppercase tracking-[.15em] text-foreground/50">{item.role}</div>
-                        </div>
-                        {item.id === project?.id && <div className="h-2.5 w-2.5 rounded-full bg-brand-accent shadow-[0_0_12px_hsl(var(--brand-accent)/0.7)]" />}
-                      </button>
-                    ))}
-                    {projects.length === 0 && (
-                      <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">
-                        Aucun Monde pour le moment. Votre compte reste accessible.
-                      </p>
-                    )}
-                  </div>
+                  <p className="text-xs font-light leading-relaxed text-foreground/45">
+                    Le même écran que celui ouvert depuis le menu du Monde, en haut du cinéma du mariage.
+                  </p>
+                  <WorldSwitcher
+                    projects={projects}
+                    activeProjectId={project?.id}
+                    onSelect={(projectId) => {
+                      if (projectId !== project?.id) void selectProject(projectId);
+                      setPanel(null);
+                    }}
+                  />
                 </div>
               )}
 
@@ -879,6 +826,19 @@ export function PortalControls({
                 className="field"
               />
             </Field>
+            <div>
+              <span className="mb-2 block text-[10px] uppercase tracking-[.25em] text-foreground/45">
+                Visuel du hero
+              </span>
+              <VisualImportControl
+                label="Image ou vidéo de l’ouverture"
+                value={project.heroVisual}
+                onChange={heroVisual => {
+                  updateProject({ heroVisual });
+                  setNotice("Visuel du hero modifié — enregistrement en cours");
+                }}
+              />
+            </div>
             <button className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Enregistrer l’ouverture
             </button>
@@ -901,6 +861,11 @@ export function PortalControls({
               {notice}
             </p>
           )}
+          {project.persona === "pro" && (
+            <p data-testid="world-settings-persona" className="mb-5 rounded-xl border border-border bg-card px-4 py-3 text-xs text-foreground/60">
+              Espace professionnel : ce Monde suit un mariage que vous accompagnez. Chaque Monde reste cloisonné, avec ses invités, son budget et ses rôles.
+            </p>
+          )}
           {uploadProgress !== null && (
             <div role="status" aria-live="polite" className="mb-5 rounded-xl border border-border bg-card p-3">
               <div className="flex justify-between text-xs text-foreground/60">
@@ -919,14 +884,6 @@ export function PortalControls({
                 className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Inviter à collaborer
-              </button>
-            )}
-            {canManage && (
-              <button
-                onClick={() => setPanel("message")}
-                className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Envoyer un e-mail
               </button>
             )}
             {canManage && (
@@ -1193,56 +1150,6 @@ export function PortalControls({
               className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               {submitting ? "Envoi en cours…" : "Envoyer l’invitation"}
-            </button>
-          </div>
-        </CenteredBlock>
-      )}
-      {panel === "message" && project && (
-        <CenteredBlock
-          eyebrow="Communication"
-          title="Envoyer un e-mail"
-          description="Envoyer une information pratique ou relancer les professionnels."
-          onClose={() => setPanel("world-settings")}
-          size="lg"
-        >
-          <div className="space-y-5">
-            <Field label="Destinataires">
-              <input
-                value={recipients}
-                onChange={(e) => setRecipients(e.target.value)}
-                placeholder="Adresses séparées par des virgules"
-                className="field"
-                disabled={submitting}
-              />
-            </Field>
-            <Field label="Objet">
-              <input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="field"
-                disabled={submitting}
-              />
-            </Field>
-            <Field label="Message">
-              <textarea
-                value={messageBody}
-                onChange={(e) => setMessageBody(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                rows={6}
-                disabled={submitting}
-              />
-            </Field>
-            <button
-              onClick={() => void sendMessage()}
-              disabled={
-                submitting ||
-                !recipients.trim() ||
-                !subject.trim() ||
-                !messageBody.trim()
-              }
-              className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-            >
-              {submitting ? "Envoi en cours…" : "Envoyer l’e-mail"}
             </button>
           </div>
         </CenteredBlock>
