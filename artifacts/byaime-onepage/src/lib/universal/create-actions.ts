@@ -7,6 +7,17 @@ export type UniversalCreateActionId =
   | "resource"
   | "relation";
 
+/**
+ * Créations proposées en mode Facile. Les actions avancées (lieux, ressources,
+ * relations) restent réservées au Pro, même si elles deviennent disponibles.
+ */
+export const FACILE_CREATE_ACTION_IDS: readonly UniversalCreateActionId[] = [
+  "person",
+  "moment",
+  "task",
+  "document-media",
+];
+
 export type UniversalCreateAction = {
   id: UniversalCreateActionId;
   label: string;

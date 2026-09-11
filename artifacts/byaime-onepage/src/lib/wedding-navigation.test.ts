@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  findPhaseForPanel,
   getInitialWorldPhase,
   getPanelContextGroup,
   getWeddingCapabilities,
@@ -132,5 +133,55 @@ describe("wedding navigation", () => {
     expect(getInitialWorldPhase(new Date(2026, 8, 9, 12).getTime(), midday)).toBe("avant");
     expect(getInitialWorldPhase(new Date(2026, 8, 8, 23).getTime(), midday)).toBe("pendant");
     expect(getInitialWorldPhase(new Date(2026, 8, 7, 12).getTime(), midday)).toBe("apres");
+  });
+
+  describe("facile mode", () => {
+    it.each(phases)("keeps only the essentials in the rail for %s", phase => {
+      const rail = getWeddingRailItems(phase, getWeddingCapabilities("owner"), "fr", "facile");
+      expect(rail.map(item => item.id)).toEqual(["timeline", "people", "providers", "tasks", "finances"]);
+    });
+
+    it("intersects the mode with the role (minimum of both)", () => {
+      const family = getWeddingRailItems("avant", getWeddingCapabilities("family"), "fr", "facile");
+      expect(family.map(item => item.id)).toEqual(["timeline", "people", "providers", "tasks"]);
+      const viewer = getWeddingRailItems("avant", getWeddingCapabilities("viewer"), "fr", "facile");
+      expect(viewer.map(item => item.id)).toEqual(["timeline", "people"]);
+    });
+
+    it("keeps only the wedding day and the memories in the phase tools", () => {
+      const owner = getWeddingCapabilities("owner");
+      expect(getWeddingNavigation("avant", owner, "fr", "facile").primary).toEqual([]);
+      expect(getWeddingNavigation("pendant", owner, "fr", "facile").primary.map(item => item.id)).toEqual(["day-of"]);
+      expect(getWeddingNavigation("apres", owner, "fr", "facile").primary.map(item => item.id)).toEqual(["memories"]);
+      expect(getWeddingNavigation("pendant", owner, "fr", "facile").secondary).toEqual([]);
+    });
+
+    it.each(phases.flatMap(phase => roles.map(role => [phase, role] as const)))(
+      "keeps %s facile navigation unique for %s",
+      (phase, role) => {
+        const capabilities = getWeddingCapabilities(role);
+        const rail = getWeddingRailItems(phase, capabilities, "fr", "facile");
+        const navigation = getWeddingNavigation(phase, capabilities, "fr", "facile");
+        const entries = [...rail, ...navigation.primary, ...navigation.secondary];
+        expect(new Set(entries.map(entry => entry.id)).size).toBe(entries.length);
+        expect(rail[0].id).toBe("timeline");
+      },
+    );
+
+    it("keeps essential panels reachable and pro panels closed in Facile", () => {
+      const owner = getWeddingCapabilities("owner");
+      const rail = getWeddingRailItems("avant", owner, "fr", "facile");
+      const navigation = getWeddingNavigation("avant", owner, "fr", "facile");
+      expect(isWeddingPanelAvailable("budget", navigation, "chronological", rail)).toBe(true);
+      expect(isWeddingPanelAvailable("planning", navigation, "chronological", rail)).toBe(true);
+      expect(isWeddingPanelAvailable("seating", navigation, "chronological", rail)).toBe(false);
+      expect(isWeddingPanelAvailable("music", navigation, "chronological", rail)).toBe(false);
+    });
+
+    it("finds phases within the facile surface only", () => {
+      expect(findPhaseForPanel("dayof", "owner", "chronological", "facile")).toBe("pendant");
+      expect(findPhaseForPanel("seating", "owner", "chronological", "facile")).toBe(null);
+      expect(findPhaseForPanel("seating", "owner", "chronological")).toBe("avant");
+    });
   });
 });

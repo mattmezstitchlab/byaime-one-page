@@ -2,6 +2,13 @@
 
 Date : 11 septembre 2026. Périmètre : `artifacts/byaime-onepage` (espace privé).
 
+> **Statut : Phase 1 implémentée.** Décisions tranchées : Facile par défaut
+> pour les nouveaux couples (déduit du persona d'onboarding), Pro pour le
+> persona pro, rôles `family`/`viewer` verrouillés en Facile, checklist
+> dérivée des données (Phase 2), hero Facile avec compte à rebours à une
+> seule cible + prochaine étape unique. Voir `src/lib/mode.tsx`,
+> `FACILE_*` dans `src/lib/wedding-navigation.ts` et les tests associés.
+
 ## 1. Constat : où vit la complexité « Pro » aujourd'hui
 
 Inventaire de l'espace privé actuel (route `/user-portal`, composant `ProjectStage`) :

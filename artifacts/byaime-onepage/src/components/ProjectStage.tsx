@@ -24,6 +24,7 @@ import { WorldSwitcher } from './WorldSwitcher';
 import type { Guest, Provider } from '@/lib/types';
 import {
   isWeddingDestinationActive,
+  FACILE_VIEW_IDS,
   getWeddingCapabilities,
   getWeddingNavigation,
   getWeddingPanelLabel,
@@ -40,6 +41,7 @@ import {
 } from '@/lib/wedding-navigation';
 import { setWorldNavState } from '@/lib/world-nav-state';
 import { useI18n } from '@/lib/i18n';
+import { useMode } from '@/lib/mode';
 import { heroVisualOverlayCss } from '@/lib/types';
 import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
 
@@ -98,6 +100,7 @@ function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; inde
 export function ProjectStage() {
   const { project, projects, selectProject, updateProject, canEdit, currentRole } = useProject();
   const { t, locale } = useI18n();
+  const { mode } = useMode();
   /* Les dates suivent la langue : `date-fns` pour les libellés, `Intl` pour les listes. */
   const dateLocale = locale === 'en' ? enUS : fr;
   const pivotDate = project?.pivot.value ?? Date.now();
@@ -138,18 +141,23 @@ export function ProjectStage() {
   }, [project?.id]);
 
   const navigation = useMemo(
-    () => getWeddingNavigation(phase, getWeddingCapabilities(previewRole ?? currentRole), locale),
-    [phase, currentRole, previewRole, locale],
+    () => getWeddingNavigation(phase, getWeddingCapabilities(previewRole ?? currentRole), locale, mode),
+    [phase, currentRole, previewRole, locale, mode],
   );
   const rail = useMemo(
-    () => getWeddingRailItems(phase, getWeddingCapabilities(previewRole ?? currentRole), locale),
-    [phase, currentRole, previewRole, locale],
+    () => getWeddingRailItems(phase, getWeddingCapabilities(previewRole ?? currentRole), locale, mode),
+    [phase, currentRole, previewRole, locale, mode],
   );
 
   useEffect(() => {
     if (!activePanel) return;
     if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
   }, [activePanel, navigation, view, rail]);
+
+  /* Bascule vers le Facile depuis une vue Pro (musique, carte…) : retour au fil chronologique. */
+  useEffect(() => {
+    if (mode === "facile" && !FACILE_VIEW_IDS.includes(view)) setView("chronological");
+  }, [mode, view]);
 
   /*
    * Ouverture de panneau « sûre » : si le panneau demandé n'existe pas dans la
@@ -168,7 +176,7 @@ export function ProjectStage() {
       setActivePanel(panel);
       return;
     }
-    const targetPhase = findPhaseForPanel(panel, role, effectiveView);
+    const targetPhase = findPhaseForPanel(panel, role, effectiveView, mode);
     if (targetPhase) {
       setPhase(targetPhase);
       if (view === "public-info" && targetPhase === "avant") setView("chronological");
@@ -473,6 +481,7 @@ export function ProjectStage() {
           <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
             <Grid2X2 className="h-3.5 w-3.5" /> {t("world.nav.sections")}
           </button>
+          {mode === "pro" && (<>
           <button type="button" onClick={() => setOverviewOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {t("world.nav.overview")}
           </button>
@@ -485,6 +494,7 @@ export function ProjectStage() {
           <button type="button" onClick={() => setPreviewRole(role => role ? null : "viewer")} aria-pressed={previewRole === "viewer"} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", previewRole === "viewer" ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
             {previewRole === "viewer" ? t("world.nav.preview.active") : t("world.nav.preview")}
           </button>
+          </>)}
           <TimelinePlayback events={visibleEvents} />
         </div>
         {previewRole && (
@@ -582,7 +592,29 @@ export function ProjectStage() {
             )}
           </motion.div>}
 
-          {!isPublicInfo && phase !== "apres" && <motion.div
+          {mode === "facile" && <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-6 w-full border-t border-white/10 pt-7"
+          >
+            <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{t("world.hero.nextStep.eyebrow")} · {nextCountdown.kind}</p>
+            <p className="mt-3 text-sm text-white/65">{nextCountdown.title}</p>
+            <p className="mt-2 font-display text-2xl font-light tabular-nums">
+              {distanceToNext > 0
+                ? `${format(nextCountdown.time, "EEEE d MMMM", { locale: dateLocale })} · ${formatRemaining(nextCountdown.time)}`
+                : t("world.countdown.arrived")}
+            </p>
+            <button
+              type="button"
+              onClick={() => openPanelSafely(phase === "pendant" ? "dayof" : phase === "apres" ? "memories" : "planning")}
+              className="mt-5 rounded-full bg-white px-6 py-3 text-xs font-semibold text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              {phase === "pendant" ? t("world.hero.nextStep.dayof") : phase === "apres" ? t("world.hero.nextStep.memories") : t("world.hero.nextStep.tasks")}
+            </button>
+          </motion.div>}
+
+          {mode === "pro" && !isPublicInfo && phase !== "apres" && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -611,7 +643,7 @@ export function ProjectStage() {
             </button>}
           </motion.div>}
 
-          {(isPublicInfo || phase === "avant") && <motion.button
+          {mode === "pro" && (isPublicInfo || phase === "avant") && <motion.button
             type="button"
             onClick={() => setCountdownsOpen(true)}
             initial={{ opacity: 0, y: 10 }}
@@ -643,7 +675,7 @@ export function ProjectStage() {
               <p className="mt-3 font-display text-4xl font-light">{t("world.countdown.arrived")}</p>
             )}
           </motion.button>}
-          {!isPublicInfo && phase === "pendant" && (
+          {mode === "pro" && !isPublicInfo && phase === "pendant" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-white/10 pt-7">
               <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? t("world.hero.live.now") : t("world.hero.live.next")}</p>
               {featuredDayEvent ? (
@@ -654,7 +686,7 @@ export function ProjectStage() {
               ) : <p className="mt-4 text-sm text-white/45">{t("world.hero.live.empty")}</p>}
             </motion.div>
           )}
-          {!isPublicInfo && phase === "apres" && (
+          {mode === "pro" && !isPublicInfo && phase === "apres" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-white/10 pt-7">
               <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.memories")}</p></div>
               <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.media")}</p></div>
@@ -721,9 +753,11 @@ export function ProjectStage() {
           </section>
         )}
         {view !== "map" && <UniversalTimeline events={visibleEvents} />}
-        <div className="max-w-5xl mx-auto px-6 pt-12 pb-32">
-          <TimelineAudit />
-        </div>
+        {mode === "pro" && (
+          <div className="max-w-5xl mx-auto px-6 pt-12 pb-32">
+            <TimelineAudit />
+          </div>
+        )}
       </main>
 
       <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanel} onViewChange={nextView => {
