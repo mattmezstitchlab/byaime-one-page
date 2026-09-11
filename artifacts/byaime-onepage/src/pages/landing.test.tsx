@@ -27,15 +27,14 @@ describe("Landing (accueil)", () => {
     expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-guides"'));
   });
 
-  it("pose un hero immersif plein écran sur un grand visuel photo, au-dessus du fond signature", () => {
+  it("pose un hero plein écran sur le fond bleu-vert signature, sans visuel photo", () => {
     const markup = render(<LandingPage />);
 
-    // Le shader reste le plan fixe de base ; le hero ajoute un grand visuel photo.
+    // Le shader est le plan fixe de base ; le hero le laisse visible, sans photo.
     expect(markup).toContain('data-testid="landing-shader"');
     expect(markup).toContain("fixed inset-0 z-0");
-    expect(markup).toContain('data-testid="landing-hero-photo"');
-    expect(markup).toContain("landing-hero-astronauts.jpg");
-    expect(markup).toContain("<img");
+    expect(markup).not.toContain('data-testid="landing-hero-photo"');
+    expect(markup).not.toContain("landing-hero-astronauts.jpg");
     // Le hero occupe tout l'écran.
     expect(markup).toContain("min-h-[100dvh]");
     expect(markup).toContain('id="landing-guides"');

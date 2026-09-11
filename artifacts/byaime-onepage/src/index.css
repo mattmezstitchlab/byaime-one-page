@@ -137,34 +137,7 @@
     );
   }
 
-  /* Hero : la photographie est teintée du vert-bleu du fond signature, sans
-     l'écraser. Le bas rejoint le shader de la section suivante, le haut garde
-     juste assez de profondeur pour le titre. */
-  .aime-apple-hero-tint {
-    background:
-      radial-gradient(90% 70% at 50% 12%, rgb(0 187 205 / 0.2), transparent 60%),
-      linear-gradient(
-        to bottom,
-        rgb(2 24 43 / 0.42) 0%,
-        rgb(2 24 43 / 0.12) 34%,
-        rgb(0 40 60 / 0.1) 62%,
-        rgb(0 93 184 / 0.32) 100%
-      );
-  }
-
-  /* Lent mouvement cinématographique des visuels pleine page. */
-  @keyframes aime-apple-kenburns {
-    from { transform: scale(1.04); }
-    to   { transform: scale(1.12) translateY(-0.8%); }
-  }
-  .aime-apple-kenburns {
-    animation: aime-apple-kenburns 32s ease-in-out infinite alternate;
-    transform-origin: 50% 42%;
-    will-change: transform;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .aime-apple-kenburns { animation: none; }
-  }
+  /* Hero : plus de visuel photo — le fond bleu-vert du shader reste visible. */
 
   /* Typographie de la direction Apple. */
   .aime-apple-eyebrow {

@@ -109,33 +109,22 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </div>
       </header>
 
-      {/* ——— Hero : grand visuel immersif + promesse + onboarding ——— */}
+      {/* ——— Hero : la promesse, directement sur le fond bleu-vert signature ——— */}
       <section className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden">
-        <div aria-hidden data-testid="landing-hero-photo" className="absolute inset-0">
-          <img
-            src={getAssetUrl(AIME_VISUALS.hero.backgroundImage)}
-            alt=""
-            className="aime-apple-kenburns h-full w-full object-cover"
-          />
-          {/* Tint vert-bleu du fond signature : le hero rejoint la teinte des
-              sections suivantes, sans voile sombre écrasant. */}
-          <div className="aime-apple-hero-tint absolute inset-0" />
-        </div>
-
         <div className="aime-landing-copy relative z-10 flex w-full max-w-5xl flex-col items-center px-6 pb-24 pt-28 text-center md:pb-28 md:pt-32">
           <Reveal className="flex flex-col items-center">
-            <p className="aime-apple-eyebrow text-white/60">{t("hero.eyebrow")}</p>
-            <h1 className="aime-apple-title mt-6 max-w-3xl text-5xl text-white md:text-7xl">
+            <p className="aime-apple-eyebrow text-white/70 [text-shadow:0_1px_12px_rgba(0,0,0,0.45)]">{t("hero.eyebrow")}</p>
+            <h1 className="aime-apple-title mt-6 max-w-3xl text-5xl text-white md:text-7xl [text-shadow:0_2px_30px_rgba(0,0,0,0.5)]">
               {t("hero.title")}
             </h1>
-            <p className="aime-apple-lead mx-auto mt-6 max-w-xl text-lg text-white/75 md:text-xl">
+            <p className="aime-apple-lead mx-auto mt-6 max-w-xl text-lg text-white/80 md:text-xl [text-shadow:0_1px_16px_rgba(0,0,0,0.55)]">
               {t("hero.subtitle")}
             </p>
           </Reveal>
           <div className="mt-10 w-full">
             <LandingComposer signedIn={signedIn} />
           </div>
-          <p className="aime-apple-confiance mt-8 text-white/55">{t("hero.reassurance")}</p>
+          <p className="aime-apple-confiance mt-8 text-white/60 [text-shadow:0_1px_12px_rgba(0,0,0,0.45)]">{t("hero.reassurance")}</p>
         </div>
       </section>
 
