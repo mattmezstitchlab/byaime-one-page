@@ -2,13 +2,13 @@ import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { 
+import {
   Play, MapPin, Lock, Globe2, Users, Users2, ArrowRight, ArrowLeft, Wallet, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PublicTimelineEvent } from "@workspace/api-client-react";
 import type { TimelineRelation, TimelineVisibility } from "@/lib/types";
-import { getAssetUrl } from "@/lib/assets";
+import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 
 export type ProfileTimelineEvent = Omit<PublicTimelineEvent, "visibility"> & {
   visibility: TimelineVisibility;
@@ -28,12 +28,11 @@ type FeedEvent = {
   raw: ProfileTimelineEvent;
 };
 
-const visualSources = [
-  "images/visual-photo-C-yKtlRN.jpg",
-  "images/visual-event-D_L9Q-iW.jpg",
-  "images/visual-people-Dc5ifsnr.jpg",
-  "images/visual-scene-CMVk_6wW.jpg",
-];
+/*
+ * Les visuels du fil de profil viennent du manifeste : remplacer une photo dans
+ * `public/images/wedding` met à jour l'accueil, la Timeline et le profil d'un coup.
+ */
+const visualSources = AIME_VISUALS.timelineAmbientImages;
 
 const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: boolean }) => {
   const seed = event.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);

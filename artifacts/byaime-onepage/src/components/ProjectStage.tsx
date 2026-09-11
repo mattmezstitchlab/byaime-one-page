@@ -47,7 +47,7 @@ const providerImages: Partial<Record<Provider['category'], string>> = {
 const guestPortraitImages = [...AIME_VISUALS.guestPortraitImages];
 
 function ProviderPortrait({ provider, index = 0 }: { provider: Provider; index?: number }) {
-  const image = providerImages[provider.category] || 'images/visual-service-DXmeWatY.jpg';
+  const image = providerImages[provider.category] || AIME_VISUALS.universes.service;
   return (
     <span
       className="relative block h-9 w-9 overflow-hidden rounded-full border-2 border-black bg-zinc-800"

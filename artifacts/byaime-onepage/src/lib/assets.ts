@@ -4,66 +4,102 @@ export function getAssetUrl(path: string) {
   return `${base}${cleanPath}`;
 }
 
+/*
+ * Visuels du Monde Mariage. Photographies documentales à la lumière naturelle,
+ * palette charbon / ivoire / champagne, rendu argentique 35 mm, produites pour
+ * AIME et servies en lecture seule depuis `public/images/wedding`.
+ *
+ * Les noms sont stables et volontairement descriptifs : remplacer un fichier par
+ * la vraie photo d'un photographe suffit, le manifeste et les composants restent
+ * inchangés.
+ */
+const wedding = {
+  ceremony: 'images/wedding/wedding-ceremony.jpg',
+  reception: 'images/wedding/wedding-reception.jpg',
+  table: 'images/wedding/wedding-table.jpg',
+  portrait: 'images/wedding/wedding-portrait.jpg',
+  guests: 'images/wedding/wedding-guests.jpg',
+  prep: 'images/wedding/wedding-prep.jpg',
+  music: 'images/wedding/wedding-music.jpg',
+  flowers: 'images/wedding/wedding-flowers.jpg',
+  video: 'images/wedding/wedding-video.jpg',
+  transport: 'images/wedding/wedding-transport.jpg',
+} as const;
+
 export const AIME_VISUALS = {
   hero: {
-    backgroundImage: 'images/visual-event-D_L9Q-iW.jpg',
+    backgroundImage: wedding.ceremony,
     backgroundVideo: null as string | null,
   },
   concept: {
-    leftImage: 'images/visual-photo-C-yKtlRN.jpg',
-    rightImage: 'images/visual-institution-CuVWMxit.jpg',
+    leftImage: wedding.portrait,
+    rightImage: wedding.reception,
   },
   world: {
-    heroImage: 'images/visual-hotel-C8zQiMK2.jpg',
+    heroImage: wedding.reception,
   },
   universes: {
-    service: 'images/visual-service-DXmeWatY.jpg',
-    venue: 'images/visual-venue-kJsZKZPp.jpg',
-    food: 'images/visual-food-BYGwGQGu.jpg',
-    photo: 'images/visual-photo-C-yKtlRN.jpg',
-    beaute: 'images/visual-beaute-DJ6SEguK.jpg',
-    patrimoine: 'images/visual-patrimoine-DHVLBfVK.jpg',
-    hotel: 'images/visual-hotel-C8zQiMK2.jpg',
-    people: 'images/visual-people-Dc5ifsnr.jpg',
-    institution: 'images/visual-institution-CuVWMxit.jpg',
-    music: 'images/visual-music-BWv1eToA.jpg',
-    event: 'images/visual-event-D_L9Q-iW.jpg',
-    scene: 'images/visual-scene-CMVk_6wW.jpg',
+    service: wedding.flowers,
+    venue: wedding.ceremony,
+    food: wedding.table,
+    photo: wedding.portrait,
+    beaute: wedding.prep,
+    patrimoine: wedding.reception,
+    hotel: wedding.reception,
+    people: wedding.guests,
+    institution: wedding.video,
+    music: wedding.music,
+    event: wedding.guests,
+    scene: wedding.table,
   } as const,
   timelineAmbientImages: [
-    'images/visual-hotel-C8zQiMK2.jpg',
-    'images/visual-venue-kJsZKZPp.jpg',
-    'images/visual-people-Dc5ifsnr.jpg',
-    'images/visual-food-BYGwGQGu.jpg',
-    'images/visual-music-BWv1eToA.jpg',
-    'images/visual-beaute-DJ6SEguK.jpg',
-    'images/visual-scene-CMVk_6wW.jpg',
-    'images/visual-photo-C-yKtlRN.jpg',
-    'images/visual-institution-CuVWMxit.jpg',
-    'images/visual-patrimoine-DHVLBfVK.jpg',
-    'images/visual-event-D_L9Q-iW.jpg',
-    'images/visual-service-DXmeWatY.jpg',
+    wedding.ceremony,
+    wedding.table,
+    wedding.guests,
+    wedding.portrait,
+    wedding.music,
+    wedding.prep,
+    wedding.flowers,
+    wedding.video,
+    wedding.transport,
+    wedding.reception,
   ] as const,
   providersByCategory: {
-    lieu: 'images/visual-venue-kJsZKZPp.jpg',
-    traiteur: 'images/visual-food-BYGwGQGu.jpg',
-    photo: 'images/visual-photo-C-yKtlRN.jpg',
-    video: 'images/source/visual-video.jpg',
-    fleuriste: 'images/source/visual-flower.jpg',
-    musique: 'images/visual-music-BWv1eToA.jpg',
-    tenue: 'images/source/visual-mode.jpg',
-    beaute: 'images/visual-beaute-DJ6SEguK.jpg',
-    transport: 'images/source/visual-transport.jpg',
+    lieu: wedding.ceremony,
+    traiteur: wedding.table,
+    photo: wedding.portrait,
+    video: wedding.video,
+    fleuriste: wedding.flowers,
+    musique: wedding.music,
+    tenue: wedding.prep,
+    beaute: wedding.prep,
+    transport: wedding.transport,
   } as const,
   guestPortraitImages: [
-    'images/visual-people-Dc5ifsnr.jpg',
-    'images/source/home-ensemble.jpg',
-    'images/source/home-reseau.jpg',
-    'images/visual-event-D_L9Q-iW.jpg',
-    'images/visual-scene-CMVk_6wW.jpg',
-    'images/visual-photo-C-yKtlRN.jpg',
+    wedding.guests,
+    wedding.portrait,
+    wedding.prep,
+    wedding.flowers,
+    wedding.video,
+    wedding.table,
   ] as const,
 } as const;
+
+/** Toutes les images du manifeste, pour les contrôles de cohérence. */
+export const AIME_VISUAL_PATHS: string[] = Array.from(
+  new Set(
+    (() => {
+      const paths: string[] = [];
+      const walk = (value: unknown) => {
+        if (typeof value === 'string') paths.push(value);
+        else if (Array.isArray(value)) value.forEach(walk);
+        else if (value && typeof value === 'object') Object.values(value).forEach(walk);
+      };
+      walk(AIME_VISUALS);
+      return paths.filter(path => path.startsWith('images/'));
+    })(),
+  ),
+);
 
 export function getOptionalAssetUrl(path: string | null | undefined) {
   return path ? getAssetUrl(path) : null;

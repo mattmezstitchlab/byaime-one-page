@@ -112,8 +112,8 @@ function checkHtml(label, html, needles, absent = []) {
 checkHtml(
   "Accueil visiteur, sans brouillon (capsule guidée complète)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-universe"', 'data-testid="landing-intention-submit"', "L’univers d’abord, puis une information à la fois.", "Créer mon espace", "1/6"],
-  ["Laboratoire"],
+  ['data-testid="landing-composer"', 'data-testid="landing-universe"', 'data-testid="landing-intention-submit"', "Notre mariage", "La date du mariage", "1/5", "Créer mon espace", 'data-testid="landing-guide-button"'],
+  ["Choisir l’univers", "1/6", "Laboratoire"],
 );
 
 /* Une intention posée avant la création du compte doit reprendre la main sur
