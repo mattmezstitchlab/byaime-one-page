@@ -190,10 +190,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       } else {
         const cached = localStorage.getItem(`aime-project:${userId}`);
         if (!cached) {
-          /* L'intention posée sur l'accueil avant la création du compte rejoint
-             le compositeur : personne n'a à la retaper. */
+          /* L'intention posée sur l'accueil crée directement le Monde après la
+             création du compte : pas de second champ « Racontez-nous tout » sur
+             la page suivante. La phrase n'est jamais redemandée. */
           const pending = localStorage.getItem(INTENTION_DRAFT_KEY);
-          if (pending) setIntentionText(pending);
+          if (pending && pending.trim().length >= MIN_INTENTION_LENGTH) {
+            localStorage.removeItem(INTENTION_DRAFT_KEY);
+            const draftedProject = createInitialProject(parseIntention(pending), pending);
+            setPendingOwnedProjectId(draftedProject.id);
+            setProject(draftedProject);
+            serverSyncedProjectRef.current = null;
+            trackEvent('project_created');
+            hydratedRef.current = true;
+            setIsHydrated(true);
+            setSyncStatus('saved');
+            return;
+          }
         }
         serverSyncedProjectRef.current = null;
         setProject(cached ? normalizeStoredProject(JSON.parse(cached)) : null);
@@ -214,11 +226,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, [isLoaded, isSignedIn, userId, request]);
 
   useEffect(() => {
-    if (project) {
-      localStorage.setItem(userId ? `aime-project:${userId}` : 'aime-project', JSON.stringify(project));
-    } else {
-      localStorage.removeItem('aime-project');
-      if (userId) localStorage.removeItem(`aime-project:${userId}`);
+    try {
+      if (project) {
+        localStorage.setItem(userId ? `aime-project:${userId}` : 'aime-project', JSON.stringify(project));
+      } else {
+        localStorage.removeItem('aime-project');
+        if (userId) localStorage.removeItem(`aime-project:${userId}`);
+      }
+    } catch {
+      /* Quota dépassé (visuel importé en donnée, par ex.) : la sauvegarde
+         serveur reste la source de vérité ; le cache local peut échouer. */
     }
   }, [project, userId]);
 

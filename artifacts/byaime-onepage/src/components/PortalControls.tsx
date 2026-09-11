@@ -17,6 +17,7 @@ import { focusWorld } from "@/lib/world-focus";
 import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
+import { VisualImportControl } from "./VisualImportControl";
 import { cn } from "@/lib/utils";
 import {
   auditTimelineConnections,
@@ -879,6 +880,19 @@ export function PortalControls({
                 className="field"
               />
             </Field>
+            <div>
+              <span className="mb-2 block text-[10px] uppercase tracking-[.25em] text-foreground/45">
+                Visuel du hero
+              </span>
+              <VisualImportControl
+                label="Image ou vidéo de l’ouverture"
+                value={project.heroVisual}
+                onChange={heroVisual => {
+                  updateProject({ heroVisual });
+                  setNotice("Visuel du hero modifié — enregistrement en cours");
+                }}
+              />
+            </div>
             <button className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Enregistrer l’ouverture
             </button>

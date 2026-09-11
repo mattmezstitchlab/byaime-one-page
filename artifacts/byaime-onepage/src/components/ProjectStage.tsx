@@ -8,6 +8,7 @@ import { Link } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
 import { BottomDock } from './BottomDock';
+import { PhaseTimeCapsule } from './PhaseTimeCapsule';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Grid2X2, Search, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
@@ -24,6 +25,7 @@ import {
   isWeddingDestinationActive,
   getWeddingCapabilities,
   getWeddingNavigation,
+  getWeddingRailItems,
   isWeddingPanelAvailable,
   getInitialWorldPhase,
   type WorldPhase,
@@ -31,6 +33,8 @@ import {
   type WeddingDestination,
   type WeddingPanelId,
 } from '@/lib/wedding-navigation';
+import { setWorldNavState } from '@/lib/world-nav-state';
+import { heroVisualOverlayCss } from '@/lib/types';
 import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
 
 const CREATE_PANEL_TARGETS: Partial<Record<UniversalCreateActionId, WeddingPanelId>> = {
@@ -123,11 +127,21 @@ export function ProjectStage() {
     () => getWeddingNavigation(phase, getWeddingCapabilities(previewRole ?? currentRole)),
     [phase, currentRole, previewRole],
   );
+  const rail = useMemo(
+    () => getWeddingRailItems(phase, getWeddingCapabilities(previewRole ?? currentRole)),
+    [phase, currentRole, previewRole],
+  );
 
   useEffect(() => {
     if (!activePanel) return;
-    if (!isWeddingPanelAvailable(activePanel, navigation, view)) setActivePanel(null);
-  }, [activePanel, navigation, view]);
+    if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
+  }, [activePanel, navigation, view, rail]);
+
+  /* La barre latérale globale éclaire la catégorie du Monde active. */
+  useEffect(() => {
+    setWorldNavState({ active: true, phase, view, panel: activePanel, role: previewRole ?? currentRole });
+    return () => setWorldNavState({ active: false });
+  }, [phase, view, activePanel, previewRole, currentRole]);
 
   useEffect(() => {
     const openCreateTarget = (action: UniversalCreateActionId | undefined) => {
@@ -166,7 +180,11 @@ export function ProjectStage() {
     const applyFocus = (request?: WorldFocusRequest) => {
       if (!request) return;
       if (request.phase === "avant" || request.phase === "pendant" || request.phase === "apres") setPhase(request.phase);
-      if (request.view) setView(request.view as TimelineView);
+      if (request.view) {
+        setView(request.view as TimelineView);
+        /* Une destination de vue (Timeline, Musique) referme le panneau ouvert. */
+        if (!request.panel) setActivePanel(null);
+      }
       if (request.panel) setActivePanel(request.panel as WeddingPanelId);
       if (request.graph) setGraphOpen(true);
       if (request.overview) setOverviewOpen(true);
@@ -206,15 +224,6 @@ export function ProjectStage() {
     ];
     return targets.sort((a, b) => a.time - b.time);
   }, [now, project]);
-
-  const stats = useMemo(() => {
-    if (!project) return { booked: 0, open: 0, engaged: 0 };
-    const booked = project.providers.filter(p => p.status === 'reserve').length;
-    const open = project.providers.filter(p => p.status === 'recherche').length;
-    const engaged = project.payments.reduce((acc, p) => acc + p.amountCents, 0) / 100;
-
-    return { booked, open, engaged };
-  }, [project]);
 
   const completion = useMemo(() => {
     if (!project?.tasks.length) return 0;
@@ -299,7 +308,7 @@ export function ProjectStage() {
     || (activePanel !== null && !["documents", "budget", "music"].includes(activePanel))
     || view === "public-info";
 
-  const panelNavigation: PanelNavItem[] = navigation.primary.map(item => {
+  const panelNavigation: PanelNavItem[] = [...rail, ...navigation.primary].map(item => {
     const destination = item.destination;
     if (destination.kind === "route") return { id: item.id, label: item.label, href: destination.href };
     if (destination.kind === "view") {
@@ -336,7 +345,16 @@ export function ProjectStage() {
     <PanelChromeProvider chrome={panelChrome}>
     <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
       <nav aria-label="Navigation principale du Mariage" className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-3 hide-scrollbar sm:px-6">
+        <div className="flex justify-center px-3 pt-2.5">
+          <PhaseTimeCapsule
+            phase={phase}
+            onPhaseChange={nextPhase => {
+              setPhase(nextPhase);
+              if (view === "public-info") setView("chronological");
+            }}
+          />
+        </div>
+        <div className="mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-2.5 hide-scrollbar sm:px-6">
           {navigation.primary.map(item => item.destination.kind === "route" ? (
             <Link
               key={item.id}
@@ -390,12 +408,29 @@ export function ProjectStage() {
       </nav>
       {/* Cinematic Header */}
       <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
-        <div
-          data-preserve-color
-          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${getAssetUrl(AIME_VISUALS.world.heroImage)})` }}
-        />
-        <div className="aime-world-hero-overlay absolute inset-0 z-10" />
+        {project.heroVisual?.kind === "video" ? (
+          <video
+            data-preserve-color
+            key={project.heroVisual.url}
+            className="absolute inset-0 z-0 h-full w-full object-cover"
+            src={project.heroVisual.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <div
+            data-preserve-color
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${project.heroVisual?.url || getAssetUrl(AIME_VISUALS.world.heroImage)})` }}
+          />
+        )}
+        {project.heroVisual ? (
+          <div className="absolute inset-0 z-10" style={{ background: heroVisualOverlayCss(project.heroVisual) }} aria-hidden />
+        ) : (
+          <div className="aime-world-hero-overlay absolute inset-0 z-10" aria-hidden />
+        )}
         <div className="aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6">
           <motion.button
             type="button"
@@ -444,7 +479,12 @@ export function ProjectStage() {
             </button>
             {project.city.value && (
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
-                {project.city.value}
+                {[project.city.value, project.venue.value].filter(Boolean).join(" · ")}
+              </span>
+            )}
+            {!project.city.value && project.venue.value && (
+              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
+                {project.venue.value}
               </span>
             )}
             {project.guestsCount.value && (
@@ -472,16 +512,6 @@ export function ProjectStage() {
               </span>
                <span>{project.guests.length + project.providers.length} personnes et professionnels</span>
             </button>
-            {stats.open > 0 && (
-              <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
-                {stats.open} professionnels à trouver
-              </span>
-            )}
-            {!previewRole && stats.engaged > 0 && (
-              <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
-                {stats.engaged.toLocaleString('fr-FR')} € déjà prévus
-              </span>
-            )}
             {!previewRole && <button
               type="button"
               onClick={() => setTasksOpen(true)}
@@ -604,7 +634,7 @@ export function ProjectStage() {
         </div>
       </main>
 
-      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} onPanelChange={setActivePanel} onViewChange={nextView => {
+      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanel} onViewChange={nextView => {
         setActivePanel(null);
         setView(nextView);
       }} onPhaseChange={nextPhase => {

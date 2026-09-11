@@ -3,6 +3,7 @@ import {
   getInitialWorldPhase,
   getWeddingCapabilities,
   getWeddingNavigation,
+  getWeddingRailItems,
   isWeddingDestinationActive,
   isWeddingPanelAvailable,
   WORLD_PHASES,
@@ -13,34 +14,52 @@ describe("wedding navigation", () => {
   const phases = ["avant", "pendant", "apres"] as const;
   const roles: WeddingRole[] = ["owner", "planner", "family", "viewer"];
 
-  it.each(phases)("keeps Timeline first for %s", phase => {
-    expect(getWeddingNavigation(phase, getWeddingCapabilities("owner")).primary[0].id).toBe("timeline");
+  it.each(phases)("keeps Timeline first in the left rail for %s", phase => {
+    expect(getWeddingRailItems(phase, getWeddingCapabilities("owner"))[0].id).toBe("timeline");
   });
 
   it.each(phases.flatMap(phase => roles.map(role => [phase, role] as const)))(
-    "keeps %s navigation for %s unique",
+    "keeps %s rail + mode navigation unique for %s",
     (phase, role) => {
-      const navigation = getWeddingNavigation(phase, getWeddingCapabilities(role));
-      const entries = [...navigation.primary, ...navigation.secondary];
+      const capabilities = getWeddingCapabilities(role);
+      const rail = getWeddingRailItems(phase, capabilities);
+      const navigation = getWeddingNavigation(phase, capabilities);
+      const entries = [...rail, ...navigation.primary, ...navigation.secondary];
       expect(new Set(entries.map(entry => entry.id)).size).toBe(entries.length);
       expect(new Set(entries.map(entry => entry.label)).size).toBe(entries.length);
-      expect(navigation.primary[0].id).toBe("timeline");
+      expect(rail[0].id).toBe("timeline");
     },
   );
 
-  it("gives owners and planners all Avant destinations", () => {
+  it("gives owners and planners the common categories in the rail and the Avant mode tools horizontally", () => {
     for (const role of ["owner", "planner"] as const) {
-      expect(getWeddingNavigation("avant", getWeddingCapabilities(role)).primary.map(item => item.label)).toEqual([
-        "Timeline", "Personnes", "Prestataires", "Tâches", "Documents", "Finances", "Musique",
+      const capabilities = getWeddingCapabilities(role);
+      expect(getWeddingRailItems("avant", capabilities).map(item => item.label)).toEqual([
+        "Timeline", "Personnes", "Prestataires", "Tâches", "Finances", "Documents", "Équipe", "Musique",
+      ]);
+      expect(getWeddingNavigation("avant", capabilities).primary.map(item => item.label)).toEqual([
+        "Cérémonie & réception", "Logistique", "Plan de table", "Messages",
       ]);
     }
+  });
+
+  it("only puts period-specific tools in the horizontal navigation of each mode", () => {
+    const owner = getWeddingCapabilities("owner");
+    expect(getWeddingNavigation("pendant", owner).primary.map(item => item.id)).toEqual([
+      "day-of", "public-info", "seating", "contributions",
+    ]);
+    expect(getWeddingNavigation("apres", owner).primary.map(item => item.id)).toEqual([
+      "thanks", "memories", "film", "honeymoon", "contributions", "public-info",
+    ]);
   });
 
   it("keeps finances, private documents, and the delivered film out of family and viewer navigation", () => {
     for (const role of ["family", "viewer"] as const) {
       for (const phase of phases) {
-        const entries = getWeddingNavigation(phase, getWeddingCapabilities(role)).primary
-          .concat(getWeddingNavigation(phase, getWeddingCapabilities(role)).secondary);
+        const capabilities = getWeddingCapabilities(role);
+        const entries = getWeddingRailItems(phase, capabilities)
+          .concat(getWeddingNavigation(phase, capabilities).primary)
+          .concat(getWeddingNavigation(phase, capabilities).secondary);
         expect(entries.map(item => item.id)).not.toContain("finances");
         expect(entries.map(item => item.id)).not.toContain("documents");
         expect(entries.map(item => item.id)).not.toContain("film");
@@ -48,17 +67,28 @@ describe("wedding navigation", () => {
     }
   });
 
+  it("keeps common category panels reachable in every mode through the rail", () => {
+    const owner = getWeddingCapabilities("owner");
+    const rail = getWeddingRailItems("pendant", owner);
+    const navigation = getWeddingNavigation("pendant", owner);
+    // Finances et Tâches n'apparaissent pas dans la rangée du Jour J mais restent ouvrables via la barre latérale.
+    expect(navigation.primary.some(item => item.id === "finances")).toBe(false);
+    expect(isWeddingPanelAvailable("budget", navigation, "chronological", rail)).toBe(true);
+    expect(isWeddingPanelAvailable("planning", navigation, "chronological", rail)).toBe(true);
+  });
+
   it("keeps the music destination active while its linked-track tool is open", () => {
-    const music = getWeddingNavigation("avant", getWeddingCapabilities("owner")).primary.find(item => item.id === "music");
+    const music = getWeddingRailItems("avant", getWeddingCapabilities("owner")).find(item => item.id === "music");
     expect(isWeddingDestinationActive(music!.destination, "music", null)).toBe(true);
     expect(isWeddingDestinationActive(music!.destination, "music", "music")).toBe(true);
     expect(isWeddingDestinationActive(music!.destination, "music", "documents")).toBe(false);
   });
 
-  it("keeps the music panel available only inside music view when not declared in panel navigation", () => {
+  it("keeps the music panel available only inside music view", () => {
+    const rail = getWeddingRailItems("avant", getWeddingCapabilities("owner"));
     const navigation = getWeddingNavigation("avant", getWeddingCapabilities("owner"));
-    expect(isWeddingPanelAvailable("music", navigation, "music")).toBe(true);
-    expect(isWeddingPanelAvailable("music", navigation, "chronological")).toBe(false);
+    expect(isWeddingPanelAvailable("music", navigation, "music", rail)).toBe(true);
+    expect(isWeddingPanelAvailable("music", navigation, "chronological", rail)).toBe(false);
   });
 
   it("keeps the World capsule strictly temporal", () => {

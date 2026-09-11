@@ -78,7 +78,8 @@ const PhaseChips = ({ active }: { active: "avant" | "pendant" | "apres" }) => (
   </div>
 );
 
-const NAV_WEDDING = ["Timeline", "Personnes", "Prestataires", "Tâches", "Documents", "Finances", "Musique"];
+/* Catégories communes à tous les modes — elles vivent dans la barre latérale gauche. */
+const NAV_WEDDING = ["Timeline", "Personnes", "Prestataires", "Tâches", "Finances", "Documents", "Équipe", "Musique"];
 
 /* ————————————————————————————————————————————————
    Démos existantes (déplacées telles quelles)

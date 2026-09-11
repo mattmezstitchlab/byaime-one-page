@@ -16,6 +16,13 @@
     color: white;
     text-shadow: 0 1px 2px rgb(0 0 0 / .5), 0 8px 30px rgb(0 0 0 / .24);
   }
+  /* Lisibilité des titres sur photos de l'accueil, sans voile noir sur le visuel. */
+  .aime-landing-copy > h1,
+  .aime-landing-copy > h2,
+  .aime-landing-copy > h3,
+  .aime-landing-copy > p {
+    text-shadow: 0 1px 3px rgb(0 0 0 / .7), 0 8px 28px rgb(0 0 0 / .55);
+  }
   .aime-cinematic-surface {
     --background: 0 0% 2%;
     --foreground: 40 10% 98%;

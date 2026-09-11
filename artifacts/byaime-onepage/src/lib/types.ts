@@ -202,6 +202,57 @@ export type MessageLog = {
   note?: string;
 };
 
+/**
+ * Visuel personnalisé importé sur le hero du Monde ou sur un Moment.
+ * - image : fichier lu en local (donnée) ou URL distante ;
+ * - video : URL de vidéo (mp4, etc.).
+ * `overlay` est la force du filtre noir (0–100) qui garantit la lisibilité du texte.
+ */
+export type WorldVisual = {
+  kind: "image" | "video";
+  url: string;
+  name?: string;
+  overlay?: number;
+};
+
+export const DEFAULT_VISUAL_OVERLAY = 60;
+
+export function normalizeWorldVisual(value: unknown): WorldVisual | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<WorldVisual>;
+  if (typeof candidate.url !== "string" || !candidate.url.trim()) return null;
+  if (candidate.kind !== "image" && candidate.kind !== "video") return null;
+  const overlay = Number(candidate.overlay);
+  return {
+    kind: candidate.kind,
+    url: candidate.url,
+    ...(typeof candidate.name === "string" && candidate.name ? { name: candidate.name } : {}),
+    ...(Number.isFinite(overlay) && overlay >= 0 && overlay <= 100 ? { overlay: Math.round(overlay) } : {}),
+  };
+}
+
+/** Force du filtre noir d'un visuel, valeur par défaut comprise. */
+export function visualOverlayStrength(visual?: WorldVisual | null): number {
+  const value = Number(visual?.overlay);
+  return Number.isFinite(value) && value >= 0 && value <= 100 ? value : DEFAULT_VISUAL_OVERLAY;
+}
+
+/**
+ * Dégradé du hero du Monde : le filtre noir suit le réglage utilisateur,
+ * le fondu final vers la couleur de page reste pour fondre le visuel dans le contenu.
+ */
+export function heroVisualOverlayCss(visual?: WorldVisual | null): string {
+  const factor = visualOverlayStrength(visual) / DEFAULT_VISUAL_OVERLAY;
+  const top = Math.min(0.9, 0.34 * factor);
+  const middle = Math.min(0.95, 0.6 * factor);
+  return `linear-gradient(to bottom, rgba(0,0,0,${top.toFixed(3)}) 0%, rgba(0,0,0,${middle.toFixed(3)}) 42%, hsl(var(--background) / 0.96) 100%)`;
+}
+
+/** Voile noir plat des scènes de la Timeline ( Moments ), déduit du réglage. */
+export function momentVisualOverlayAlpha(visual?: WorldVisual | null): number {
+  return Math.round((visualOverlayStrength(visual) / 100) * 0.85 * 100) / 100;
+}
+
 export type TimelineStatus = "prepare" | "execute" | "en_attente" | "a_valider" | "bloque" | "echoue";
 export type TimelinePhase = "avant" | "pendant" | "apres";
 export type TimelineProvenance = "real" | "demo" | "suggested" | "integration";
@@ -240,6 +291,7 @@ export type TimelineEvent = {
   visibility?: TimelineVisibility;
   audience?: string[];
   propagation?: PropagationState;
+  visual?: WorldVisual | null;
 };
 
 export type WorldProject = {
@@ -252,6 +304,7 @@ export type WorldProject = {
     published: boolean;
   };
   universe: string;
+  heroVisual?: WorldVisual | null;
   pivot: Fact<number>;
   city: Fact<string | null>;
   venue: Fact<string | null>;

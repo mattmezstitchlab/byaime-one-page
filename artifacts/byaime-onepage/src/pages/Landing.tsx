@@ -30,27 +30,29 @@ const steps = [
   "Organisez votre mariage sereinement",
 ];
 
-/** Un fond photographique, assombri, sur lequel le texte reste lisible dans les deux thèmes. */
+/**
+ * Un fond photographique plein cadre, sans filtre noir superposé : les photos
+ * gardent leurs couleurs. La lisibilité des titres est portée par une ombre de
+ * texte légère (`.aime-landing-copy`), pas par un voile sur le visuel.
+ */
 function VisualBand({
   image,
   className = "",
-  opacity = "opacity-40",
 }: {
   image: string;
   className?: string;
-  opacity?: string;
 }) {
   return (
-    <>
-      <div
-        aria-hidden
-        className={`absolute inset-0 bg-cover bg-center bg-no-repeat ${opacity} ${className}`}
-        style={{ backgroundImage: `url(${getAssetUrl(image)})` }}
-      />
-      <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/55 to-black/92" />
-    </>
+    <div
+      aria-hidden
+      className={`absolute inset-0 bg-cover bg-center bg-no-repeat ${className}`}
+      style={{ backgroundImage: `url(${getAssetUrl(image)})` }}
+    />
   );
 }
+
+/** Sélection de guides montrés sur l'accueil — tout le catalogue est sur /guides. */
+const LANDING_FEATURED_GUIDES = ["architecture", "intention", "ai-plus-me", "budget", "dayof", "memories"];
 
 /**
  * L'accueil d'AIME — et son unique porte d'entrée : cliquer sur « AIME »
@@ -94,8 +96,8 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
 
       {/* ——— Le hero : le champ de saisie, rien d'autre. ——— */}
       <section className="aime-cinematic-surface relative overflow-hidden border-b border-white/10">
-        <VisualBand image={AIME_VISUALS.hero.backgroundImage} opacity="opacity-70" />
-        <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 pb-24 pt-32 text-center md:px-10 md:pb-32 md:pt-40">
+        <VisualBand image={AIME_VISUALS.hero.backgroundImage} />
+        <div className="aime-landing-copy relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 pb-24 pt-32 text-center md:px-10 md:pb-32 md:pt-40">
           <p className="text-[10px] uppercase tracking-[.35em] text-white/55">L’art de créer des liens</p>
           <h1 className="mt-7 font-display text-6xl font-light tracking-[.14em] text-white md:text-8xl">AIME</h1>
           <p className="mt-7 max-w-2xl text-base font-light leading-relaxed text-white/75 md:text-lg">
@@ -112,20 +114,20 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
 
       {/* ——— Les guides, tout de suite sous le hero : une rangée par catégorie. ——— */}
       <section data-testid="landing-guides" className="relative overflow-hidden border-b border-white/10 bg-black py-20 md:py-28">
-        <VisualBand image={AIME_VISUALS.universes.hotel} opacity="opacity-25" />
+        <VisualBand image={AIME_VISUALS.universes.hotel} />
         <div className="relative">
-          <div className="mx-auto max-w-3xl px-6 text-center">
-            <p className="text-[10px] uppercase tracking-[.35em] text-white/50">Guides</p>
+          <div className="aime-landing-copy mx-auto max-w-3xl px-6 text-center">
+            <p className="text-[10px] uppercase tracking-[.35em] text-white/60">Guides</p>
             <h2 className="mt-6 font-display text-4xl font-light leading-tight text-white md:text-6xl">
               Comprendre avant de cliquer.
             </h2>
-            <p className="mt-5 text-sm font-light leading-relaxed text-white/65 md:text-base">
-              Faites défiler les catégories : l&rsquo;animation répond au centre et montre l&rsquo;interface
-              telle qu&rsquo;elle est, pas une promesse.
+            <p className="mt-5 text-sm font-light leading-relaxed text-white/75 md:text-base">
+              Six repères pour commencer. Toutes les démonstrations animées — une vingtaine — vous attendent
+              sur la page Guides, classées dans l&rsquo;ordre réel du mariage.
             </p>
           </div>
           <div className="mt-12">
-            <GuidesExplorer idPrefix="landing-guides" tone="onDark" screens="panneaux" />
+            <GuidesExplorer idPrefix="landing-guides" tone="onDark" screens="panneaux" featuredDemos={LANDING_FEATURED_GUIDES} />
           </div>
           <p className="mt-10 text-center">
             <Link href="/guides" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-3 text-xs text-white/80 transition hover:border-white/55 hover:bg-white/10 hover:text-white">
@@ -138,9 +140,9 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
 
       {/* ——— Le produit, sur un grand visuel. ——— */}
       <section className="relative overflow-hidden border-b border-white/10 bg-black">
-        <VisualBand image={AIME_VISUALS.universes.event} opacity="opacity-35" />
+        <VisualBand image={AIME_VISUALS.universes.event} />
         <div className="relative mx-auto grid max-w-6xl gap-14 px-6 py-24 md:px-10 md:py-32 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
-          <div>
+          <div className="aime-landing-copy">
             <p className="text-[10px] uppercase tracking-[.3em] text-white/50">Tout votre mariage au même endroit</p>
             <h2 className="mt-7 font-display text-4xl font-light leading-tight text-white md:text-6xl">
               De la première idée au Jour J.
@@ -208,8 +210,8 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
 
       {/* ——— La sortie, sur un grand visuel. ——— */}
       <section className="relative overflow-hidden border-b border-white/10 bg-black px-6 py-28 text-center md:py-36">
-        <VisualBand image={AIME_VISUALS.universes.music} opacity="opacity-30" />
-        <div className="relative mx-auto max-w-3xl">
+        <VisualBand image={AIME_VISUALS.universes.music} />
+        <div className="aime-landing-copy relative mx-auto max-w-3xl">
           <h2 className="font-display text-4xl font-light leading-tight text-white md:text-6xl">
             Prêts à organiser votre mariage autrement ?
           </h2>

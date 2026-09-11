@@ -1,9 +1,10 @@
-import type { TimelineEvent, WorldProject } from "./types";
+import { normalizeWorldVisual, type TimelineEvent, type WorldProject } from "./types";
 import { generateWeddingTimeline } from "./seed-data";
 import { TIMELINE_SCHEMA_VERSION } from "./timeline-graph";
 
 const defaults = (event: TimelineEvent): TimelineEvent => ({
   ...event,
+  visual: normalizeWorldVisual(event.visual),
   durationMinutes: event.durationMinutes ?? (event.kind === "evenement" ? 60 : undefined),
   relations: Array.isArray(event.relations) ? event.relations : [],
   dependencyIds: Array.isArray(event.dependencyIds) ? event.dependencyIds : [],
@@ -31,6 +32,7 @@ export function normalizeProject(value: WorldProject): WorldProject {
 
   return {
     ...value,
+    heroVisual: normalizeWorldVisual(value.heroVisual),
     schemaVersion: TIMELINE_SCHEMA_VERSION,
     storyVersion: value.universe === "Mariage" ? 1 : value.storyVersion,
     timeline: enrichedTimeline.sort((a, b) => a.time - b.time),

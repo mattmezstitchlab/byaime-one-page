@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -12,7 +12,7 @@ import {
 import { useLocation } from "wouter";
 import { useProject } from "@/store/project-store";
 import { parseIntention } from "@/lib/parser";
-import { MIN_INTENTION_LENGTH, readIntentionDraft, saveIntentionDraft } from "@/lib/intention-draft";
+import { MIN_INTENTION_LENGTH, readIntentionDraft, saveIntentionDraft, clearIntentionDraft } from "@/lib/intention-draft";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
@@ -179,6 +179,25 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
   };
 
   const canFinish = mode === "free" ? freeText.trim().length >= MIN_INTENTION_LENGTH : answered.length > 0;
+
+  /*
+   * Une phrase déjà posée avant la création du compte ne doit pas afficher un
+   * second champ à la page suivante : pour une personne connectée qui revient
+   * sur l'accueil avec un brouillon, on ouvre directement son Monde.
+   */
+  useEffect(() => {
+    if (!signedIn || !savedDraft || savedDraft.trim().length < MIN_INTENTION_LENGTH) return;
+    setMode("free");
+    setFreeText(savedDraft);
+    const intention = savedDraft.trim();
+    setIntentionText(intention);
+    if (createProjectFromIntention(intention)) {
+      clearIntentionDraft();
+      navigate("/user-portal");
+    }
+    // Une seule reprise à l'ouverture : jamais de nouvelle soumission ensuite.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div data-testid="landing-composer" className="mx-auto w-full max-w-2xl text-left">

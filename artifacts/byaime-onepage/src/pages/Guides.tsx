@@ -155,12 +155,16 @@ function DemoRail({
   tone,
   activeDemo,
   onSelect,
+  featuredDemos,
 }: {
   idPrefix: string;
   tone: RailTone;
   activeDemo: string;
   onSelect: (demoId: string) => void;
+  /** Une sélection courte sur l'accueil ; tout le catalogue reste sur la page Guides. */
+  featuredDemos?: string[];
 }) {
+  const featured = featuredDemos ? new Set(featuredDemos) : null;
   return (
     <div
       data-testid={`${idPrefix}-menu`}
@@ -170,7 +174,8 @@ function DemoRail({
       className={railClasses}
     >
       {DEMO_CATEGORIES.map(category => {
-        const demos = DEMOS.filter(demo => demo.category === category.id);
+        let demos = DEMOS.filter(demo => demo.category === category.id);
+        if (featured) demos = demos.filter(demo => featured.has(demo.id));
         if (!demos.length) return null;
         return (
           <RailGroup key={category.id} label={category.label} tone={tone}>
@@ -242,6 +247,7 @@ function ScreensRail({
   activeDemo,
   onSelect,
   only,
+  featuredDemos,
 }: {
   idPrefix: string;
   tone: RailTone;
@@ -249,8 +255,18 @@ function ScreensRail({
   onSelect: (demoId: string) => void;
   /** Une seule rangée sur l'accueil, les trois sur la page Guides. */
   only?: string[];
+  /** Sur l'accueil, ne montre que les écrans reliés aux démos mises en avant. */
+  featuredDemos?: string[];
 }) {
-  const screens = useMemo(() => Object.keys(AIME_SCREENS) as AimeScreenId[], []);
+  const screens = useMemo(() => {
+    const all = Object.keys(AIME_SCREENS) as AimeScreenId[];
+    if (!featuredDemos) return all;
+    const featured = new Set(featuredDemos);
+    return all.filter(screenId => {
+      const demoId = demoIdForScreen(screenId);
+      return demoId !== null && featured.has(demoId);
+    });
+  }, [featuredDemos]);
   const groups = only ? SCREEN_GROUPS.filter(group => only.includes(group.id)) : SCREEN_GROUPS;
   return (
     <div data-testid={`${idPrefix}-screens`} className="space-y-7">
@@ -304,13 +320,17 @@ export function GuidesExplorer({
   idPrefix = "guides",
   tone = "light",
   screens = "all",
+  featuredDemos,
 }: {
   idPrefix?: string;
   tone?: RailTone;
   /** La page Guides garde les trois rangées ; l'accueil ne montre que les panneaux. */
   screens?: "all" | "panneaux" | "none";
+  /** Sélection courte pour l'accueil : le catalogue complet vit sur /guides. */
+  featuredDemos?: string[];
 }) {
-  const [activeDemo, setActiveDemo] = useState(DEMOS[0].id);
+  const initialDemo = featuredDemos && DEMOS.some(demo => demo.id === featuredDemos[0]) ? featuredDemos[0] : DEMOS[0].id;
+  const [activeDemo, setActiveDemo] = useState(initialDemo);
   const activeConfig = DEMOS.find(demo => demo.id === activeDemo) ?? DEMOS[0];
 
   const selectDemo = (demoId: string) => {
@@ -322,7 +342,7 @@ export function GuidesExplorer({
 
   return (
     <div data-testid={`${idPrefix}-explorer`} className="space-y-8">
-      <DemoRail idPrefix={idPrefix} tone={tone} activeDemo={activeDemo} onSelect={selectDemo} />
+      <DemoRail idPrefix={idPrefix} tone={tone} activeDemo={activeDemo} onSelect={selectDemo} featuredDemos={featuredDemos} />
 
       <div id={`${idPrefix}-player`} data-testid={`${idPrefix}-player`} className="mx-auto w-full max-w-3xl px-6 md:px-10">
         <AnimatePresence mode="wait">
@@ -348,6 +368,7 @@ export function GuidesExplorer({
           activeDemo={activeDemo}
           onSelect={selectDemo}
           only={screens === "panneaux" ? ["panneaux"] : undefined}
+          featuredDemos={featuredDemos}
         />
       )}
     </div>

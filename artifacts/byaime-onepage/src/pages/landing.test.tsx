@@ -64,7 +64,11 @@ describe("Landing (accueil)", () => {
     expect(markup.match(/<h1/g)).toHaveLength(1);
     // Le visuel de fond est bien servi depuis le manifeste, pas un chemin codé en dur.
     expect(markup).toContain("images/wedding/wedding-reception.jpg");
-    expect(markup.match(/data-testid="demo-select-/g)?.length).toBeGreaterThan(20);
+    // L'accueil ne garde qu'une sélection de guides ; le catalogue complet est sur /guides.
+    expect(markup.match(/data-testid="demo-select-/g)).toHaveLength(6);
+    // Les filtres noirs superposés aux visuels ont disparu de l'accueil.
+    expect(markup).not.toContain("from-black/85");
+    expect(markup).not.toContain("via-black/55");
   });
 
   it("ne parle plus jamais de Laboratoire", () => {
