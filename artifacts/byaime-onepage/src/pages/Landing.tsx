@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { AppearanceToggle } from "@/components/AppearanceToggle";
-import { ChevronRight, Compass } from "lucide-react";
+import { ChevronDown, ChevronRight, Compass } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
 import { useRouteMeta } from "@/lib/page-meta";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
@@ -51,6 +51,25 @@ function VisualBand({
   );
 }
 
+/**
+ * Fond immersif du hero : un plan FIXE plein écran. Le reste de la landing
+ * (sections opaques) glisse par-dessus quand on scrolle, alors que le visuel
+ * reste ancré au viewport. Seuls des liserés dégradés en haut et en bas
+ * assurent la lisibilité — le centre garde les vraies couleurs de la photo.
+ */
+function ImmersiveHeroBackdrop({ image }: { image: string }) {
+  return (
+    <div aria-hidden className="fixed inset-0 z-0 overflow-hidden bg-black">
+      <img
+        src={getAssetUrl(image)}
+        alt=""
+        className="aime-hero-drift h-full w-full object-cover object-center"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,.42)_0%,rgba(0,0,0,.08)_20%,transparent_38%,transparent_66%,rgba(0,0,0,.55)_100%)]" />
+    </div>
+  );
+}
+
 /** Sélection de guides montrés sur l'accueil — tout le catalogue est sur /guides. */
 const LANDING_FEATURED_GUIDES = ["architecture", "intention", "ai-plus-me", "budget", "dayof", "memories"];
 
@@ -67,7 +86,9 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
   });
 
   return (
-    <main data-testid="landing" className="min-h-[100dvh] bg-background text-foreground">
+    <main data-testid="landing" className="min-h-[100dvh] text-foreground">
+      {/* Le hero est un plan fixe plein écran : tout le contenu suivant glisse par-dessus. */}
+      <ImmersiveHeroBackdrop image={AIME_VISUALS.hero.backgroundImage} />
       <header className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 md:px-8">
           <Link href="/" aria-label="AIME — retour à l’accueil" className="inline-flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">
@@ -94,10 +115,9 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
         </div>
       </header>
 
-      {/* ——— Le hero : le champ de saisie, rien d'autre. ——— */}
-      <section className="aime-cinematic-surface relative overflow-hidden border-b border-white/10">
-        <VisualBand image={AIME_VISUALS.hero.backgroundImage} />
-        <div className="aime-landing-copy relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 pb-24 pt-32 text-center md:px-10 md:pb-32 md:pt-40">
+      {/* ——— Le hero : plein écran, immersif, le champ de saisie au centre. ——— */}
+      <section className="aime-cinematic-surface relative z-10 flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 md:px-10">
+        <div className="aime-landing-copy relative flex w-full max-w-5xl flex-col items-center pb-24 pt-28 text-center md:pb-28 md:pt-32">
           <p className="text-[10px] uppercase tracking-[.35em] text-white/55">L’art de créer des liens</p>
           <h1 className="mt-7 font-display text-6xl font-light tracking-[.14em] text-white md:text-8xl">AIME</h1>
           <p className="mt-7 max-w-2xl text-base font-light leading-relaxed text-white/75 md:text-lg">
@@ -110,10 +130,19 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
             Gratuit pour commencer. Aucun engagement.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => document.getElementById("landing-guides")?.scrollIntoView({ behavior: "smooth" })}
+          aria-label="Faire défiler vers la suite"
+          className="aime-landing-copy absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1.5 text-white/60 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+        >
+          <span className="text-[9px] uppercase tracking-[.32em]">Défiler</span>
+          <ChevronDown aria-hidden className="h-4 w-4 animate-bounce motion-reduce:animate-none" />
+        </button>
       </section>
 
       {/* ——— Les guides, tout de suite sous le hero : une rangée par catégorie. ——— */}
-      <section data-testid="landing-guides" className="relative overflow-hidden border-b border-white/10 bg-black py-20 md:py-28">
+      <section id="landing-guides" data-testid="landing-guides" className="relative z-10 overflow-hidden border-b border-white/10 bg-black py-20 md:py-28">
         <VisualBand image={AIME_VISUALS.universes.hotel} />
         <div className="relative">
           <div className="aime-landing-copy mx-auto max-w-3xl px-6 text-center">
@@ -139,7 +168,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
       </section>
 
       {/* ——— Le produit, sur un grand visuel. ——— */}
-      <section className="relative overflow-hidden border-b border-white/10 bg-black">
+      <section className="relative z-10 overflow-hidden border-b border-white/10 bg-black">
         <VisualBand image={AIME_VISUALS.universes.event} />
         <div className="relative mx-auto grid max-w-6xl gap-14 px-6 py-24 md:px-10 md:py-32 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
           <div className="aime-landing-copy">
@@ -175,7 +204,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
       </section>
 
       {/* ——— Le propos, sans cartes. ——— */}
-      <section className="border-b border-border px-6 py-20 md:px-10 md:py-28">
+      <section className="relative z-10 border-b border-border bg-background px-6 py-20 md:px-10 md:py-28">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="font-display text-3xl font-light leading-tight md:text-5xl">
             Organiser un mariage, ce n’est pas seulement choisir une date et une salle.
@@ -196,7 +225,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
       </section>
 
       {/* ——— Trois gestes, trois chiffres. ——— */}
-      <section className="border-b border-border px-6 py-16 md:px-10 md:py-20">
+      <section className="relative z-10 border-b border-border bg-background px-6 py-16 md:px-10 md:py-20">
         <p className="mx-auto max-w-5xl text-[10px] uppercase tracking-[.28em] text-foreground/50">Comment ça marche</p>
         <ol className="mx-auto mt-10 grid max-w-5xl gap-10 sm:grid-cols-3">
           {steps.map((step, index) => (
@@ -209,7 +238,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
       </section>
 
       {/* ——— La sortie, sur un grand visuel. ——— */}
-      <section className="relative overflow-hidden border-b border-white/10 bg-black px-6 py-28 text-center md:py-36">
+      <section className="relative z-10 overflow-hidden border-b border-white/10 bg-black px-6 py-28 text-center md:py-36">
         <VisualBand image={AIME_VISUALS.universes.music} />
         <div className="aime-landing-copy relative mx-auto max-w-3xl">
           <h2 className="font-display text-4xl font-light leading-tight text-white md:text-6xl">
@@ -225,7 +254,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
         </div>
       </section>
 
-      <footer className="px-6 py-12 md:px-10">
+      <footer className="relative z-10 bg-background px-6 py-12 md:px-10">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 text-xs text-foreground/70 md:flex-row md:items-center md:justify-between">
           <p className="font-display tracking-[.28em] text-foreground/70">AIME</p>
           <nav aria-label="Pages du site" className="flex flex-wrap gap-x-5 gap-y-2">

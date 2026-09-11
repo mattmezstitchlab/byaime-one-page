@@ -24,6 +24,21 @@ describe("Landing (accueil)", () => {
     expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf("Aperçu produit"));
   });
 
+  it("pose un hero immersif plein écran à fond fixe, avec le visuel des astronautes et un appel à défiler", () => {
+    const markup = render(<LandingPage />);
+
+    // Le fond est fixe au viewport et animé d'une lente dérive cinématographique.
+    expect(markup).toContain('fixed inset-0 z-0');
+    expect(markup).toContain('landing-hero-astronauts.jpg');
+    expect(markup).toContain('aime-hero-drift');
+    // Le hero occupe tout l'écran et le contenu suivant glisse par-dessus (z-10 + fonds opaques).
+    expect(markup).toContain('min-h-[100dvh]');
+    expect(markup).toContain('id="landing-guides"');
+    expect(markup).toContain('Faire défiler vers la suite');
+    const guidesStart = markup.indexOf('id="landing-guides"');
+    expect(markup.slice(guidesStart, guidesStart + 240)).toContain('relative z-10');
+  });
+
   it("garde une seule hiérarchie de titre et le nom AIME cliquable vers l'accueil", () => {
     const markup = render(<LandingPage />);
 

@@ -23,6 +23,19 @@
   .aime-landing-copy > p {
     text-shadow: 0 1px 3px rgb(0 0 0 / .7), 0 8px 28px rgb(0 0 0 / .55);
   }
+  /* Hero immersif de l'accueil : lente dérive cinématographique du plan fixe. */
+  @keyframes aime-hero-drift {
+    from { transform: scale(1.03) translateY(0); }
+    to   { transform: scale(1.12) translateY(-1.5%); }
+  }
+  .aime-hero-drift {
+    animation: aime-hero-drift 32s ease-in-out infinite alternate;
+    transform-origin: 50% 42%;
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aime-hero-drift { animation: none; }
+  }
   .aime-cinematic-surface {
     --background: 0 0% 2%;
     --foreground: 40 10% 98%;
