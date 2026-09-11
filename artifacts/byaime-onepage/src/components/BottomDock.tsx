@@ -10,9 +10,9 @@ import { CenteredBlock } from "./CenteredBlock";
 import type { TimelineView } from "@/lib/timeline-graph";
 import {
   getPanelContextGroup,
+  getWeddingPanelLabel,
   isWeddingDestinationActive,
   WEDDING_MODULE_IDS,
-  WEDDING_PANEL_LABELS,
   type WorldPhase,
   type WeddingDestination,
   type WeddingModule,
@@ -20,6 +20,7 @@ import {
   type WeddingPanelId,
   type WeddingRailItem,
 } from "@/lib/wedding-navigation";
+import { useI18n } from "@/lib/i18n";
 
 /*
  * Les panneaux plein écran du Monde. Les contrôles de navigation ont quitté le
@@ -47,10 +48,11 @@ export function BottomDock({
   onViewChange: (view: TimelineView) => void;
   onPanelChange: (panel: WeddingPanelId | null) => void;
 }) {
+  const { t, locale } = useI18n();
   const isSections = activePanel === "sections";
   const isModule = activePanel !== null && WEDDING_MODULE_IDS.some(module => module === activePanel);
   const contextGroup = activePanel
-    ? getPanelContextGroup(activePanel, rail, navigation, view)
+    ? getPanelContextGroup(activePanel, rail, navigation, view, locale)
     : null;
   const openDestination = (destination: WeddingDestination) => {
     if (destination.kind === "panel") onPanelChange(destination.panel);
@@ -66,12 +68,12 @@ export function BottomDock({
   );
 
   return <AnimatePresence>{activePanel && <CenteredBlock
-    eyebrow={isSections ? "Navigation du Monde" : (contextGroup?.label ?? "Navigation du Monde")}
-    title={WEDDING_PANEL_LABELS[activePanel]}
+    eyebrow={isSections ? t("world.group.navigation") : (contextGroup?.label ?? t("world.group.navigation"))}
+    title={getWeddingPanelLabel(activePanel, locale)}
     size="xl"
     onClose={() => onPanelChange(null)}
     leading={!isSections ? (
-      <button onClick={() => onPanelChange("sections")} aria-label="Retour à toutes les sections" className="mt-5 rounded-full p-2 text-foreground/45 transition hover:bg-foreground/5 hover:text-foreground"><ChevronLeft className="h-4 w-4" /></button>
+      <button onClick={() => onPanelChange("sections")} aria-label={t("world.nav.back")} className="mt-5 rounded-full p-2 text-foreground/45 transition hover:bg-foreground/5 hover:text-foreground"><ChevronLeft className="h-4 w-4" /></button>
     ) : undefined}
   >
     <div className="mx-auto max-w-5xl">

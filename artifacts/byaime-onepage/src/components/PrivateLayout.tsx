@@ -7,6 +7,7 @@ import {
   FolderClosed,
   Globe2,
   HelpCircle,
+  Languages,
   ListChecks,
   Menu,
   Moon,
@@ -31,7 +32,7 @@ import { useProject } from '@/store/project-store';
 import {
   getPrivateDestinationId,
   getDesktopRailReservedWidth,
-  PRIVATE_PRIMARY_NAVIGATION,
+  getPrivateNavigation,
   type PrivateDestinationId,
 } from '@/lib/private-navigation';
 import {
@@ -41,6 +42,7 @@ import {
   type WeddingRailIcon,
 } from '@/lib/wedding-navigation';
 import { focusWorldDestination, getWorldNavState, subscribeWorldNav, type WorldNavState } from '@/lib/world-nav-state';
+import { useI18n } from '@/lib/i18n';
 
 const WORLD_RAIL_ICONS: Record<WeddingRailIcon, ComponentType<{ className?: string }>> = {
   timeline: Clock3,
@@ -53,8 +55,6 @@ const WORLD_RAIL_ICONS: Record<WeddingRailIcon, ComponentType<{ className?: stri
   music: Music,
 };
 
-const PRIVATE_HOME_ARIA_LABEL = "Retour à l’accueil AIME";
-
 export function PrivateHomeLink({
   className,
   textClassName,
@@ -64,10 +64,11 @@ export function PrivateHomeLink({
   textClassName?: string;
   labelClassName?: string;
 }) {
+  const { t } = useI18n();
   return (
     <Link
       href="/"
-      aria-label={PRIVATE_HOME_ARIA_LABEL}
+      aria-label={t("private.home.aria")}
       data-testid="private-home-logo"
       className={cn("inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}
     >
@@ -79,16 +80,17 @@ export function PrivateHomeLink({
 }
 
 export function ActionCenter({ destination, onOpenMe }: { destination: PrivateDestinationId; onOpenMe: () => void }) {
+  const { t } = useI18n();
   return (
     <nav
-      aria-label="Centre d’action AI plus ME"
+      aria-label={t("private.action.group")}
       className="fixed bottom-6 left-1/2 z-[65] flex h-12 -translate-x-1/2 items-center gap-1.5 rounded-full border border-border/40 bg-background/80 p-1 shadow-xl backdrop-blur-xl md:bottom-8"
     >
       <button
         type="button"
         onClick={() => window.dispatchEvent(new Event("aime:open-ai"))}
         className="flex h-full items-center justify-center rounded-full px-5 text-sm font-display font-medium tracking-wide text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Ouvrir l’aide contextuelle AI"
+        aria-label={t("private.action.ai")}
       >
         AI
       </button>
@@ -96,7 +98,7 @@ export function ActionCenter({ destination, onOpenMe }: { destination: PrivateDe
         type="button"
         onClick={() => window.dispatchEvent(new Event("aime:open-create"))}
         className="flex h-full w-12 items-center justify-center rounded-full bg-brand-accent text-brand-accent-foreground shadow-[0_0_15px_hsl(var(--brand-accent)/0.4)] transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-        aria-label="Créer ou relier"
+        aria-label={t("private.action.create")}
       >
         <Plus className="h-5 w-5" />
       </button>
@@ -104,7 +106,7 @@ export function ActionCenter({ destination, onOpenMe }: { destination: PrivateDe
         type="button"
         onClick={onOpenMe}
         className="flex h-full items-center justify-center rounded-full px-5 text-sm font-display font-medium tracking-wide text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Ouvrir mon espace ME"
+        aria-label={t("private.action.me")}
       >
         ME
       </button>
@@ -176,6 +178,7 @@ function NavItem({
  */
 function WorldRailSection({ isPinnedContext }: { isPinnedContext?: boolean }) {
   const { currentRole } = useProject();
+  const { t, locale } = useI18n();
   const [worldNav, setWorldNav] = useState<WorldNavState>(() => getWorldNavState());
 
   useEffect(() => subscribeWorldNav(setWorldNav), []);
@@ -183,7 +186,7 @@ function WorldRailSection({ isPinnedContext }: { isPinnedContext?: boolean }) {
   if (!worldNav.active) return null;
 
   const capabilities = getWeddingCapabilities(worldNav.role || currentRole);
-  const rail = getWeddingRailItems(worldNav.phase, capabilities);
+  const rail = getWeddingRailItems(worldNav.phase, capabilities, locale);
 
   return (
     <div className="border-t border-border/30 pt-3">
@@ -191,7 +194,7 @@ function WorldRailSection({ isPinnedContext }: { isPinnedContext?: boolean }) {
         "mb-2 pl-[20px] text-[9px] uppercase tracking-[.2em] text-foreground/35 transition-opacity duration-200",
         isPinnedContext === false && "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100"
       )}>
-        Monde
+        {t("private.rail.world")}
       </p>
       <div className="space-y-1">
         {rail.map(item => {
@@ -284,6 +287,7 @@ function BottomActionButton({
 export function PrivateLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { project } = useProject();
+  const { t, locale, setLocale } = useI18n();
   const [openMeSignal, setOpenMeSignal] = useState(0);
   const [appearance, setAppearance] = useState<"dark" | "light">(() => localStorage.getItem("aime-appearance") === "light" ? "light" : "dark");
   const [isPinned, setIsPinned] = useState(() => localStorage.getItem("aime-rail-pinned") === "true");
@@ -292,8 +296,9 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const mobileDrawerRef = useRef<HTMLDivElement>(null);
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
+  const privateNavigation = getPrivateNavigation(locale);
   const activeDestination = getPrivateDestinationId(location);
-  const activeItem = PRIVATE_PRIMARY_NAVIGATION.find(item => item.id === activeDestination)!;
+  const activeItem = privateNavigation.find(item => item.id === activeDestination)!;
   const icons = { profile: User, world: Globe2 } satisfies Record<PrivateDestinationId, ComponentType<{ className?: string }>>;
 
   useEffect(() => {
@@ -370,7 +375,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
   const NavItems = ({ isPinnedContext }: { isPinnedContext?: boolean }) => (
     <>
-      {PRIVATE_PRIMARY_NAVIGATION.map(item => (
+      {privateNavigation.map(item => (
         <NavItem
           key={item.id}
           href={item.href}
@@ -390,28 +395,36 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
       <BottomActionButton
         href={`${basePath === "/" ? "" : basePath}/guides`}
         icon={HelpCircle}
-        label="Aide & guides"
+        label={t("private.bottom.guides")}
         isPinned={isPinnedContext}
       />
       <BottomActionButton
         onClick={toggleAppearance}
         icon={appearance === 'dark' ? Sun : Moon}
-        label={appearance === 'dark' ? 'Mode clair' : 'Mode sombre'}
+        label={appearance === 'dark' ? t("private.bottom.light") : t("private.bottom.dark")}
+        isPinned={isPinnedContext}
+      />
+      {/* La langue se change aussi depuis l'espace privé, pas seulement à l'accueil. */}
+      <BottomActionButton
+        onClick={() => setLocale(locale === "fr" ? "en" : "fr")}
+        icon={Languages}
+        label={locale === "fr" ? t("private.bottom.toEnglish") : t("private.bottom.toFrench")}
+        description={locale.toUpperCase()}
         isPinned={isPinnedContext}
       />
       <BottomActionButton
         onClick={openWorldSettings}
         disabled={!project}
         icon={Settings}
-        label="Réglages du Monde"
-        description={!project ? "Après création" : undefined}
-        title={project ? "Ouvrir les réglages du Monde" : "Disponible après la création du premier Monde"}
+        label={t("private.bottom.settings")}
+        description={!project ? t("private.bottom.settings.after") : undefined}
+        title={project ? t("private.bottom.settings.open") : t("private.bottom.settings.locked")}
         isPinned={isPinnedContext}
       />
       <BottomActionButton
         onClick={openMe}
         icon={CircleUserRound}
-        label="Mon compte (ME)"
+        label={t("private.bottom.account")}
         isPinned={isPinnedContext}
       />
     </>
@@ -423,7 +436,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         { label: "AIME", href: basePath },
         { label: activeItem.label },
       ],
-      navigation: PRIVATE_PRIMARY_NAVIGATION.map(item => ({ id: item.id, label: item.label, href: item.href })),
+      navigation: privateNavigation.map(item => ({ id: item.id, label: item.label, href: item.href })),
     }}>
     <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       {/* Desktop Rail Spacer */}
@@ -451,21 +464,21 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
             <p className={cn(
               "text-[9px] uppercase tracking-[.2em] text-foreground/35 transition-opacity duration-200",
               !isPinned && "opacity-0 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100"
-            )}>Espace privé</p>
+            )}>{t("private.rail.space")}</p>
             <button
               onClick={togglePin}
               className={cn(
                 "grid h-8 w-8 place-items-center rounded-full text-foreground/40 transition-all hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 !isPinned && "opacity-0 group-hover/rail:opacity-100 focus-visible:opacity-100"
               )}
-              aria-label={isPinned ? "Détacher la barre" : "Épingler la barre"}
-              title={isPinned ? "Détacher" : "Épingler"}
+              aria-label={isPinned ? t("private.rail.unpin") : t("private.rail.pin")}
+              title={isPinned ? t("private.rail.unpin.short") : t("private.rail.pin.short")}
             >
               {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
             </button>
           </div>
 
-          <nav aria-label="Navigation globale" className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 hide-scrollbar">
+          <nav aria-label={t("private.nav.global")} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2 hide-scrollbar">
             <NavItems isPinnedContext={isPinned} />
             <WorldRailSection isPinnedContext={isPinned} />
           </nav>
@@ -490,7 +503,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
               ref={mobileMenuTriggerRef}
               type="button"
               onClick={() => setMobileMenuOpen(true)}
-              aria-label="Ouvrir la navigation"
+              aria-label={t("private.nav.open")}
               aria-expanded={mobileMenuOpen}
               aria-controls="private-mobile-navigation"
               className="grid h-8 w-8 place-items-center rounded-full text-foreground/65 transition hover:bg-foreground/[.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
@@ -513,8 +526,8 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] flex md:hidden" role="dialog" aria-modal="true" aria-label="Navigation globale">
-          <button type="button" className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => closeMobileMenu(true)} aria-label="Fermer la navigation" tabIndex={-1} />
+        <div className="fixed inset-0 z-[100] flex md:hidden" role="dialog" aria-modal="true" aria-label={t("private.nav.global")}>
+          <button type="button" className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => closeMobileMenu(true)} aria-label={t("private.nav.close")} tabIndex={-1} />
           <div
             ref={mobileDrawerRef}
             id="private-mobile-navigation"
@@ -523,11 +536,11 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
           >
             <div className="mb-8 flex items-center justify-between px-2">
               <PrivateHomeLink textClassName="text-lg" />
-              <button data-drawer-autofocus type="button" onClick={() => closeMobileMenu(true)} aria-label="Fermer la navigation" className="-mr-2 rounded-full p-2 text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <button data-drawer-autofocus type="button" onClick={() => closeMobileMenu(true)} aria-label={t("private.nav.close")} className="-mr-2 rounded-full p-2 text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav aria-label="Navigation globale" className="flex-1 space-y-2 overflow-y-auto hide-scrollbar">
+            <nav aria-label={t("private.nav.global")} className="flex-1 space-y-2 overflow-y-auto hide-scrollbar">
               <NavItems />
               <WorldRailSection />
             </nav>

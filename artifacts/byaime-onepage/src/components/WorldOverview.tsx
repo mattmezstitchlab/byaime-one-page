@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 import { CenteredBlock } from "./CenteredBlock";
 import { findTimelineConflicts } from "@/lib/timeline-graph";
 import { useProject } from "@/store/project-store";
-import type { WeddingPanelId } from "@/lib/wedding-navigation";
+import { getWorldPhaseShortLabel, type WeddingPanelId } from "@/lib/wedding-navigation";
+import { useI18n } from "@/lib/i18n";
 import { formatBudget } from "@/lib/money";
 
 function Stat({ label, value, hint, onClick, icon: Icon, accent }: {
@@ -36,6 +37,7 @@ function Stat({ label, value, hint, onClick, icon: Icon, accent }: {
 }
 
 export function WorldOverview({ onClose, onOpenPanel }: { onClose: () => void; onOpenPanel: (panel: WeddingPanelId) => void }) {
+  const { locale } = useI18n();
   const { project } = useProject();
   const summary = useMemo(() => {
     if (!project) return null;
@@ -82,7 +84,7 @@ export function WorldOverview({ onClose, onOpenPanel }: { onClose: () => void; o
                     <p className="truncate text-sm">{event.title}</p>
                     <p className="mt-0.5 text-[10px] uppercase tracking-wider text-foreground/40">{format(event.time, "d MMMM yyyy", { locale: fr })}{event.location ? ` · ${event.location}` : ""}</p>
                   </div>
-                  <span className="shrink-0 text-[10px] uppercase tracking-wider text-foreground/40">{event.phase === "avant" ? "Avant" : event.phase === "pendant" ? "Jour J" : "Après"}</span>
+                  <span className="shrink-0 text-[10px] uppercase tracking-wider text-foreground/40">{getWorldPhaseShortLabel(event.phase, locale)}</span>
                 </div>
               ))}
             </div>

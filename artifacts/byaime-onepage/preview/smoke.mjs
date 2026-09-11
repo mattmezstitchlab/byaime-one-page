@@ -181,6 +181,27 @@ checkHtml(
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
+/* Espace privé (lot 1 de traduction) : la coque du Monde — rail, capsule
+   temporelle, onboarding — doit basculer en entier, sans laisser fuir de FR. */
+checkHtml(
+  "Espace privé en français (coque du Monde)",
+  await renderApp("/user-portal"),
+  ["Espace privé", "Profil", "Monde", "Aide &amp; guides", "Mon compte (ME)", "Cinq questions pour ouvrir votre mariage."],
+  ["Private space", "Help &amp; guides", "My account (ME)"],
+);
+setNavigatorLanguage("en-US", ["en-US", "en"]);
+checkHtml(
+  "Espace privé en anglais (rail, capsule, onboarding)",
+  await renderApp("/user-portal"),
+  [
+    "Private space", "Profile", "World", "Help &amp; guides", "My account (ME)", "World settings",
+    "Five questions to open your wedding.", "Explore a complete wedding",
+    'aria-label="Open contextual AI help"', 'aria-label="Create or link"', 'aria-label="Back to the AIME home page"',
+  ],
+  ["Espace privé", "Aide &amp; guides", "Mon compte (ME)", "Réglages du Monde", "Explorer un mariage complet", "Ouvrir l’aide contextuelle AI"],
+);
+setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
+
 await vite.close();
 console.log(failures === 0 ? "CONTRÔLE LOCAL OK" : `CONTRÔLE LOCAL : ${failures} problème(s)`);
 process.exit(failures === 0 ? 0 : 1);

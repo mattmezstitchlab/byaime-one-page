@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeVisibilityModel, ENTITY_KIND_LABELS, type RoleVisibility } from "@/lib/timeline-graph";
-import { PANEL_FOR_KIND, type WeddingPanelId } from "@/lib/wedding-navigation";
+import { getWorldPhaseShortLabel, PANEL_FOR_KIND, type WeddingPanelId } from "@/lib/wedding-navigation";
+import { useI18n } from "@/lib/i18n";
 import { useProject } from "@/store/project-store";
 
 const ROLE_LABELS: Record<RoleVisibility, string> = {
@@ -46,6 +47,7 @@ function useVisibilityGraph(role: RoleVisibility) {
 }
 
 export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: WeddingPanelId) => void }) {
+  const { locale } = useI18n();
   const [role, setRole] = useState<RoleVisibility>("viewer");
   const model = useVisibilityGraph(role);
 
@@ -124,7 +126,7 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
                   {node.label.length > 30 ? `${node.label.slice(0, 30)}…` : node.label}
                 </text>
                 <text x={EVENT_X + NODE_R + 10} y={eventY(i) + 15} fill="currentColor" opacity="0.35" fontSize="8" className="uppercase">
-                  {node.phase === "avant" ? "Avant" : node.phase === "pendant" ? "Jour J" : node.phase === "apres" ? "Après" : "Moment"}
+                  {getWorldPhaseShortLabel(node.phase, locale)}
                 </text>
               </g>
             );

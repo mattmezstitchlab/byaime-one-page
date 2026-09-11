@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { findAimeScreenByLabel, getAimeScreen, pushAimeScreen, type AimeScreenId } from "@/lib/aime-guidance";
 import { AimeScreenHint } from "./AimeGuide";
 import { usePanelChrome, type PanelNavItem } from "./PanelChrome";
+import { useI18n } from "@/lib/i18n";
 
 type CenteredBlockProps = {
   eyebrow: string;
@@ -38,10 +39,10 @@ const navPillClasses = (active?: boolean) =>
       : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground",
   );
 
-function PanelNavigation({ items, onClose }: { items: PanelNavItem[]; onClose: () => void }) {
+function PanelNavigation({ items, onClose, label }: { items: PanelNavItem[]; onClose: () => void; label: string }) {
   if (items.length === 0) return null;
   return (
-    <nav aria-label="Navigation de la page" className="mt-2 flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
+    <nav aria-label={label} className="mt-2 flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
       {items.map(item =>
         item.href ? (
           <Link
@@ -74,6 +75,7 @@ function PanelNavigation({ items, onClose }: { items: PanelNavItem[]; onClose: (
 
 export function CenteredBlock({ eyebrow, title, description, onClose, children, leading, size = "md", testId, showGuideHint = true, screenId }: CenteredBlockProps) {
   const chrome = usePanelChrome();
+  const { t } = useI18n();
   const crumbs = [...chrome.breadcrumb, { label: title }];
   /*
    * Un panneau qui correspond à un écran connu prend la main sur le contexte de
@@ -123,13 +125,13 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
             {description && <p className="mt-3 max-w-2xl text-sm font-light leading-relaxed text-foreground/65">{description}</p>}
           </div>
           {showGuideHint && <AimeScreenHint />}
-          <button onClick={onClose} aria-label="Fermer" className="-mr-2 rounded-full p-2 text-foreground/40 transition hover:text-foreground hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button onClick={onClose} aria-label={t("panel.close")} className="-mr-2 rounded-full p-2 text-foreground/40 transition hover:text-foreground hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <X className="h-4 w-4" />
           </button>
         </header>
 
         <div className="shrink-0 border-b border-border/70 px-7 py-2.5 sm:px-10">
-          <nav aria-label="Fil d’ariane" className="flex items-center gap-1 overflow-x-auto hide-scrollbar text-[11px]">
+          <nav aria-label={t("panel.nav.breadcrumb")} className="flex items-center gap-1 overflow-x-auto hide-scrollbar text-[11px]">
             {crumbs.map((crumb, index) => {
               const isLast = index === crumbs.length - 1;
               return (
@@ -146,7 +148,7 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
               );
             })}
           </nav>
-          <PanelNavigation items={chrome.navigation} onClose={onClose} />
+          <PanelNavigation items={chrome.navigation} onClose={onClose} label={t("panel.nav.page")} />
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-8 sm:px-10 sm:py-10 hide-scrollbar">{children}</div>
