@@ -16,40 +16,40 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("Landing (accueil)", () => {
-  it("ouvre le hero sur l'onboarding, avant toute autre section", () => {
+  it("ouvre le hero sur les deux choix de l'onboarding, avant toute autre section", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).toContain('data-testid="landing"');
     expect(markup).toContain('data-testid="landing-composer"');
+    expect(markup).toContain('data-testid="landing-persona"');
+    expect(markup).toContain("Wedding planner");
+    expect(markup).toContain("Sans carte bancaire");
     expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-guides"'));
   });
 
-  it("pose un hero immersif plein écran à fond fixe, avec le visuel des astronautes et un appel à défiler", () => {
+  it("pose un hero immersif plein écran sur le shader fixe, sans visuel photo", () => {
     const markup = render(<LandingPage />);
 
-    // Le fond est fixe au viewport et animé d'une lente dérive cinématographique.
+    // Le shader est fixe au viewport ; aucun visuel photo sur la landing.
+    expect(markup).toContain('data-testid="landing-shader"');
     expect(markup).toContain('fixed inset-0 z-0');
-    expect(markup).toContain('landing-hero-astronauts.jpg');
-    expect(markup).toContain('aime-hero-drift');
+    expect(markup).not.toContain('landing-hero-astronauts.jpg');
+    expect(markup).not.toContain('<img');
     // Le hero occupe tout l'écran et le contenu suivant glisse par-dessus (z-10 + fonds opaques).
     expect(markup).toContain('min-h-[100dvh]');
     expect(markup).toContain('id="landing-guides"');
-    expect(markup).toContain('aria-label="Défiler"');
     const guidesStart = markup.indexOf('id="landing-guides"');
     expect(markup.slice(guidesStart, guidesStart + 240)).toContain('relative z-10');
   });
 
-  it("demande dès le hero si le visiteur est un couple ou un professionnel, et expose la langue", () => {
+  it("demande dès le hero si le visiteur est un couple ou un wedding planner, et expose la langue", () => {
     const markup = render(<LandingPage />);
 
-    // Le tout premier choix du hero, avant les cinq questions.
-    expect(markup).toContain('data-testid="landing-persona"');
+    // Le tout premier écran du hero, avant les cinq questions.
     expect(markup).toContain('data-testid="landing-persona-couple"');
     expect(markup).toContain('data-testid="landing-persona-pro"');
     expect(markup).toContain("Couple");
-    expect(markup).toContain("Professionnel·le");
-    // Le persona par défaut est le couple.
-    expect(markup).toContain('data-testid="landing-persona-couple" aria-pressed="true"');
+    expect(markup).toContain("Wedding planner");
     // Bascule de langue FR/EN dans l'en-tête, en français par défaut.
     expect(markup).toContain('data-testid="landing-locale"');
     expect(markup).toContain('data-testid="landing-locale-fr"');
@@ -60,6 +60,8 @@ describe("Landing (accueil)", () => {
     const markup = render(<LandingPage />);
 
     expect(markup.match(/<h1/g)).toHaveLength(1);
+    // Le titre est la promesse, pas la marque (le logo suffit dans l'en-tête).
+    expect(markup).toContain("un seul espace privé");
     expect(markup).toContain('aria-label="AIME — retour à l’accueil"');
     // Le logo mène à l'accueil lui-même, jamais à une page interne.
     expect(markup).toContain('href="/"');
@@ -100,8 +102,9 @@ describe("Landing (accueil)", () => {
     expect(markup).not.toContain("images/wedding/wedding-reception.jpg");
     expect(markup).not.toContain("images/wedding/wedding-guests.jpg");
     expect(markup).not.toContain("images/wedding/wedding-music.jpg");
-    // Une seule section de repérage, illustrée dans le même univers (invités astronautes).
-    expect(markup).toContain("landing-guests-astronauts.jpg");
+    // Une seule section de repérage, posée sur le shader continu (bande
+    // translucide, sans photo).
+    expect(markup).not.toContain("landing-guests-astronauts.jpg");
     // Les longs doublons de texte ont été supprimés (les guides animés les remplacent).
     expect(markup).not.toContain("Aperçu produit");
     expect(markup).not.toContain("Organiser un mariage, ce n’est pas");

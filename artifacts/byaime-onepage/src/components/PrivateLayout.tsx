@@ -4,6 +4,7 @@ import {
   Briefcase,
   CircleUserRound,
   Clock3,
+  Feather,
   FolderClosed,
   Globe2,
   HelpCircle,
@@ -13,6 +14,7 @@ import {
   Moon,
   Music,
   Settings,
+  SlidersHorizontal,
   Sun,
   User,
   UserCog,
@@ -43,6 +45,7 @@ import {
 } from '@/lib/wedding-navigation';
 import { focusWorldDestination, getWorldNavState, subscribeWorldNav, type WorldNavState } from '@/lib/world-nav-state';
 import { useI18n } from '@/lib/i18n';
+import { useMode } from '@/lib/mode';
 
 const WORLD_RAIL_ICONS: Record<WeddingRailIcon, ComponentType<{ className?: string }>> = {
   timeline: Clock3,
@@ -179,6 +182,7 @@ function NavItem({
 function WorldRailSection({ isPinnedContext }: { isPinnedContext?: boolean }) {
   const { currentRole } = useProject();
   const { t, locale } = useI18n();
+  const { mode } = useMode();
   const [worldNav, setWorldNav] = useState<WorldNavState>(() => getWorldNavState());
 
   useEffect(() => subscribeWorldNav(setWorldNav), []);
@@ -186,7 +190,7 @@ function WorldRailSection({ isPinnedContext }: { isPinnedContext?: boolean }) {
   if (!worldNav.active) return null;
 
   const capabilities = getWeddingCapabilities(worldNav.role || currentRole);
-  const rail = getWeddingRailItems(worldNav.phase, capabilities, locale);
+  const rail = getWeddingRailItems(worldNav.phase, capabilities, locale, mode);
 
   return (
     <div className="border-t border-border/30 pt-3">
@@ -390,8 +394,18 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
     </>
   );
 
-  const BottomItems = ({ isPinnedContext }: { isPinnedContext?: boolean }) => (
+  const BottomItems = ({ isPinnedContext }: { isPinnedContext?: boolean }) => {
+    const { mode, setMode } = useMode();
+    return (
     <>
+      <BottomActionButton
+        onClick={() => setMode(mode === "pro" ? "facile" : "pro")}
+        icon={mode === "pro" ? Feather : SlidersHorizontal}
+        label={mode === "pro" ? t("mode.switchFacile") : t("mode.switchPro")}
+        description={mode === "pro" ? t("mode.pro") : t("mode.facile")}
+        title={mode === "pro" ? t("mode.switchFacile") : t("mode.switchPro")}
+        isPinned={isPinnedContext}
+      />
       <BottomActionButton
         href={`${basePath === "/" ? "" : basePath}/guides`}
         icon={HelpCircle}
@@ -428,7 +442,8 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         isPinned={isPinnedContext}
       />
     </>
-  );
+    );
+  };
 
   return (
     <PanelChromeProvider chrome={{

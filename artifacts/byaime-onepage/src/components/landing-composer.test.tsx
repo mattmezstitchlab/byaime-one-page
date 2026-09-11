@@ -17,41 +17,36 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("LandingComposer", () => {
-  it("ouvre l'accueil sur un onboarding mariage, une information à la fois", () => {
+  it("ouvre l'accueil sur deux choix — Couple ou Wedding planner — avant toute question", () => {
     const markup = render(<LandingComposer />);
 
     expect(markup).toContain('data-testid="landing-composer"');
-    // Le seul univers que l'app sait accompagner est affiché, il n'est pas proposé au choix.
-    expect(markup).toContain("Notre mariage");
-    expect(markup).toContain("La date du mariage, même approximative ?");
-    expect(markup).toContain("1/5");
-    // Les cinq questions sont toutes visibles en pastilles, la première active.
-    expect(markup).toContain('aria-current="true"');
+    expect(markup).toContain('data-testid="landing-persona"');
+    expect(markup).toContain("Vous préparez ce mariage en tant que…");
+    expect(markup).toContain('data-testid="landing-persona-couple" aria-pressed="false"');
+    expect(markup).toContain('data-testid="landing-persona-pro" aria-pressed="false"');
+    expect(markup).toContain("Couple");
+    expect(markup).toContain("Wedding planner");
+    // Aucune question, aucun champ, aucun bouton de création avant le choix.
+    expect(markup).not.toContain('data-testid="landing-intention-form"');
+    expect(markup).not.toContain('data-testid="landing-intention-input"');
+    expect(markup).not.toContain('data-testid="landing-intention-submit"');
+    expect(markup).not.toContain('data-testid="landing-intention-skip"');
+    expect(markup).not.toContain('data-testid="landing-intention-finish"');
   });
 
   it("ne propose qu'un seul parcours : plus aucun champ libre alternatif", () => {
     const markup = render(<LandingComposer />);
 
-    // Pas de bascule « une phrase », pas de textarea libre : l'onboarding guidé est l'unique entrée.
+    // Pas de bascule « une phrase », pas de textarea libre, pas de sélecteur
+    // d'univers : les deux choix sont l'unique entrée.
     expect(markup).not.toContain("Raconter autrement");
     expect(markup).not.toContain('data-testid="landing-intention-mode"');
     expect(markup).not.toContain('data-testid="landing-intention-free"');
-    // Chaque question est facultative.
-    expect(markup).toContain('data-testid="landing-intention-skip"');
-    // Le bouton de création reste discret tant qu'aucune réponse n'est donnée.
-    expect(markup).toContain('data-testid="landing-intention-finish"');
-  });
-
-  it("ne promet aucun autre univers : pas de sélecteur, saisie immédiate", () => {
-    const markup = render(<LandingComposer />);
-
     expect(markup).not.toContain("<select");
     expect(markup).not.toContain("Choisir l’univers");
     expect(markup).not.toContain("Anniversaire");
     expect(markup).not.toContain("Séminaire");
-    // Le champ de la première question est atteignable au clavier sans étape préalable.
-    expect(markup).toContain('aria-label="La date du mariage, même approximative ?"');
-    expect(markup).toContain('aria-describedby="landing-intention-hint"');
   });
 
   it("compose une phrase que le parseur local du Monde comprend déjà", () => {
@@ -86,13 +81,6 @@ describe("LandingComposer", () => {
   it("accepte une réponse déjà formulée avec sa préposition", () => {
     const sentence = composeIntention({ place: "près de Nantes" });
     expect(sentence).toContain("près de Nantes");
-  });
-
-  it("propose dès le hero le choix Couple / Professionnel, avec le couple présélectionné", () => {
-    const markup = render(<LandingComposer />);
-    expect(markup).toContain('data-testid="landing-persona"');
-    expect(markup).toContain('data-testid="landing-persona-couple" aria-pressed="true"');
-    expect(markup).toContain('data-testid="landing-persona-pro" aria-pressed="false"');
   });
 
   it("compose une phrase « mariage client » pour le persona professionnel", () => {

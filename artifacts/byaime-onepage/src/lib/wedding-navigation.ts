@@ -1,4 +1,5 @@
 import { translate, type Locale } from "./i18n-dictionary";
+import type { AimeMode } from "./mode";
 import type { TimelineView } from "./timeline-graph";
 import type { TimelineEntityKind } from "./types";
 
@@ -109,7 +110,26 @@ export const WEDDING_RAIL_ICONS = ["timeline", "people", "providers", "tasks", "
 export type WeddingRailIcon = (typeof WEDDING_RAIL_ICONS)[number];
 export type WeddingRailItem = WeddingNavigationItem & { icon: WeddingRailIcon };
 
-export function isWeddingEntryAllowed(entry: WeddingNavigationItem, capabilities: WeddingCapabilities): boolean {
+/**
+ * Mode Facile : l'essentiel du mariage. Le rail garde la Timeline, les
+ * invités, les prestataires, les tâches et le budget ; les outils de phase
+ * gardent le Jour J (pendant) et les souvenirs (apres). Tout le reste
+ * (plan de table, cérémonie, logistique, messages, équipe, musique,
+ * contributions, remerciements, film, lune de miel…) reste en Pro.
+ */
+export const FACILE_RAIL_IDS = ["timeline", "people", "providers", "tasks", "finances"] as const;
+export const FACILE_PHASE_ITEM_IDS = ["day-of", "memories"] as const;
+const FACILE_ENTRY_IDS: readonly string[] = [...FACILE_RAIL_IDS, ...FACILE_PHASE_ITEM_IDS];
+
+/** Vues de la Timeline accessibles en Facile. */
+export const FACILE_VIEW_IDS: readonly TimelineView[] = ["chronological", "day-of"];
+
+export function isWeddingEntryAllowed(
+  entry: WeddingNavigationItem,
+  capabilities: WeddingCapabilities,
+  mode: AimeMode = "pro",
+): boolean {
+  if (mode === "facile" && !FACILE_ENTRY_IDS.includes(entry.id)) return false;
   if (entry.id === "finances") return capabilities.seeFinances;
   if (entry.id === "documents" || entry.id === "film") return capabilities.managePrivateDocuments;
   if (capabilities.manage || capabilities.editOperational) return true;
@@ -121,6 +141,7 @@ export function getWeddingRailItems(
   phase: WorldPhase,
   capabilities: WeddingCapabilities,
   locale: Locale = "fr",
+  mode: AimeMode = "pro",
 ): WeddingRailItem[] {
   const timelineByPhase = {
     avant: timeline(locale, ""),
@@ -137,7 +158,7 @@ export function getWeddingRailItems(
     { ...team(locale), icon: "team" },
     { ...music(locale, phase === "pendant"), icon: "music" },
   ];
-  return entries.filter(entry => isWeddingEntryAllowed(entry, capabilities));
+  return entries.filter(entry => isWeddingEntryAllowed(entry, capabilities, mode));
 }
 
 /**
@@ -149,6 +170,7 @@ export function getWeddingNavigation(
   phase: WorldPhase,
   capabilities: WeddingCapabilities,
   locale: Locale = "fr",
+  mode: AimeMode = "pro",
 ): WeddingNavigation {
   let primary: WeddingNavigationItem[];
   let secondary: WeddingNavigationItem[];
@@ -162,8 +184,8 @@ export function getWeddingNavigation(
     primary = [thanks(locale), photos(locale), film(locale), honeymoon(locale), contributions(locale), practical(locale)];
     secondary = [ceremony(locale), logistics(locale), messages(locale)];
   }
-  primary = primary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
-  secondary = secondary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
+  primary = primary.filter(entry => isWeddingEntryAllowed(entry, capabilities, mode));
+  secondary = secondary.filter(entry => isWeddingEntryAllowed(entry, capabilities, mode));
   return { primary, secondary };
 }
 
@@ -228,13 +250,14 @@ export function findPhaseForPanel(
   panel: WeddingPanelId,
   role: string,
   view: TimelineView,
+  mode: AimeMode = "pro",
 ): WorldPhase | null {
   if (panel === "sections") return null;
   const capabilities = getWeddingCapabilities(role);
   for (const phase of WORLD_PHASE_IDS) {
     /* Question de structure, pas d'affichage : la locale n'entre pas en compte. */
-    const rail = getWeddingRailItems(phase, capabilities);
-    const navigation = getWeddingNavigation(phase, capabilities);
+    const rail = getWeddingRailItems(phase, capabilities, "fr", mode);
+    const navigation = getWeddingNavigation(phase, capabilities, "fr", mode);
     if (isWeddingPanelAvailable(panel, navigation, view, rail)) return phase;
   }
   return null;

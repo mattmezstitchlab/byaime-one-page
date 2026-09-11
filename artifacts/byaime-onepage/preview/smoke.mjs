@@ -96,6 +96,26 @@ for (const mode of ["SignIn", "SignUp"]) {
 }
 globalThis.localStorage.removeItem("aime-intention-draft");
 
+// 1b) Le garde <Show> doit interpréter les chaînes Clerk : en visiteur, seule
+// la branche "signed-out" s'affiche ; en membre, seule "signed-in". Sinon
+// l'espace privé rebondit vers l'accueil (Redirect toujours montée).
+for (const [session, expected] of [["0", "signed-out"], ["1", "signed-in"]]) {
+  globalThis.localStorage.setItem("aime-preview-session", session);
+  const shown = renderToStaticMarkup(
+    createElement(
+      "div",
+      null,
+      createElement(clerkStub.Show, { when: "signed-in" }, "BRANCHE-MEMBRE"),
+      createElement(clerkStub.Show, { when: "signed-out" }, "BRANCHE-VISITEUR"),
+    ),
+  );
+  const ok = expected === "signed-in"
+    ? shown.includes("BRANCHE-MEMBRE") && !shown.includes("BRANCHE-VISITEUR")
+    : shown.includes("BRANCHE-VISITEUR") && !shown.includes("BRANCHE-MEMBRE");
+  check(`garde <Show> (session ${session} → ${expected})`, ok, shown.slice(0, 120));
+}
+globalThis.localStorage.removeItem("aime-preview-session");
+
 // 2) Rendu des pages.
 const { Router } = await vite.ssrLoadModule("wouter");
 const { ProjectProvider } = await vite.ssrLoadModule("/src/store/project-store.tsx");
@@ -119,32 +139,31 @@ function checkHtml(label, html, needles, absent = []) {
 }
 
 checkHtml(
-  "Accueil visiteur, sans brouillon (capsule guidée complète)",
+  "Accueil visiteur, sans brouillon (deux choix, questions à venir)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-universe"', 'data-testid="landing-intention-submit"', "Notre mariage", "La date du mariage", "1/5", "Créer mon espace", 'data-testid="landing-guide-button"', 'data-testid="guide-chapters-open"', "1/6"],
-  ["Choisir l’univers", "Laboratoire"],
+  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire", 'data-testid="landing-guide-button"', 'data-testid="guide-chapters-open"', "1/6"],
+  ['data-testid="landing-intention-input"', 'data-testid="landing-intention-finish"', "Choisir l’univers", "Laboratoire"],
 );
 
-/* Une intention posée avant la création du compte doit reprendre la main sur
-   l'accueil : l'onboarding guidé (unique parcours) repeuple ses réponses depuis
-   le brouillon, il n'existe plus de champ libre alternatif. */
+/* Le brouillon ne fuit pas dans le hero : l'écran des deux choix passe
+   d'abord, les réponses repeuplées n'apparaissent qu'ensuite. */
 globalThis.localStorage.setItem("aime-intention-draft", DRAFT);
 checkHtml(
-  "Accueil visiteur, avec brouillon (réponses guidées repeuplées)",
+  "Accueil visiteur, avec brouillon (choix d'abord, brouillon invisible)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-intention-input"', "Lille", "AIME retient déjà"],
-  ["Laboratoire", 'data-testid="landing-intention-free"', "Revenir aux questions"],
+  ['data-testid="landing-persona"', "Wedding planner"],
+  ["Lille", 'data-testid="landing-intention-input"', "Laboratoire"],
 );
 globalThis.localStorage.removeItem("aime-intention-draft");
 checkHtml("Accueil membre", renderAt("/", createElement(LandingPage, { signedIn: true })), ["Accéder à mon espace"], ["Créer un compte gratuit"]);
 
-/* La porte d'entrée doit passer entièrement en anglais (persona, onboarding, CTA). */
+/* La porte d'entrée doit passer entièrement en anglais (promesse, choix, réassurance). */
 setNavigatorLanguage("en-US", ["en-US", "en"]);
 checkHtml(
-  "Accueil visiteur en anglais (persona Couple/Pro + onboarding EN)",
+  "Accueil visiteur en anglais (deux choix EN)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-locale-en"', 'data-testid="landing-persona"', "Our wedding", "A couple", "A professional", "Sign in", "The wedding date"],
-  ["Notre mariage", "Créer mon espace"],
+  ['data-testid="landing-locale-en"', 'data-testid="landing-persona"', "A couple", "Wedding planner", "Your whole wedding", "No credit card", "Create my space", "Sign in"],
+  ["Notre mariage", "Créer mon espace", "un seul espace privé", 'data-testid="landing-intention-input"'],
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
@@ -182,7 +201,9 @@ checkHtml(
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
 /* Espace privé (lot 1 de traduction) : la coque du Monde — rail, capsule
-   temporelle, onboarding — doit basculer en entier, sans laisser fuir de FR. */
+   temporelle, onboarding — doit basculer en entier, sans laisser fuir de FR.
+   Session membre requise : sans elle, le garde <Show> rend la redirection. */
+globalThis.localStorage.setItem("aime-preview-session", "1");
 checkHtml(
   "Espace privé en français (coque du Monde)",
   await renderApp("/user-portal"),
@@ -201,6 +222,16 @@ checkHtml(
   ["Espace privé", "Aide &amp; guides", "Mon compte (ME)", "Réglages du Monde", "Explorer un mariage complet", "Ouvrir l’aide contextuelle AI"],
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
+
+/* Sans session, l'espace privé ne doit pas fuir sa coque (branche signée absente). */
+globalThis.localStorage.setItem("aime-preview-session", "0");
+checkHtml(
+  "Espace privé visiteur (redirigé, coque absente)",
+  await renderApp("/user-portal"),
+  [],
+  ["Espace privé", "Mon compte (ME)", "Cinq questions pour ouvrir votre mariage."],
+);
+globalThis.localStorage.removeItem("aime-preview-session");
 
 await vite.close();
 console.log(failures === 0 ? "CONTRÔLE LOCAL OK" : `CONTRÔLE LOCAL : ${failures} problème(s)`);

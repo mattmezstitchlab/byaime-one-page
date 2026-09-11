@@ -15,6 +15,7 @@ import { LandingPage } from '@/pages/Landing';
 import { PortalOnboarding } from '@/components/PortalOnboarding';
 import { AimePublicGuide } from '@/components/AimePublicGuide';
 import { ProjectProvider, useProject } from '@/store/project-store';
+import { ModeProvider } from '@/lib/mode';
 import { useI18n } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
@@ -317,7 +318,9 @@ function Providers() {
     <QueryClientProvider client={queryClient}>
       <CacheInvalidator />
       <ProjectProvider>
-        <TooltipProvider><Routes /><Toaster /></TooltipProvider>
+        <ModeProvider>
+          <TooltipProvider><Routes /><Toaster /></TooltipProvider>
+        </ModeProvider>
       </ProjectProvider>
     </QueryClientProvider>
   </ClerkProvider>;

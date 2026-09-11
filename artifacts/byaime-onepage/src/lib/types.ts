@@ -238,14 +238,17 @@ export function visualOverlayStrength(visual?: WorldVisual | null): number {
 }
 
 /**
- * Dégradé du hero du Monde : le filtre noir suit le réglage utilisateur,
- * le fondu final vers la couleur de page reste pour fondre le visuel dans le contenu.
+ * Dégradé du hero du Monde : le filtre noir suit le réglage utilisateur, du
+ * haut jusqu'en bas. Pas de fondu vers la couleur de page : en mode clair, un
+ * tel fondu recouvrirait le visuel d'un voile blanc. Le texte du hero restant
+ * blanc dans les deux modes, le voile reste noir pour garantir sa lisibilité.
  */
 export function heroVisualOverlayCss(visual?: WorldVisual | null): string {
   const factor = visualOverlayStrength(visual) / DEFAULT_VISUAL_OVERLAY;
   const top = Math.min(0.9, 0.34 * factor);
   const middle = Math.min(0.95, 0.6 * factor);
-  return `linear-gradient(to bottom, rgba(0,0,0,${top.toFixed(3)}) 0%, rgba(0,0,0,${middle.toFixed(3)}) 42%, hsl(var(--background) / 0.96) 100%)`;
+  const bottom = Math.min(0.96, 0.78 * factor);
+  return `linear-gradient(to bottom, rgba(0,0,0,${top.toFixed(3)}) 0%, rgba(0,0,0,${middle.toFixed(3)}) 42%, rgba(0,0,0,${bottom.toFixed(3)}) 100%)`;
 }
 
 /** Voile noir plat des scènes de la Timeline ( Moments ), déduit du réglage. */

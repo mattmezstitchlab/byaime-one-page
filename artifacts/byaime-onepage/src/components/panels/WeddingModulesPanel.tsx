@@ -13,7 +13,7 @@ import { formatCents, currencySymbol } from "@/lib/money";
 export type { WeddingModule } from "@/lib/wedding-navigation";
 
 const euro = (cents: number, currency?: string) => formatCents(cents, currency);
-const newId = () => Math.random().toString(36).slice(2, 9);
+const newId = () => crypto.randomUUID();
 type StoredFile = { id: string; name: string; contentType: string; size: number; guestId?: string | null; createdAt?: string };
 type SentMessage = { id: string; projectId: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; timelineEventId?: string | null; scheduledAt?: string | null; cancelledAt?: string | null; sentAt?: string | null; createdAt: string };
 type ParticipantMedia = StoredFile & {
@@ -134,7 +134,7 @@ function putFile(uploadURL: string, file: File, onProgress: (progress: number) =
 }
 
 function AddBar({ label, onAdd }: { label: string; onAdd: () => void }) {
-  return <button onClick={onAdd} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 hover:bg-white hover:text-black transition-colors"><Plus className="w-3.5 h-3.5" />{label}</button>;
+  return <button onClick={onAdd} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 hover:bg-foreground hover:text-background transition-colors"><Plus className="w-3.5 h-3.5" />{label}</button>;
 }
 
 function Empty({ children }: { children: string }) {
@@ -639,11 +639,11 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button disabled={busy} onClick={() => void createPairingToken()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+          <button disabled={busy} onClick={() => void createPairingToken()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">
             {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
             Connecter mon ordinateur
           </button>
-          <button disabled={busy} onClick={() => void refreshAimeLocal()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+          <button disabled={busy} onClick={() => void refreshAimeLocal()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">
             <RefreshCcw className="h-3.5 w-3.5" /> Actualiser
           </button>
         </div>
@@ -659,7 +659,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
             type="button"
             data-testid="copy-bridge-command"
             onClick={() => void copyBridgeCommand(`pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base ${window.location.origin}/api --pairing-token ${pairingToken.token}`)}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-foreground/65 transition hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-foreground/65 transition hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Copy className="h-3 w-3" /> Copier la commande
           </button>
@@ -675,10 +675,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           placeholder="/Users/prenom/Documents/Mariage  ·  C:\\Users\\prenom\\Documents\\Mariage"
         />
         <div className="flex flex-wrap gap-2">
-          <button disabled={busy} onClick={() => void saveAuthorizedFolders()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+          <button disabled={busy} onClick={() => void saveAuthorizedFolders()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">
             <FolderOpen className="h-3.5 w-3.5" /> Enregistrer les dossiers
           </button>
-          <button disabled={busy || !localBridge.connected} title={localBridge.connected ? "Le pont analyse les dossiers autorisés." : "Pont AIME LOCAL non connecté : lancez la commande ci-dessus, ou choisissez un dossier plus bas."} onClick={() => void launchLocalScan()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+          <button disabled={busy || !localBridge.connected} title={localBridge.connected ? "Le pont analyse les dossiers autorisés." : "Pont AIME LOCAL non connecté : lancez la commande ci-dessus, ou choisissez un dossier plus bas."} onClick={() => void launchLocalScan()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">
             <Search className="h-3.5 w-3.5" /> Lancer un scan manuel
           </button>
         </div>
@@ -701,7 +701,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
             {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <FolderSearch className="h-3.5 w-3.5" />}
             Choisir un dossier de cet ordinateur
           </button>
-          <button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter des fichiers</button>
+          <button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter des fichiers</button>
           <input ref={fileRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.mp4,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => {
             const picked = Array.from(event.target.files ?? []);
             if (picked.length > 1) void importLocalPicks(picked.map(file => ({ path: file.name, file })));
@@ -762,8 +762,8 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
             <p className="truncate text-sm">{file.name}</p>
             <p className="mt-1 text-xs text-foreground/50">{suggestion.reason}</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              <button disabled={busy} onClick={() => void linkLocalFile(file, suggestion)} className="rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-white hover:text-black disabled:opacity-40">Lier au projet</button>
-              <button disabled={busy || !linked || !canManage} onClick={() => linked && void requestImport(linked)} className="inline-flex items-center gap-1 rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-white hover:text-black disabled:opacity-40"><Upload className="h-3 w-3" />Importer dans AIME</button>
+              <button disabled={busy} onClick={() => void linkLocalFile(file, suggestion)} className="rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-foreground hover:text-background disabled:opacity-40">Lier au projet</button>
+              <button disabled={busy || !linked || !canManage} onClick={() => linked && void requestImport(linked)} className="inline-flex items-center gap-1 rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-foreground hover:text-background disabled:opacity-40"><Upload className="h-3 w-3" />Importer dans AIME</button>
               <button disabled={busy || !linked} onClick={() => linked && void api(`/projects/${project.id}/aime-local/references/${linked.id}/state`, { method: "PATCH", body: JSON.stringify({ state: "ignored" }) }).then(() => refreshAimeLocal())} className="rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/55 hover:bg-foreground/10 disabled:opacity-40">Ignorer</button>
             </div>
           </div>;

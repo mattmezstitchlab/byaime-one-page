@@ -45,7 +45,7 @@ export function LegalPage({ kind }: { kind: keyof typeof sections }) {
       <div className="mt-16 space-y-12">{sections[kind].map(([title, body]) => <section key={title} className="border-t border-foreground/10 pt-7"><h2 className="text-lg font-medium">{title}</h2><p className="mt-4 font-light leading-7 text-foreground/48">{body}</p></section>)}</div>
       <div className="mt-16 flex flex-wrap gap-3 border-t border-foreground/10 pt-8 text-xs">
         <Link href={privacy ? "/conditions" : "/confidentialite"} className="rounded-full border border-foreground/15 px-4 py-2">{privacy ? "Conditions d’utilisation" : "Confidentialité"}</Link>
-        <Link href="/" className="rounded-full bg-white px-4 py-2 font-medium text-black">Retour à AIME</Link>
+        <Link href="/" className="rounded-full bg-foreground px-4 py-2 font-medium text-background">Retour à AIME</Link>
       </div>
     </div>
   </main>;

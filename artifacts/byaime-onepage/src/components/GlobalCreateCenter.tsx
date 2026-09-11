@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { CalendarDays, ClipboardList, FileText, Plus, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { CenteredBlock } from "@/components/CenteredBlock";
-import { UNIVERSAL_CREATE_ACTIONS, type UniversalCreateActionId } from "@/lib/universal/create-actions";
+import { FACILE_CREATE_ACTION_IDS, UNIVERSAL_CREATE_ACTIONS, type UniversalCreateActionId } from "@/lib/universal/create-actions";
 import type { PrivateDestinationId } from "@/lib/private-navigation";
 import { useProject } from "@/store/project-store";
+import { useMode } from "@/lib/mode";
 
 const actionIcons = {
   person: Users,
@@ -22,6 +23,7 @@ export function GlobalCreateCenter({ destination }: { destination: PrivateDestin
   const [open, setOpen] = useState(false);
   const [, navigate] = useLocation();
   const { project, canEdit, currentRole } = useProject();
+  const { mode } = useMode();
 
   useEffect(() => {
     const openCreate = () => setOpen(true);
@@ -33,7 +35,7 @@ export function GlobalCreateCenter({ destination }: { destination: PrivateDestin
 
   const availableActions = UNIVERSAL_CREATE_ACTIONS.filter(
     action => action.availableInCurrentProject && action.id in actionIcons,
-  );
+  ).filter(action => mode === "pro" || (FACILE_CREATE_ACTION_IDS as readonly string[]).includes(action.id));
   const openAction = (id: UniversalCreateActionId) => {
     if (destination === "world") {
       window.dispatchEvent(new CustomEvent<UniversalCreateActionId>("aime:open-create-target", { detail: id }));

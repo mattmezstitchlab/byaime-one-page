@@ -2,8 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run build",
-  "outputDirectory": "dist/public",
+  "buildCommand": "pnpm --filter @workspace/byaime-onepage run build",
+  "outputDirectory": "artifacts/byaime-onepage/dist/public",
   "crons": [
     {
       "path": "/api/cron/scheduled-messages",
