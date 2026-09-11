@@ -27,30 +27,50 @@ describe("Landing (accueil)", () => {
     expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-guides"'));
   });
 
-  it("pose un hero immersif plein écran sur le shader fixe, sans visuel photo", () => {
+  it("pose un hero immersif plein écran sur un grand visuel photo, au-dessus du fond signature", () => {
     const markup = render(<LandingPage />);
 
-    // Le shader est fixe au viewport ; aucun visuel photo sur la landing.
+    // Le shader reste le plan fixe de base ; le hero ajoute un grand visuel photo.
     expect(markup).toContain('data-testid="landing-shader"');
-    expect(markup).toContain('fixed inset-0 z-0');
-    expect(markup).not.toContain('landing-hero-astronauts.jpg');
-    expect(markup).not.toContain('<img');
-    // Le hero occupe tout l'écran et le contenu suivant glisse par-dessus (z-10 + fonds opaques).
-    expect(markup).toContain('min-h-[100dvh]');
+    expect(markup).toContain("fixed inset-0 z-0");
+    expect(markup).toContain('data-testid="landing-hero-photo"');
+    expect(markup).toContain("landing-hero-astronauts.jpg");
+    expect(markup).toContain("<img");
+    // Le hero occupe tout l'écran.
+    expect(markup).toContain("min-h-[100dvh]");
     expect(markup).toContain('id="landing-guides"');
-    const guidesStart = markup.indexOf('id="landing-guides"');
-    expect(markup.slice(guidesStart, guidesStart + 240)).toContain('relative z-10');
+  });
+
+  it("met en scène le produit puis les trois temps, avec les visuels du mariage", () => {
+    const markup = render(<LandingPage />);
+
+    // La vitrine du Monde Mariage, entre le hero et les guides.
+    expect(markup).toContain('data-testid="landing-showcase"');
+    expect(markup).toContain('data-testid="landing-product"');
+    expect(markup.indexOf('data-testid="landing-showcase"')).toBeLessThan(markup.indexOf('data-testid="landing-guides"'));
+
+    // Les trois temps, chacun sur un visuel immersif.
+    expect(markup).toContain('data-testid="landing-avant"');
+    expect(markup).toContain('data-testid="landing-jourj"');
+    expect(markup).toContain('data-testid="landing-apres"');
+    expect(markup).toContain("images/wedding/wedding-guests.jpg");
+    expect(markup).toContain("images/wedding/wedding-reception.jpg");
+    expect(markup).toContain("images/wedding/wedding-portrait.jpg");
+
+    // Valeurs, témoignage et appel final complètent le parcours.
+    expect(markup).toContain('data-testid="landing-values"');
+    expect(markup).toContain('data-testid="landing-quote"');
+    expect(markup).toContain('data-testid="landing-cta"');
+    expect(markup).toContain("Créer mon espace gratuitement");
   });
 
   it("demande dès le hero si le visiteur est un couple ou un wedding planner, et expose la langue", () => {
     const markup = render(<LandingPage />);
 
-    // Le tout premier écran du hero, avant les cinq questions.
     expect(markup).toContain('data-testid="landing-persona-couple"');
     expect(markup).toContain('data-testid="landing-persona-pro"');
     expect(markup).toContain("Couple");
     expect(markup).toContain("Wedding planner");
-    // Bascule de langue FR/EN dans l'en-tête, en français par défaut.
     expect(markup).toContain('data-testid="landing-locale"');
     expect(markup).toContain('data-testid="landing-locale-fr"');
     expect(markup).toContain('data-testid="landing-locale-en"');
@@ -60,10 +80,8 @@ describe("Landing (accueil)", () => {
     const markup = render(<LandingPage />);
 
     expect(markup.match(/<h1/g)).toHaveLength(1);
-    // Le titre est la promesse, pas la marque (le logo suffit dans l'en-tête).
     expect(markup).toContain("un seul espace privé");
     expect(markup).toContain('aria-label="AIME — retour à l’accueil"');
-    // Le logo mène à l'accueil lui-même, jamais à une page interne.
     expect(markup).toContain('href="/"');
   });
 
@@ -86,29 +104,15 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain('data-testid="landing-guides"');
     expect(markup).toContain('data-testid="landing-guides-explorer"');
     expect(markup).toContain("Comprendre avant de cliquer.");
-    // Juste après le hero.
     expect(markup.indexOf('data-testid="landing-guides"')).toBeGreaterThan(markup.indexOf('data-testid="landing-composer"'));
-    // La capsule flotte sur l'animation : précédent, chapitres au centre, suivant.
     expect(markup).toContain('data-testid="landing-guides-player"');
     expect(markup).toContain('data-testid="guide-chapters-open"');
     expect(markup).toContain('data-testid="guide-prev"');
     expect(markup).toContain('data-testid="guide-next"');
     expect(markup).toContain("1/6");
     expect(markup.match(/<h1/g)).toHaveLength(1);
-    // Aucune bande de cartes au-dessus ou au-dessous de l'animation sur l'accueil.
     expect(markup).not.toContain('data-testid="landing-guides-menu"');
     expect(markup).not.toContain('data-testid="landing-guides-screens"');
-    // Les anciennes photos de mariage documentaires ont quitté l'accueil.
-    expect(markup).not.toContain("images/wedding/wedding-reception.jpg");
-    expect(markup).not.toContain("images/wedding/wedding-guests.jpg");
-    expect(markup).not.toContain("images/wedding/wedding-music.jpg");
-    // Une seule section de repérage, posée sur le shader continu (bande
-    // translucide, sans photo).
-    expect(markup).not.toContain("landing-guests-astronauts.jpg");
-    // Les longs doublons de texte ont été supprimés (les guides animés les remplacent).
-    expect(markup).not.toContain("Aperçu produit");
-    expect(markup).not.toContain("Organiser un mariage, ce n’est pas");
-    expect(markup).not.toContain("Prêts à organiser votre mariage autrement");
   });
 
   it("ne parle plus jamais de Laboratoire", () => {
@@ -118,9 +122,14 @@ describe("Landing (accueil)", () => {
 
   it("termine par un pied de page qui mène aux guides et aux mentions", () => {
     const markup = render(<LandingPage />);
-    expect(markup).toContain("aria-label=\"Pages du site\"");
+    expect(markup).toContain('aria-label="Pages du site"');
     expect(markup).toContain('href="/guides"');
     expect(markup).toContain('href="/conditions"');
     expect(markup).toContain('href="/confidentialite"');
+    // Pied de page façon Apple : tagline, colonnes et mention légale.
+    expect(markup).toContain("L’art de créer des liens. Tout votre mariage");
+    expect(markup).toContain("Produit");
+    expect(markup).toContain("Légal");
+    expect(markup).toContain("Tous droits réservés");
   });
 });

@@ -167,7 +167,7 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
             )}
           </div>
 
-          <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-medium text-balance tracking-tight text-white group-hover:text-white/90 transition-colors">
+          <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-white group-hover:text-white/90 transition-colors">
             {event.title}
           </h3>
 

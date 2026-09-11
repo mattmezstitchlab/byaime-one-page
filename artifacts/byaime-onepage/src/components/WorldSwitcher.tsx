@@ -52,7 +52,7 @@ export function WorldSwitcher({
               )}
             />
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-display text-xl font-light text-foreground/90">
+              <span className="block truncate font-display text-xl font-semibold tracking-tight text-foreground/90">
                 {item.title}
               </span>
               <span className="mt-1 block text-[9px] uppercase tracking-[.18em] text-foreground/50">

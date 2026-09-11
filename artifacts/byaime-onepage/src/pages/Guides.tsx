@@ -544,12 +544,12 @@ export function GuidesPage() {
 
   return (
     <main data-testid="guides-page" className="min-h-[100dvh] bg-background text-foreground selection:bg-foreground/20">
-      <nav className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 px-6 backdrop-blur-xl">
-        <Link href="/" className="rounded font-display text-lg font-medium tracking-[.2em] text-foreground transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-b border-border/50 bg-background/70 px-6 backdrop-blur-xl">
+        <Link href="/" className="rounded font-display text-[15px] font-semibold tracking-[.2em] text-foreground transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
           AIME
         </Link>
         <AppearanceToggle />
-        <Link href="/creation" className="rounded-full bg-foreground px-5 py-2 text-xs font-semibold text-background transition-colors hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
+        <Link href="/creation" className="inline-flex h-9 items-center rounded-full bg-foreground px-5 text-xs font-semibold text-background transition-colors hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">
           {t("guides.nav.start")}
         </Link>
       </nav>
@@ -563,7 +563,7 @@ export function GuidesPage() {
         <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/35 to-black/90" />
         <div className="relative mx-auto max-w-3xl">
           <p className="text-[10px] uppercase tracking-[.35em] text-white/55">{t("guides.hero.eyebrow")}</p>
-          <h1 className="mt-6 font-display text-4xl font-light leading-tight text-white md:text-6xl">
+          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white md:text-6xl">
             {t("guides.title")}
           </h1>
           <p className="mt-6 text-base font-light leading-relaxed text-white/70 md:text-lg">
@@ -579,7 +579,7 @@ export function GuidesPage() {
       <section className="border-b border-border px-6 py-16 md:py-20">
         <div className="mx-auto max-w-3xl text-center">
           <Compass className="mx-auto h-5 w-5 text-foreground/45" aria-hidden />
-          <h2 className="mt-4 font-display text-2xl font-light md:text-3xl">{t("guides.doubt.title")}</h2>
+          <h2 className="mt-4 font-display text-2xl font-semibold tracking-tight md:text-3xl">{t("guides.doubt.title")}</h2>
           <p className="mt-3 text-sm font-light leading-relaxed text-foreground/55">
             {t("guides.doubt.body")}
           </p>

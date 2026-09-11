@@ -82,6 +82,153 @@
      .aime-world-hero-overlay) pour ne jamais blanchir le visuel. */
 }
 
+/*
+ * Direction « Apple du mariage » : un message par écran, de l'espace, de grands
+ * visuels pleine page, de grands titres semi-bold et une hiérarchie minimale.
+ * Les sections « produit » suivent l'apparence (clair/sombre) ; les sections
+ * photographiques gardent un texte blanc sur voile noir dans les deux modes,
+ * comme le hero du Monde — les médias ne sont jamais un thème.
+ */
+@layer components {
+  .aime-apple-surface {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 98%;
+    --card-border: 0 0% 12%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 98%;
+    --popover-border: 0 0% 12%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 66%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 0 0% 80%;
+    color-scheme: dark;
+  }
+  :root[data-aime-theme="light"] .aime-apple-surface {
+    --background: 36 24% 97%;
+    --foreground: 30 12% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 30 12% 9%;
+    --card-border: 30 12% 86%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 12% 9%;
+    --popover-border: 30 12% 86%;
+    --muted: 30 12% 92%;
+    --muted-foreground: 30 8% 40%;
+    --border: 30 12% 84%;
+    --input: 30 12% 84%;
+    --ring: 30 12% 24%;
+    color-scheme: light;
+  }
+
+  /* Voile noir sur les visuels pleine page, dans les deux modes : le texte du
+     hero reste blanc, et aucun fondu ne doit blanchir la photo en mode clair. */
+  .aime-apple-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0.55) 0%,
+      rgb(0 0 0 / 0.18) 32%,
+      rgb(0 0 0 / 0.22) 60%,
+      rgb(0 0 0 / 0.94) 100%
+    );
+  }
+
+  /* Lent mouvement cinématographique des visuels pleine page. */
+  @keyframes aime-apple-kenburns {
+    from { transform: scale(1.04); }
+    to   { transform: scale(1.12) translateY(-0.8%); }
+  }
+  .aime-apple-kenburns {
+    animation: aime-apple-kenburns 32s ease-in-out infinite alternate;
+    transform-origin: 50% 42%;
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aime-apple-kenburns { animation: none; }
+  }
+
+  /* Typographie de la direction Apple. */
+  .aime-apple-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: hsl(var(--foreground) / 0.55);
+  }
+  .aime-apple-title {
+    font-family: var(--app-font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    color: hsl(var(--foreground));
+    text-wrap: balance;
+  }
+  .aime-apple-lead {
+    font-weight: 300;
+    color: hsl(var(--foreground) / 0.72);
+  }
+  .aime-apple-confiance {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: hsl(var(--foreground) / 0.55);
+  }
+
+  /* Boutons-pilules : blanc sur noir, fantôme, accent rose, et verre pour les
+     sections photographiques (lisible dans les deux modes). */
+  .aime-apple-pill {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0.7rem 1.6rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+  }
+  .aime-apple-pill:hover { transform: translateY(-1px); }
+  .aime-apple-pill-primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+  .aime-apple-pill-primary:hover { background: hsl(var(--primary) / 0.9); }
+  .aime-apple-pill-ghost {
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground) / 0.85);
+  }
+  .aime-apple-pill-ghost:hover { background: hsl(var(--foreground) / 0.08); }
+  .aime-apple-pill-accent {
+    background: hsl(var(--brand-accent));
+    color: hsl(var(--brand-accent-foreground));
+  }
+  .aime-apple-pill-accent:hover { filter: brightness(1.06); }
+  .aime-apple-pill-glass {
+    border: 1px solid rgb(255 255 255 / 0.3);
+    color: #fff;
+    background: rgb(0 0 0 / 0.22);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .aime-apple-pill-glass:hover {
+    background: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.5);
+  }
+
+  /* Fenêtre « produit » : le Monde Mariage mis en scène comme un objet. */
+  .aime-apple-window {
+    border-radius: 1.5rem;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--card));
+    overflow: hidden;
+    box-shadow: 0 40px 120px rgb(0 0 0 / 0.55);
+  }
+}
+
 /* Media is source content, never a theme surface. */
 :is(img, video, canvas, picture, [data-preserve-color]) {
   filter: none !important;

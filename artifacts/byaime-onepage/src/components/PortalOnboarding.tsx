@@ -24,7 +24,7 @@ export function PortalOnboarding() {
         <p className="aime-landing-copy text-[10px] uppercase tracking-[.35em] text-white/55">
           {t("private.onboarding.eyebrow")}
         </p>
-        <h1 className="aime-landing-copy mt-6 font-display text-3xl font-light tracking-[.08em] text-white md:text-5xl">
+        <h1 className="aime-landing-copy mt-6 font-display text-3xl font-semibold leading-[1.05] tracking-tight text-white md:text-5xl">
           {t("private.onboarding.title")}
         </h1>
         <p className="aime-landing-copy mt-5 max-w-xl text-sm font-light leading-relaxed text-white/70 md:text-base">

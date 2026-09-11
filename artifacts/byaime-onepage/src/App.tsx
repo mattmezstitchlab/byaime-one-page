@@ -18,6 +18,7 @@ import { ProjectProvider, useProject } from '@/store/project-store';
 import { ModeProvider } from '@/lib/mode';
 import { useI18n } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
+import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 
 import { PrivateLayout } from '@/components/PrivateLayout';
@@ -148,9 +149,39 @@ function SignUpPage({ returnTo }: { returnTo?: string }) {
 }
 function AuthPage({ signup = false }: { signup?: boolean }) {
   const returnTo = invitationReturnPath();
-  return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="relative min-h-[100dvh] bg-background flex items-center justify-center px-4 pb-20"><img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />{signup
-    ? <SignUpPage returnTo={returnTo} />
-    : <SignIn routing="path" path={`${basePath}/connexion`} signUpUrl={authPath("/creation", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />}<p className="absolute bottom-6 text-center text-[11px] text-foreground/40"><a href={`${basePath}/conditions`} className="hover:text-foreground">Conditions</a><span className="mx-2">·</span><a href={`${basePath}/confidentialite`} className="hover:text-foreground">Confidentialité</a></p></div>;
+  return (
+    <div
+      data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'}
+      className="relative min-h-[100dvh] overflow-hidden bg-black"
+    >
+      {/* Grand visuel immersif derrière la carte d'authentification : les médias
+          sont du contenu, jamais un thème (texte et liens restent blancs). */}
+      <div aria-hidden className="absolute inset-0">
+        <img
+          src={getAssetUrl(AIME_VISUALS.hero.backgroundImage)}
+          alt=""
+          className="h-full w-full object-cover"
+        />
+        <div className="aime-apple-overlay absolute inset-0" />
+        <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_20%,rgba(0,187,205,0.14),transparent_62%)]" />
+      </div>
+      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 pb-24 pt-24">
+        <img
+          src={`${basePath}/logo.svg`}
+          alt="AIME"
+          className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7"
+        />
+        {signup
+          ? <SignUpPage returnTo={returnTo} />
+          : <SignIn routing="path" path={`${basePath}/connexion`} signUpUrl={authPath("/creation", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />}
+        <p className="absolute bottom-6 text-center text-[11px] text-white/45">
+          <a href={`${basePath}/conditions`} className="transition hover:text-white">Conditions</a>
+          <span className="mx-2">·</span>
+          <a href={`${basePath}/confidentialite`} className="transition hover:text-white">Confidentialité</a>
+        </p>
+      </div>
+    </div>
+  );
 }
 function InvitePage({ params }: { params: { token: string } }) {
   const { isLoaded, isSignedIn } = useAuth();
