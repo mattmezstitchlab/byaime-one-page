@@ -7,6 +7,7 @@ import { CenteredBlock } from "./CenteredBlock";
 import { findTimelineConflicts } from "@/lib/timeline-graph";
 import { useProject } from "@/store/project-store";
 import type { WeddingPanelId } from "@/lib/wedding-navigation";
+import { formatBudget } from "@/lib/money";
 
 function Stat({ label, value, hint, onClick, icon: Icon, accent }: {
   label: string; value: string; hint?: string; onClick?: () => void; icon?: typeof Euro; accent?: boolean;
@@ -60,7 +61,7 @@ export function WorldOverview({ onClose, onOpenPanel }: { onClose: () => void; o
     <CenteredBlock eyebrow="Synthèse du Monde" title="Votre mariage en un coup d'œil" description="La salle de contrôle du Monde : ce qui avance, ce qui reste, et ce qu'il faut vérifier." onClose={onClose} size="xl">
       <div className="space-y-6">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Stat label="Budget engagé" value={summary.engaged > 0 ? `${summary.engaged.toLocaleString("fr-FR")} €` : "0 €"} hint={summary.total ? `sur ${summary.total.toLocaleString("fr-FR")} € prévus` : "budget global non défini"} icon={Euro} accent onClick={() => onOpenPanel("budget")} />
+          <Stat label="Budget engagé" value={summary.engaged > 0 ? formatBudget(summary.engaged, project.currency) : formatBudget(0, project.currency)} hint={summary.total ? `sur ${formatBudget(summary.total, project.currency)} prévus` : "budget global non défini"} icon={Euro} accent onClick={() => onOpenPanel("budget")} />
           <Stat label="Progression" value={`${summary.completion}%`} hint={`${summary.tasksDone} étape${summary.tasksDone > 1 ? "s" : ""} sur ${summary.tasksTotal}`} icon={ListChecks} onClick={() => onOpenPanel("planning")} />
           <Stat label="Invités" value={String(project.guests.length)} hint={`${summary.rsvpYes} oui · ${summary.rsvpPending} en attente · ${summary.rsvpNo} non`} icon={Users} onClick={() => onOpenPanel("guests")} />
           <Stat label="Prestataires engagés" value={`${summary.providersBooked}/${project.providers.length}`} hint={summary.providersOpen > 0 ? `${summary.providersOpen} encore à trouver` : "équipe complète"} icon={CheckCircle2} onClick={() => onOpenPanel("providers")} />

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from '@clerk/react';
 import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication, type ParticipantLink } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
-import { INTENTION_DRAFT_KEY, MIN_INTENTION_LENGTH } from '@/lib/intention-draft';
+import { INTENTION_DRAFT_KEY, INTENTION_META_KEY, MIN_INTENTION_LENGTH, readIntentionMeta, type IntentionMeta } from '@/lib/intention-draft';
 import { normalizeProject } from '../lib/project-migration';
 import { trackEvent } from '@/lib/analytics';
 import { isCurrentRevision } from '@/lib/project-sync';
@@ -195,8 +195,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
              la page suivante. La phrase n'est jamais redemandée. */
           const pending = localStorage.getItem(INTENTION_DRAFT_KEY);
           if (pending && pending.trim().length >= MIN_INTENTION_LENGTH) {
+            const meta: Partial<IntentionMeta> = readIntentionMeta();
             localStorage.removeItem(INTENTION_DRAFT_KEY);
-            const draftedProject = createInitialProject(parseIntention(pending), pending);
+            localStorage.removeItem(INTENTION_META_KEY);
+            const draftedProject = createInitialProject(parseIntention(pending), pending, meta);
             setPendingOwnedProjectId(draftedProject.id);
             setProject(draftedProject);
             serverSyncedProjectRef.current = null;
@@ -298,12 +300,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     const intention = text.trim();
     if (intention.length < MIN_INTENTION_LENGTH) return false;
     projectCreationSourceRef.current = 'created';
-    const newProject = createInitialProject(parseIntention(intention), intention);
+    const meta = readIntentionMeta();
+    const newProject = createInitialProject(parseIntention(intention), intention, meta);
     setPendingOwnedProjectId(newProject.id);
     setProject(newProject);
     setDraft(null);
     setIntentionTextState('');
-    if (userId) window.localStorage.removeItem(INTENTION_DRAFT_KEY);
+    if (userId) {
+      window.localStorage.removeItem(INTENTION_DRAFT_KEY);
+      window.localStorage.removeItem(INTENTION_META_KEY);
+    }
     return true;
   }, [userId]);
 

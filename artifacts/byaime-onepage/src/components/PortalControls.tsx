@@ -861,6 +861,11 @@ export function PortalControls({
               {notice}
             </p>
           )}
+          {project.persona === "pro" && (
+            <p data-testid="world-settings-persona" className="mb-5 rounded-xl border border-border bg-card px-4 py-3 text-xs text-foreground/60">
+              Espace professionnel : ce Monde suit un mariage que vous accompagnez. Chaque Monde reste cloisonné, avec ses invités, son budget et ses rôles.
+            </p>
+          )}
           {uploadProgress !== null && (
             <div role="status" aria-live="polite" className="mb-5 rounded-xl border border-border bg-card p-3">
               <div className="flex justify-between text-xs text-foreground/60">

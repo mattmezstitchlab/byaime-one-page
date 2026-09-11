@@ -14,18 +14,20 @@ export function parseIntention(text: string): Partial<WorldProject> {
     pivotDate.setFullYear(parseInt(yearMatch[1]));
     pivotConfidence = "confirme";
   }
-  const monthMatch = text.match(/\b(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\b/i);
+  const monthMatch = text.match(/\b(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre|january|february|march|april|may|june|july|august|september|october|november|december)\b/i);
   if (monthMatch) {
     const months = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+    const monthsEn = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
     const normalizedMonth = monthMatch[1].toLowerCase().replace('é', 'e').replace('û', 'u');
     const mIdx = months.indexOf(normalizedMonth);
     if (mIdx >= 0) pivotDate.setMonth(mIdx);
+    else pivotDate.setMonth(monthsEn.indexOf(normalizedMonth));
     pivotConfidence = "confirme";
   }
 
   let guests = null;
   let guestsConf: "deduit" | "confirme" | "manquant" = "manquant";
-  const guestsMatch = text.match(/(\d{2,4})\s*(?:invit|convive|personne)/i);
+  const guestsMatch = text.match(/(\d{2,4})\s*(?:invit|convive|personne|guests?|invitees)/i);
   if (guestsMatch) {
     guests = parseInt(guestsMatch[1]);
     guestsConf = "confirme";
@@ -33,24 +35,43 @@ export function parseIntention(text: string): Partial<WorldProject> {
 
   let budget = null;
   let budgetConf: "deduit" | "confirme" | "manquant" = "manquant";
-  const budgetMatch = text.match(/(\d{1,3}(?:[.,\s]?\d{3})*)\s*(?:€|euros|euro|k€|k)/i);
+  let currency: string | undefined;
+  /* Symbole après le montant (FR : « 20 000 € ») ou avant (EN : « $20,000 »).
+     R$ doit être testé avant $ ; le « k » reste multiplicateur. */
+  const currencyOf = (token: string) => {
+    const t = token.toLowerCase();
+    if (/r\$|brl/.test(t)) return "BRL";
+    if (/\$|usd|dollar/.test(t)) return "USD";
+    if (/£|gbp|livre/.test(t)) return "GBP";
+    if (/chf/.test(t)) return "CHF";
+    if (/mad|(^|\s)dh(\s|$)/.test(t)) return "MAD";
+    if (/aed/.test(t)) return "AED";
+    return "EUR";
+  };
+  const budgetSuffix = text.match(/(\d{1,3}(?:[.,\s]?\d{3})*)\s*(k)?\s*(€|euros?|k€|C\$|R\$|BRL|\$|USD|dollars?|£|GBP|livres?|CHF|MAD|DH|AED)/i);
+  const budgetPrefix = budgetSuffix ? null : text.match(/(C\$|R\$|€|\$|£|CHF|MAD|AED)\s*(\d{1,3}(?:[.,\s]?\d{3})*)\s*(k)?/i);
+  const budgetMatch = budgetSuffix ?? budgetPrefix;
   if (budgetMatch) {
-    let raw = budgetMatch[1].replace(/[.,\s]/g, '');
+    const suffix = Boolean(budgetSuffix);
+    const raw = (suffix ? budgetMatch[1] : budgetMatch[2]).replace(/[.,\s]/g, '');
+    const token = suffix ? budgetMatch[3] : budgetMatch[1];
+    const kilo = suffix ? budgetMatch[2] : budgetMatch[3];
     budget = parseInt(raw);
-    if (budgetMatch[0].toLowerCase().includes('k')) budget *= 1000;
+    if (kilo === "k" || budgetMatch[0].toLowerCase().includes('k€')) budget *= 1000;
+    currency = /c\$/.test(token.toLowerCase()) ? "CAD" : currencyOf(token);
     budgetConf = "confirme";
   }
 
   let city = null;
   let cityConf: "deduit" | "confirme" | "manquant" = "manquant";
-  const cityMatch = text.match(/\b(?:à|a|près de|proche de)\s+([A-Z][A-Za-z\s-]+)\b/);
+  const cityMatch = text.match(/\b(?:à|a|près de|proche de|near|in)\s+([A-ZÀ-Ü][A-Za-zÀ-ÿ\s'-]+)\b/);
   if (cityMatch && cityMatch[1].trim().length > 2) {
     city = cityMatch[1].trim();
     cityConf = "confirme";
   }
 
   let universe = "Événement";
-  if (/(mariage|marier|épouser)/i.test(text)) universe = "Mariage";
+  if (/(mariage|marier|épouser|wedding|marry|married)/i.test(text)) universe = "Mariage";
   else if (/(anniversaire)/i.test(text)) universe = "Anniversaire";
   else if (/(séminaire|seminaire|entreprise|team building)/i.test(text)) universe = "Entreprise";
   else if (/(voyage|vacances|retraite)/i.test(text)) universe = "Voyage";
@@ -72,13 +93,22 @@ export function parseIntention(text: string): Partial<WorldProject> {
     pivot: fact(pivotDate.getTime(), pivotConfidence),
     guestsCount: fact(guests, guestsConf),
     budget: fact(budget, budgetConf),
+    currency,
     city: fact(city, cityConf),
   };
 }
 
-export function createInitialProject(draft: Partial<WorldProject>, intentionText: string): WorldProject {
+/** Métadonnées du parcours d'onboarding (persona Couple/Pro, devise). */
+export type IntentionProjectMeta = {
+  persona?: "couple" | "pro";
+  currency?: string;
+};
+
+export function createInitialProject(draft: Partial<WorldProject>, intentionText: string, meta: IntentionProjectMeta = {}): WorldProject {
   const pivotTime = draft.pivot?.value || Date.now() + 31536000000;
   const isWedding = draft.universe === "Mariage";
+  const persona = meta.persona ?? draft.persona ?? "couple";
+  const currency = draft.currency ?? meta.currency ?? "EUR";
 
   return normalizeProject({
     schemaVersion: 2,
@@ -87,6 +117,8 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
     title: draft.title || "Projet",
     subtitle: intentionText,
     universe: draft.universe || "Général",
+    persona,
+    currency,
     pivot: draft.pivot || fact(pivotTime, "deduit"),
     city: draft.city || fact(null, "manquant"),
     venue: draft.venue || fact(null, "manquant"),

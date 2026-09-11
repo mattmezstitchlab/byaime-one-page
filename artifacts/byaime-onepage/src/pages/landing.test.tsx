@@ -34,9 +34,26 @@ describe("Landing (accueil)", () => {
     // Le hero occupe tout l'écran et le contenu suivant glisse par-dessus (z-10 + fonds opaques).
     expect(markup).toContain('min-h-[100dvh]');
     expect(markup).toContain('id="landing-guides"');
-    expect(markup).toContain('Faire défiler vers la suite');
+    expect(markup).toContain('aria-label="Défiler"');
     const guidesStart = markup.indexOf('id="landing-guides"');
     expect(markup.slice(guidesStart, guidesStart + 240)).toContain('relative z-10');
+  });
+
+  it("demande dès le hero si le visiteur est un couple ou un professionnel, et expose la langue", () => {
+    const markup = render(<LandingPage />);
+
+    // Le tout premier choix du hero, avant les cinq questions.
+    expect(markup).toContain('data-testid="landing-persona"');
+    expect(markup).toContain('data-testid="landing-persona-couple"');
+    expect(markup).toContain('data-testid="landing-persona-pro"');
+    expect(markup).toContain("Couple");
+    expect(markup).toContain("Professionnel·le");
+    // Le persona par défaut est le couple.
+    expect(markup).toContain('data-testid="landing-persona-couple" aria-pressed="true"');
+    // Bascule de langue FR/EN dans l'en-tête, en français par défaut.
+    expect(markup).toContain('data-testid="landing-locale"');
+    expect(markup).toContain('data-testid="landing-locale-fr"');
+    expect(markup).toContain('data-testid="landing-locale-en"');
   });
 
   it("garde une seule hiérarchie de titre et le nom AIME cliquable vers l'accueil", () => {

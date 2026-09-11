@@ -43,6 +43,15 @@ globalThis.document.defaultView = globalThis.window;
 globalThis.location = globalThis.window.location;
 globalThis.history = globalThis.window.history;
 globalThis.matchMedia = globalThis.window.matchMedia;
+// Épingler la porte d'entrée en français : la détection de langue respecte
+// navigator.language dans un vrai navigateur (l'anglais est testé plus bas).
+const setNavigatorLanguage = (language, languages) =>
+  Object.defineProperty(globalThis, "navigator", {
+    value: { language, languages, serviceWorker: undefined },
+    configurable: true,
+    writable: true,
+  });
+setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 globalThis.addEventListener = globalThis.window.addEventListener;
 globalThis.removeEventListener = globalThis.window.removeEventListener;
 
@@ -128,6 +137,16 @@ checkHtml(
 );
 globalThis.localStorage.removeItem("aime-intention-draft");
 checkHtml("Accueil membre", renderAt("/", createElement(LandingPage, { signedIn: true })), ["Accéder à mon espace"], ["Créer un compte gratuit"]);
+
+/* La porte d'entrée doit passer entièrement en anglais (persona, onboarding, CTA). */
+setNavigatorLanguage("en-US", ["en-US", "en"]);
+checkHtml(
+  "Accueil visiteur en anglais (persona Couple/Pro + onboarding EN)",
+  renderAt("/", createElement(LandingPage, { signedIn: false })),
+  ['data-testid="landing-locale-en"', 'data-testid="landing-persona"', "Our wedding", "A couple", "A professional", "Sign in", "The wedding date"],
+  ["Notre mariage", "Créer mon espace"],
+);
+setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
 async function renderApp(path) {
   globalThis.window.location.pathname = path;

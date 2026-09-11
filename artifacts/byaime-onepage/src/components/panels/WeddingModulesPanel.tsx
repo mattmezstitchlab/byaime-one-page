@@ -8,10 +8,11 @@ import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import type { WeddingModule } from "@/lib/wedding-navigation";
 import { LOCAL_IMPORT_POLICY, guessMimeType, localImportSupport, pickLocalFolder, planLocalImports, readableLocalPath } from "@/lib/local-files";
+import { formatCents, currencySymbol } from "@/lib/money";
 
 export type { WeddingModule } from "@/lib/wedding-navigation";
 
-const euro = (cents: number) => `${(cents / 100).toLocaleString("fr-FR")} €`;
+const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 const newId = () => Math.random().toString(36).slice(2, 9);
 type StoredFile = { id: string; name: string; contentType: string; size: number; guestId?: string | null; createdAt?: string };
 type SentMessage = { id: string; projectId: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; timelineEventId?: string | null; scheduledAt?: string | null; cancelledAt?: string | null; sentAt?: string | null; createdAt: string };
@@ -351,6 +352,19 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       setBusy(false);
     }
   };
+  // Pied de message obligatoire pour les envois groupés : mécanisme de
+  // désabonnement clair (CAN-SPAM) et identification de l'expéditeur (RGPD).
+  // Le désabonnement par réponse fonctionne sans bout de chaîne supplémentaire.
+  const withLegalFooter = (body: string) => {
+    const footer = [
+      "",
+      "—",
+      "Vous recevez cet e-mail de la part des organisateurs de ce mariage, via AIME. Pour ne plus recevoir ces messages, répondez en indiquant « Désabonnement ».",
+      "You are receiving this email from the wedding organizers via AIME. Reply with “STOP” to opt out of future messages.",
+    ].join("\n");
+    return /Désabonnement|opt out/i.test(body) ? body : `${body.trimEnd()}${footer}`;
+  };
+
   // Unique point d'entrée de composition d'e-mail : les modèles et le message libre
   // passent tous par ce journal (voir dédup « Messages = seul endroit de composition »).
   const deliverMessage = async (recipientList: string[], subject: string, body: string) => {
@@ -360,7 +374,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     try {
       const delivery = await api<SentMessage>(`/projects/${project.id}/messages`, {
         method: "POST",
-        body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: subject.trim(), body: body.trim(), confirmed: true }),
+        body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: subject.trim(), body: withLegalFooter(body), confirmed: true }),
       });
       if (delivery.status !== "sent") throw new Error(delivery.providerError || "La livraison de l’e-mail n’a pas été confirmée");
       try {
@@ -605,10 +619,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     const paid = project.payments.filter(p => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
     const remaining = Math.max(0, (project.budget.value || estimated / 100) * 100 - paid);
     return <div className="max-w-4xl mx-auto space-y-6">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{[["Estimé", estimated], ["Engagé", committed], ["Payé", paid], ["Restant", remaining]].map(([label, value]) => <div key={label as string} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p><p className="mt-2 font-mono text-lg">{euro(value as number)}</p></div>)}</div>
-      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.025] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p><div className="mt-4 space-y-3">{Array.from(new Set(project.providers.map(p => p.category))).map(category => { const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0); const pct = estimated ? Math.min(100, Math.round(amount / estimated * 100)) : 0; return <div key={category}><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-foreground/65">{category}</span><span className="font-mono text-foreground/45">{euro(amount)}</span></div><div className="h-1 rounded-full bg-foreground/10"><div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} /></div></div> })}</div></div>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{[["Estimé", estimated], ["Engagé", committed], ["Payé", paid], ["Restant", remaining]].map(([label, value]) => <div key={label as string} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p><p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p></div>)}</div>
+      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.025] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p><div className="mt-4 space-y-3">{Array.from(new Set(project.providers.map(p => p.category))).map(category => { const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0); const pct = estimated ? Math.min(100, Math.round(amount / estimated * 100)) : 0; return <div key={category}><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-foreground/65">{category}</span><span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span></div><div className="h-1 rounded-full bg-foreground/10"><div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} /></div></div> })}</div></div>
       <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Échéancier</h4><p className="text-xs text-foreground/40 mt-1">Chaque modification est enregistrée dans ce Monde.</p></div><AddBar label="Ajouter un paiement" onAdd={addPayment} /></div>
-      {project.payments.length === 0 ? <Empty>Aucun paiement à suivre.</Empty> : <div className="space-y-2">{project.payments.map(p => <PaymentRow key={p.id} payment={p} onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })} onDelete={() => removeEntity("payments", p.id)} onEdit={updates => updateEntity("payments", p.id, updates)} />)}</div>}
+      {project.payments.length === 0 ? <Empty>Aucun paiement à suivre.</Empty> : <div className="space-y-2">{project.payments.map(p => <PaymentRow key={p.id} payment={p} currency={project.currency} onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })} onDelete={() => removeEntity("payments", p.id)} onEdit={updates => updateEntity("payments", p.id, updates)} />)}</div>}
     </div>;
   }
 
@@ -1035,8 +1049,8 @@ function MusicTrackRow({
   </div>;
 }
 
-function PaymentRow({ payment, onToggle, onDelete, onEdit }: { payment: Payment; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {
-  return <div className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><button onClick={onToggle} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", payment.state === "paye" ? "bg-emerald-300 text-black border-emerald-300" : "border-foreground/20")}>{payment.state === "paye" && <Check className="w-3.5 h-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="bg-transparent text-sm outline-none w-full" /><p className="text-xs text-foreground/40 mt-1">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><input type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-lg bg-foreground/5 px-2 py-1.5 text-right font-mono text-sm outline-none" /><button onClick={onDelete} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>;
+function PaymentRow({ payment, currency, onToggle, onDelete, onEdit }: { payment: Payment; currency?: string; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {
+  return <div className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><button onClick={onToggle} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", payment.state === "paye" ? "bg-emerald-300 text-black border-emerald-300" : "border-foreground/20")}>{payment.state === "paye" && <Check className="w-3.5 h-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="bg-transparent text-sm outline-none w-full" /><p className="text-xs text-foreground/40 mt-1">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><div className="flex items-center gap-1"><input aria-label="Montant du paiement" type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-lg bg-foreground/5 px-2 py-1.5 text-right font-mono text-sm outline-none" /><span className="w-8 text-xs text-foreground/45" aria-hidden>{currencySymbol(currency)}</span></div><button onClick={onDelete} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>;
 }
 
 function EditableArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {

@@ -47,6 +47,8 @@ export function normalizeProject(value: WorldProject): WorldProject {
     team: Array.isArray(value.team) ? value.team : [], memories: Array.isArray(value.memories) ? value.memories : [],
     messageTemplates: Array.isArray(value.messageTemplates) ? value.messageTemplates : [], messageLogs: Array.isArray(value.messageLogs) ? value.messageLogs : [],
     guestsCount: value.guestsCount ?? { value: null, confidence: "manquant" }, budget: value.budget ?? { value: null, confidence: "manquant" },
+    persona: value.persona === "pro" ? "pro" : "couple",
+    currency: typeof value.currency === "string" && value.currency ? value.currency : "EUR",
     city: value.city ?? { value: null, confidence: "manquant" }, venue: value.venue ?? { value: null, confidence: "manquant" },
     logistics: { ...emptyLogistics, ...(value.logistics || {}) }, missing: Array.isArray(value.missing) ? value.missing : [],
   };

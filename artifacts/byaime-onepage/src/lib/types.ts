@@ -310,7 +310,11 @@ export type WorldProject = {
   venue: Fact<string | null>;
   guestsCount: Fact<number | null>;
   budget: Fact<number | null>;
-  
+  /** Qui crée ce Monde : le couple lui-même, ou un professionnel qui l'accompagne. */
+  persona?: "couple" | "pro";
+  /** Code ISO 4217 de la devise du mariage (budget, prestataires, paiements). */
+  currency?: string;
+
   timeline: TimelineEvent[];
   tasks: Task[];
   guests: Guest[];
