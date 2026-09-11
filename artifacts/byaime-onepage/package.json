@@ -79,7 +79,6 @@
   },
   "dependencies": {
     "@clerk/react": "^6.15.1",
-    "@clerk/themes": "^2.4.57",
-    "maplibre-gl": "^6.6.0"
+    "@clerk/themes": "^2.4.57"
   }
 }

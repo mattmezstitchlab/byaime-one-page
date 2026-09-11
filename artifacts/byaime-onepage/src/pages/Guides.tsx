@@ -354,37 +354,19 @@ export function GuidesPage() {
       </section>
 
       <section className="px-6 pb-40 max-w-6xl mx-auto grid lg:grid-cols-[280px_1fr] gap-12 items-start">
-         <div className="sticky top-24 space-y-2 hidden lg:block">
+         <div className="flex snap-x gap-3 overflow-x-auto pb-4 hide-scrollbar lg:sticky lg:top-24 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0">
             {DEMOS.map(demo => (
               <button
                 key={demo.id}
-                data-testid={`demo-select-${demo.id}-desktop`}
+                data-testid={`demo-select-${demo.id}`}
                 onClick={() => setActiveDemo(demo.id)}
                 className={cn(
-                  "block w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none",
-                  activeDemo === demo.id ? "bg-foreground text-background shadow-xl" : "bg-card/50 text-foreground/60 hover:bg-foreground/5 hover:text-foreground"
-                )}
-              >
-                 <span className="block font-display text-lg mb-1">{demo.title}</span>
-                 <span className={cn("block text-xs leading-relaxed opacity-80", activeDemo === demo.id ? "text-background/80" : "text-foreground/40")}>{demo.description}</span>
-              </button>
-            ))}
-         </div>
-         
-         {/* Mobile selector */}
-         <div className="lg:hidden flex overflow-x-auto gap-3 pb-4 hide-scrollbar snap-x">
-            {DEMOS.map(demo => (
-              <button
-                key={demo.id}
-                data-testid={`demo-select-${demo.id}-mobile`}
-                onClick={() => setActiveDemo(demo.id)}
-                className={cn(
-                  "shrink-0 w-72 text-left px-5 py-4 rounded-2xl transition-all duration-300 snap-center focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none",
-                  activeDemo === demo.id ? "bg-foreground text-background" : "bg-card/50 text-foreground/60"
+                  "shrink-0 w-72 snap-center text-left px-5 py-4 rounded-2xl transition-all duration-300 focus-visible:ring-2 focus-visible:ring-foreground focus-visible:outline-none lg:w-full lg:snap-none",
+                  activeDemo === demo.id ? "bg-foreground text-background lg:shadow-xl" : "bg-card/50 text-foreground/60 hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                  <span className="block font-display text-lg mb-1 truncate">{demo.title}</span>
-                 <span className={cn("block text-xs line-clamp-2", activeDemo === demo.id ? "text-background/80" : "text-foreground/40")}>{demo.description}</span>
+                 <span className={cn("block text-xs leading-relaxed line-clamp-2 lg:line-clamp-none", activeDemo === demo.id ? "text-background/80" : "text-foreground/40")}>{demo.description}</span>
               </button>
             ))}
          </div>
