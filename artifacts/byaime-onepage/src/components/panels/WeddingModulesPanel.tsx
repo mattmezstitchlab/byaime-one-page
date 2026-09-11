@@ -2,11 +2,12 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2, FolderOpen, RefreshCcw, Link2 } from "lucide-react";
+import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2, FolderOpen, RefreshCcw, Link2, Copy, FolderSearch } from "lucide-react";
 import type { MemoryItem, MusicSearchResult, MusicTrack, Payment } from "@/lib/types";
 import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import type { WeddingModule } from "@/lib/wedding-navigation";
+import { LOCAL_IMPORT_POLICY, guessMimeType, localImportSupport, pickLocalFolder, planLocalImports, readableLocalPath } from "@/lib/local-files";
 
 export type { WeddingModule } from "@/lib/wedding-navigation";
 
@@ -165,6 +166,15 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [pendingImportJobs, setPendingImportJobs] = useState<Record<string, string>>({});
   const musicSearchAbortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  /* Dossier local choisi via le navigateur (File System Access API ou <input webkitdirectory>). */
+  const folderRef = useRef<HTMLInputElement>(null);
+  const [localImport, setLocalImport] = useState<{
+    done: number;
+    total: number;
+    current: string;
+    note: string;
+    skipped: Array<{ name: string; reason: string }>;
+  } | null>(null);
   const canManage = currentRole === "owner" || currentRole === "planner";
   const canEdit = canManage || currentRole === "family";
   const projectId = project?.id;
@@ -215,27 +225,113 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   if (!project) return null;
 
   const addPayment = () => addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
+  /* Un fichier, du jeton d'upload jusqu'à sa trace dans ce Monde. */
+  const putStorageFile = async (file: File, onProgress?: (progress: number) => void) => {
+    const contentType = file.type || guessMimeType(file.name);
+    const request = await api<{ uploadURL: string; objectPath: string; finalizeToken: string }>("/storage/uploads/request-url", {
+      method: "POST",
+      body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType }),
+    });
+    await putFile(request.uploadURL, file, onProgress ?? (() => undefined));
+    await api("/storage/files", {
+      method: "POST",
+      body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType, objectPath: request.objectPath, finalizeToken: request.finalizeToken }),
+    });
+  };
+  const refreshFiles = async () => setFiles(await api<StoredFile[]>(`/projects/${project.id}/files`));
+
   const uploadFile = async (file: File) => {
     setBusy(true);
     setUploadProgress(0);
     setRemoteError("");
     try {
-      const request = await api<{ uploadURL: string; objectPath: string; finalizeToken: string }>("/storage/uploads/request-url", {
-        method: "POST",
-        body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type }),
-      });
-      await putFile(request.uploadURL, file, setUploadProgress);
-      await api("/storage/files", {
-        method: "POST",
-        body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType: file.type, objectPath: request.objectPath, finalizeToken: request.finalizeToken }),
-      });
-      setFiles(await api<StoredFile[]>(`/projects/${project.id}/files`));
+      await putStorageFile(file, setUploadProgress);
+      await refreshFiles();
     } catch (error) {
       setRemoteError(error instanceof Error ? error.message : "Ajout impossible");
     } finally {
       setBusy(false);
       setUploadProgress(null);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  /*
+   * Import d'un dossier entier, sans rien installer : le navigateur lit les
+   * fichiers choisis (Mac comme PC) et les transfère un par un dans l'espace
+   * privé du Monde. Les fichiers ignorés le sont avec une raison lisible.
+   */
+  const importLocalPicks = async (picks: Array<{ path: string; file: File }>) => {
+    const plan = planLocalImports(
+      picks.map(pick => ({ name: pick.file.name, path: pick.path, size: pick.file.size, type: pick.file.type })),
+      LOCAL_IMPORT_POLICY,
+    );
+    const byPath = new Map(picks.map(pick => [pick.path, pick]));
+    const chosen = plan.accepted
+      .map(candidate => byPath.get(candidate.path))
+      .filter((pick): pick is { path: string; file: File } => Boolean(pick));
+    const skipped = plan.skipped.map(entry => ({ name: entry.item.name, reason: entry.reason }));
+    if (!chosen.length) {
+      setLocalImport({ done: 0, total: 0, current: "", skipped, note: "Aucun fichier importable dans ce dossier." });
+      return;
+    }
+    setBusy(true);
+    setRemoteError("");
+    const failures = [...skipped];
+    for (let index = 0; index < chosen.length; index += 1) {
+      const pick = chosen[index];
+      setLocalImport({
+        done: index,
+        total: chosen.length,
+        current: readableLocalPath(pick.path),
+        skipped: failures,
+        note: "Transfert vers l'espace privé de ce Monde.",
+      });
+      try {
+        await putStorageFile(pick.file);
+      } catch (error) {
+        failures.push({ name: pick.file.name, reason: error instanceof Error ? error.message : "transfert impossible" });
+      }
+    }
+    try {
+      await refreshFiles();
+    } catch {
+      // La liste se complétera au prochain rafraîchissement ; les fichiers sont partis.
+    }
+    setLocalImport({
+      done: chosen.length,
+      total: chosen.length,
+      current: "",
+      skipped: failures,
+      note: failures.length
+        ? `${chosen.length} fichier(s) importé(s), ${failures.length} écarté(s).`
+        : `${chosen.length} fichier(s) importé(s) dans ce Monde.`,
+    });
+    setBusy(false);
+    if (folderRef.current) folderRef.current.value = "";
+  };
+
+  const chooseLocalFolder = async () => {
+    const support = localImportSupport();
+    if (support.picker) {
+      try {
+        const picks = await pickLocalFolder(LOCAL_IMPORT_POLICY);
+        if (picks?.length) await importLocalPicks(picks);
+      } catch (error) {
+        setRemoteError(error instanceof Error ? error.message : "Dossier illisible depuis le navigateur.");
+      }
+      return;
+    }
+    folderRef.current?.click();
+  };
+
+  const copyBridgeCommand = async (command: string) => {
+    try {
+      await navigator.clipboard.writeText(command);
+      setRemoteError("");
+      setLocalImport({ done: 0, total: 0, current: "", skipped: [], note: "Commande copiée dans le presse-papiers." });
+    } catch {
+      setRemoteError("Le presse-papiers est refusé par ce navigateur : sélectionnez la ligne vous-même.");
     }
   };
   const deleteFile = async (file: StoredFile) => {
@@ -504,7 +600,8 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-widest text-sky-100/80">AIME LOCAL</p>
-          <p className="mt-1 text-sm text-foreground/80">AIME peut analyser certains fichiers sur votre Mac sans les importer automatiquement.</p>
+          <p className="mt-1 text-sm text-foreground/80">AIME peut analyser des fichiers restés sur votre ordinateur, Mac ou PC, sans les importer : c&apos;est le pont AIME LOCAL.</p>
+          <p className="mt-1 text-xs text-foreground/45">Sans installation, préférez « Choisir un dossier » plus bas : le navigateur lit les fichiers que vous désignez et les transfère dans ce Monde.</p>
           <p className="mt-1 text-xs text-foreground/45">
             État bridge : {localBridge.connected ? `connecté (${localBridge.bridgeVersion || "bridge"})` : "non connecté"}
           </p>
@@ -512,7 +609,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
         <div className="flex flex-wrap gap-2">
           <button disabled={busy} onClick={() => void createPairingToken()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
             {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
-            Connecter mon Mac
+            Connecter mon ordinateur
           </button>
           <button disabled={busy} onClick={() => void refreshAimeLocal()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
             <RefreshCcw className="h-3.5 w-3.5" /> Actualiser
@@ -525,7 +622,15 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           <code className="mt-1 block overflow-auto rounded bg-black/60 p-2 text-[11px] text-emerald-200">
             pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base {window.location.origin}/api --pairing-token {pairingToken.token}
           </code>
-          <p className="mt-1 text-foreground/45">Code valide jusqu&apos;au {new Date(pairingToken.expiresAt).toLocaleTimeString("fr-FR")}.</p>
+          <p className="mt-1 text-foreground/45">Commande identique sur macOS, Linux et Windows (PowerShell). Node.js 20+ et pnpm installés dans le dépôt sont requis ; ce pont parle à l&apos;API auto-hébergée, pas au site public. Code valide jusqu&apos;au {new Date(pairingToken.expiresAt).toLocaleTimeString("fr-FR")}.</p>
+          <button
+            type="button"
+            data-testid="copy-bridge-command"
+            onClick={() => void copyBridgeCommand(`pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base ${window.location.origin}/api --pairing-token ${pairingToken.token}`)}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-foreground/65 transition hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Copy className="h-3 w-3" /> Copier la commande
+          </button>
         </div>
       )}
       <div className="mt-3 space-y-2">
@@ -535,19 +640,80 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           onChange={(event) => setAuthorizedFoldersText(event.target.value)}
           rows={3}
           className="w-full rounded-xl border border-foreground/10 bg-background/30 px-3 py-2 text-xs outline-none focus:border-foreground/30"
-          placeholder={`/Users/${project.title.toLowerCase().replace(/\s+/g, "-")}/Documents`}
+          placeholder="/Users/prenom/Documents/Mariage  ·  C:\\Users\\prenom\\Documents\\Mariage"
         />
         <div className="flex flex-wrap gap-2">
           <button disabled={busy} onClick={() => void saveAuthorizedFolders()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
             <FolderOpen className="h-3.5 w-3.5" /> Enregistrer les dossiers
           </button>
-          <button disabled={busy || !localBridge.connected} onClick={() => void launchLocalScan()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
+          <button disabled={busy || !localBridge.connected} title={localBridge.connected ? "Le pont analyse les dossiers autorisés." : "Pont AIME LOCAL non connecté : lancez la commande ci-dessus, ou choisissez un dossier plus bas."} onClick={() => void launchLocalScan()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">
             <Search className="h-3.5 w-3.5" /> Lancer un scan manuel
           </button>
         </div>
       </div>
     </div>
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-foreground/70">Documents & médias privés</p><p className="mt-1 text-xs text-foreground/40">Stockés dans l’espace sécurisé de ce Monde.</p></div>{canManage && <><button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter un fichier</button><input ref={fileRef} type="file" accept=".pdf,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => event.target.files?.[0] && void uploadFile(event.target.files[0])} /></>}</div>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p className="text-sm text-foreground/70">Documents & médias privés</p>
+        <p className="mt-1 text-xs text-foreground/40">Stockés dans l’espace sécurisé de ce Monde.</p>
+      </div>
+      {canManage && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            data-testid="pick-local-folder"
+            disabled={busy}
+            onClick={() => void chooseLocalFolder()}
+            title="Le navigateur ouvre le sélecteur de dossier de votre Mac ou de votre PC ; rien n'est envoyé ailleurs que dans ce Monde."
+            className="inline-flex items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[.06] px-3 py-2 text-xs text-foreground transition hover:bg-foreground/[.12] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <FolderSearch className="h-3.5 w-3.5" />}
+            Choisir un dossier de cet ordinateur
+          </button>
+          <button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-white hover:text-black disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter des fichiers</button>
+          <input ref={fileRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.mp4,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => {
+            const picked = Array.from(event.target.files ?? []);
+            if (picked.length > 1) void importLocalPicks(picked.map(file => ({ path: file.name, file })));
+            else if (picked[0]) void uploadFile(picked[0]);
+          }} />
+          {/* Repli pour les navigateurs sans File System Access API (Firefox, Safari). */}
+          <input
+            ref={folderRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.mp4,.csv,.txt"
+            onChange={event => {
+              const picked = Array.from(event.target.files ?? []);
+              if (picked.length) {
+                void importLocalPicks(picked.map(file => ({
+                  path: (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name,
+                  file,
+                })));
+              }
+            }}
+            {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+          />
+        </div>
+      )}
+    </div>
+    {localImport && (
+      <div data-testid="local-import-status" role="status" aria-live="polite" className="rounded-xl border border-foreground/10 bg-foreground/[.03] p-3 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-foreground/75">{localImport.current ? `Import en cours · ${localImport.done + 1}/${localImport.total} · ${localImport.current}` : localImport.note}</p>
+          {localImport.total > 0 && <p className="font-mono text-foreground/45">{localImport.done}/{localImport.total}</p>}
+        </div>
+        {localImport.total > 0 && (
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10">
+            <div className="h-full rounded-full bg-foreground/70 transition-[width]" style={{ width: `${Math.round((localImport.done / localImport.total) * 100)}%` }} />
+          </div>
+        )}
+        {localImport.skipped.length > 0 && (
+          <ul className="mt-2 space-y-1 text-foreground/45">
+            {localImport.skipped.slice(0, 8).map(entry => <li key={`${entry.name}-${entry.reason}`} className="truncate">Écarté · {entry.name} — {entry.reason}</li>)}
+            {localImport.skipped.length > 8 && <li>{localImport.skipped.length - 8} autre(s) fichier(s) écarté(s).</li>}
+          </ul>
+        )}
+      </div>
+    )}
     {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
     {uploadProgress !== null && <div role="status" aria-live="polite" className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3"><div className="flex justify-between text-xs text-amber-100"><span>Transfert vers l’espace privé</span><span>{uploadProgress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10"><div className="h-full rounded-full bg-amber-200 transition-[width]" style={{ width: `${uploadProgress}%` }} /></div></div>}
     {localScan && (

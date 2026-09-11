@@ -46,6 +46,27 @@ describe("Landing (accueil)", () => {
     expect(member).not.toContain('data-testid="landing-sign-in"');
   });
 
+  it("place les guides sous le hero, en rangées défilantes et sur un grand visuel", () => {
+    const markup = render(<LandingPage />);
+
+    expect(markup).toContain('data-testid="landing-guides"');
+    expect(markup).toContain('data-testid="landing-guides-explorer"');
+    expect(markup).toContain("Comprendre avant de cliquer.");
+    // Sous le hero, avant la section produit.
+    expect(markup.indexOf('data-testid="landing-guides"')).toBeGreaterThan(markup.indexOf('data-testid="landing-composer"'));
+    expect(markup.indexOf('data-testid="landing-guides"')).toBeLessThan(markup.indexOf("Aperçu produit"));
+    // Une rangée par catégorie, et l'animation centrée — pas de grille de cartes ni de nuage de puces.
+    expect(markup).toContain('data-testid="landing-guides-menu"');
+    expect(markup).toContain("overflow-x-auto");
+    expect(markup).toContain('data-testid="landing-guides-player"');
+    expect(markup).toContain('data-testid="landing-guides-group-panneaux"');
+    expect(markup).not.toContain('data-testid="landing-guides-group-monde"');
+    expect(markup.match(/<h1/g)).toHaveLength(1);
+    // Le visuel de fond est bien servi depuis le manifeste, pas un chemin codé en dur.
+    expect(markup).toContain("images/wedding/wedding-reception.jpg");
+    expect(markup.match(/data-testid="demo-select-/g)?.length).toBeGreaterThan(20);
+  });
+
   it("ne parle plus jamais de Laboratoire", () => {
     const markup = render(<LandingPage />);
     expect(markup).not.toContain("Laboratoire");

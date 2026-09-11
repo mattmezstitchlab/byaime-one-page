@@ -24,6 +24,8 @@ const wedding = {
   flowers: 'images/wedding/wedding-flowers.jpg',
   video: 'images/wedding/wedding-video.jpg',
   transport: 'images/wedding/wedding-transport.jpg',
+  attire: 'images/wedding/wedding-attire.jpg',
+  patrimoine: 'images/wedding/wedding-patrimoine.jpg',
 } as const;
 
 export const AIME_VISUALS = {
@@ -44,7 +46,7 @@ export const AIME_VISUALS = {
     food: wedding.table,
     photo: wedding.portrait,
     beaute: wedding.prep,
-    patrimoine: wedding.reception,
+    patrimoine: wedding.patrimoine,
     hotel: wedding.reception,
     people: wedding.guests,
     institution: wedding.video,
@@ -63,6 +65,8 @@ export const AIME_VISUALS = {
     wedding.video,
     wedding.transport,
     wedding.reception,
+    wedding.patrimoine,
+    wedding.attire,
   ] as const,
   providersByCategory: {
     lieu: wedding.ceremony,
@@ -71,7 +75,7 @@ export const AIME_VISUALS = {
     video: wedding.video,
     fleuriste: wedding.flowers,
     musique: wedding.music,
-    tenue: wedding.prep,
+    tenue: wedding.attire,
     beaute: wedding.prep,
     transport: wedding.transport,
   } as const,

@@ -3,6 +3,7 @@ import {
   ActionPillFakeUI, BudgetFakeUI, CeremonyFakeUI, CreateMondeFakeUI, DayofFakeUI, DocumentsFakeUI,
   GraphFakeUI, GuestsFakeUI, InfosFakeUI, MeFakeUI, MemoriesFakeUI,
   MessagesFakeUI, MusicFakeUI, ProfileFakeUI, ProfileTimelineFakeUI, ProvidersFakeUI, RolesFakeUI,
+  GuidanceFakeUI, IntentionFakeUI,
   RsvpInviteFakeUI, SeatingFakeUI, SynthesisFakeUI, TasksFakeUI, ThanksFakeUI, TimelineFakeUI, WorldFakeUI,
 } from "./guides-fake-uis";
 
@@ -54,6 +55,17 @@ export const DEMOS: DemoConfig[] = [
     ],
   },
   {
+    id: "intention",
+    title: "La première phrase du mariage",
+    description: "Cinq questions sur l'accueil suffisent à ouvrir un Monde déjà structuré : date, lieu, invités, budget, ambiance.",
+    category: "comprendre",
+    steps: [
+      { label: "Une question à la fois", content: "Le champ du haut ne réclame pas un formulaire : une information, même approximative. AIME la note telle quelle, avec son statut.", ui: <IntentionFakeUI step={0} />, cursor: { x: 52, y: 55 } },
+      { label: "Cinq réponses", content: "Date, ville, convives, enveloppe, ambiance. Rien n'est perdu : la saisie est conservée sur cet appareil, même sans compte.", ui: <IntentionFakeUI step={1} />, cursor: { x: 50, y: 38 } },
+      { label: "Un Monde ouvert", content: "La phrase produite devient le Monde. Timeline, invités et finances naissent déjà reliés, à confirmer à votre rythme.", ui: <IntentionFakeUI step={2} />, cursor: { x: 50, y: 70 } },
+    ],
+  },
+  {
     id: "roles",
     title: "Les Rôles et Frontières",
     description: "Quatre rôles font varier les actions disponibles et masquent les informations d’organisation sensibles.",
@@ -74,6 +86,17 @@ export const DEMOS: DemoConfig[] = [
       { label: "Comprendre", content: "Demandez à l'AI de vérifier un horaire, d'analyser un conflit ou de rédiger une relance sans agir à votre place.", ui: <ActionPillFakeUI focus="ai" />, cursor: { x: 42, y: 88 } },
       { label: "Créer", content: "Le bouton + centralise toute création ou liaison de donnée dans le Monde actif de façon contextuelle.", ui: <ActionPillFakeUI focus="plus" />, cursor: { x: 50, y: 88 } },
       { label: "Contrôler", content: "ME est votre espace souverain. Gérez vos accès, votre sécurité, vos exports et passez d'un Monde à l'autre.", ui: <ActionPillFakeUI focus="me" />, cursor: { x: 58, y: 88 } },
+    ],
+  },
+  {
+    id: "guidance",
+    title: "AIME vous guide à chaque écran",
+    description: "Une puce dans le chrome de chaque panneau, un onglet « Me guider » dans le panneau AI : l'agent connaît l'architecture et l'état réel du Monde.",
+    category: "comprendre",
+    steps: [
+      { label: "Ici", content: "Chaque panneau porte « Expliquer cet écran » : à quoi sert cet endroit, ce qu'on y fait, l'erreur classique à éviter.", ui: <GuidanceFakeUI step={0} />, cursor: { x: 84, y: 13 } },
+      { label: "Ensuite", content: "L'onglet « Me guider » liste ce qui bloque vraiment — date non confirmée, réponses en attente, aucune table — et le bouton qui y va.", ui: <GuidanceFakeUI step={1} />, cursor: { x: 50, y: 46 } },
+      { label: "Sous la main", content: "Une question en français ordinaire, et AIME répond par un écran qui existe, sans jamais inventer de bouton. Tout reste dans le navigateur.", ui: <GuidanceFakeUI step={2} />, cursor: { x: 40, y: 24 } },
     ],
   },
   {
