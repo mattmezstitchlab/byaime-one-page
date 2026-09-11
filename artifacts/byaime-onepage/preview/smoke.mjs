@@ -96,6 +96,26 @@ for (const mode of ["SignIn", "SignUp"]) {
 }
 globalThis.localStorage.removeItem("aime-intention-draft");
 
+// 1b) Le garde <Show> doit interpréter les chaînes Clerk : en visiteur, seule
+// la branche "signed-out" s'affiche ; en membre, seule "signed-in". Sinon
+// l'espace privé rebondit vers l'accueil (Redirect toujours montée).
+for (const [session, expected] of [["0", "signed-out"], ["1", "signed-in"]]) {
+  globalThis.localStorage.setItem("aime-preview-session", session);
+  const shown = renderToStaticMarkup(
+    createElement(
+      "div",
+      null,
+      createElement(clerkStub.Show, { when: "signed-in" }, "BRANCHE-MEMBRE"),
+      createElement(clerkStub.Show, { when: "signed-out" }, "BRANCHE-VISITEUR"),
+    ),
+  );
+  const ok = expected === "signed-in"
+    ? shown.includes("BRANCHE-MEMBRE") && !shown.includes("BRANCHE-VISITEUR")
+    : shown.includes("BRANCHE-VISITEUR") && !shown.includes("BRANCHE-MEMBRE");
+  check(`garde <Show> (session ${session} → ${expected})`, ok, shown.slice(0, 120));
+}
+globalThis.localStorage.removeItem("aime-preview-session");
+
 // 2) Rendu des pages.
 const { Router } = await vite.ssrLoadModule("wouter");
 const { ProjectProvider } = await vite.ssrLoadModule("/src/store/project-store.tsx");
@@ -182,7 +202,9 @@ checkHtml(
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
 /* Espace privé (lot 1 de traduction) : la coque du Monde — rail, capsule
-   temporelle, onboarding — doit basculer en entier, sans laisser fuir de FR. */
+   temporelle, onboarding — doit basculer en entier, sans laisser fuir de FR.
+   Session membre requise : sans elle, le garde <Show> rend la redirection. */
+globalThis.localStorage.setItem("aime-preview-session", "1");
 checkHtml(
   "Espace privé en français (coque du Monde)",
   await renderApp("/user-portal"),
@@ -201,6 +223,16 @@ checkHtml(
   ["Espace privé", "Aide &amp; guides", "Mon compte (ME)", "Réglages du Monde", "Explorer un mariage complet", "Ouvrir l’aide contextuelle AI"],
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
+
+/* Sans session, l'espace privé ne doit pas fuir sa coque (branche signée absente). */
+globalThis.localStorage.setItem("aime-preview-session", "0");
+checkHtml(
+  "Espace privé visiteur (redirigé, coque absente)",
+  await renderApp("/user-portal"),
+  [],
+  ["Espace privé", "Mon compte (ME)", "Cinq questions pour ouvrir votre mariage."],
+);
+globalThis.localStorage.removeItem("aime-preview-session");
 
 await vite.close();
 console.log(failures === 0 ? "CONTRÔLE LOCAL OK" : `CONTRÔLE LOCAL : ${failures} problème(s)`);

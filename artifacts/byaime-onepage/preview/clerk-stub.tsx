@@ -55,8 +55,22 @@ export function publishableKeyFromHost(_host: string, key?: string) {
   return key || "pk_test_preview";
 }
 
-export function Show({ when, children, fallback = null }: { when: boolean; children?: ReactNode; fallback?: ReactNode }) {
-  return when ? <>{children}</> : <>{fallback}</>;
+/**
+ * Garde de route : l'app utilise les chaînes "signed-in" / "signed-out" (API
+ * Clerk réelle), jamais des booléens. Les deux chaînes étant truthy, un test
+ * booléen naïf afficherait les deux branches — y compris la redirection vers
+ * l'accueil, qui renverrait l'espace privé sans jamais l'ouvrir.
+ */
+export function Show({ when, children, fallback = null }: { when: string | boolean; children?: ReactNode; fallback?: ReactNode }) {
+  const signedIn = isPreviewSignedIn();
+  const visible = typeof when === "string"
+    ? when === "signed-in"
+      ? signedIn
+      : when === "signed-out"
+        ? !signedIn
+        : Boolean(when)
+    : when;
+  return visible ? <>{children}</> : <>{fallback}</>;
 }
 
 /** Carte d'accueil de l'aperçu : elle remplace le formulaire Clerk, en affichant ce que la landing a retenu. */
