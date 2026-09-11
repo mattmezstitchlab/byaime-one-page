@@ -94,7 +94,7 @@ function GuideCapsule({
       >
         <Plus className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">{t("capsule.chapters")}</span>
-        <span className="tabular-nums opacity-55">{index + 1}/{total}</span>
+        <span className="tabular-nums opacity-55">{`${index + 1}/${total}`}</span>
       </button>
       <button
         type="button"

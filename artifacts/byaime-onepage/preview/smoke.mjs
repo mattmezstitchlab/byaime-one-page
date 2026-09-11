@@ -7,7 +7,8 @@
  * Lancement : node preview/smoke.mjs   (depuis artifacts/byaime-onepage)
  */
 import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup, renderToPipeableStream } from "react-dom/server";
+import { Writable } from "node:stream";
 import { createServer } from "vite";
 
 const store = { appearance: "dark", items: {} };
@@ -167,10 +168,46 @@ checkHtml(
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
+/*
+ * L'app découpe désormais les routes lourdes (espace privé, profil public) avec
+ * React.lazy : le rendu statique synchrone ne verrait que le Suspense. On rend
+ * donc en flux et on attend `onAllReady` — le moment où tous les modules
+ * différés sont résolus — pour vérifier le contenu réel de chaque route.
+ */
+async function renderToStringAsync(element) {
+  return await new Promise((resolve, reject) => {
+    let html = "";
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve(html);
+    };
+    const timer = setTimeout(() => finish(new Error("SSR timeout (lazy non résolu)")), 20000);
+    const sink = new Writable({
+      write(chunk, _encoding, callback) {
+        html += chunk.toString();
+        callback();
+      },
+    });
+    const { pipe } = renderToPipeableStream(element, {
+      onShellError: (error) => finish(error),
+      onError: (error) => finish(error),
+      onAllReady() {
+        pipe(sink);
+        sink.on("finish", () => finish());
+        sink.on("error", (error) => finish(error));
+      },
+    });
+  });
+}
+
 async function renderApp(path) {
   globalThis.window.location.pathname = path;
   globalThis.window.location.href = `http://localhost:4173${path}`;
-  return renderToStaticMarkup(createElement(App));
+  return renderToStringAsync(createElement(App));
 }
 
 checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landing"'], ["Laboratoire"]);

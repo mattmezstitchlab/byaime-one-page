@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, type ReactNode, useEffect, useRef, useState } from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useAuth, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
@@ -7,8 +7,6 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { Home } from '@/pages/Home';
-import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LegalPage } from '@/pages/Legal';
 import { GuidesPage } from '@/pages/Guides';
 import { LandingPage } from '@/pages/Landing';
@@ -30,6 +28,15 @@ const clerkPubKey = typeof window !== 'undefined'
   ? publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
   : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkKeyMissing = !clerkPubKey;
+
+/*
+ * Découpage par route : l'espace privé (Monde Mariage, panneaux, Timeline) et
+ * le profil public ne sont chargés que lorsqu'on les ouvre — jamais par le
+ * visiteur de l'accueil. L'accueil, les guides et l'authentification restent
+ * synchrones, car ce sont les parcours d'entrée.
+ */
+const LazyHome = lazy(() => import('@/pages/Home').then(module => ({ default: module.Home })));
+const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module => ({ default: module.PublicProfilePage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -122,7 +129,7 @@ function ProfilePageWrapper() {
   if (!hasProject) return <PortalOnboarding />;
 
   return (
-    <PublicProfilePage privatePreview />
+    <LazyPublicProfile privatePreview />
   );
 }
 
@@ -321,14 +328,24 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
+function RouteFallback() {
+  /* Le découpage par route ne doit jamais laisser un écran vide : un repère
+     discret, remplacé dès que le module est prêt. */
+  return (
+    <main className="grid min-h-[100dvh] place-items-center bg-background text-foreground" role="status">
+      <span className="h-2 w-2 animate-pulse rounded-full bg-foreground/60" aria-label="Chargement" />
+    </main>
+  );
+}
+
 function Routes() {
-  return <RoutedErrorBoundary><Switch>
+  return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
     <Route path="/guides" component={GuidesPage} />
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>
-    <Route path="/user-portal">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
+    <Route path="/user-portal">{() => <PrivateRoute><LazyHome /></PrivateRoute>}</Route>
     <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
     <Route path="/connexion/*?">{() => <AuthPage />}</Route>
     <Route path="/creation/*?">{() => <AuthPage signup />}</Route>
@@ -336,9 +353,9 @@ function Routes() {
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />
     <Route path="/rsvp/:token" component={RsvpPage} />
-    <Route path="/profil/:projectId">{() => <PublicProfilePage />}</Route>
+    <Route path="/profil/:projectId">{() => <LazyPublicProfile />}</Route>
     <Route component={NotFound} />
-  </Switch></RoutedErrorBoundary>;
+  </Switch></Suspense></RoutedErrorBoundary>;
 }
 function Providers() {
   const [, setLocation] = useLocation();
