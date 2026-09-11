@@ -63,6 +63,7 @@ export type WorldFocusRequest = {
   view?: string;
   panel?: string;
   auditView?: string;
+  graph?: boolean;
   momentId?: string;
   entityKind?: string;
   entityId?: string;

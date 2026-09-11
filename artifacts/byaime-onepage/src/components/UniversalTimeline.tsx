@@ -1,12 +1,13 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Link2, MapPin, Plus, X, Clock3, CalendarDays, Undo2, Waves } from "lucide-react";
+import { Link2, MapPin, Plus, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
 import { openLaboratory, type WorldFocusRequest } from "@/lib/laboratory";
 import { useProject } from "@/store/project-store";
-import { analyzeEventImpact, applyPropagationPlan, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
+import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KIND_LABELS, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
+import type { WeddingPanelId } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { ContextPanel } from "@/components/ContextPanel";
@@ -258,6 +259,13 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
 
 function EventDrawer({ event, project, currentRole, onClose, onEdit, onApplyRipple, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; currentRole: ReturnType<typeof useProject>["currentRole"]; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onApplyRipple: (plan: PropagationPlan, dependentIds: string[]) => void; onDelete: () => void; canEdit: boolean }) {
   const impact = analyzeEventImpact(project, event.id, {});
+  const PANEL_FOR_KIND: Partial<Record<TimelineEntityKind, WeddingPanelId>> = {
+    guest: "guests", table: "seating", provider: "providers", task: "planning", payment: "budget",
+    document: "documents", music: "music", team: "team", message: "messages", logistics: "logistics", memory: "memories",
+  };
+  const related = (event.relations || [])
+    .map(relation => ({ relation, entity: buildTimelineIndex(project).entities.get(`${relation.kind}:${relation.id}`) }))
+    .filter(item => item.entity);
   const [pendingTime, setPendingTime] = useState(event.time);
   const [selectedDependents, setSelectedDependents] = useState<string[]>([]);
   useEffect(() => {
@@ -278,7 +286,37 @@ function EventDrawer({ event, project, currentRole, onClose, onEdit, onApplyRipp
             <button type="button" onClick={() => openLaboratory({ type: "remarque", context: { projectId: project.id, role: currentRole, route: "world", path: "/user-portal", source: "timeline-event-drawer", phase: event.phase, view: "chronological", momentId: event.id, momentTitle: event.title, narrative: "Moment ouvert depuis la Timeline universelle." } })} className="rounded-full border border-foreground/15 px-3 py-2 text-[10px] uppercase tracking-[.14em] text-foreground/65 hover:bg-foreground/5">
               Ouvrir le Laboratoire
             </button>
+            <button type="button" onClick={() => { onClose(); window.dispatchEvent(new CustomEvent("aime:focus-world", { detail: { route: "/user-portal", graph: true } })); }} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-[10px] uppercase tracking-[.14em] text-foreground/65 hover:bg-foreground/5">
+              <Waypoints className="h-3.5 w-3.5" /> Graphe de visibilité
+            </button>
           </div>
+
+          {related.length > 0 && (
+            <section className="rounded-2xl border border-foreground/10 p-4">
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40">Relié à ce Moment</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {related.map(({ relation, entity }) => {
+                  const panel = PANEL_FOR_KIND[relation.kind];
+                  return (
+                    <button
+                      key={`${relation.kind}:${relation.id}`}
+                      type="button"
+                      disabled={!panel}
+                      onClick={() => {
+                        onClose();
+                        if (panel) window.dispatchEvent(new CustomEvent("aime:focus-world", { detail: { route: "/user-portal", panel } }));
+                      }}
+                      className="group inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-1.5 text-xs text-foreground/70 transition hover:border-foreground/40 hover:text-foreground disabled:cursor-default disabled:opacity-40"
+                    >
+                      <span className="text-[9px] uppercase tracking-wider text-foreground/40">{ENTITY_KIND_LABELS[relation.kind]}</span>
+                      <span>{entity?.label ?? "Introuvable"}</span>
+                      {panel && <ChevronRight className="h-3 w-3 text-foreground/30 transition group-hover:translate-x-0.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           <div className="grid grid-cols-2 gap-6">
             <div>

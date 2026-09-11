@@ -44,6 +44,13 @@ Le site tourne, l'authentification et la landing sont fonctionnelles, et **aucun
 - ✅ Refactor : `FakeUI` déplacés dans `src/pages/guides-fake-uis.tsx`, données des tutoriels dans `src/pages/guides-demos.tsx`, page dans `Guides.tsx` avec sélecteur groupé par thème.
 - ✅ Nouveaux tutoriels ancrés sur le comportement réel de l'app (phases Avant/Jour J/Après, rôles & capacités, statuts RSVP/musique, envoi après confirmation, AIME LOCAL, etc.).
 
+**Sixième passe (finir le Monde Mariage — outils de pilotage) :**
+- ✅ **Graphe de visibilité** (`VisibilityGraph.tsx` + `computeVisibilityModel` dans `timeline-graph.ts`) : le Monde en graphe SVG (Moments reliés aux entités), avec sélecteur de rôle (Propriétaire/Planificateur/Proche/Invité) qui masque ce qui dépasse les frontières de chaque rôle (finances/documents réservés, non relié à un Moment public pour l'invité). Accessible depuis la barre du Monde et depuis un Moment.
+- ✅ **Synthèse du Monde** (`WorldOverview.tsx`) : budget engagé, progression, invités/RSVP, prestataires, souvenirs, prochains Moments et alertes de conflits (`findTimelineConflicts`), chaque carte ouvrant le panneau correspondant.
+- ✅ **Aperçu invité** : bascule dans la barre du Monde qui rejoue la navigation et les contenus avec les capacités du rôle invité (finances et progression masquées).
+- ✅ **Menu contextuel d'un Moment** (`UniversalTimeline` EventDrawer) : liste « Relié à ce Moment » avec saut vers le panneau correspondant (invités, budget, plan de table, musique…) + bouton « Graphe de visibilité ».
+- ✅ Tests unitaires du modèle de visibilité (`visibility.test.ts`, 4 tests).
+
 ---
 
 ## 2. Suppression de la map réseau — périmètre réalisé

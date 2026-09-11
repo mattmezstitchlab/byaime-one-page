@@ -1,4 +1,4 @@
-import type { TimelineEntityKind, TimelineEvent, TimelineRelation, WorldProject } from "./types";
+import type { TimelineEntityKind, TimelineEvent, TimelinePhase, TimelineRelation, TimelineVisibility, WorldProject } from "./types";
 
 export const TIMELINE_SCHEMA_VERSION = 2 as const;
 
@@ -218,4 +218,127 @@ export function auditTimelineConnections(project: WorldProject) {
   const isolated = [...index.entities.values()].filter(entity => !index.reverse.has(key(entity.kind, entity.id)));
   const manualMusic = project.music.filter(track => !track.external);
   return { connected: index.reverse.size, isolated, dangling, manualMusic, integrationRequired: manualMusic.length > 0 };
+}
+
+/* ————————————————————————————————————————————————
+   Visibilité par rôle — le même Monde, vu selon les frontières de chaque rôle.
+   Règles documentées dans l'interface : un Invité ne voit que ce qui est relié à
+   un Moment publié à l'audience ; les finances et documents restent réservés.
+———————————————————————————————————————————————— */
+
+export type RoleVisibility = "owner" | "planner" | "family" | "viewer";
+
+export const ENTITY_KIND_LABELS: Record<TimelineEntityKind, string> = {
+  guest: "Invité",
+  table: "Table",
+  provider: "Prestataire",
+  task: "Tâche",
+  payment: "Paiement",
+  document: "Document",
+  music: "Musique",
+  team: "Équipe",
+  message: "Message",
+  logistics: "Logistique",
+  memory: "Souvenir",
+};
+
+export function roleCanSeeEvent(role: RoleVisibility, event: TimelineEvent): boolean {
+  const visibility: TimelineVisibility = event.visibility ?? "equipe";
+  if (role === "viewer") return visibility === "audience";
+  if (role === "family") return visibility !== "prive";
+  return true;
+}
+
+export function roleCanSeeEntityKind(role: RoleVisibility, kind: TimelineEntityKind): boolean {
+  if (kind === "payment" || kind === "document") return role === "owner" || role === "planner";
+  if (kind === "message") return role !== "viewer";
+  return true;
+}
+
+export type VisibilityNode = {
+  key: string;
+  kind: TimelineEntityKind | "event";
+  label: string;
+  visible: boolean;
+  phase?: TimelinePhase;
+  time?: number;
+  maskedReason?: string;
+};
+
+export type VisibilityEdge = { from: string; to: string; visible: boolean; role?: string };
+
+export type VisibilityModel = {
+  nodes: VisibilityNode[];
+  edges: VisibilityEdge[];
+  visibleCount: number;
+  totalCount: number;
+};
+
+const entityKeyOf = (kind: TimelineEntityKind, id: string) => `${kind}:${id}`;
+
+export function computeVisibilityModel(project: WorldProject, role: RoleVisibility): VisibilityModel {
+  const index = buildTimelineIndex(project);
+
+  const eventNodes: VisibilityNode[] = [...project.timeline]
+    .sort((a, b) => a.time - b.time)
+    .map(event => {
+      const visible = roleCanSeeEvent(role, event);
+      const visibility: TimelineVisibility = event.visibility ?? "equipe";
+      return {
+        key: `event:${event.id}`,
+        kind: "event",
+        label: event.title,
+        visible,
+        phase: event.phase,
+        time: event.time,
+        maskedReason: visible
+          ? undefined
+          : visibility === "prive"
+            ? "privé"
+            : visibility === "equipe"
+              ? "équipe uniquement"
+              : "non publié à l'audience",
+      };
+    });
+
+  const entityVisibility = new Map<string, boolean>();
+  const entityNodes: VisibilityNode[] = [...index.entities.values()].map(entity => {
+    const entityKey = entityKeyOf(entity.kind, entity.id);
+    const kindVisible = roleCanSeeEntityKind(role, entity.kind);
+    let visible = kindVisible;
+    let maskedReason: string | undefined;
+    if (!kindVisible) {
+      maskedReason = entity.kind === "payment" || entity.kind === "document"
+        ? "finances / documents réservés"
+        : "non partagé avec ce rôle";
+    } else if (role === "viewer") {
+      const linkedEvents = index.reverse.get(entityKey) || [];
+      const hasPublicLink = linkedEvents.some(event => roleCanSeeEvent(role, event));
+      if (!hasPublicLink) {
+        visible = false;
+        maskedReason = "non relié à un Moment public";
+      }
+    }
+    entityVisibility.set(entityKey, visible);
+    return { key: entityKey, kind: entity.kind, label: entity.label, visible, maskedReason };
+  });
+
+  const nodes = [...eventNodes, ...entityNodes];
+  const edges: VisibilityEdge[] = [];
+  for (const event of project.timeline) {
+    const eventVisible = roleCanSeeEvent(role, event);
+    for (const relation of event.relations || []) {
+      const to = entityKeyOf(relation.kind, relation.id);
+      if (!entityVisibility.has(to)) continue;
+      edges.push({
+        from: `event:${event.id}`,
+        to,
+        visible: eventVisible && entityVisibility.get(to) === true,
+        role: relation.role,
+      });
+    }
+  }
+
+  const visibleCount = nodes.filter(node => node.visible).length;
+  return { nodes, edges, visibleCount, totalCount: nodes.length };
 }

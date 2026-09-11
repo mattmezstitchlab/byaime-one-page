@@ -15,6 +15,8 @@ import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/laboratory';
 import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import { PanelChromeProvider, type PanelChrome, type PanelNavItem } from './PanelChrome';
+import { WorldOverview } from './WorldOverview';
+import { VisibilityGraph } from './VisibilityGraph';
 import type { Guest, Provider } from '@/lib/types';
 import {
   isWeddingDestinationActive,
@@ -23,6 +25,7 @@ import {
   isWeddingPanelAvailable,
   getInitialWorldPhase,
   type WorldPhase,
+  type WeddingRole,
   type WeddingDestination,
   type WeddingPanelId,
 } from '@/lib/wedding-navigation';
@@ -85,6 +88,9 @@ export function ProjectStage() {
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<WeddingPanelId | null>(null);
   const [countdownsOpen, setCountdownsOpen] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [previewRole, setPreviewRole] = useState<WeddingRole | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [now, setNow] = useState(() => Date.now());
@@ -108,8 +114,8 @@ export function ProjectStage() {
   }, [project?.id]);
 
   const navigation = useMemo(
-    () => getWeddingNavigation(phase, getWeddingCapabilities(currentRole)),
-    [phase, currentRole],
+    () => getWeddingNavigation(phase, getWeddingCapabilities(previewRole ?? currentRole)),
+    [phase, currentRole, previewRole],
   );
 
   useEffect(() => {
@@ -144,6 +150,7 @@ export function ProjectStage() {
       if (request.phase === "avant" || request.phase === "pendant" || request.phase === "apres") setPhase(request.phase);
       if (request.view) setView(request.view as TimelineView);
       if (request.panel) setActivePanel(request.panel as WeddingPanelId);
+      if (request.graph) setGraphOpen(true);
     };
     const pending = consumeWorldFocus();
     if (pending) {
@@ -341,8 +348,23 @@ export function ProjectStage() {
           <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
             <Grid2X2 className="h-3.5 w-3.5" /> Sections
           </button>
+          <button type="button" onClick={() => setOverviewOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Synthèse
+          </button>
+          <button type="button" onClick={() => setGraphOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Graphe de visibilité
+          </button>
+          <button type="button" onClick={() => setPreviewRole(role => role ? null : "viewer")} aria-pressed={previewRole === "viewer"} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", previewRole === "viewer" ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
+            {previewRole === "viewer" ? "Aperçu invité · actif" : "Aperçu invité"}
+          </button>
           <TimelinePlayback events={visibleEvents} />
         </div>
+        {previewRole && (
+          <div className="border-t border-border bg-brand-accent/10 px-3 py-2 text-center text-[10px] uppercase tracking-[.14em] text-foreground/70 sm:px-6">
+            Aperçu vu comme un invité — navigation et contenus restreints.{" "}
+            <button type="button" onClick={() => setPreviewRole(null)} className="underline underline-offset-2 transition hover:text-foreground">Quitter l'aperçu</button>
+          </div>
+        )}
       </nav>
       {/* Cinematic Header */}
       <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
@@ -433,12 +455,12 @@ export function ProjectStage() {
                 {stats.open} professionnels à trouver
               </span>
             )}
-            {stats.engaged > 0 && (
+            {!previewRole && stats.engaged > 0 && (
               <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs text-white/80">
                 {stats.engaged.toLocaleString('fr-FR')} € déjà prévus
               </span>
             )}
-            <button
+            {!previewRole && <button
               type="button"
               onClick={() => setTasksOpen(true)}
               className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
@@ -446,7 +468,7 @@ export function ProjectStage() {
               aria-label={`Ouvrir les étapes, ${completion}% complété`}
             >
               <span className="grid h-full w-full place-items-center rounded-full bg-black/90 text-[11px] font-medium tabular-nums text-white">{completion}%</span>
-            </button>
+            </button>}
           </motion.div>}
 
           {(isPublicInfo || phase === "avant") && <motion.button
@@ -701,6 +723,12 @@ export function ProjectStage() {
               ))}
             </div>
           ) : <p className="py-10 text-center text-sm text-foreground/40">Aucun rendez-vous, Moment ou délai à venir.</p>}
+        </CenteredBlock>
+      )}
+      {overviewOpen && <WorldOverview onClose={() => setOverviewOpen(false)} onOpenPanel={setActivePanel} />}
+      {graphOpen && (
+        <CenteredBlock eyebrow="Graphe du Monde" title="Ce qui est visible, rôle par rôle" description="Le même Monde, vu selon les frontières de chaque rôle. Chaque Moment est relié aux personnes, documents, paiements et décisions qu'il mobilise." onClose={() => setGraphOpen(false)} size="xl">
+          <VisibilityGraph />
         </CenteredBlock>
       )}
     </div>
