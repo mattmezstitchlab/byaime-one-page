@@ -482,7 +482,7 @@ export function PortalControls({
                       </span>
                     )}
                     <div className="min-w-0">
-                      <p className="text-lg font-display font-light">{user?.fullName || user?.firstName || "Utilisateur"}</p>
+                      <p className="text-lg font-display font-medium">{user?.fullName || user?.firstName || "Utilisateur"}</p>
                       <p className="truncate text-sm text-foreground/55">{user?.primaryEmailAddress?.emailAddress}</p>
                     </div>
                   </div>

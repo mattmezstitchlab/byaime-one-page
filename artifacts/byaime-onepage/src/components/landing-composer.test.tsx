@@ -22,7 +22,7 @@ describe("LandingComposer", () => {
 
     expect(markup).toContain('data-testid="landing-composer"');
     expect(markup).toContain('data-testid="landing-persona"');
-    expect(markup).toContain("Vous préparez ce mariage en tant que…");
+    expect(markup).toContain("Qui êtes-vous ?");
     expect(markup).toContain('data-testid="landing-persona-couple" aria-pressed="false"');
     expect(markup).toContain('data-testid="landing-persona-pro" aria-pressed="false"');
     expect(markup).toContain("Couple");

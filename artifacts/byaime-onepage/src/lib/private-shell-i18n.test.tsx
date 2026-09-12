@@ -28,11 +28,11 @@ const render = (node: ReactNode, locale: "fr" | "en") =>
 describe("coque privée rendue dans les deux langues", () => {
   it("traduit le centre d'action AI + ME", () => {
     const fr = render(<ActionCenter destination="world" onOpenMe={vi.fn()} />, "fr");
-    expect(fr).toContain('aria-label="Ouvrir l’aide contextuelle AI"');
+    expect(fr).toContain('aria-label="Ouvrir l’aide"');
     expect(fr).toContain('aria-label="Créer ou relier"');
 
     const en = render(<ActionCenter destination="world" onOpenMe={vi.fn()} />, "en");
-    expect(en).toContain('aria-label="Open contextual AI help"');
+    expect(en).toContain('aria-label="Open help"');
     expect(en).toContain('aria-label="Create or link"');
     expect(en).toContain('aria-label="Open my ME space"');
     expect(en).not.toContain("Ouvrir");

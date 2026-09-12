@@ -7,7 +7,8 @@
  * Lancement : node preview/smoke.mjs   (depuis artifacts/byaime-onepage)
  */
 import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToStaticMarkup, renderToPipeableStream } from "react-dom/server";
+import { Writable } from "node:stream";
 import { createServer } from "vite";
 
 const store = { appearance: "dark", items: {} };
@@ -141,7 +142,7 @@ function checkHtml(label, html, needles, absent = []) {
 checkHtml(
   "Accueil visiteur, sans brouillon (deux choix, questions à venir)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire", 'data-testid="landing-guide-button"', 'data-testid="guide-chapters-open"', "1/6"],
+  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire", 'data-testid="landing-guide-button"', 'data-testid="landing-guides-links"', "Tous les guides"],
   ['data-testid="landing-intention-input"', 'data-testid="landing-intention-finish"', "Choisir l’univers", "Laboratoire"],
 );
 
@@ -167,10 +168,46 @@ checkHtml(
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
+/*
+ * L'app découpe désormais les routes lourdes (espace privé, profil public) avec
+ * React.lazy : le rendu statique synchrone ne verrait que le Suspense. On rend
+ * donc en flux et on attend `onAllReady` — le moment où tous les modules
+ * différés sont résolus — pour vérifier le contenu réel de chaque route.
+ */
+async function renderToStringAsync(element) {
+  return await new Promise((resolve, reject) => {
+    let html = "";
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve(html);
+    };
+    const timer = setTimeout(() => finish(new Error("SSR timeout (lazy non résolu)")), 20000);
+    const sink = new Writable({
+      write(chunk, _encoding, callback) {
+        html += chunk.toString();
+        callback();
+      },
+    });
+    const { pipe } = renderToPipeableStream(element, {
+      onShellError: (error) => finish(error),
+      onError: (error) => finish(error),
+      onAllReady() {
+        pipe(sink);
+        sink.on("finish", () => finish());
+        sink.on("error", (error) => finish(error));
+      },
+    });
+  });
+}
+
 async function renderApp(path) {
   globalThis.window.location.pathname = path;
   globalThis.window.location.href = `http://localhost:4173${path}`;
-  return renderToStaticMarkup(createElement(App));
+  return renderToStringAsync(createElement(App));
 }
 
 checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landing"'], ["Laboratoire"]);
@@ -207,7 +244,7 @@ globalThis.localStorage.setItem("aime-preview-session", "1");
 checkHtml(
   "Espace privé en français (coque du Monde)",
   await renderApp("/user-portal"),
-  ["Espace privé", "Profil", "Monde", "Aide &amp; guides", "Mon compte (ME)", "Cinq questions pour ouvrir votre mariage."],
+  ["Espace privé", "Profil", "Monde", "Aide &amp; guides", "Mon compte (ME)", "Quelques questions pour commencer."],
   ["Private space", "Help &amp; guides", "My account (ME)"],
 );
 setNavigatorLanguage("en-US", ["en-US", "en"]);
@@ -216,10 +253,10 @@ checkHtml(
   await renderApp("/user-portal"),
   [
     "Private space", "Profile", "World", "Help &amp; guides", "My account (ME)", "World settings",
-    "Five questions to open your wedding.", "Explore a complete wedding",
-    'aria-label="Open contextual AI help"', 'aria-label="Create or link"', 'aria-label="Back to the AIME home page"',
+    "A few questions to get started.", "Explore a complete wedding",
+    'aria-label="Open help"', 'aria-label="Create or link"', 'aria-label="Back to the AIME home page"',
   ],
-  ["Espace privé", "Aide &amp; guides", "Mon compte (ME)", "Réglages du Monde", "Explorer un mariage complet", "Ouvrir l’aide contextuelle AI"],
+  ["Espace privé", "Aide &amp; guides", "Mon compte (ME)", "Réglages du Monde", "Explorer un mariage complet", "Ouvrir l’aide"],
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
@@ -229,7 +266,7 @@ checkHtml(
   "Espace privé visiteur (redirigé, coque absente)",
   await renderApp("/user-portal"),
   [],
-  ["Espace privé", "Mon compte (ME)", "Cinq questions pour ouvrir votre mariage."],
+  ["Espace privé", "Mon compte (ME)", "Quelques questions pour commencer."],
 );
 globalThis.localStorage.removeItem("aime-preview-session");
 

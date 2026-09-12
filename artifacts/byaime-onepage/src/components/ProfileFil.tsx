@@ -139,7 +139,7 @@ export function ProfileFil({ projectId, onOpenMoment }: { projectId: string, onO
     <div data-testid="profile-fil" className="mx-auto w-full max-w-5xl px-5 pb-28 md:px-8">
       <div className="mb-12 max-w-2xl">
         <p className="mb-3 text-[9px] uppercase tracking-[.32em] text-foreground/38">Votre compagnon</p>
-        <h2 className="font-display text-3xl font-light md:text-4xl">Le Fil</h2>
+        <h2 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">Le Fil</h2>
         <p className="mt-4 text-sm font-light leading-6 text-foreground/50">Des cartes courtes, sourcées depuis votre Monde, pour savoir quoi regarder sans masquer votre histoire.</p>
       </div>
 

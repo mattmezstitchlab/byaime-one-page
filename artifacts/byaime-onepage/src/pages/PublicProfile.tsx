@@ -109,7 +109,7 @@ export function ProfileIdentityHero({
         )}
       </button>
 
-      <h1 className="max-w-full text-balance font-display text-4xl font-light tracking-tight text-foreground sm:text-5xl">
+      <h1 className="max-w-full text-balance font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
         {displayName}
       </h1>
 
@@ -330,7 +330,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       <main data-testid="profile-error" className="flex min-h-[100dvh] flex-col items-center justify-center bg-background p-6 text-center text-foreground">
         <div className="max-w-md">
           <p className="mb-8 text-[10px] uppercase tracking-[.4em] text-muted-foreground">Erreur</p>
-          <h1 className="text-3xl font-display font-light mb-6">L'accès à cette histoire est impossible.</h1>
+          <h1 className="text-3xl font-display font-semibold tracking-tight mb-6">L'accès à cette histoire est impossible.</h1>
           <p className="mb-12 text-sm font-light text-muted-foreground">{error instanceof Error ? error.message : "Profil introuvable"}</p>
         </div>
       </main>

@@ -131,7 +131,7 @@ const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isAct
            initial={{ opacity: 0, y: 20 }}
            animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
            transition={{ duration: 0.8, delay: 0.2 }}
-           className="text-4xl md:text-6xl lg:text-7xl font-display font-light tracking-tight mb-4"
+           className="text-4xl md:text-6xl lg:text-7xl font-display font-semibold tracking-tight mb-4"
          >
            {event.title}
          </motion.h2>

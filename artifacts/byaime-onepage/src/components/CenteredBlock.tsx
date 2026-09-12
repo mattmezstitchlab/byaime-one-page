@@ -121,7 +121,7 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
           {leading}
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-[.24em] text-muted-foreground">{eyebrow}</p>
-            <h2 className="mt-3 font-display text-3xl font-light leading-tight sm:text-4xl">{title}</h2>
+            <h2 className="mt-3 font-display text-3xl font-semibold leading-tight sm:text-4xl">{title}</h2>
             {description && <p className="mt-3 max-w-2xl text-sm font-light leading-relaxed text-foreground/65">{description}</p>}
           </div>
           {showGuideHint && <AimeScreenHint />}

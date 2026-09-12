@@ -546,7 +546,7 @@ export function ProjectStage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-6xl md:text-7xl font-display font-medium tracking-tight"
+            className="text-4xl sm:text-6xl md:text-7xl font-display font-semibold tracking-tight"
           >
             {heroCopy.title}
           </motion.h1>
@@ -715,7 +715,7 @@ export function ProjectStage() {
             <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[1fr_auto] md:items-end">
               <div className="max-w-2xl">
                 <p className="flex items-center gap-2 text-[10px] uppercase tracking-[.24em] text-foreground/45"><Waves className="h-4 w-4" /> {t("world.music.eyebrow")}</p>
-                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">{t("world.music.title")}</h2>
+                <h2 className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl">{t("world.music.title")}</h2>
                 <p className="mt-5 text-sm font-light leading-relaxed text-foreground/60">{t("world.music.desc")}</p>
               </div>
               <button type="button" onClick={() => setActivePanel("music")} className="w-fit rounded-full border border-foreground/15 px-5 py-3 text-[10px] uppercase tracking-[.16em] text-foreground/75 transition hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -729,7 +729,7 @@ export function ProjectStage() {
             <div className="mx-auto max-w-5xl">
               <div className="max-w-2xl">
                 <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">{t("world.people.eyebrow")}</p>
-                <h2 className="mt-4 font-display text-4xl font-light tracking-tight text-foreground sm:text-6xl">{t("world.people.title")}</h2>
+                <h2 className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl">{t("world.people.title")}</h2>
                 <p className="mt-5 max-w-xl text-sm font-light leading-relaxed text-foreground/60">{t("world.people.desc")}</p>
               </div>
               {project.guests.length ? (

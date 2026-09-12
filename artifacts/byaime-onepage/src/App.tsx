@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, type ReactNode, useEffect, useRef, useState } from 'react';
 import { ClerkProvider, SignIn, SignUp, Show, useAuth, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
@@ -7,8 +7,6 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { Home } from '@/pages/Home';
-import { PublicProfilePage } from '@/pages/PublicProfile';
 import { LegalPage } from '@/pages/Legal';
 import { GuidesPage } from '@/pages/Guides';
 import { LandingPage } from '@/pages/Landing';
@@ -18,6 +16,7 @@ import { ProjectProvider, useProject } from '@/store/project-store';
 import { ModeProvider } from '@/lib/mode';
 import { useI18n } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
+import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 
 import { PrivateLayout } from '@/components/PrivateLayout';
@@ -29,6 +28,15 @@ const clerkPubKey = typeof window !== 'undefined'
   ? publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
   : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkKeyMissing = !clerkPubKey;
+
+/*
+ * Découpage par route : l'espace privé (Monde Mariage, panneaux, Timeline) et
+ * le profil public ne sont chargés que lorsqu'on les ouvre — jamais par le
+ * visiteur de l'accueil. L'accueil, les guides et l'authentification restent
+ * synchrones, car ce sont les parcours d'entrée.
+ */
+const LazyHome = lazy(() => import('@/pages/Home').then(module => ({ default: module.Home })));
+const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module => ({ default: module.PublicProfilePage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -121,7 +129,7 @@ function ProfilePageWrapper() {
   if (!hasProject) return <PortalOnboarding />;
 
   return (
-    <PublicProfilePage privatePreview />
+    <LazyPublicProfile privatePreview />
   );
 }
 
@@ -148,9 +156,39 @@ function SignUpPage({ returnTo }: { returnTo?: string }) {
 }
 function AuthPage({ signup = false }: { signup?: boolean }) {
   const returnTo = invitationReturnPath();
-  return <div data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'} className="relative min-h-[100dvh] bg-background flex items-center justify-center px-4 pb-20"><img src={`${basePath}/logo.svg`} alt="AIME" className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7" />{signup
-    ? <SignUpPage returnTo={returnTo} />
-    : <SignIn routing="path" path={`${basePath}/connexion`} signUpUrl={authPath("/creation", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />}<p className="absolute bottom-6 text-center text-[11px] text-foreground/40"><a href={`${basePath}/conditions`} className="hover:text-foreground">Conditions</a><span className="mx-2">·</span><a href={`${basePath}/confidentialite`} className="hover:text-foreground">Confidentialité</a></p></div>;
+  return (
+    <div
+      data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'}
+      className="relative min-h-[100dvh] overflow-hidden bg-black"
+    >
+      {/* Grand visuel immersif derrière la carte d'authentification : les médias
+          sont du contenu, jamais un thème (texte et liens restent blancs). */}
+      <div aria-hidden className="absolute inset-0">
+        <img
+          src={getAssetUrl(AIME_VISUALS.hero.backgroundImage)}
+          alt=""
+          className="h-full w-full object-cover"
+        />
+        <div className="aime-apple-overlay absolute inset-0" />
+        <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_20%,rgba(0,187,205,0.14),transparent_62%)]" />
+      </div>
+      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 pb-24 pt-24">
+        <img
+          src={`${basePath}/logo.svg`}
+          alt="AIME"
+          className="absolute left-5 top-5 h-10 w-auto rounded-xl md:left-8 md:top-7"
+        />
+        {signup
+          ? <SignUpPage returnTo={returnTo} />
+          : <SignIn routing="path" path={`${basePath}/connexion`} signUpUrl={authPath("/creation", returnTo)} forceRedirectUrl={returnTo ? `${basePath}${returnTo}` : undefined} />}
+        <p className="absolute bottom-6 text-center text-[11px] text-white/45">
+          <a href={`${basePath}/conditions`} className="transition hover:text-white">Conditions</a>
+          <span className="mx-2">·</span>
+          <a href={`${basePath}/confidentialite`} className="transition hover:text-white">Confidentialité</a>
+        </p>
+      </div>
+    </div>
+  );
 }
 function InvitePage({ params }: { params: { token: string } }) {
   const { isLoaded, isSignedIn } = useAuth();
@@ -290,14 +328,24 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
 }
+function RouteFallback() {
+  /* Le découpage par route ne doit jamais laisser un écran vide : un repère
+     discret, remplacé dès que le module est prêt. */
+  return (
+    <main className="grid min-h-[100dvh] place-items-center bg-background text-foreground" role="status">
+      <span className="h-2 w-2 animate-pulse rounded-full bg-foreground/60" aria-label="Chargement" />
+    </main>
+  );
+}
+
 function Routes() {
-  return <RoutedErrorBoundary><Switch>
+  return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
     <Route path="/guides" component={GuidesPage} />
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>
-    <Route path="/user-portal">{() => <PrivateRoute><Home /></PrivateRoute>}</Route>
+    <Route path="/user-portal">{() => <PrivateRoute><LazyHome /></PrivateRoute>}</Route>
     <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
     <Route path="/connexion/*?">{() => <AuthPage />}</Route>
     <Route path="/creation/*?">{() => <AuthPage signup />}</Route>
@@ -305,9 +353,9 @@ function Routes() {
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />
     <Route path="/rsvp/:token" component={RsvpPage} />
-    <Route path="/profil/:projectId">{() => <PublicProfilePage />}</Route>
+    <Route path="/profil/:projectId">{() => <LazyPublicProfile />}</Route>
     <Route component={NotFound} />
-  </Switch></RoutedErrorBoundary>;
+  </Switch></Suspense></RoutedErrorBoundary>;
 }
 function Providers() {
   const [, setLocation] = useLocation();
