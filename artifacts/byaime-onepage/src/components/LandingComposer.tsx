@@ -458,21 +458,15 @@ function PersonaCard({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-4 rounded-3xl border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-        active
-          ? "border-white bg-white text-black"
-          : "border-white/25 bg-white/[0.06] text-white hover:border-white/60 hover:bg-white/10",
+        "flex items-center gap-4 rounded-3xl bg-white p-5 text-left text-black shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
       )}
     >
-      <span aria-hidden className={cn(
-        "grid h-11 w-11 shrink-0 place-items-center rounded-full border",
-        active ? "border-black/15 bg-black/[0.06]" : "border-white/15 bg-white/[0.07]",
-      )}>
+      <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-black/10 bg-black/[0.05]">
         {icon}
       </span>
       <span>
         <span className="block text-[15px] font-semibold leading-tight">{label}</span>
-        <span className={cn("mt-1 block text-[12px] font-light leading-snug", active ? "text-black/60" : "text-white/60")}>
+        <span className="mt-1 block text-[12px] font-light leading-snug text-black/60">
           {sub}
         </span>
       </span>
