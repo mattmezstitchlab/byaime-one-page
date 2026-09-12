@@ -21,7 +21,7 @@ describe("private shell controls", () => {
         </Wrapper>,
       );
 
-      expect(markup).toContain('aria-label="Ouvrir l’aide contextuelle AI"');
+      expect(markup).toContain('aria-label="Ouvrir l’aide"');
       expect(markup).toContain('aria-label="Créer ou relier"');
       expect(markup).toContain('aria-label="Ouvrir mon espace ME"');
     },

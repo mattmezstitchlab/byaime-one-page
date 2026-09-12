@@ -244,7 +244,7 @@ globalThis.localStorage.setItem("aime-preview-session", "1");
 checkHtml(
   "Espace privé en français (coque du Monde)",
   await renderApp("/user-portal"),
-  ["Espace privé", "Profil", "Monde", "Aide &amp; guides", "Mon compte (ME)", "Cinq questions pour ouvrir votre mariage."],
+  ["Espace privé", "Profil", "Monde", "Aide &amp; guides", "Mon compte (ME)", "Quelques questions pour commencer."],
   ["Private space", "Help &amp; guides", "My account (ME)"],
 );
 setNavigatorLanguage("en-US", ["en-US", "en"]);
@@ -253,10 +253,10 @@ checkHtml(
   await renderApp("/user-portal"),
   [
     "Private space", "Profile", "World", "Help &amp; guides", "My account (ME)", "World settings",
-    "Five questions to open your wedding.", "Explore a complete wedding",
-    'aria-label="Open contextual AI help"', 'aria-label="Create or link"', 'aria-label="Back to the AIME home page"',
+    "A few questions to get started.", "Explore a complete wedding",
+    'aria-label="Open help"', 'aria-label="Create or link"', 'aria-label="Back to the AIME home page"',
   ],
-  ["Espace privé", "Aide &amp; guides", "Mon compte (ME)", "Réglages du Monde", "Explorer un mariage complet", "Ouvrir l’aide contextuelle AI"],
+  ["Espace privé", "Aide &amp; guides", "Mon compte (ME)", "Réglages du Monde", "Explorer un mariage complet", "Ouvrir l’aide"],
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
@@ -266,7 +266,7 @@ checkHtml(
   "Espace privé visiteur (redirigé, coque absente)",
   await renderApp("/user-portal"),
   [],
-  ["Espace privé", "Mon compte (ME)", "Cinq questions pour ouvrir votre mariage."],
+  ["Espace privé", "Mon compte (ME)", "Quelques questions pour commencer."],
 );
 globalThis.localStorage.removeItem("aime-preview-session");
 
