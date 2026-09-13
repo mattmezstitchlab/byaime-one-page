@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useMemo, useState, useRef } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { MapPin, CalendarDays, User, Folder, Image as ImageIcon, Network, BookOpen, Fingerprint, Plus, Pencil, ZoomIn, ZoomOut } from "lucide-react";
+import { MapPin, CalendarDays, User, Folder, Image as ImageIcon, Network, BookOpen, Fingerprint, Plus, Pencil, ZoomIn, ZoomOut, Car, Accessibility, CloudRain } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useLocation, useParams } from "wouter";
 import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicProfile } from "@workspace/api-client-react";
@@ -10,15 +10,18 @@ import { cn } from "@/lib/utils";
 import { useProject } from "@/store/project-store";
 import { EntityEditor } from "@/components/EntityEditor";
 import { CenteredBlock } from "@/components/CenteredBlock";
-import { PanelChromeProvider, type PanelChrome } from "@/components/PanelChrome";
 
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
 import { layoutTimeline } from "@/lib/timeline-layout";
+import { focusWorld } from "@/lib/world-focus";
 import { EventIcon, FilTrack } from "@/components/FilTrack";
 import { indexTimelineConflicts } from "@/lib/timeline-graph";
 
 import { ProfileFil } from "@/components/ProfileFil";
+import { CoupleReport } from "@/components/CoupleReport";
+import { buildRapport } from "@/lib/rapport";
+import { trackEvent } from "@/lib/analytics";
 
 type ProfileView = Omit<PublicProfile, "timeline"> & {
   timeline: ProfileTimelineEvent[];
@@ -125,6 +128,75 @@ export function ProfileIdentityHero({
   );
 }
 
+/** Ce que le couple publie pour ses invité·es : le lieu, l'accès, le plan B. Jamais les contacts ni les chiffres. */
+export type ProfilePractical = {
+  venue?: string;
+  parking?: string;
+  accessibility?: string;
+  weatherFallback?: string;
+};
+
+const PRACTICAL_ROWS: { key: keyof ProfilePractical; label: string; icon: typeof MapPin }[] = [
+  { key: "venue", label: "Lieu", icon: MapPin },
+  { key: "parking", label: "Stationnement", icon: Car },
+  { key: "accessibility", label: "Accès", icon: Accessibility },
+  { key: "weatherFallback", label: "Plan B", icon: CloudRain },
+];
+
+export function ProfilePracticalInfo({
+  practical,
+  isPrivatePreview,
+  onEdit,
+}: {
+  practical?: ProfilePractical;
+  isPrivatePreview: boolean;
+  onEdit: () => void;
+}) {
+  const rows = PRACTICAL_ROWS.filter(row => practical?.[row.key]?.trim());
+  if (!rows.length && !isPrivatePreview) return null;
+
+  return (
+    <section
+      data-testid="profile-practical"
+      aria-label="Infos pratiques"
+      className="mt-6 w-full max-w-[min(30rem,100%)] rounded-3xl border border-foreground/8 bg-foreground/[0.03] px-5 py-5 text-left"
+    >
+      <p className="text-center text-[10px] uppercase tracking-[0.3em] text-foreground/35">Infos pratiques</p>
+
+      {rows.length === 0 ? (
+        <p data-testid="profile-practical-empty" className="mt-4 text-center text-xs font-light leading-6 text-foreground/45">
+          Rien n'est encore publié : les invité·es ne verront que le programme.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {rows.map(row => (
+            <li key={row.key} data-testid={`profile-practical-${row.key}`} className="flex items-start gap-3">
+              <row.icon className="mt-0.5 h-4 w-4 shrink-0 text-foreground/35" />
+              <span className="min-w-0">
+                <span className="block text-[9px] uppercase tracking-[.18em] text-foreground/40">{row.label}</span>
+                <span className="mt-0.5 block text-sm font-light leading-6 text-foreground/75 [overflow-wrap:anywhere]">
+                  {practical?.[row.key]}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {isPrivatePreview && (
+        <button
+          type="button"
+          data-testid="profile-practical-edit"
+          onClick={onEdit}
+          className="mt-5 w-full rounded-full border border-foreground/12 px-4 py-2 text-[10px] uppercase tracking-[.16em] text-foreground/65 transition hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+        >
+          Modifier ces infos
+        </button>
+      )}
+    </section>
+  );
+}
+
 export function PublicProfilePage({ privatePreview: forcePrivatePreview = false }: { privatePreview?: boolean }) {
   const params = useParams<{ projectId: string }>();
   const [, navigate] = useLocation();
@@ -148,6 +220,15 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
   const privatePreview = useMemo<ProfileView | undefined>(() => {
     if (!project || (!forcePrivatePreview && project.id !== params.projectId)) return undefined;
+    /* Ce que les invité·es verront : le couple le remplit dans la logistique,
+       et l'aperçu montre exactement la projection publique — ni contacts, ni chiffres. */
+    const logistics = project.logistics;
+    const publishedPractical: ProfilePractical = {
+      ...(project.venue.value?.trim() ? { venue: project.venue.value.trim() } : {}),
+      ...(logistics?.parking?.trim() ? { parking: logistics.parking.trim() } : {}),
+      ...(logistics?.accessibility?.trim() ? { accessibility: logistics.accessibility.trim() } : {}),
+      ...(logistics?.weatherFallback?.trim() ? { weatherFallback: logistics.weatherFallback.trim() } : {}),
+    };
     return {
       id: project.id,
       title: project.title,
@@ -155,6 +236,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       ...(project.universe ? { universe: project.universe } : {}),
       ...(project.city.value?.trim() ? { city: project.city.value.trim() } : {}),
       pivot: project.pivot.value,
+      ...(Object.keys(publishedPractical).length ? { practical: publishedPractical } : {}),
       timeline: project.timeline
         .filter(event => forcePrivatePreview ? canRoleSeeTimelineEvent(event, currentRole) : event.visibility === "audience")
         .sort((a, b) => a.time - b.time)
@@ -181,13 +263,26 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const profile: ProfileView | undefined = forcePrivatePreview ? privatePreview : publishedProfile;
   const isPrivatePreview = forcePrivatePreview && Boolean(privatePreview);
 
-  const [viewMode, setViewMode] = useState<"timeline" | "fil">("timeline");
+  const [viewMode, setViewMode] = useState<"fil" | "rapport">("fil");
+
+  /* Le bilan partagé : un choix explicite du planner, jamais un défaut. */
+  const shareReport = project?.publicProfile?.shareReport === true;
+  const toggleShareReport = () => {
+    if (!project) return;
+    updateProject({
+      publicProfile: {
+        published: project.publicProfile?.published ?? false,
+        shareReport: !shareReport,
+      },
+    });
+  };
+
+  /* Quel mode du Profil est réellement ouvert : cinématique, Fil, ou frise. */
+  useEffect(() => {
+    trackEvent("profile_mode_opened", { mode: viewMode });
+  }, [viewMode]);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const [selectedPublicEvent, setSelectedPublicEvent] = useState<ProfileTimelineEvent | null>(null);
-  const [activeSection, setActiveSection] = useState("identity");
-  const [timelineFocusX, setTimelineFocusX] = useState(SECTIONS[0].x);
-  const [zoom, setZoom] = useState(1);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -224,118 +319,9 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
     });
   }, [currentRole, isPrivatePreview, refreshParticipantLinks]);
 
-  const guestArrivals = useMemo(() => {
-    if (!project || !isPrivatePreview || (currentRole !== "owner" && currentRole !== "planner")) return [];
-    return Object.values(participantLinks).flatMap(link => {
-      if (!link.respondedAt || !link.response?.status) return [];
-      const guest = project.guests.find(item => item.id === link.guestId);
-      const time = Date.parse(link.respondedAt);
-      if (!guest || !Number.isFinite(time)) return [];
-      return [{
-        id: `rsvp-${guest.id}-${link.respondedAt}`,
-        guest,
-        time,
-        status: link.response.status,
-      }];
-    });
-  }, [currentRole, isPrivatePreview, participantLinks, project]);
-
   const sortedEvents = useMemo(() => {
     return [...(profile?.timeline || [])].sort((a, b) => a.time - b.time);
   }, [profile?.timeline]);
-
-  /*
-   * Placement des repères du fil. Les Moments et les réponses RSVP partagent la
-   * même échelle : leurs abscisses ne peuvent donc jamais tomber les unes sur
-   * les autres. Chaque groupe garde ses propres lignes, et une étiquette qui
-   * n'a pas la place est masquée plutôt que superposée.
-   */
-  const timelineLayout = useMemo(
-    () => layoutTimeline(
-      [
-        ...sortedEvents.map(event => ({ id: event.id, time: event.time, group: "moment" })),
-        ...guestArrivals.map(arrival => ({ id: arrival.id, time: arrival.time, group: "rsvp" })),
-      ],
-      { groups: { rsvp: { lanes: 2 } } },
-    ),
-    [guestArrivals, sortedEvents],
-  );
-
-  const markerById = useMemo(
-    () => new Map(timelineLayout.markers.map(marker => [marker.id, marker])),
-    [timelineLayout],
-  );
-
-  const filArrivals = useMemo(
-    () => guestArrivals.map(arrival => ({
-      id: arrival.id,
-      guestId: arrival.guest.id,
-      guestName: arrival.guest.name,
-      status: arrival.status,
-    })),
-    [guestArrivals],
-  );
-
-  /*
-   * Chevauchements : `findTimelineConflicts` existait déjà, jamais branché sur
-   * le fil. Les Moments sans conflit n'apparaissent pas dans la map, donc aucun
-   * indicateur à zéro n'est affiché.
-   */
-  const timelineConflicts = useMemo(
-    () => (project ? indexTimelineConflicts(project.timeline) : new Map<string, string[]>()),
-    [project],
-  );
-
-  /* Le fil s'allonge avec le nombre de repères : les sections qui suivent
-     l'histoire se calent sur la fin réelle du fil, pas sur une abscisse figée. */
-  const trackEnd = Math.ceil(timelineLayout.trackEnd);
-  const archivesX = Math.max(4000, trackEnd + 700);
-  const networkX = archivesX + 1000;
-  const canvasWidth = networkX + 600;
-
-  const sections = useMemo(() => SECTIONS.map(section => {
-    if (section.id === "history") return { ...section, x: timelineLayout.markers[0]?.x ?? section.x };
-    if (section.id === "archives") return { ...section, x: archivesX };
-    if (section.id === "network") return { ...section, x: networkX };
-    return section;
-  }), [archivesX, networkX, timelineLayout.markers]);
-
-  const prefersReducedMotion = useReducedMotion();
-
-  const scrollToSection = (x: number) => {
-    setTimelineFocusX(x);
-    if (scrollRef.current) {
-      const containerWidth = scrollRef.current.clientWidth;
-      scrollRef.current.scrollTo({ left: x * zoom - containerWidth / 2, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-    }
-  };
-
-  const contextItems = useMemo(() => {
-    if (!project || !isPrivatePreview) return [];
-    const items: Array<Record<string, unknown> & {
-      id: string;
-      _type: "timeline" | "documents" | "memories" | "guests" | "providers" | "tasks";
-      _date: number;
-      _title: string;
-      kind: string;
-    }> = [];
-    project.timeline.forEach(event => items.push({ ...event, _type: "timeline", _date: event.time, _title: event.title }));
-    project.documents.forEach(document => items.push({ ...document, _type: "documents", _date: document.at, _title: document.title, kind: "document" }));
-    project.memories.forEach(memory => items.push({ ...memory, _type: "memories", _date: 0, _title: memory.title, kind: "souvenir" }));
-    project.guests.forEach(guest => items.push({ ...guest, _type: "guests", _date: 0, _title: guest.name, kind: "guest" }));
-    project.providers.forEach(provider => items.push({ ...provider, _type: "providers", _date: 0, _title: provider.name || provider.role, kind: "provider" }));
-    project.tasks.forEach(task => items.push({ ...task, _type: "tasks", _date: task.dueDate || 0, _title: task.title, kind: "task" }));
-    return items.sort((a, b) => b._date - a._date).slice(0, 10);
-  }, [isPrivatePreview, project]);
-
-  useEffect(() => {
-    if (!scrollRef.current || viewMode !== "timeline") return;
-    const containerWidth = scrollRef.current.clientWidth;
-    scrollRef.current.scrollTo({
-      left: timelineFocusX * zoom - containerWidth / 2,
-      behavior: prefersReducedMotion ? "auto" : "smooth",
-    });
-  }, [prefersReducedMotion, timelineFocusX, viewMode, zoom]);
 
   if (isLoading || (!isHydrated && !profile)) {
     return (
@@ -367,32 +353,8 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const displayName = isPrivatePreview ? user?.fullName || user?.firstName || profile.title : profile.title;
   const profileImage = isPrivatePreview ? user?.imageUrl : undefined;
 
-  // Distribute Archives
-  const archives = isPrivatePreview ? [
-    ...(project?.documents || []).map(d => ({ ...d, collection: "documents", kind: "document" })),
-    ...(project?.payments || []).map(p => ({ ...p, collection: "payments", kind: "paiement" })),
-    ...(project?.memories || []).map(m => ({ ...m, collection: "memories", kind: "souvenir" }))
-  ] : [];
-  const guests = isPrivatePreview ? (project?.guests || []) : [];
-
-  const profileChrome: PanelChrome = {
-    breadcrumb: [
-      { label: "AIME", href: "/" },
-      ...(isPrivatePreview ? [{ label: "Profil", href: "/profile" }] : [{ label: profile.title }]),
-    ],
-    navigation: sections.map(section => ({
-      id: section.id,
-      label: section.label,
-      active: activeSection === section.id,
-      onClick: () => {
-        setActiveSection(section.id);
-        scrollToSection(section.x);
-      },
-    })),
-  };
 
   return (
-    <PanelChromeProvider chrome={profileChrome}>
     <main data-testid="public-profile-page" className="relative h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       {/* Background Depth */}
       <div className="pointer-events-none fixed inset-0 z-0 bg-background">
@@ -401,190 +363,55 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       </div>
 
       {/* Main Canvas Scroll Area */}
-      {viewMode === "fil" ? (
+      {viewMode === "rapport" && project ? (
+        <div className="w-full h-full overflow-y-auto pt-28 pb-16 animate-in fade-in duration-500 relative z-10">
+          {isPrivatePreview && canEdit && (
+            <div className="mx-auto mb-6 mt-2 flex w-full max-w-2xl flex-wrap items-center justify-between gap-3 border border-[#E6E1D8] bg-[#FFFFFF] px-5 py-3">
+              <p className="text-[11px] uppercase tracking-[0.25em] text-[#6F6A61]">
+                {shareReport ? "Bilan partagé avec les mariés" : "Bilan non partagé"}
+              </p>
+              <div className="flex items-center gap-3">
+                {shareReport ? <code className="text-[12px] text-[#4c463d]">/bilan/{profileId}</code> : null}
+                <button
+                  onClick={toggleShareReport}
+                  className="border border-[#171410] px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-[#171410] transition-colors hover:bg-[#171410] hover:text-[#FFFFFF]"
+                >
+                  {shareReport ? "Ne plus partager" : "Partager le bilan"}
+                </button>
+              </div>
+            </div>
+          )}
+          <CoupleReport
+            rapport={buildRapport(project)}
+            title={project.title}
+            subtitle={project.subtitle}
+            currency={project.currency}
+          />
+        </div>
+      ) : (
         <div className="w-full h-full overflow-y-auto pt-32 pb-24 px-6 animate-in fade-in duration-500 relative z-10">
           <div className="max-w-3xl mx-auto">
             <ProfileFil projectId={profileId} onOpenMoment={(id) => {
               const ev = sortedEvents.find(e => e.id === id);
               if (ev) {
                 setSelectedNode({ type: "item", collection: "timeline", sourceRef: ev, label: ev.title });
-                setViewMode("timeline");
-                scrollToSection(markerById.get(ev.id)?.x ?? sections[0].x);
               }
             }} />
           </div>
         </div>
-      ) : (
-      <div
-        ref={scrollRef}
-        className="absolute inset-0 z-10 overflow-x-auto overflow-y-hidden hide-scrollbar animate-in fade-in duration-500"
-      >
-        <div className="relative h-full" style={{ width: `${canvasWidth * zoom}px` }}>
-          <div
-            className="absolute inset-y-0 left-0 origin-left"
-            style={{ transform: `scale(${zoom})`, transformOrigin: "left center", width: `${canvasWidth}px` }}
-          >
-          {/* Main Horizontal Trunk */}
-          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-foreground/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
-
-          {/* Section Markers */}
-          {sections.map(section => (
-            <div key={section.id} className="absolute top-1/2 -translate-y-1/2" style={{ left: `${section.x}px` }}>
-               <div className="w-[1px] h-32 bg-foreground/10 absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2" />
-              {section.id !== "identity" && (
-                <div className="absolute left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-foreground/30 font-medium bg-background px-4 py-1 rounded-full border border-foreground/5" style={{ top: `${SECTION_LABEL_TOP}px` }}>
-                  {section.label}
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* 1. IDENTITÉ (Hero) */}
-          <div className="absolute top-1/2 -translate-y-1/2" style={{ left: '400px' }}>
-            <div className="-translate-x-1/2">
-              <ProfileIdentityHero
-                displayName={displayName}
-                profileImage={profileImage}
-                subtitle={profile.subtitle}
-                city={profile.city}
-                pivot={profile.pivot}
-                isPrivatePreview={isPrivatePreview}
-                onEditIdentity={() => isPrivatePreview && setSelectedNode({ type: "identity", label: "Identité" })}
-              >
-                {isPrivatePreview && contextItems.length > 0 && (
-                  <div className="mt-4 flex max-w-full items-center justify-center -space-x-2 overflow-x-auto px-4 py-4 hide-scrollbar" aria-label="Collections du Monde">
-                    {contextItems.map((item, index) => (
-                      <button
-                        key={item.id + index}
-                        type="button"
-                        onClick={() => setSelectedNode({ type: "item", collection: item._type, sourceRef: item, label: item._title })}
-                        title={item._title}
-                        className="relative group grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-background bg-card text-foreground shadow-xl transition-transform hover:z-20 hover:-translate-y-1 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-                        style={{ zIndex: 10 - index }}
-                      >
-                        <EventIcon kind={item.kind} className="h-5 w-5 text-foreground/70 transition-colors group-hover:text-foreground" />
-                        <span className="sr-only">{item._title}</span>
-                      </button>
-                    ))}
-                    {currentRole !== 'viewer' && (
-                      <button
-                        type="button"
-                        onClick={() => window.dispatchEvent(new Event("aime:open-create"))}
-                        title="Ajouter au Monde"
-                        className="relative z-10 grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-background bg-brand-accent text-brand-accent-foreground shadow-[0_0_15px_hsl(var(--brand-accent)/0.4)] transition-transform hover:z-20 hover:-translate-y-1 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-                      >
-                        <Plus className="h-5 w-5" />
-                        <span className="sr-only">Ajouter au Monde</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </ProfileIdentityHero>
-            </div>
-          </div>
-
-          {/* 2. HISTOIRE (Timeline) — placement calculé par layoutTimeline */}
-          <FilTrack
-            events={sortedEvents}
-            arrivals={filArrivals}
-            markers={markerById}
-            conflicts={timelineConflicts}
-            onOpenMoment={event => {
-              if (isPrivatePreview) {
-                setSelectedNode({ type: "item", collection: "timeline", sourceRef: event, label: event.title });
-              } else {
-                setSelectedPublicEvent(event);
-              }
-            }}
-            onOpenArrival={arrival => setSelectedNode({
-              type: "item",
-              collection: "guests",
-              sourceRef: guests.find(guest => guest.id === arrival.guestId) ?? arrival,
-              label: arrival.guestName,
-            })}
-          />
-
-          {/* 3. ARCHIVES */}
-          {isPrivatePreview && canEdit && (currentRole === "owner" || currentRole === "planner") && (
-            <button
-              type="button"
-              onClick={() => navigate("/user-portal?create=document-media")}
-              className="absolute top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-full border border-foreground/12 bg-background/85 px-5 py-3 text-left shadow-xl backdrop-blur-md transition hover:border-foreground/30 hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-              style={{ left: `${archivesX}px` }}
-              aria-label="Ajouter ou remplacer un visuel du Monde"
-            >
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-foreground/8">
-                <ImageIcon className="h-4 w-4 text-foreground/65" />
-              </span>
-              <span>
-                <span className="block text-[9px] uppercase tracking-[.16em] text-foreground/78">Visuels du Monde</span>
-                <span className="mt-0.5 block text-[8px] uppercase tracking-[.12em] text-foreground/35">Ajouter ou remplacer</span>
-              </span>
-            </button>
-          )}
-          {archives.map((item, i) => {
-             const angle = (i / archives.length) * Math.PI * 2;
-             const radius = 180 + (i % 3) * 40;
-             const x = 4000 + Math.cos(angle) * radius;
-             const yOffset = Math.sin(angle) * radius;
-
-             return (
-               <div key={item.id || i} className="absolute top-1/2" style={{ left: `${x}px` }}>
-                  <button
-                     onClick={() => isPrivatePreview && setSelectedNode({ type: "item", collection: item.collection, sourceRef: item, label: (item as any).title || (item as any).label })}
-                     className="absolute group flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110"
-                     style={{ top: `${yOffset}px`, left: '0px' }}
-                  >
-                     <div className="flex h-10 w-10 items-center justify-center rounded-full border border-foreground/10 bg-background/50 backdrop-blur-md shadow-lg group-hover:bg-foreground/10 group-hover:border-foreground/30">
-                        <EventIcon kind={item.kind} className="w-4 h-4 text-foreground/50 group-hover:text-foreground" />
-                     </div>
-                     <span className="absolute top-full mt-2 text-[8px] uppercase tracking-widest text-foreground/40 group-hover:text-foreground truncate w-24 text-center">
-                       {(item as any).title || (item as any).label || item.kind}
-                     </span>
-                  </button>
-               </div>
-             );
-          })}
-
-          {/* 4. RÉSEAU */}
-          {guests.map((guest, i) => {
-             const angle = (i / guests.length) * Math.PI * 2;
-             const radius = 200 + (i % 2) * 50;
-             const x = 5000 + Math.cos(angle) * radius;
-             const yOffset = Math.sin(angle) * radius;
-
-             return (
-               <div key={guest.id || i} className="absolute top-1/2" style={{ left: `${x}px` }}>
-                  <button
-                     onClick={() => isPrivatePreview && setSelectedNode({ type: "item", collection: "guests", sourceRef: guest, label: guest.name })}
-                     className="absolute group flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110"
-                     style={{ top: `${yOffset}px`, left: '0px' }}
-                  >
-                     <div className="flex h-8 w-8 items-center justify-center rounded-full border border-foreground/10 bg-background/50 backdrop-blur-md shadow-lg group-hover:bg-foreground/10 group-hover:border-foreground/30">
-                        <User className="w-3 h-3 text-foreground/50 group-hover:text-foreground" />
-                     </div>
-                     <span className="absolute top-full mt-2 text-[8px] uppercase tracking-widest text-foreground/40 group-hover:text-foreground truncate w-20 text-center">
-                       {guest.name}
-                     </span>
-                  </button>
-               </div>
-             );
-          })}
-          </div>
-
-        </div>
-      </div>
       )}
 
-      {/* Contextual Navigation Header */}
+            {/* Contextual Navigation Header */}
       <header data-testid="profile-context-header" className="fixed left-1/2 top-20 z-[75] flex -translate-x-1/2 flex-col items-center justify-center gap-2 sm:flex-row md:top-8">
         {isPrivatePreview && (
           <div className="flex gap-1 border border-border/40 shadow-lg bg-background/88 px-1 py-1 backdrop-blur-xl rounded-full" role="tablist">
+
+
             <button
-              onClick={() => setViewMode("timeline")}
-              className={cn("whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", viewMode === "timeline" ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground")}
+              onClick={() => setViewMode("rapport")}
+              className={cn("whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", viewMode === "rapport" ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground")}
             >
-              Timeline
+              Bilan
             </button>
             <button
               onClick={() => setViewMode("fil")}
@@ -595,46 +422,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
           </div>
         )}
 
-        {viewMode === "timeline" && (
-          <nav className="flex items-center gap-1 rounded-full border border-border/40 bg-background/88 p-1 shadow-lg backdrop-blur-xl">
-             {sections.map((section) => (
-                <button
-                   key={section.id}
-                   onClick={() => {
-                     setActiveSection(section.id);
-                     scrollToSection(section.x);
-                   }}
-                   aria-current={activeSection === section.id ? "location" : undefined}
-                   className={cn(
-                     "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] uppercase tracking-widest transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent",
-                     activeSection === section.id ? "text-foreground bg-foreground/10" : "text-foreground/60",
-                   )}
-                >
-                   <section.icon className="w-3 h-3" />
-                   <span className="hidden sm:inline">{section.label}</span>
-                </button>
-             ))}
-             <span className="mx-1 h-4 w-px bg-border" aria-hidden="true" />
-             <button
-               type="button"
-               onClick={() => setZoom(value => Math.max(0.75, Number((value - 0.15).toFixed(2))))}
-               disabled={zoom <= 0.75}
-               aria-label="Réduire la Timeline"
-               className="grid h-7 w-7 place-items-center rounded-full text-foreground/55 transition hover:bg-foreground/10 hover:text-foreground disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-             >
-               <ZoomOut className="h-3.5 w-3.5" />
-             </button>
-             <button
-               type="button"
-               onClick={() => setZoom(value => Math.min(1.3, Number((value + 0.15).toFixed(2))))}
-               disabled={zoom >= 1.3}
-               aria-label="Agrandir la Timeline"
-               className="grid h-7 w-7 place-items-center rounded-full text-foreground/55 transition hover:bg-foreground/10 hover:text-foreground disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-             >
-               <ZoomIn className="h-3.5 w-3.5" />
-             </button>
-          </nav>
-        )}
+
       </header>
 
       {/* Unified Entity Editor Modal */}
@@ -677,6 +465,5 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         )}
       </AnimatePresence>
     </main>
-    </PanelChromeProvider>
   );
 }

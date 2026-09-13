@@ -93,13 +93,13 @@ export function LandingShowcase() {
         </div>
 
         {/* Le hero du Monde, sur fond noir comme dans l'app. */}
-        <div className="bg-black px-6 py-8 text-white md:px-8">
+        <div className="bg-[#FFFFFF] px-6 py-8 text-[#171410] md:px-8">
           <div className="flex items-start justify-between gap-6">
             <div>
               <h3 className="font-display text-2xl font-semibold tracking-tight">
                 {t("showcase.title")}
               </h3>
-              <p className="mt-1 text-[13px] text-white/60">{t("showcase.when")}</p>
+              <p className="mt-1 text-[13px] text-[#171410]/60">{t("showcase.when")}</p>
             </div>
             {/* Anneau de progression, comme le compteur des tâches du hero. */}
             <div
@@ -109,7 +109,7 @@ export function LandingShowcase() {
                 background: "conic-gradient(hsl(var(--brand-accent)) 64%, rgba(255,255,255,.14) 0)",
               }}
             >
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-black text-[11px] tabular-nums text-white">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-[#FFFFFF] text-[11px] tabular-nums text-[#171410]">
                 64%
               </span>
             </div>
@@ -143,7 +143,7 @@ export function LandingShowcase() {
                   {moment.done && (
                     <span
                       aria-hidden
-                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[hsl(var(--brand-accent))] text-[11px] text-white"
+                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[hsl(var(--brand-accent))] text-[11px] text-[#171410]"
                     >
                       <Check className="h-3 w-3" strokeWidth={3} />
                     </span>
@@ -166,8 +166,8 @@ export function LandingShowcase() {
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
-      <p className="font-display text-xl font-semibold tabular-nums text-white">{value}</p>
-      <p className="mt-0.5 text-xs text-white/55">{label}</p>
+      <p className="font-display text-xl font-semibold tabular-nums text-[#171410]">{value}</p>
+      <p className="mt-0.5 text-xs text-[#171410]/55">{label}</p>
     </div>
   );
 }

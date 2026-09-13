@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { computeVisibilityModel, ENTITY_KIND_LABELS, type RoleVisibility } from "@/lib/timeline-graph";
+import { computeVisibilityModel, ENTITY_KIND_LABELS, type RoleVisibility, type VisibilityNode } from "@/lib/timeline-graph";
 import { getWorldPhaseShortLabel, PANEL_FOR_KIND, type WeddingPanelId } from "@/lib/wedding-navigation";
 import { useI18n } from "@/lib/i18n";
 import { useProject } from "@/store/project-store";
@@ -20,20 +20,30 @@ const ROLE_HINTS: Record<RoleVisibility, string> = {
   viewer: "Seulement ce qui est relié à un Moment publié à l'audience.",
 };
 
-const KIND_COLORS: Record<string, string> = {
-  event: "hsl(var(--foreground) / 0.8)",
-  guest: "hsl(var(--foreground) / 0.8)",
-  table: "hsl(var(--foreground) / 0.8)",
-  provider: "hsl(var(--foreground) / 0.8)",
-  task: "hsl(var(--foreground) / 0.8)",
-  payment: "hsl(var(--foreground) / 0.8)",
-  document: "hsl(var(--foreground) / 0.8)",
-  music: "hsl(var(--foreground) / 0.8)",
-  team: "hsl(var(--foreground) / 0.8)",
-  message: "hsl(var(--foreground) / 0.8)",
-  logistics: "hsl(var(--foreground) / 0.8)",
-  memory: "hsl(var(--foreground) / 0.8)",
+/*
+ * Une couleur par catégorie : les pastilles du graphe se lisent d'abord par
+ * famille (personnes, argent, documents, musique…) avant même de lire les
+ * étiquettes. Les Moments gardent le rouge de la marque — c'est la colonne
+ * vertébrale du graphe. Les teintes vivent dans `index.css` (`--cat-*`) pour
+ * rester lisibles en sombre comme en clair.
+ */
+export const KIND_COLORS: Record<VisibilityNode["kind"], string> = {
+  event: "hsl(var(--cat-event))",
+  guest: "hsl(var(--cat-guest))",
+  team: "hsl(var(--cat-team))",
+  provider: "hsl(var(--cat-provider))",
+  task: "hsl(var(--cat-task))",
+  table: "hsl(var(--cat-table))",
+  logistics: "hsl(var(--cat-logistics))",
+  payment: "hsl(var(--cat-payment))",
+  document: "hsl(var(--cat-document))",
+  music: "hsl(var(--cat-music))",
+  memory: "hsl(var(--cat-memory))",
+  message: "hsl(var(--cat-message))",
 };
+
+/** Les catégories dans l'ordre de la légende : Moments d'abord, puis les entités. */
+const LEGEND_ORDER = Object.keys(KIND_COLORS) as VisibilityNode["kind"][];
 
 const NODE_R = 7;
 const EVENT_X = 60;
@@ -47,7 +57,7 @@ function useVisibilityGraph(role: RoleVisibility) {
 }
 
 export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: WeddingPanelId) => void }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [role, setRole] = useState<RoleVisibility>("viewer");
   const model = useVisibilityGraph(role);
 
@@ -61,6 +71,18 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
 
   const masked = model.totalCount - model.visibleCount;
   const maskedReasons = model.nodes.filter(node => !node.visible && node.maskedReason).slice(0, 3);
+
+  /*
+   * La légende ne liste que les catégories réellement présentes dans ce Monde :
+   * onze familles sont possibles, rarement toutes remplies. Sans elle, la
+   * couleur d'une pastille ne dirait rien.
+   */
+  const presentKinds = new Set(model.nodes.map(node => node.kind));
+  const legend = LEGEND_ORDER.filter(kind => presentKinds.has(kind)).map(kind => ({
+    kind,
+    color: KIND_COLORS[kind],
+    label: kind === "event" ? t("world.kind.moment") : ENTITY_KIND_LABELS[kind],
+  }));
 
   return (
     <div className="space-y-5">
@@ -94,6 +116,16 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
           </span>
         )}
       </div>
+
+      {/* Légende des catégories : la couleur d'une pastille se lit ici. */}
+      <ul data-testid="graph-legend" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {legend.map(item => (
+          <li key={item.kind} className="inline-flex items-center gap-1.5 text-[11px] text-foreground/55">
+            <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: item.color }} />
+            {item.label}
+          </li>
+        ))}
+      </ul>
 
       <div className="overflow-x-auto rounded-2xl border border-foreground/10 bg-background">
         <svg viewBox={`0 0 900 ${height}`} className="min-w-[760px] w-full" role="img" aria-label={`Graphe de visibilité vu comme ${ROLE_LABELS[role]}`}>
@@ -134,7 +166,7 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
 
           {/* entity nodes */}
           {entities.map((node, i) => {
-            const color = KIND_COLORS[node.kind] ?? "hsl(var(--foreground) / 0.8)";
+            const color = KIND_COLORS[node.kind];
             const panel = node.kind !== "event" ? PANEL_FOR_KIND[node.kind as keyof typeof PANEL_FOR_KIND] : undefined;
             const clickable = Boolean(node.visible && panel && onOpenPanel);
             return (
@@ -145,7 +177,9 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
                 style={clickable ? { cursor: "pointer" } : undefined}
               >
                 {clickable && <title>Ouvrir dans son panneau</title>}
-                <circle cx={ENTITY_X} cy={entityY(i)} r={NODE_R} fill={node.visible ? color : "transparent"} stroke={clickable ? "hsl(var(--brand-accent))" : color} strokeWidth={clickable ? 2 : 1.5} strokeDasharray={node.visible ? undefined : "2 3"} />
+                {/* Le halo signale l'élément cliquable sans voler la couleur de la catégorie. */}
+                {clickable && <circle cx={ENTITY_X} cy={entityY(i)} r={NODE_R + 3.5} fill="none" stroke="hsl(var(--brand-accent) / 0.45)" strokeWidth={1} />}
+                <circle cx={ENTITY_X} cy={entityY(i)} r={NODE_R} fill={node.visible ? color : "transparent"} stroke={color} strokeWidth={clickable ? 2 : 1.5} strokeDasharray={node.visible ? undefined : "2 3"} />
                 <text x={ENTITY_X + NODE_R + 10} y={entityY(i) + 3.5} fill="currentColor" fontSize="11" className={clickable ? "font-medium underline decoration-dotted underline-offset-2" : undefined}>
                   {node.label.length > 28 ? `${node.label.slice(0, 28)}…` : node.label}
                 </text>

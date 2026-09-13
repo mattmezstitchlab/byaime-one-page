@@ -148,7 +148,7 @@ export function FilTrack({
             >
               <div className={cn(
                 "flex h-12 w-12 items-center justify-center rounded-full border bg-background shadow-xl transition-all group-hover:scale-110 group-hover:bg-foreground/10",
-                eventConflicts.length ? "border-rose-300/50 group-hover:border-rose-300/70" : "border-foreground/15 group-hover:border-foreground/40",
+                eventConflicts.length ? "border-brand-accent/40/50 group-hover:border-brand-accent/40/70" : "border-foreground/15 group-hover:border-foreground/40",
               )}>
                 <EventIcon kind={event.kind} className="text-foreground/60 group-hover:text-foreground" />
                 {/* Confiance à traiter : un point discret, jamais une étiquette. */}
@@ -161,7 +161,7 @@ export function FilTrack({
                 {eventConflicts.length > 0 && (
                   <span
                     data-testid={`fil-conflict-${event.id}`}
-                    className="absolute -left-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-background bg-rose-400"
+                    className="absolute -left-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-background bg-brand-accent"
                   />
                 )}
               </div>

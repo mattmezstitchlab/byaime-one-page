@@ -4,7 +4,8 @@ import { useProject } from "@/store/project-store";
 import { useI18n } from "@/lib/i18n";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { formatClock } from "@/lib/day-run";
-import { requestMessage, requestPanel } from "@/lib/person-spotlight-bus";
+import { requestMessage } from "@/lib/person-spotlight-bus";
+import { focusWorld } from "@/lib/world-focus";
 import { cn } from "@/lib/utils";
 import type { Guest, Provider, ProviderCategory } from "@/lib/types";
 
@@ -92,7 +93,7 @@ export function PersonSpotlight({
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={name}>
-      <button type="button" aria-label={t("spotlight.close")} onClick={onClose} className="absolute inset-0 cursor-default bg-black/60 backdrop-blur-sm" />
+      <button type="button" aria-label={t("spotlight.close")} onClick={onClose} className="absolute inset-0 cursor-default bg-[#FFFFFF]/60 backdrop-blur-sm" />
       <div data-testid="person-spotlight" className="relative w-full max-w-xs overflow-hidden rounded-3xl border border-foreground/15 bg-card shadow-2xl">
         <div className="flex items-start gap-3 p-4">
           <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-foreground/15 bg-zinc-800">
@@ -191,14 +192,14 @@ export function PersonSpotlight({
               disabled={!contact}
               onClick={() => contact && openMessage(t("spotlight.brief.subject", { moment: contextMoment.title, clock: formatClock(contextMoment.time) }), contact)}
               title={!contact ? t("spotlight.noContact") : undefined}
-              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-accent px-3 py-2 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-35"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-accent px-3 py-2 text-xs font-medium text-[#171410] transition hover:opacity-90 disabled:opacity-35"
             >
               <Megaphone className="h-3.5 w-3.5" />{t("spotlight.brief")}
             </button>
           ) : (
             <button
               type="button"
-              onClick={() => { onClose(); requestPanel(isProvider ? "providers" : "guests"); }}
+              onClick={() => { onClose(); focusWorld({ route: "/user-portal", entityKind: person.kind, entityId: person.id }); }}
               className="inline-flex items-center justify-center gap-1.5 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:border-foreground/30 hover:text-foreground"
             >
               <UserRound className="h-3.5 w-3.5" />{t("spotlight.file")}
@@ -224,7 +225,7 @@ export function PersonSpotlight({
           {isProvider && contextMoment && (
             <button
               type="button"
-              onClick={() => { onClose(); requestPanel("providers"); }}
+              onClick={() => { onClose(); focusWorld({ route: "/user-portal", entityKind: person.kind, entityId: person.id }); }}
               className={cn(
                 "inline-flex items-center justify-center gap-1.5 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:border-foreground/30 hover:text-foreground",
                 teamRecipients.length < 2 && !PHONE_HINT.test(contact) && "col-span-2",

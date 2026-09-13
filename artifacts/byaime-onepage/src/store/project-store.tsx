@@ -24,6 +24,8 @@ type ProjectStore = {
   syncError?: string;
   currentRole: string;
   canEdit: boolean;
+  /** Le Monde est clos : consultable, plus modifiable. */
+  isClosed: boolean;
   participantLinks: Record<string, ParticipantLink>;
   
   setIntentionText: (text: string) => void;
@@ -416,7 +418,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     });
   }, []);
   const currentRole = roleForActiveProject(project?.id, projects, pendingOwnedProjectId);
-  const canEdit = currentRole !== 'viewer';
+  /* Un Monde clos se consulte, il ne se modifie plus : c'est le seul garde-fou
+     contre les modifications par erreur après le mariage. */
+  const isClosed = project?.closure?.closedAt !== undefined;
+  const canEdit = currentRole !== 'viewer' && !isClosed;
 
   return (
     <ProjectContext.Provider value={{
@@ -430,6 +435,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       syncError,
       currentRole,
       canEdit,
+      isClosed,
       participantLinks,
       setIntentionText,
       commitDraft,

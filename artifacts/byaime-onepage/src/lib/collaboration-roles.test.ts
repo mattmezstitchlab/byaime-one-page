@@ -33,8 +33,10 @@ describe("collaboration role descriptions", () => {
     );
     expect(labels.family).toContain("peut modifier le contenu partagé");
     expect(labels.planner).toContain("gérer les accès et les documents");
-    expect(labels.planner).toContain("finances, publication et suppression");
+    expect(labels.planner).toContain("consulter les finances");
+    expect(labels.planner).toContain("publication et suppression restent réservées au propriétaire");
     expect(labels.viewer).toContain("projection destinée à l’audience");
+    expect(labels.viewer).not.toContain("prestataires");
     expect(labels.family).not.toContain("lecture seule");
     expect(labels.viewer).not.toContain("sa propre participation");
   });

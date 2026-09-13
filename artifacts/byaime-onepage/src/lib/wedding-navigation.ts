@@ -1,3 +1,4 @@
+import type { CollaborationRole } from "./collaboration-roles";
 import { translate, type Locale } from "./i18n-dictionary";
 import type { TimelineView } from "./timeline-graph";
 import type { TimelineEntityKind } from "./types";
@@ -91,10 +92,6 @@ const dayof = (locale: Locale) => item(locale, "day-of", "dayof", { kind: "panel
 const practical = (locale: Locale) => item(locale, "public-info", "publicInfo", { kind: "view", view: "public-info" });
 const seating = (locale: Locale) => item(locale, "seating", "seating", { kind: "panel", panel: "seating" });
 const contributions = (locale: Locale) => item(locale, "contributions", "contributions", { kind: "panel", panel: "contributions" });
-const thanks = (locale: Locale) => item(locale, "thanks", "thanks", { kind: "panel", panel: "thanks" });
-const photos = (locale: Locale) => item(locale, "memories", "memories", { kind: "panel", panel: "memories" });
-const film = (locale: Locale) => item(locale, "film", "film", { kind: "panel", panel: "film" });
-const honeymoon = (locale: Locale) => item(locale, "honeymoon", "honeymoon", { kind: "panel", panel: "honeymoon" });
 const ceremony = (locale: Locale) => item(locale, "ceremony", "ceremony", { kind: "panel", panel: "ceremony" });
 const logistics = (locale: Locale) => item(locale, "logistics", "logistics", { kind: "panel", panel: "logistics" });
 const messages = (locale: Locale) => item(locale, "messages", "messages", { kind: "panel", panel: "messages" });
@@ -116,7 +113,7 @@ export function isWeddingEntryAllowed(
   if (entry.id === "finances") return capabilities.seeFinances;
   if (entry.id === "documents" || entry.id === "film") return capabilities.managePrivateDocuments;
   if (capabilities.manage || capabilities.editOperational) return true;
-  return ["timeline", "people", "public-info", "music", "contributions", "thanks", "memories", "film", "honeymoon"].includes(entry.id);
+  return ["timeline", "people", "public-info", "music", "contributions"].includes(entry.id);
 }
 
 /** Barre latérale du Monde : les catégories communes, identiques d'une phase à l'autre. */
@@ -162,8 +159,9 @@ export function getWeddingNavigation(
     primary = [dayof(locale), practical(locale), seating(locale), contributions(locale)];
     secondary = [ceremony(locale), logistics(locale), messages(locale)];
   } else {
-    primary = [thanks(locale), photos(locale), film(locale), honeymoon(locale), contributions(locale), practical(locale)];
-    secondary = [ceremony(locale), logistics(locale), messages(locale)];
+    /* L'Après vit désormais dans un projet séparé : plus aucune entrée ici. */
+    primary = [];
+    secondary = [];
   }
   primary = primary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
   secondary = secondary.filter(entry => isWeddingEntryAllowed(entry, capabilities));

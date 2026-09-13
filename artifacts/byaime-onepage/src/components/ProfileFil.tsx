@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 const typeMeta: Record<ProfileFilCard["type"], { label: string; icon: LucideIcon; tone: string }> = {
   task: { label: "À faire", icon: CheckSquare, tone: "border-brand-accent/30 bg-brand-accent/10 text-brand-accent" },
   fact: { label: "Point confirmé", icon: Activity, tone: "border-foreground/15 bg-foreground/5 text-foreground/65" },
-  alert: { label: "À regarder", icon: ShieldAlert, tone: "border-rose-400/25 bg-rose-400/10 text-rose-300" },
+  alert: { label: "À regarder", icon: ShieldAlert, tone: "border-brand-accent/60/25 bg-brand-accent/10 text-brand-accent" },
   suggestion: { label: "Conseil", icon: Compass, tone: "border-foreground/15 bg-foreground/5 text-foreground/65" },
   tutorial: { label: "Comprendre AIME", icon: BookOpen, tone: "border-foreground/15 bg-foreground/5 text-foreground/65" },
   inspiration: { label: "Inspiration publique", icon: Sparkles, tone: "border-foreground/15 bg-foreground/5 text-foreground/65" },
@@ -51,7 +51,7 @@ export function ProfileFilCardView({ card, onAction }: { card: ProfileFilCard; o
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="text-[8px] uppercase tracking-[.19em] text-foreground/42">{meta.label}</span>
             {(card.priority === "urgent" || card.priority === "high") && (
-              <span className="rounded-full border border-rose-400/20 bg-rose-400/8 px-2 py-0.5 text-[8px] uppercase tracking-[.16em] text-rose-300">
+              <span className="rounded-full border border-brand-accent/60/20 bg-brand-accent/8 px-2 py-0.5 text-[8px] uppercase tracking-[.16em] text-brand-accent">
                 Prioritaire
               </span>
             )}

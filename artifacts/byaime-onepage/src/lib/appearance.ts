@@ -8,9 +8,12 @@ export type AimeAppearance = "dark" | "light";
 
 const STORAGE_KEY = "aime-appearance";
 
+/*
+ * Décision du 2026-09-13 : l'app est blanche, texte noir. Le sombre est retiré ;
+ * l'apparence stockée est ignorée et le bouton de bascule a disparu de l'UI.
+ */
 function readStored(): AimeAppearance {
-  if (typeof window === "undefined") return "dark";
-  return window.localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
+  return "light";
 }
 
 let current: AimeAppearance = readStored();

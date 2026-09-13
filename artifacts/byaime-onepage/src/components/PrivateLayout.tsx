@@ -4,10 +4,8 @@ import { cn } from '@/lib/utils';
 import { CommandBar } from '@/components/CommandBar';
 import { GlobalCreateCenter } from '@/components/GlobalCreateCenter';
 import { PortalControls } from '@/components/PortalControls';
-import { PanelChromeProvider } from '@/components/PanelChrome';
 import {
   getPrivateDestinationId,
-  getPrivateNavigation,
 } from '@/lib/private-navigation';
 import { initAppearance } from '@/lib/appearance';
 import { AimeOrb } from '@/components/AimeOrb';
@@ -25,7 +23,7 @@ export function PrivateHomeLink({
   const { t } = useI18n();
   return (
     <Link
-      href="/"
+      href="/agence"
       aria-label={t("private.home.aria")}
       data-testid="private-home-logo"
       className={cn("inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}
@@ -64,11 +62,8 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { locale } = useI18n();
   const [openMeSignal, setOpenMeSignal] = useState(0);
-  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
-  const privateNavigation = getPrivateNavigation(locale);
   const activeDestination = getPrivateDestinationId(location);
-  const activeItem = privateNavigation.find(item => item.id === activeDestination)!;
 
   useEffect(() => {
     initAppearance();
@@ -77,13 +72,6 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const openMe = () => setOpenMeSignal(signal => signal + 1);
 
   return (
-    <PanelChromeProvider chrome={{
-      breadcrumb: [
-        { label: "AIME", href: basePath },
-        { label: activeItem.label },
-      ],
-      navigation: privateNavigation.map(item => ({ id: item.id, label: item.label, href: item.href })),
-    }}>
     <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       {/* Desktop Logo - Fixed top left */}
       <div className="fixed left-6 top-6 z-[80] hidden md:block">
@@ -114,6 +102,5 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         <GlobalCreateCenter destination={activeDestination} />
       </div>
     </div>
-    </PanelChromeProvider>
   );
 }

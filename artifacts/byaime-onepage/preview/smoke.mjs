@@ -142,7 +142,7 @@ function checkHtml(label, html, needles, absent = []) {
 checkHtml(
   "Accueil visiteur, sans brouillon (deux choix, questions à venir)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire", 'data-testid="landing-guide-button"', 'data-testid="landing-guides-links"', "Tous les guides"],
+  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire"],
   ['data-testid="landing-intention-input"', 'data-testid="landing-intention-finish"', "Choisir l’univers", "Laboratoire"],
 );
 
@@ -211,7 +211,6 @@ async function renderApp(path) {
 }
 
 checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landing"'], ["Laboratoire"]);
-checkHtml("App complète (/guides)", await renderApp("/guides"), ["guides-page", 'data-testid="guide-chapters-open"', "1/25", "Comprendre avant de cliquer", "Chapitres"], ["demo-select-"]);
 checkHtml("App complète (/confidentialite)", await renderApp("/confidentialite"), [], []);
 checkHtml("App complète (/creation)", await renderApp("/creation"), ["Clerk simulé"], []);
 
@@ -223,12 +222,6 @@ checkHtml(
   ["Confirm my reply", "Your attendance"],
 );
 setNavigatorLanguage("en-US", ["en-US", "en"]);
-checkHtml(
-  "Guides en anglais (capsule, titre, FakeUI du guide actif)",
-  await renderApp("/guides"),
-  ["Understand before you click", "Chapters", 'aria-label="Next guide"', "Explain this screen"],
-  ["Chapitres", "Guide suivant", "Expliquer cet écran"],
-);
 checkHtml(
   "RSVP invité en anglais (formulaire, navigation, sections)",
   await renderApp("/rsvp/invite-test"),
@@ -242,21 +235,17 @@ setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
    Session membre requise : sans elle, le garde <Show> rend la redirection. */
 globalThis.localStorage.setItem("aime-preview-session", "1");
 checkHtml(
-  "Espace privé en français (coque du Monde)",
+  "Espace privé en français (coque + onboarding)",
   await renderApp("/user-portal"),
-  ["Espace privé", "Profil", "Monde", "Aide &amp; guides", "Mon compte (ME)", "Quelques questions pour commencer."],
-  ["Private space", "Help &amp; guides", "My account (ME)"],
+  ['data-testid="private-layout"', 'data-testid="project-composer"', "Quelques questions pour commencer.", "Explorer un mariage complet"],
+  ["Private space", "A few questions to get started.", "Explore a complete wedding"],
 );
 setNavigatorLanguage("en-US", ["en-US", "en"]);
 checkHtml(
-  "Espace privé en anglais (rail, capsule, onboarding)",
+  "Espace privé en anglais (coque + onboarding)",
   await renderApp("/user-portal"),
-  [
-    "Private space", "Profile", "World", "Help &amp; guides", "My account (ME)", "World settings",
-    "A few questions to get started.", "Explore a complete wedding",
-    'aria-label="Open help"', 'aria-label="Create or link"', 'aria-label="Back to the AIME home page"',
-  ],
-  ["Espace privé", "Aide &amp; guides", "Mon compte (ME)", "Réglages du Monde", "Explorer un mariage complet", "Ouvrir l’aide"],
+  ['data-testid="private-layout"', 'data-testid="project-composer"', "A few questions to get started.", "Explore a complete wedding"],
+  ["Quelques questions pour commencer.", "Explorer un mariage complet"],
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
@@ -266,7 +255,7 @@ checkHtml(
   "Espace privé visiteur (redirigé, coque absente)",
   await renderApp("/user-portal"),
   [],
-  ["Espace privé", "Mon compte (ME)", "Quelques questions pour commencer."],
+  ['data-testid="project-composer"', "Quelques questions pour commencer.", "Explore a complete wedding"],
 );
 globalThis.localStorage.removeItem("aime-preview-session");
 

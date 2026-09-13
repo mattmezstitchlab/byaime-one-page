@@ -61,7 +61,7 @@ describe("PortalControls", () => {
 
   it("renders without crashing when project is present", () => {
     const markup = renderToStaticMarkup(<PortalControls embedded={false} />);
-    expect(markup).toContain('data-testid="sync-status"');
+    expect(markup).not.toContain('data-testid="sync-status"');
     expect(markup).toContain('data-testid="settings-open"');
   });
 });

@@ -29,7 +29,7 @@ import {
 } from "../lib/objectStorage";
 import { authenticatedUserId, can, type ProjectRole } from "../lib/permissions";
 import { buildParticipantProjection, participantNameById } from "../lib/participantProjection";
-import { projectToPublicProfile } from "../lib/publicProfile";
+import { projectToPublicProfile, projectToPublicReport } from "../lib/publicProfile";
 import { buildAuthorizedWeddingBrief } from "../lib/weddingBrief";
 import { buildAuthorizedProfileFil } from "../lib/profileFil";
 import {
@@ -572,6 +572,28 @@ router.get("/public/profiles/:id", async (req, res): Promise<void> => {
     return;
   }
   res.json(profile);
+});
+
+router.get("/public/reports/:id", async (req, res): Promise<void> => {
+  const projectId = z.string().uuid().safeParse(String(req.params.id));
+  if (!projectId.success) {
+    res.status(404).json({ error: "Bilan introuvable" });
+    return;
+  }
+  const [project] = await db
+    .select({
+      id: projectsTable.id,
+      title: projectsTable.title,
+      data: projectsTable.data,
+    })
+    .from(projectsTable)
+    .where(eq(projectsTable.id, projectId.data));
+  const report = project ? projectToPublicReport(project) : null;
+  if (!report) {
+    res.status(404).json({ error: "Bilan introuvable" });
+    return;
+  }
+  res.json(report);
 });
 
 function parseBody<T>(

@@ -16,7 +16,7 @@ import type { WorldFocusRequest } from "./world-focus";
  */
 
 const PANEL_IDS = Object.keys(WEDDING_PANEL_LABELS) as WeddingPanelId[];
-const REACHABLE_VIEWS: Exclude<TimelineView, "map">[] = [
+const REACHABLE_VIEWS: TimelineView[] = [
   "chronological", "public-info", "day-of", "person", "provider", "music", "logistics", "collaborative", "memories",
 ];
 const KNOWN_ROUTES = [

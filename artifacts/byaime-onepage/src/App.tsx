@@ -36,6 +36,9 @@ const LazyHome = lazy(() => import('@/pages/Home').then(module => ({ default: mo
 const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module => ({ default: module.PublicProfilePage })));
 const LazyAssistant = lazy(() => import('@/pages/Assistant').then(module => ({ default: module.AssistantPage })));
 const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ default: module.FoldersPage })));
+const LazyAgencyLanding = lazy(() => import('@/pages/AgencyLanding'));
+const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
+const LazyAdmin = lazy(() => import('@/pages/AdminSommaire').then(module => ({ default: module.AdminSommairePage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -61,7 +64,7 @@ const clerkAppearance = {
     card: '!shadow-none !border-0 !bg-transparent !rounded-none', footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
     headerTitle: 'text-foreground', headerSubtitle: 'text-muted-foreground', socialButtonsBlockButtonText: 'text-foreground',
     formFieldLabel: 'text-foreground/80', footerActionLink: 'text-foreground font-semibold', footerActionText: 'text-muted-foreground',
-    dividerText: 'text-muted-foreground', identityPreviewEditButton: 'text-foreground', formFieldSuccessText: 'text-emerald-600 dark:text-emerald-400',
+    dividerText: 'text-muted-foreground', identityPreviewEditButton: 'text-foreground', formFieldSuccessText: 'text-success',
     alertText: 'text-destructive', logoBox: 'h-12', logoImage: 'h-10', socialButtonsBlockButton: 'border-border text-foreground hover:bg-muted',
     formButtonPrimary: 'bg-foreground text-background hover:bg-foreground/85', formFieldInput: 'bg-background border-border text-foreground',
     footerAction: 'text-foreground', dividerLine: 'bg-border', alert: 'bg-destructive/10 border-destructive/30',
@@ -138,8 +141,10 @@ function authPath(path: "/connexion" | "/creation", returnTo?: string) {
 }
 
 function invitationReturnPath() {
+  /* Tout chemin interne sûr : /invite/:token bien sûr, mais aussi /admin ou
+     /user-portal — le lien Admin de la landing passe par là après connexion. */
   const value = new URLSearchParams(window.location.search).get("returnTo");
-  return value && /^\/invite\/[0-9a-f-]{36}$/i.test(value) ? value : undefined;
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : undefined;
 }
 
 function SignUpPage({ returnTo }: { returnTo?: string }) {
@@ -298,7 +303,7 @@ function RsvpPage({ params }: { params: { token: string } }) {
      {state.status === 'confirmed' && <div className="grid grid-cols-2 gap-3 text-sm">{(['ceremony', 'cocktail', 'dinner', 'brunch'] as const).map(key => <label key={key} className="flex gap-2"><input aria-label={attendLabels[key]} name={`rsvp-${key}`} type="checkbox" checked={state[key]} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, [key]: e.target.checked }))} className="accent-foreground" />{attendLabels[key]}</label>)}<label className="flex gap-2 col-span-2"><input aria-label="plus-one" name="rsvp-plus-one" type="checkbox" checked={state.plusOne} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, plusOne: e.target.checked }))} className="accent-foreground" />{t('rsvp.form.plusOne')}</label></div>}
      <input aria-label="dietary" name="rsvp-dietary" className="w-full rounded-xl border border-border bg-background p-3 focus:outline-none focus:ring-1 focus:ring-foreground/30" placeholder={t('rsvp.form.dietary')} value={state.dietary} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, dietary: e.target.value }))} />
      <textarea aria-label="notes" name="rsvp-notes" className="w-full rounded-xl border border-border bg-background p-3 focus:outline-none focus:ring-1 focus:ring-foreground/30" placeholder={t('rsvp.form.notes')} value={state.notes} disabled={status !== 'ready'} onChange={e => setState(s => ({ ...s, notes: e.target.value }))} />
-      {error && <p data-testid="rsvp-error" className="text-destructive text-sm" role="alert">{error}</p>}{saveMessage && <p data-testid="rsvp-success" className="text-sm text-emerald-600" role="status"><span data-testid="rsvp-saved">{saveMessage}</span></p>}<button data-testid="rsvp-submit" type="submit" disabled={status !== 'ready'} className="w-full rounded-full bg-foreground text-background p-3 font-semibold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{status === 'submitting' ? t('rsvp.form.saving') : t('rsvp.form.submit')}</button>
+      {error && <p data-testid="rsvp-error" className="text-destructive text-sm" role="alert">{error}</p>}{saveMessage && <p data-testid="rsvp-success" className="text-sm text-success" role="status"><span data-testid="rsvp-saved">{saveMessage}</span></p>}<button data-testid="rsvp-submit" type="submit" disabled={status !== 'ready'} className="w-full rounded-full bg-foreground text-background p-3 font-semibold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{status === 'submitting' ? t('rsvp.form.saving') : t('rsvp.form.submit')}</button>
     </form></section>
     <section id="jour-j" className="scroll-mt-5 rounded-3xl border border-border bg-card p-7"><p className="text-xs tracking-[.3em] text-foreground/50">{t('rsvp.nav.day').toUpperCase()}</p><h2 className="mt-2 text-2xl">{t('rsvp.day.title')}</h2>
       {status === 'loading' ? <p data-testid="status-program-loading" className="mt-4 text-sm text-foreground/55" role="status">{t('rsvp.loading')}</p> : <>{portal.guest?.tableName && <p data-testid="text-table-name" className="mt-4 rounded-xl bg-foreground/5 p-3 text-sm">{t('rsvp.table')} <strong>{portal.guest.tableName}</strong></p>}
@@ -329,7 +334,10 @@ function RouteFallback() {
 
 function Routes() {
   return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
-    <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
+    <Route path="/agence">{() => <LazyAgencyLanding />}</Route>
+          <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
+          <Route path="/admin">{() => <PrivateRoute><LazyAdmin /></PrivateRoute>}</Route>
+          <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>

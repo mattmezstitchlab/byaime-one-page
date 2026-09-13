@@ -21,13 +21,13 @@ export function PortalOnboarding() {
     >
       <PortalBackdrop />
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center pb-24 pt-28 text-center md:pb-28">
-        <p className="aime-landing-copy text-[10px] uppercase tracking-[.35em] text-white/55">
+        <p className="aime-landing-copy text-[10px] uppercase tracking-[.35em] text-[#171410]/55">
           {t("private.onboarding.eyebrow")}
         </p>
-        <h1 className="aime-landing-copy mt-6 font-display text-3xl font-semibold leading-[1.05] tracking-tight text-white md:text-5xl">
+        <h1 className="aime-landing-copy mt-6 font-display text-3xl font-semibold leading-[1.05] tracking-tight text-[#171410] md:text-5xl">
           {t("private.onboarding.title")}
         </h1>
-        <p className="aime-landing-copy mt-5 max-w-xl text-sm font-light leading-relaxed text-white/70 md:text-base">
+        <p className="aime-landing-copy mt-5 max-w-xl text-sm font-light leading-relaxed text-[#171410]/70 md:text-base">
           {t("private.onboarding.subtitle")}
         </p>
         <div className="mt-10 w-full">
@@ -37,7 +37,7 @@ export function PortalOnboarding() {
           data-testid="demo-project"
           type="button"
           onClick={createWeddingDemo}
-          className="aime-landing-copy mt-6 text-[11px] uppercase tracking-[.18em] text-white/50 underline decoration-white/25 underline-offset-8 transition-colors hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="aime-landing-copy mt-6 text-[11px] uppercase tracking-[.18em] text-[#171410]/50 underline decoration-[#171410]/25 underline-offset-8 transition-colors hover:text-[#171410]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]/60"
         >
           {t("private.onboarding.demo")}
         </button>

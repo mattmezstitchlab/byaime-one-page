@@ -50,9 +50,8 @@ describe("wedding navigation", () => {
     expect(getWeddingNavigation("pendant", owner).primary.map(item => item.id)).toEqual([
       "day-of", "public-info", "seating", "contributions",
     ]);
-    expect(getWeddingNavigation("apres", owner).primary.map(item => item.id)).toEqual([
-      "thanks", "memories", "film", "honeymoon", "contributions", "public-info",
-    ]);
+    /* L'Après vit dans un projet séparé : sa navigation horizontale est vide. */
+    expect(getWeddingNavigation("apres", owner).primary).toEqual([]);
   });
 
   it("keeps finances, private documents, and the delivered film out of family and viewer navigation", () => {

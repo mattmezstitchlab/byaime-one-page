@@ -14,7 +14,11 @@ export const COLLABORATION_ROLE_POLICY = {
     canManageAccess: true,
     canPublish: false,
     canDelete: false,
-    projection: "shared-without-finances",
+    /* Le planificateur voit réellement les finances et les documents dans le
+       Graphe et la barre du Monde : la politique l'assume au lieu de promettre
+       l'inverse. Seuls publication, suppression et gestion des accès restent
+       au propriétaire. */
+    projection: "shared-with-finances",
   },
   family: {
     canEdit: true,
@@ -45,7 +49,7 @@ export const INVITATION_ROLE_OPTIONS: ReadonlyArray<{
   {
     value: "planner",
     label:
-      "Planificateur — peut modifier, gérer les accès et les documents ; finances, publication et suppression restent réservées au propriétaire",
+      "Planificateur — peut modifier, gérer les accès et les documents, et consulter les finances ; publication et suppression restent réservées au propriétaire",
   },
   {
     value: "family",
@@ -55,6 +59,6 @@ export const INVITATION_ROLE_OPTIONS: ReadonlyArray<{
   {
     value: "viewer",
     label:
-      "Invité — lecture de la projection destinée à l’audience ; aucune modification, sans finances, documents, prestataires ni tâches",
+      "Invité — lecture de la projection destinée à l’audience ; aucune modification, et sans finances ni documents privés",
   },
 ];

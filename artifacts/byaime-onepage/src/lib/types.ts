@@ -307,6 +307,17 @@ export type WorldProject = {
   subtitle?: string;
   publicProfile?: {
     published: boolean;
+    /** Le bilan (rapport argent/invités/tâches/documents) est partagé via /bilan/:id. */
+    shareReport?: boolean;
+  };
+  /**
+   * Clôture du Monde. Une fois posée, le Monde devient consultable mais plus
+   * modifiable : c'est la fin annoncée par l'Après, pas un effacement.
+   * Le ou la propriétaire peut toujours rouvrir.
+   */
+  closure?: {
+    closedAt: number;
+    note?: string;
   };
   universe: string;
   heroVisual?: WorldVisual | null;

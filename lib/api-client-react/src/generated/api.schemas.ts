@@ -412,6 +412,16 @@ export interface PublicTimelineEvent {
   visibility: 'audience';
 }
 
+/**
+ * Infos pratiques publiées pour les invité·es — jamais les contacts privés ni les chiffres.
+ */
+export type PublicProfilePractical = {
+  venue?: string;
+  parking?: string;
+  accessibility?: string;
+  weatherFallback?: string;
+};
+
 export interface PublicProfile {
   id: string;
   title: string;
@@ -419,6 +429,8 @@ export interface PublicProfile {
   universe?: string;
   city?: string;
   pivot?: number;
+  /** Infos pratiques publiées pour les invité·es — jamais les contacts privés ni les chiffres. */
+  practical?: PublicProfilePractical;
   timeline: PublicTimelineEvent[];
 }
 
@@ -586,5 +598,65 @@ export interface AimeLocalImportJob {
   createdAt: string;
   updatedAt: string;
   error?: string;
+}
+
+export interface RapportMoment {
+  id: string;
+  time: number;
+  title: string;
+  location?: string;
+}
+
+export interface RapportProvider {
+  id: string;
+  name: string;
+  role: string;
+  status: string;
+  amountCents?: number;
+}
+
+export interface RapportBudget {
+  engagedCents: number;
+  paidCents: number;
+  dueCents: number;
+  remainingCents: number;
+  rows: RapportProvider[];
+}
+
+export interface RapportInvites {
+  total: number;
+  confirmed: number;
+  waiting: number;
+  declined: number;
+}
+
+export interface RapportTaches {
+  total: number;
+  done: number;
+  open: number;
+  late: number;
+}
+
+export interface RapportDocument {
+  id: string;
+  title: string;
+  kind: string;
+  at: number;
+}
+
+export interface Rapport {
+  moments: RapportMoment[];
+  budget: RapportBudget | null;
+  invites: RapportInvites | null;
+  tasks: RapportTaches | null;
+  documents: RapportDocument[];
+}
+
+export interface PublicReport {
+  id: string;
+  title: string;
+  subtitle?: string;
+  currency?: string;
+  rapport: Rapport;
 }
 

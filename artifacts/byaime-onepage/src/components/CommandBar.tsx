@@ -217,7 +217,7 @@ export function CommandBar({ context = "world", onOpenMe }: { context?: PrivateD
       {proposal && <div className="mt-4 rounded-xl border border-border bg-foreground/5 p-4"><p className="font-medium text-foreground">{proposal.title}</p><ul className="mt-3 space-y-1 text-xs text-foreground/60">{proposal.impact.length ? proposal.impact.map((line, index) => <li key={index}>• {line}</li>) : <li>Aucun élément concerné.</li>}</ul>
         {proposal.mutation ? <div className="mt-4"><p className="mb-2 text-xs text-foreground/50">Rien ne changera sans votre accord.</p><button disabled={!canEdit} onClick={execute} className="rounded-full bg-foreground px-4 py-2 text-xs text-background disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50">{canEdit ? "Oui, faire ce changement" : "Vous pouvez consulter, mais pas modifier"}</button></div> : <p className="mt-4 text-xs text-foreground/40">Aucune information n’a été modifiée.</p>}
       </div>}
-      {notification && <div className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-4">
+      {notification && <div className="mt-4 rounded-xl border border-success/25 bg-success/10 p-4">
         <p className="font-medium text-foreground">Prévenir les personnes concernées</p>
         <p className="mt-1 text-xs leading-relaxed text-foreground/55">Le changement est enregistré. Vérifiez maintenant le contenu et les destinataires : aucun message ne partira sans cette seconde confirmation.</p>
         <div className="mt-4 space-y-2">

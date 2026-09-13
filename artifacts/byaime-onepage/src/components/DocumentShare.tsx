@@ -292,7 +292,7 @@ export function DocumentShare() {
             folder && (
               <>
                 <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-foreground/[0.04] px-4 py-1.5 text-xs text-foreground">
-                  <Check aria-hidden className="h-3.5 w-3.5 text-emerald-500" />
+                  <Check aria-hidden className="h-3.5 w-3.5 text-success" />
                   {t("assistant.doc.classified", { folder: getFolderLabel(folder, locale) })}
                 </p>
                 <div className="mt-4 flex items-center justify-center gap-2">
@@ -323,7 +323,7 @@ export function DocumentShare() {
         </div>
       )}
       {done && (
-        <p data-testid="document-share-done" role="status" className="mt-4 text-sm text-emerald-400">
+        <p data-testid="document-share-done" role="status" className="mt-4 text-sm text-success">
           {done}
         </p>
       )}

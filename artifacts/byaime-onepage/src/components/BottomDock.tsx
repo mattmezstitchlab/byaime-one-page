@@ -21,10 +21,10 @@ import { useI18n } from "@/lib/i18n";
 /*
  * Les panneaux plein écran du Monde. Chaque entrée de la rangée du Monde ouvre
  * directement son panneau — il n'y a plus de sommaire intermédiaire. La
- * capsule temporelle est en haut (PhaseTimeCapsule), les catégories communes
- * dans le panneau de l'orbe, et la frise en tête de chaque panneau (rendue par
- * CenteredBlock via PanelChrome) ne montre que les panneaux de SA catégorie —
- * « Socle commun » ou « Outils du mode ».
+ * capsule temporelle est en haut (PhaseTimeCapsule) et les catégories communes
+ * dans le panneau de l'orbe. Les panneaux ne répètent plus la navigation en
+ * tête : elle existe déjà dans le dock et le rail, la répéter ne faisait
+ * qu'ajouter une rangée de boutons en doublon.
  */
 export function BottomDock({
   view,

@@ -51,7 +51,7 @@ describe("private shell controls", () => {
     );
 
     expect(markup).toContain('data-testid="private-home-logo"');
-    expect(markup).toContain('href="/"');
+    expect(markup).toContain('href="/agence"');
     expect(markup).toContain('aria-label="Retour à l’accueil AIME"');
   });
 });

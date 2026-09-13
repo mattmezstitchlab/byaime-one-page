@@ -1,7 +1,17 @@
+/*
+ * Les visuels sont servis sous un nom stable (`wedding-ceremony.jpg`) pour
+ * qu'un photographe puisse remplacer le fichier sans toucher au code. Contrepartie :
+ * l'URL ne change jamais, et un navigateur qui a déjà mis l'image en cache
+ * continue d'afficher l'ancienne après remplacement. Le jeton de version casse
+ * ce cache — à incrémenter à chaque remplacement de visuel.
+ */
+const ASSETS_VERSION = "2026-09-13";
+
 export function getAssetUrl(path: string) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${cleanPath}`;
+  const separator = cleanPath.includes('?') ? '&' : '?';
+  return `${base}${cleanPath}${separator}v=${ASSETS_VERSION}`;
 }
 
 /*
@@ -28,6 +38,18 @@ const wedding = {
   transport: 'images/wedding/wedding-transport.jpg',
   attire: 'images/wedding/wedding-attire.jpg',
   patrimoine: 'images/wedding/wedding-patrimoine.jpg',
+} as const;
+
+/*
+ * Vitrine de l'agence « La cerise sur le gâteau — Wedding Architect ».
+ * Photographies éditoriales ivoire / pierre / charbon, servies en lecture seule
+ * depuis `public/images/agency`. Comme pour le Monde Mariage : noms stables,
+ * remplacement par de vraies photos sans toucher au code.
+ */
+export const AGENCY_VISUALS = {
+  hero: 'images/agency/agency-hero.jpg',
+  stationery: 'images/agency/agency-stationery.jpg',
+  ceremony: 'images/agency/agency-ceremony.jpg',
 } as const;
 
 export const AIME_VISUALS = {

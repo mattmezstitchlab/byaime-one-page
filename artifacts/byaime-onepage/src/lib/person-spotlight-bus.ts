@@ -1,4 +1,3 @@
-import type { WeddingPanelId } from "./wedding-navigation";
 
 /*
  * Pont entre la mini-carte personne (timeline, régie, vue Personnes) et les
@@ -16,7 +15,6 @@ export type MessageDraftRequest = {
 let pendingDraft: MessageDraftRequest | null = null;
 
 export const MESSAGE_TO_EVENT = "aime:message-to";
-export const OPEN_PANEL_EVENT = "aime:open-panel";
 
 /** Ouvre le module Messages avec le composer libre pré-rempli. */
 export function requestMessage(draft: MessageDraftRequest) {
@@ -29,9 +27,4 @@ export function consumeMessageDraft(): MessageDraftRequest | null {
   const draft = pendingDraft;
   pendingDraft = null;
   return draft;
-}
-
-/** Ouvre un panneau du Monde depuis n'importe quel composant profond. */
-export function requestPanel(panel: WeddingPanelId) {
-  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(OPEN_PANEL_EVENT, { detail: panel }));
 }

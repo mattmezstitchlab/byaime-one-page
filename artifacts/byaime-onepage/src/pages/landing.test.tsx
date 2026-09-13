@@ -76,8 +76,10 @@ describe("Landing (accueil)", () => {
 
     expect(markup.match(/<h1/g)).toHaveLength(1);
     expect(markup).toContain("un seul espace privé");
-    expect(markup).toContain('aria-label="AIME — retour à l’accueil"');
-    expect(markup).toContain('href="/"');
+    expect(markup).toContain('aria-label="AIME — la vitrine de l’agence"');
+    expect(markup).toContain('href="/agence"');
+    expect(markup).toContain('data-testid="landing-admin"');
+    expect(markup).toContain('returnTo=%2Fadmin');
   });
 
   it("propose l'accès à l'espace aux personnes déjà connectées, sans redirection automatique", () => {
