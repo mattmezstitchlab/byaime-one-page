@@ -334,3 +334,11 @@ typecheck racine OK · vitest : 46 fichiers (app) + 10 (api-server) + 2 (aime-do
 `vite build` OK · `preview/smoke.mjs` = CONTRÔLE LOCAL OK.
 Découverte au passage : le rendu statique échappe l'apostrophe en `&#x27;`, d'où une assertion
 écrite sans elle.
+
+### Les trois têtes verrouillées par un test
+`UniversalTimeline.tsx` n'avait aucun test : le branchement des têtes n'était garanti que par
+le typecheck. `universal-timeline-heads.test.tsx` rend désormais la Timeline en statique sur
+cinq cas — tout Avant (`avant-overview`), tout Jour J (`day-run`), tout Après
+(`apres-overview`), périodes mélangées (aucune tête, Moments listés), vue vide.
+Vérifié par mutation : remplacer `{isAvantRun && <AvantOverview />}` par `{false && …}` fait
+tomber exactement le cas Avant, pas les autres.
