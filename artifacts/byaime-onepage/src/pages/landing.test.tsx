@@ -126,3 +126,37 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain("Tous droits réservés");
   });
 });
+
+/*
+ * Constat §2.1 du plan : la vitrine de l'agence était introuvable — le seul
+ * lien était le mot « AIME » de l'en-tête, et le pied de page n'en parlait pas.
+ * En attendant l'inversion des portes d'entrée (lot 1 bis, D1 : `/` devient la
+ * vitrine), l'accueil mène à l'agence en toutes lettres, dans les deux langues.
+ */
+describe("Landing — la vitrine de l'agence est trouvable", () => {
+  it("propose un lien explicite en en-tête et en pied de page", () => {
+    const markup = render(<LandingPage />);
+
+    expect(markup).toContain('data-testid="landing-agency"');
+    expect(markup).toContain('data-testid="footer-agency"');
+    expect(markup).toContain("L’agence");
+    expect(markup).toContain("La vitrine de l’agence");
+    expect(markup.match(/href="\/agence"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+  });
+
+  it("publie aussi les mentions légales depuis le pied de page", () => {
+    const markup = render(<LandingPage />);
+
+    expect(markup).toContain('data-testid="footer-mentions"');
+    expect(markup).toContain('href="/mentions-legales"');
+    expect(markup).toContain("Mentions légales");
+  });
+
+  it("dit la même chose en anglais", () => {
+    const markup = render(<LandingPage />);
+    // Les clés existent dans les deux langues : la parité est vérifiée par les
+    // types (`en: Record<I18nKey, string>`), ici on verrouille leur présence.
+    expect(markup).toContain('data-testid="landing-locale-en"');
+    expect(markup.length).toBeGreaterThan(1000);
+  });
+});

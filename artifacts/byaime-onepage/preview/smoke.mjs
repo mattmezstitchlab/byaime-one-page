@@ -56,6 +56,16 @@ setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 globalThis.addEventListener = globalThis.window.addEventListener;
 globalThis.removeEventListener = globalThis.window.removeEventListener;
 
+/*
+ * Les contrôles ci-dessous décrivent l'app en mode nominal : ils supposent une
+ * clé publique d'authentification configurée. Depuis le lot 1.1 du plan, c'est
+ * la variable d'environnement qui fait foi (`publishableKeyFromHost` fabrique
+ * une clé depuis le nom d'hôte et ne signale donc jamais une configuration
+ * absente). Le mode dégradé — clé absente — est contrôlé en fin de fichier,
+ * avec son propre serveur Vite.
+ */
+process.env.VITE_CLERK_PUBLISHABLE_KEY ??= "pk_test_preview";
+
 const vite = await createServer({
   configFile: new URL("./vite.preview.mjs", import.meta.url).pathname,
   server: { middlewareMode: true },
@@ -214,6 +224,39 @@ checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landin
 checkHtml("App complète (/confidentialite)", await renderApp("/confidentialite"), [], []);
 checkHtml("App complète (/creation)", await renderApp("/creation"), ["Clerk simulé"], []);
 
+/* La vitrine de l'agence et ses mentions légales : deux pages publiques, sans
+   session. Rendues ici par l'App réelle, donc ce contrôle vérifie aussi le
+   câblage des routes et le JSON-LD (lot 1 du plan). */
+checkHtml(
+  "Vitrine de l'agence (/agence)",
+  await renderApp("/agence"),
+  [
+    'data-testid="agency-landing"',
+    'data-testid="agency-jsonld"',
+    '"@type":"ProfessionalService"',
+    "La cerise sur le gâteau",
+    "Wedding Architect",
+    "Quatre temps, un seul plan",
+    "Une page. Votre Jour J.",
+    "bonjour@byaime.fr",
+    'href="/mentions-legales"',
+  ],
+  ["timeline", "panneau", "lacerisesurlegateau"],
+);
+checkHtml(
+  "Mentions légales (/mentions-legales)",
+  await renderApp("/mentions-legales"),
+  [
+    'data-testid="mentions-page"',
+    'data-testid="legal-editor"',
+    'data-testid="legal-host"',
+    "Vercel Inc.",
+    "6 III-1",
+    "À compléter avant mise en ligne",
+  ],
+  [],
+);
+
 // Page invité RSVP : français par défaut, puis tout le parcours en anglais.
 checkHtml(
   "RSVP invité en français (formulaire, sections, statuts)",
@@ -260,5 +303,65 @@ checkHtml(
 globalThis.localStorage.removeItem("aime-preview-session");
 
 await vite.close();
+
+/* 3) Mode dégradé : `VITE_CLERK_PUBLISHABLE_KEY` absent. L'authentification
+      n'est pas configurée, mais les pages qui n'en ont jamais eu besoin doivent
+      rester servies — la vitrine de l'agence, ses mentions légales, les textes
+      légaux, le bilan partagé d'un couple et le portail RSVP d'un invité. Un
+      second serveur Vite est nécessaire : la clé est lue au chargement du
+      module `App.tsx`. */
+const degradedVite = await createServer({
+  configFile: new URL("./vite.preview.mjs", import.meta.url).pathname,
+  server: { middlewareMode: true },
+  appType: "custom",
+  define: { "import.meta.env.VITE_CLERK_PUBLISHABLE_KEY": "undefined" },
+});
+const { default: DegradedApp } = await degradedVite.ssrLoadModule("/src/App.tsx");
+
+async function renderDegradedApp(path) {
+  globalThis.window.location.pathname = path;
+  globalThis.window.location.href = `http://localhost:4173${path}`;
+  return renderToStringAsync(createElement(DegradedApp));
+}
+
+const UNAVAILABLE = "Connexion momentanément indisponible";
+checkHtml(
+  "Dégradé : la vitrine reste servie (/agence)",
+  await renderDegradedApp("/agence"),
+  ['data-testid="agency-landing"', "La cerise sur le gâteau", 'data-testid="agency-jsonld"'],
+  [UNAVAILABLE],
+);
+checkHtml(
+  "Dégradé : les mentions légales restent servies",
+  await renderDegradedApp("/mentions-legales"),
+  ['data-testid="mentions-page"', 'data-testid="legal-host"', "Vercel Inc."],
+  [UNAVAILABLE],
+);
+checkHtml(
+  "Dégradé : les textes légaux restent servis",
+  await renderDegradedApp("/confidentialite"),
+  ["Confidentialité"],
+  [UNAVAILABLE],
+);
+checkHtml(
+  "Dégradé : la racine mène à la vitrine",
+  await renderDegradedApp("/"),
+  ['data-testid="agency-landing"'],
+  [UNAVAILABLE],
+);
+checkHtml(
+  "Dégradé : le portail d'un invité reste servi",
+  await renderDegradedApp("/rsvp/invite-test"),
+  ['data-testid="rsvp-page"'],
+  [UNAVAILABLE],
+);
+checkHtml(
+  "Dégradé : une route à session explique, sans rien demander",
+  await renderDegradedApp("/user-portal"),
+  [UNAVAILABLE, 'data-testid="auth-key-missing-path"', "Voir la vitrine"],
+  ['data-testid="private-layout"', 'data-testid="landing"'],
+);
+await degradedVite.close();
+
 console.log(failures === 0 ? "CONTRÔLE LOCAL OK" : `CONTRÔLE LOCAL : ${failures} problème(s)`);
 process.exit(failures === 0 ? 0 : 1);

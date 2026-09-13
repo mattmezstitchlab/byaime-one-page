@@ -352,7 +352,7 @@ vérifiable**, dans l'ordre qui évite les retours en arrière. Total : **~9,5 j
 
 | Sprint | Durée | Contenu | Bloqué par |
 | --- | --- | --- | --- |
-| **S1 — Fondations** | 1,5 j | Lot 1 complet : vitrine indépendante de Clerk (1.1), `useRouteMeta` + canonical (1.2), **mentions légales** (1.3), confidentialité étendue au futur formulaire (1.4), `robots.txt` `/bilan/` + `sitemap.xml` (1.5-1.6), thème clair par défaut (1.7), contrastes AA (1.8) ; email → `bonjour@byaime.fr` (D2) | rien |
+| **S1 — Fondations** ✅ livré le 13/09 (§8) | 1,5 j | Lot 1 complet : vitrine indépendante de Clerk (1.1), `useRouteMeta` + canonical (1.2), **mentions légales** (1.3), confidentialité étendue au futur formulaire (1.4), `robots.txt` `/bilan/` + `sitemap.xml` (1.5-1.6), thème clair par défaut (1.7), contrastes AA (1.8) ; email → `bonjour@byaime.fr` (D2) | rien |
 | **S2 — Identité** | 2 j | Lot 3 : webfont serif auto-hébergée (3.1), manifeste `AGENCY_THEME` unique — fin des 4 copies de `serif` (3.2), images responsives WebP/AVIF + `width`/`height` + lazy (3.3), en-tête collant + **menu mobile** (3.4), rythme éditorial (3.5) | confirmation du nom d'enseigne affiché (D2) |
 | **S3 — Inversion** | 2 j | Lot 1 bis : `/` = vitrine, `/agence` → 301, sort de l'ancienne landing produit (retirée ou `/logiciel` en `noindex`), liens croisés, tests et E2E mis à jour | décision 1b.2 |
 | **S4 — SEO** | 1,5 j | Lot 2 : pré-rendu de la racine au build (2.1-2.3), JSON-LD `ProfessionalService` + `BreadcrumbList` (2.4), image de partage 1200 × 630 (2.5) | S3 (le pré-rendu porte sur la bonne racine) |
@@ -389,3 +389,112 @@ Règles déjà établies dans `replit.md`, `.agents/memory/*` et les audits de `
 - **Resend** : tout échec fournisseur est persisté et remonté, jamais avalé.
 - Chaque lot se termine par : `pnpm run typecheck` · `pnpm test` · `vite build` · smoke · (et E2E
   quand les secrets Clerk sont disponibles).
+
+---
+
+## 8. Suivi d'exécution
+
+### S1 — Fondations : livré le 13 septembre 2026
+
+#### Contrôles exécutés
+
+| Contrôle | Avant S1 | Après S1 |
+| --- | --- | --- |
+| `pnpm run typecheck` (racine, 4 paquets + libs + e2e) | OK | **OK** |
+| `pnpm --filter @workspace/byaime-onepage run test` | 50 fichiers / 265 tests | **54 fichiers / 308 tests OK** |
+| `pnpm exec vite build` | OK | **OK** (toutes les classes `var(--agency-*)` générées, y compris le modificateur d'opacité via `color-mix`) |
+| `node preview/smoke.mjs` | CONTRÔLE LOCAL OK | **CONTRÔLE LOCAL OK**, 8 contrôles ajoutés (2 pages publiques en mode nominal, 6 en mode dégradé) |
+| Rendu navigateur réel | — | **non vérifié ici** : le téléchargement de Chromium Playwright échoue dans cet environnement ; l'effet visuel des jetons et le mode dégradé sont à confirmer à l'œil sur l'aperçu |
+
+#### Ce qui a été livré
+
+**1.1 — La vitrine ne dépend plus de l'authentification.** Et, au passage, une découverte qui
+changeait le diagnostic : `publishableKeyFromHost("byaime.fr", undefined)` **fabrique** une clé
+(`pk_live_Y2xlcmsuYnlhaW1lLmZyJA`). Le garde `clerkKeyMissing = !clerkPubKey` ne pouvait donc
+**jamais** se déclencher dans un navigateur : sans variable d'environnement, l'app montait un
+`ClerkProvider` pointé sur une instance inexistante au lieu d'afficher l'écran explicatif promis par
+`docs/vercel-deployment.md`. C'est désormais la variable qui fait foi, la résolution est protégée
+par un `try`, et un mode dégradé sert les pages qui n'ont jamais eu besoin de session :
+`/`, `/agence`, `/mentions-legales`, `/confidentialite`, `/conditions`, `/bilan/:id` **et
+`/rsvp/:token`** — le portail d'un invité, ajouté en cours de route parce qu'il ne consomme aucune
+API Clerk (`App.tsx:243`) et qu'un invité répondant la veille du Jour J n'a pas à subir un défaut de
+configuration. La racine sert la vitrine directement, sans `<Redirect>` (qui ne rend rien côté
+serveur et aurait blanchi la page la plus exposée au pré-rendu du lot 2).
+`lib/public-shell.ts` porte la décision (dérivation pure, 9 tests) ; `App.tsx` ne fait que l'exécuter.
+**Limite assumée, tâche ajoutée au lot 1 bis** : `/profil/:projectId` (le mini-site d'un couple pour
+ses invités) reste indisponible en mode dégradé, parce que `PublicProfile.tsx:6,10` consomme
+`useUser`, `useClerk` et `useProject` — le même composant sert l'aperçu privé et la page publique.
+Le découpler est nécessaire pour que les invités ne dépendent jamais de l'authentification.
+
+**1.2 — La vitrine porte son identité documentaire.** `useRouteMeta` posé sur la page
+(`lib/page-meta.ts` étendu d'une directive `robots`, réécrite à chaque changement de route pour
+qu'un `noindex` ne déborde jamais sur la page suivante) ; titre de 51 caractères et description de
+162 caractères dans `lib/agency-seo.ts`, au-delà les moteurs tronquent ; canonical enfin propre ;
+données structurées `ProfessionalService` injectées dans la page (JSON-LD, `<` échappé, champs
+inconnus **omis** plutôt que publiés vides — pas d'adresse, pas de téléphone, pas de fourchette de
+prix tant que D5 n'est pas tranché).
+
+**1.3 — Mentions légales.** `/mentions-legales` (LCEN art. 6 III-1) : éditeur, hébergeur (Vercel
+Inc.), données personnelles, propriété intellectuelle, renvoi vers la confidentialité. Toute
+l'identité vient de `lib/agency-identity.ts` ; les 7 champs légaux non fournis sont affichés comme
+manquants, avec une alerte « Page non publiable en l'état » — rien n'est inventé, aucun faux SIREN.
+La page est liée depuis la vitrine (en-tête **et** pied de page), l'accueil et les pages légales.
+
+**1.4 — Confidentialité étendue** aux demandes adressées à l'agence (finalité, base légale, absence
+de revente et de démarchage, droits, CNIL), dans les deux langues par le dictionnaire existant.
+
+**1.5 — Le livrable d'un couple n'est plus indexable** : `Disallow: /bilan/` dans `robots.txt` **et**
+`noindex, nofollow` sur la page (un robots.txt seul n'empêche pas une URL d'apparaître dans l'index
+si elle est liée ailleurs). `BilanPage` reçoit aussi son titre et sa description.
+
+**1.6 — Sitemap** : `/agence` et `/mentions-legales` ajoutés ; rien de privé n'y entre (contrôlé par
+test).
+
+**1.7 — Le site est peint en clair dès la première peinture**, et une seconde découverte : le
+`CommandBar` proposait encore un bouton « Mode sombre » qui appliquait `color-scheme: dark` — le
+sombre était donc toujours reachable, contrairement à ce qu'annonçait le commentaire d'`index.css`.
+Bouton retiré, `AppearanceToggle.tsx` supprimé (0 import), `lib/appearance.ts` réduit à
+`initAppearance()` qui pose le clair et normalise un `localStorage` hérité d'une version antérieure.
+`index.html`, `theme-color` et `site.webmanifest` passent au blanc. Les blocs
+`:root[data-aime-theme=…]` restent dans `index.css` : ils portent les jetons de catégorie du graphe
+et sont verrouillés par `visibility-graph.test.tsx`. La règle mémoire
+`.agents/memory/accessible-appearance.md` est réécrite : l'exigence d'accessibilité demeure, son
+moyen change (un thème unique + des contrastes mesurés).
+
+**1.8 — Couleurs mesurées, plus recopiées.** Jetons `--agency-*` dans `index.css`, consommés par les
+5 fichiers de l'agence (vitrine, bilan, rapport, back-office, mentions) : fin des 4 copies de la pile
+de serifs (`style={serif}` → classe `.agency-serif`) et fin des hexadécimaux en dur. Les deux gris
+sous AA sont corrigés : eyebrow `#8A8375` 3,76:1 → `#736C5E` **5,20:1** ; index `#B4AC9C` 2,25:1 →
+`#7A7365` **4,70:1**. `lib/agency-theme.test.ts` **recalcule** ces contrastes à partir de la feuille
+de style et vérifie qu'aucun des 5 fichiers ne recopie une couleur : la mesure est un contrôle, pas
+une intention.
+
+**Décision D2 appliquée** : l'email de contact passe en `bonjour@byaime.fr` (il était en
+`@lacerisesurlegateau.fr`, domaine que ni le canonical, ni le sitemap, ni robots.txt ne connaissent).
+
+**§2.1 entamé (la vitrine était introuvable)** : en attendant l'inversion du lot 1 bis, l'accueil
+mène à la vitrine en toutes lettres — lien « L'agence » en en-tête et « La vitrine de l'agence » en
+pied de page, avec les clés i18n FR/EN (`nav.agency`, `footer.agency`, `footer.mentions`, parité
+garantie par les types).
+
+#### Fichiers
+
+- **Nouveaux** : `src/lib/agency-identity.ts`, `src/lib/agency-seo.ts`, `src/lib/public-shell.ts`,
+  `src/lib/site-path.ts`, `src/pages/Mentions.tsx`, et leurs tests
+  (`agency-theme.test.ts`, `agency-seo.test.ts`, `public-shell.test.ts`, `mentions.test.tsx`).
+- **Modifiés** : `src/App.tsx`, `src/index.css`, `index.html`, `src/lib/page-meta.ts`,
+  `src/lib/appearance.ts`, `src/components/CommandBar.tsx`, `src/pages/AgencyLanding.tsx`,
+  `src/pages/BilanPage.tsx`, `src/pages/AdminSommaire.tsx`, `src/pages/Legal.tsx`,
+  `src/pages/Landing.tsx`, `src/components/CoupleReport.tsx`, `src/lib/i18n-dictionary.ts`,
+  `public/robots.txt`, `public/sitemap.xml`, `public/site.webmanifest`, `preview/smoke.mjs`,
+  tests existants étendus (`agency-landing.test.tsx` +6, `landing.test.tsx` +3),
+  `docs/vercel-deployment.md`, `.agents/memory/accessible-appearance.md`.
+- **Supprimés** : `src/components/AppearanceToggle.tsx`.
+
+#### Suite
+
+S2 (identité : webfont serif auto-hébergée, images responsives, en-tête collant + menu mobile),
+puis S3 (inversion des portes d'entrée, avec le découplage Clerk de `PublicProfile` ajouté à son
+périmètre). **Attendu de la fondatrice pour S2** : confirmation du nom d'enseigne affiché sur
+`byaime.fr`. **Attendu pour S1 déjà livré, mais bloquant la mise en ligne** : les 7 champs
+d'identité légale.

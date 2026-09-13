@@ -13,6 +13,7 @@ const sections = {
     ["Conservation", "Le propriétaire choisit une préférence de conservation pour son Monde et peut le supprimer immédiatement. Pendant le pilote, cette préférence n’entraîne pas encore de suppression automatique sans avertissement. Chaque membre peut exporter ses données et supprimer son compte depuis ME."],
     ["Vos choix", "Vous pouvez consulter et corriger vos informations dans le Monde, retirer un lien RSVP, désactiver la publication, télécharger vos données ou supprimer votre compte. La suppression d’un compte retire aussi ses accès aux Mondes partagés."],
     ["Sécurité", "Les espaces privés exigent une session authentifiée. Les droits dépendent du rôle, les documents sont servis sans cache public, les liens sensibles sont limités contre les abus et les transferts de fichiers sont autorisés par un jeton court et signé."],
+    ["Demandes adressées à l’agence", "Quand vous écrivez à l’agence depuis la vitrine — par courriel ou par le formulaire de contact —, les informations que vous donnez (identité, coordonnées, date et lieu du mariage, budget indicatif, message) servent uniquement à répondre à votre demande et à préparer un rendez-vous. La base légale est votre démarche, puis l’exécution de la prestation si elle est engagée. Ces demandes ne sont ni revendues, ni utilisées pour du démarchage, et sont conservées le temps du projet puis archivées ou supprimées. Vous pouvez demander l’accès, la rectification ou l’effacement de votre demande à tout moment, et adresser une réclamation à la CNIL. L’identité de l’éditeur et de l’hébergeur figure dans les mentions légales."],
   ],
   terms: [
     ["Objet du pilote", "AIME aide les couples et leurs proches à organiser un mariage dans un espace partagé. Le service est encore en phase pilote : il accompagne l’organisation mais ne remplace ni un professionnel du mariage, ni un conseil juridique, financier ou médical."],
@@ -44,6 +45,7 @@ export function LegalPage({ kind }: { kind: keyof typeof sections }) {
       <div className="mt-16 space-y-12">{sections[kind].map(([title, body]) => <section key={title} className="border-t border-foreground/10 pt-7"><h2 className="text-lg font-medium">{title}</h2><p className="mt-4 font-light leading-7 text-foreground/48">{body}</p></section>)}</div>
       <div className="mt-16 flex flex-wrap gap-3 border-t border-foreground/10 pt-8 text-xs">
         <Link href={privacy ? "/conditions" : "/confidentialite"} className="rounded-full border border-foreground/15 px-4 py-2">{privacy ? "Conditions d’utilisation" : "Confidentialité"}</Link>
+        <Link href="/mentions-legales" className="rounded-full border border-foreground/15 px-4 py-2">Mentions légales</Link>
         <Link href="/" className="rounded-full bg-foreground px-4 py-2 font-medium text-background">Retour à AIME</Link>
       </div>
     </div>

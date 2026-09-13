@@ -63,6 +63,15 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
             AIME
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* La vitrine de l'agence était joignable uniquement en cliquant sur
+                le mot « AIME » : elle a maintenant son lien, en toutes lettres. */}
+            <Link
+              href="/agence"
+              data-testid="landing-agency"
+              className="hidden h-8 items-center rounded-full px-3 text-xs text-[#171410]/75 transition hover:bg-[#171410]/10 hover:text-[#171410] sm:inline-flex"
+            >
+              {t("nav.agency")}
+            </Link>
             <LocaleToggle locale={locale} setLocale={setLocale} />
             <Link
               data-testid="landing-admin"
@@ -237,6 +246,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[#8A8375]">{t("footer.col.product")}</p>
               <ul className="mt-4 space-y-2.5 text-xs text-[#4c463d]">
+                <li><Link href="/agence" data-testid="footer-agency" className="transition hover:text-[#171410]">{t("footer.agency")}</Link></li>
                 <li><a href="#landing-product" className="transition hover:text-[#171410]">{t("nav.howItWorks")}</a></li>
                 <li><a href="#landing-values" className="transition hover:text-[#171410]">{t("apple.values.eyebrow")}</a></li>
                 <li><Link href="/creation" className="transition hover:text-[#171410]">{t("nav.signUp")}</Link></li>
@@ -247,6 +257,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
               <ul className="mt-4 space-y-2.5 text-xs text-[#4c463d]">
                 <li><Link href="/conditions" className="transition hover:text-[#171410]">{t("footer.terms")}</Link></li>
                 <li><Link href="/confidentialite" className="transition hover:text-[#171410]">{t("footer.privacy")}</Link></li>
+                <li><Link href="/mentions-legales" data-testid="footer-mentions" className="transition hover:text-[#171410]">{t("footer.mentions")}</Link></li>
               </ul>
             </nav>
           </div>

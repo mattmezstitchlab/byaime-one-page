@@ -14,6 +14,8 @@ import { PortalBackdrop } from '@/components/PortalBackdrop';
 import { ProjectProvider, useProject } from '@/store/project-store';
 import { useI18n } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
+import { resolveDegradedView } from '@/lib/public-shell';
+import { sitePath } from '@/lib/site-path';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 
 import { PrivateLayout } from '@/components/PrivateLayout';
@@ -21,9 +23,32 @@ import { PrivateLayout } from '@/components/PrivateLayout';
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
-const clerkPubKey = typeof window !== 'undefined'
-  ? publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
-  : import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+/*
+ * La clé publique vient de l'environnement, et c'est sa présence — pas le
+ * retour du helper — qui dit si l'authentification est configurée.
+ *
+ * Vérifié : `publishableKeyFromHost("byaime.fr", undefined)` renvoie
+ * `pk_live_Y2xlcmsuYnlhaW1lLmZyJA`, une clé fabriquée depuis le nom d'hôte.
+ * L'ancien garde `clerkKeyMissing = !clerkPubKey` ne se déclenchait donc jamais
+ * dans un navigateur : sans variable d'environnement, l'app montait un
+ * ClerkProvider pointé sur une instance inexistante au lieu d'afficher l'écran
+ * explicatif promis par `docs/vercel-deployment.md`.
+ *
+ * La résolution reste protégée : une clé absente, ou un hôte que le helper
+ * refuse, fait basculer l'app en mode dégradé (`resolveDegradedView`) — la
+ * vitrine et les pages légales continuent d'être servies.
+ */
+const configuredPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
+const clerkPubKey = ((): string | undefined => {
+  if (!configuredPubKey) return undefined;
+  try {
+    return typeof window !== 'undefined'
+      ? publishableKeyFromHost(window.location.hostname, configuredPubKey)
+      : configuredPubKey;
+  } catch {
+    return undefined;
+  }
+})();
 const clerkKeyMissing = !clerkPubKey;
 
 /*
@@ -39,6 +64,7 @@ const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ defau
 const LazyAgencyLanding = lazy(() => import('@/pages/AgencyLanding'));
 const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
 const LazyAdmin = lazy(() => import('@/pages/AdminSommaire').then(module => ({ default: module.AdminSommairePage })));
+const LazyMentions = lazy(() => import('@/pages/Mentions').then(module => ({ default: module.MentionsLegalesPage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -334,11 +360,14 @@ function RouteFallback() {
 
 function Routes() {
   return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
+    {/* Pages publiques, sans session : la vitrine de l'agence, ses mentions
+        légales, le livrable d'un couple et les textes légaux. */}
     <Route path="/agence">{() => <LazyAgencyLanding />}</Route>
-          <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
-          <Route path="/admin">{() => <PrivateRoute><LazyAdmin /></PrivateRoute>}</Route>
-          <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
+    <Route path="/mentions-legales">{() => <LazyMentions />}</Route>
+    <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
+    <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
+    <Route path="/admin">{() => <PrivateRoute><LazyAdmin /></PrivateRoute>}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>
     <Route path="/user-portal">{() => <PrivateRoute><LazyHome /></PrivateRoute>}</Route>
@@ -371,10 +400,10 @@ function Providers() {
 }
 /**
  * Une clé publique absente est une erreur de déploiement, pas une raison de
- * laisser une page blanche : l'écran reste lisible et aucune donnée n'est
- * demandée.
+ * laisser une page blanche : l'écran reste lisible, aucune donnée n'est
+ * demandée, et la vitrine — qui n'a besoin d'aucune session — reste accessible.
  */
-function MissingAuthKey() {
+function MissingAuthKey({ requestedPath }: { requestedPath?: string }) {
   return (
     <main className="grid min-h-[100dvh] place-items-center bg-background px-6 text-center text-foreground">
       <div className="max-w-md">
@@ -384,15 +413,69 @@ function MissingAuthKey() {
           La clé publique d’authentification (`VITE_CLERK_PUBLISHABLE_KEY`) manque dans l’environnement
           de ce déploiement. Aucune information n’est demandée ni modifiée tant que ce réglage est absent.
         </p>
+        {requestedPath && (
+          <p data-testid="auth-key-missing-path" className="mt-3 text-xs font-light text-foreground/50">
+            Page demandée : <code className="font-mono">{requestedPath}</code> — elle exige une session.
+          </p>
+        )}
+        <a
+          href={sitePath('/agence')}
+          data-testid="auth-key-missing-agency"
+          className="mt-8 inline-block rounded-full bg-foreground px-6 py-3 text-xs font-medium text-background"
+        >
+          Voir la vitrine de l’agence
+        </a>
       </div>
     </main>
   );
 }
 
+/**
+ * Mode dégradé : pas de clé publique, donc pas de `ClerkProvider` — et surtout
+ * pas de dépendance à un fournisseur d'authentification pour les pages qui
+ * n'en ont jamais eu besoin. La vitrine, les mentions légales, les textes
+ * légaux et le bilan partagé d'un couple restent servis ; tout ce qui exige une
+ * session affiche l'écran ci-dessus.
+ *
+ * Le choix de la vue vient de `resolveDegradedView` (dérivation pure, testée) :
+ * ce composant ne fait que l'exécuter.
+ */
+function DegradedRoutes() {
+  const [location] = useLocation();
+  const view = resolveDegradedView(stripBase(location));
+
+  switch (view.kind) {
+    case 'agency':
+      return <LazyAgencyLanding />;
+    case 'mentions':
+      return <LazyMentions />;
+    case 'privacy':
+      return <LegalPage kind="privacy" />;
+    case 'terms':
+      return <LegalPage kind="terms" />;
+    case 'report':
+      return <LazyBilan />;
+    case 'rsvp':
+      return <RsvpPage params={{ token: view.token }} />;
+    default:
+      return <MissingAuthKey requestedPath={view.requestedPath} />;
+  }
+}
+
 export default function App() {
   if (clerkKeyMissing) {
-    console.error('[AIME] VITE_CLERK_PUBLISHABLE_KEY est absent : l’authentification est désactivée pour ce déploiement.');
-    return <MissingAuthKey />;
+    console.error('[AIME] VITE_CLERK_PUBLISHABLE_KEY est absent : les pages publiques restent servies, l’authentification est désactivée pour ce déploiement.');
+    return (
+      <WouterRouter base={basePath}>
+        <QueryClientProvider client={queryClient}>
+          <RoutedErrorBoundary>
+            <Suspense fallback={<RouteFallback />}>
+              <DegradedRoutes />
+            </Suspense>
+          </RoutedErrorBoundary>
+        </QueryClientProvider>
+      </WouterRouter>
+    );
   }
   return <WouterRouter base={basePath}><Providers /></WouterRouter>;
 }

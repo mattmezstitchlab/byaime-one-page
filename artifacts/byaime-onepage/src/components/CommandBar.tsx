@@ -9,11 +9,9 @@ import {
   ListChecks,
   LoaderCircle,
   Lock,
-  Moon,
   Music,
   Plus,
   Settings,
-  Sun,
   UserCog,
   Users,
   Wallet,
@@ -34,7 +32,6 @@ import {
   type WeddingRailIcon,
 } from "@/lib/wedding-navigation";
 import { focusWorldDestination, getWorldNavState, subscribeWorldNav, type WorldNavState } from "@/lib/world-nav-state";
-import { getAppearance, subscribeAppearance, toggleAppearance } from "@/lib/appearance";
 import { getPrivateNavigation, type PrivateDestinationId } from "@/lib/private-navigation";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
@@ -85,7 +82,6 @@ export function CommandBar({ context = "world", onOpenMe }: { context?: PrivateD
   const { project, updateProject, canEdit, currentRole } = useProject();
   const { t, locale, setLocale } = useI18n();
   const [worldNav, setWorldNav] = useState<WorldNavState>(() => getWorldNavState());
-  const [appearance, setAppearance] = useState(() => getAppearance());
   useEffect(() => {
     const listener = (event: KeyboardEvent) => { if (event.key === "k" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); setOpen(value => !value); } };
     const openAI = () => setOpen(true);
@@ -97,7 +93,6 @@ export function CommandBar({ context = "world", onOpenMe }: { context?: PrivateD
     };
   }, []);
   useEffect(() => subscribeWorldNav(setWorldNav), []);
-  useEffect(() => subscribeAppearance(setAppearance), []);
   const inspect = async () => {
     const message = input.trim();
     if (!message || replyPending) return;
@@ -348,14 +343,6 @@ export function CommandBar({ context = "world", onOpenMe }: { context?: PrivateD
               <span className="block truncate text-[11px] text-foreground/45">{destination.id === "world" && project?.title ? project.title : destination.description}</span>
             </Link>
           ))}
-          <button
-            type="button"
-            onClick={() => toggleAppearance()}
-            className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.03] p-3 text-left transition hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
-          >
-            {appearance === "dark" ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
-            <span><span className="block text-sm font-medium">{appearance === "dark" ? "Mode clair" : "Mode sombre"}</span><span className="block text-[11px] text-foreground/45">Apparence de tout AIME</span></span>
-          </button>
           <button
             type="button"
             onClick={() => setLocale(locale === "fr" ? "en" : "fr")}

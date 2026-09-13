@@ -14,6 +14,7 @@ const fr = {
   "nav.signIn": "Se connecter",
   "nav.signUp": "Créer mon espace",
   "nav.openSpace": "Accéder à mon espace",
+  "nav.agency": "L’agence",
   // Hero
   "hero.eyebrow": "L’art de créer des liens",
   "hero.title": "Tout votre mariage, dans un seul espace privé.",
@@ -171,6 +172,8 @@ const fr = {
   // Pied de page
   "footer.terms": "Conditions d’utilisation",
   "footer.privacy": "Confidentialité",
+  "footer.mentions": "Mentions légales",
+  "footer.agency": "La vitrine de l’agence",
   "footer.legal": "En créant un espace, vous acceptez les conditions et la politique de confidentialité. Vos données restent les vôtres.",
   "footer.tagline": "L’art de créer des liens. Tout votre mariage, dans un seul espace privé — de la première idée au plus beau des souvenirs.",
   "footer.col.product": "Produit",
@@ -512,6 +515,7 @@ const en: Record<I18nKey, string> = {
   "nav.signIn": "Sign in",
   "nav.signUp": "Create my space",
   "nav.openSpace": "Open my space",
+  "nav.agency": "The agency",
   "hero.eyebrow": "The art of bringing people together",
   "hero.title": "Your whole wedding, in one private space.",
   "hero.subtitle": "Guests, budget, vendors, the big day: no more scattered spreadsheets and chats.",
@@ -663,6 +667,8 @@ const en: Record<I18nKey, string> = {
   "rsvp.after.empty": "The rest will appear here.",
   "footer.terms": "Terms of use",
   "footer.privacy": "Privacy",
+  "footer.mentions": "Legal notice",
+  "footer.agency": "The agency",
   "footer.legal": "By creating a space, you accept the terms and privacy policy. Your data stays yours.",
   "footer.tagline": "The art of bringing people together. Your whole wedding, in one private space — from the first idea to the most beautiful of memories.",
   "footer.col.product": "Product",
