@@ -23,7 +23,7 @@ export function PrivateHomeLink({
   const { t } = useI18n();
   return (
     <Link
-      href="/"
+      href="/agence"
       aria-label={t("private.home.aria")}
       data-testid="private-home-logo"
       className={cn("inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}

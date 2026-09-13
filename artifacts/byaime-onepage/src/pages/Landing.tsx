@@ -57,8 +57,8 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
       <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-black/60 backdrop-blur-xl">
         <div className="mx-auto flex h-12 w-full max-w-6xl items-center justify-between px-5 md:px-8">
           <Link
-            href="/"
-            aria-label="AIME — retour à l’accueil"
+            href="/agence"
+            aria-label="AIME — la vitrine de l’agence"
             className="inline-flex items-center gap-2 rounded-lg font-display text-[15px] font-semibold tracking-[.28em] text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
             AIME

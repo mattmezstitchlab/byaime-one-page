@@ -600,3 +600,63 @@ export interface AimeLocalImportJob {
   error?: string;
 }
 
+export interface RapportMoment {
+  id: string;
+  time: number;
+  title: string;
+  location?: string;
+}
+
+export interface RapportProvider {
+  id: string;
+  name: string;
+  role: string;
+  status: string;
+  amountCents?: number;
+}
+
+export interface RapportBudget {
+  engagedCents: number;
+  paidCents: number;
+  dueCents: number;
+  remainingCents: number;
+  rows: RapportProvider[];
+}
+
+export interface RapportInvites {
+  total: number;
+  confirmed: number;
+  waiting: number;
+  declined: number;
+}
+
+export interface RapportTaches {
+  total: number;
+  done: number;
+  open: number;
+  late: number;
+}
+
+export interface RapportDocument {
+  id: string;
+  title: string;
+  kind: string;
+  at: number;
+}
+
+export interface Rapport {
+  moments: RapportMoment[];
+  budget: RapportBudget | null;
+  invites: RapportInvites | null;
+  tasks: RapportTaches | null;
+  documents: RapportDocument[];
+}
+
+export interface PublicReport {
+  id: string;
+  title: string;
+  subtitle?: string;
+  currency?: string;
+  rapport: Rapport;
+}
+

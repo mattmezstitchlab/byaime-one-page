@@ -41,6 +41,7 @@ import type {
   ProjectInput,
   ProjectUpdate,
   PublicProfile,
+  PublicReport,
   RsvpInput,
   UploadInput,
   UploadTicket,
@@ -2120,6 +2121,83 @@ export function useGetPublicProfile<TData = Awaited<ReturnType<typeof getPublicP
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetPublicProfileQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicReportUrl = (id: string,) => {
+
+
+
+
+  return `/api/public/reports/${id}`
+}
+
+/**
+ * @summary Read a shared wedding report (the couple-facing deliverable)
+ */
+export const getPublicReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<PublicReport> => {
+
+  return customFetch<PublicReport>(getGetPublicReportUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicReportQueryKey = (id: string,) => {
+    return [
+    `/api/public/reports/${id}`
+    ] as const;
+    }
+
+
+export const getGetPublicReportQueryOptions = <TData = Awaited<ReturnType<typeof getPublicReport>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicReportQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicReport>>> = ({ signal }) => getPublicReport(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicReportQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicReport>>>
+export type GetPublicReportQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read a shared wedding report (the couple-facing deliverable)
+ */
+
+export function useGetPublicReport<TData = Awaited<ReturnType<typeof getPublicReport>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicReportQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

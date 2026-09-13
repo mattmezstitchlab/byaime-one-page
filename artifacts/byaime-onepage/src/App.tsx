@@ -37,6 +37,7 @@ const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module
 const LazyAssistant = lazy(() => import('@/pages/Assistant').then(module => ({ default: module.AssistantPage })));
 const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ default: module.FoldersPage })));
 const LazyAgencyLanding = lazy(() => import('@/pages/AgencyLanding'));
+const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -331,6 +332,7 @@ function RouteFallback() {
 function Routes() {
   return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
     <Route path="/agence">{() => <LazyAgencyLanding />}</Route>
+          <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
           <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={LandingRoute} />

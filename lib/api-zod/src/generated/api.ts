@@ -615,3 +615,57 @@ export const GetPublicProfileResponse = zod.object({
 })
 
 
+/**
+ * @summary Read a shared wedding report (the couple-facing deliverable)
+ */
+export const GetPublicReportParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetPublicReportResponse = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "subtitle": zod.string().optional(),
+  "currency": zod.string().optional(),
+  "rapport": zod.object({
+  "moments": zod.array(zod.object({
+  "id": zod.string(),
+  "time": zod.number(),
+  "title": zod.string(),
+  "location": zod.string().optional()
+})),
+  "budget": zod.object({
+  "engagedCents": zod.number(),
+  "paidCents": zod.number(),
+  "dueCents": zod.number(),
+  "remainingCents": zod.number(),
+  "rows": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "amountCents": zod.number().optional()
+}))
+}).nullable(),
+  "invites": zod.object({
+  "total": zod.number(),
+  "confirmed": zod.number(),
+  "waiting": zod.number(),
+  "declined": zod.number()
+}).nullable(),
+  "tasks": zod.object({
+  "total": zod.number(),
+  "done": zod.number(),
+  "open": zod.number(),
+  "late": zod.number()
+}).nullable(),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "kind": zod.string(),
+  "at": zod.number()
+}))
+})
+})
+
+

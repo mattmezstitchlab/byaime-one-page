@@ -414,6 +414,21 @@ paths:
               schema: { $ref: "#/components/schemas/PublicProfile" }
         "404":
           description: Unknown or unpublished profile
+  /public/reports/{id}:
+    get:
+      operationId: getPublicReport
+      tags: [profiles]
+      summary: Read a shared wedding report (the couple-facing deliverable)
+      parameters:
+        - { $ref: "#/components/parameters/ProjectId" }
+      responses:
+        "200":
+          description: Shared report, when the planner turned sharing on
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicReport" }
+        "404":
+          description: Unknown or unshared report
 components:
   securitySchemes:
     bearerAuth:
@@ -827,3 +842,83 @@ components:
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
         error: { type: string }
+    RapportMoment:
+      type: object
+      required: [id, time, title]
+      properties:
+        id: { type: string }
+        time: { type: number }
+        title: { type: string }
+        location: { type: string }
+    RapportProvider:
+      type: object
+      required: [id, name, role, status]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        role: { type: string }
+        status: { type: string }
+        amountCents: { type: number }
+    RapportBudget:
+      type: object
+      required: [engagedCents, paidCents, dueCents, remainingCents, rows]
+      properties:
+        engagedCents: { type: number }
+        paidCents: { type: number }
+        dueCents: { type: number }
+        remainingCents: { type: number }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/RapportProvider" }
+    RapportInvites:
+      type: object
+      required: [total, confirmed, waiting, declined]
+      properties:
+        total: { type: number }
+        confirmed: { type: number }
+        waiting: { type: number }
+        declined: { type: number }
+    RapportTaches:
+      type: object
+      required: [total, done, open, late]
+      properties:
+        total: { type: number }
+        done: { type: number }
+        open: { type: number }
+        late: { type: number }
+    RapportDocument:
+      type: object
+      required: [id, title, kind, at]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        kind: { type: string }
+        at: { type: number }
+    Rapport:
+      type: object
+      required: [moments, budget, invites, tasks, documents]
+      properties:
+        moments:
+          type: array
+          items: { $ref: "#/components/schemas/RapportMoment" }
+        budget:
+          nullable: true
+          allOf: [{ $ref: "#/components/schemas/RapportBudget" }]
+        invites:
+          nullable: true
+          allOf: [{ $ref: "#/components/schemas/RapportInvites" }]
+        tasks:
+          nullable: true
+          allOf: [{ $ref: "#/components/schemas/RapportTaches" }]
+        documents:
+          type: array
+          items: { $ref: "#/components/schemas/RapportDocument" }
+    PublicReport:
+      type: object
+      required: [id, title, rapport]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        subtitle: { type: string }
+        currency: { type: string }
+        rapport: { $ref: "#/components/schemas/Rapport" }

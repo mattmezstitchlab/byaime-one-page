@@ -21,6 +21,7 @@ import { indexTimelineConflicts } from "@/lib/timeline-graph";
 import { ProfileFil } from "@/components/ProfileFil";
 import { ProfileFrise } from "@/components/ProfileFrise";
 import { CoupleReport } from "@/components/CoupleReport";
+import { buildRapport } from "@/lib/rapport";
 import { buildFrise } from "@/lib/frise";
 import { trackEvent } from "@/lib/analytics";
 
@@ -266,6 +267,18 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
   const [viewMode, setViewMode] = useState<"timeline" | "fil" | "frise" | "rapport">("timeline");
 
+  /* Le bilan partagé : un choix explicite du planner, jamais un défaut. */
+  const shareReport = project?.publicProfile?.shareReport === true;
+  const toggleShareReport = () => {
+    if (!project) return;
+    updateProject({
+      publicProfile: {
+        published: project.publicProfile?.published ?? false,
+        shareReport: !shareReport,
+      },
+    });
+  };
+
   /* Quel mode du Profil est réellement ouvert : cinématique, Fil, ou frise. */
   useEffect(() => {
     trackEvent("profile_mode_opened", { mode: viewMode });
@@ -493,7 +506,28 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         </div>
       ) : viewMode === "rapport" && project ? (
         <div className="w-full h-full overflow-y-auto pt-28 pb-16 animate-in fade-in duration-500 relative z-10">
-          <CoupleReport project={project} />
+          {isPrivatePreview && canEdit && (
+            <div className="mx-auto mb-6 mt-2 flex w-full max-w-2xl flex-wrap items-center justify-between gap-3 border border-[#E6E1D8] bg-[#F5F2EC] px-5 py-3">
+              <p className="text-[11px] uppercase tracking-[0.25em] text-[#6F6A61]">
+                {shareReport ? "Bilan partagé avec les mariés" : "Bilan non partagé"}
+              </p>
+              <div className="flex items-center gap-3">
+                {shareReport ? <code className="text-[12px] text-[#4c463d]">/bilan/{profileId}</code> : null}
+                <button
+                  onClick={toggleShareReport}
+                  className="border border-[#171410] px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-[#171410] transition-colors hover:bg-[#171410] hover:text-[#FBFAF8]"
+                >
+                  {shareReport ? "Ne plus partager" : "Partager le bilan"}
+                </button>
+              </div>
+            </div>
+          )}
+          <CoupleReport
+            rapport={buildRapport(project)}
+            title={project.title}
+            subtitle={project.subtitle}
+            currency={project.currency}
+          />
         </div>
       ) : viewMode === "fil" ? (
         <div className="w-full h-full overflow-y-auto pt-32 pb-24 px-6 animate-in fade-in duration-500 relative z-10">

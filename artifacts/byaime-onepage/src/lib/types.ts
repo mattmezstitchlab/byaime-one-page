@@ -307,6 +307,8 @@ export type WorldProject = {
   subtitle?: string;
   publicProfile?: {
     published: boolean;
+    /** Le bilan (rapport argent/invités/tâches/documents) est partagé via /bilan/:id. */
+    shareReport?: boolean;
   };
   /**
    * Clôture du Monde. Une fois posée, le Monde devient consultable mais plus

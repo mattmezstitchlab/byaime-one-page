@@ -1,5 +1,4 @@
-import type { WorldProject } from "@/lib/types";
-import { buildRapport } from "@/lib/rapport";
+import type { Rapport } from "@/lib/rapport";
 import { formatCents } from "@/lib/money";
 
 /*
@@ -54,9 +53,19 @@ function Figure({ value, label }: { value: string; label: string }) {
   );
 }
 
-export function CoupleReport({ project, now = Date.now() }: { project: WorldProject; now?: number }) {
-  const rapport = buildRapport(project, now);
-  const currency = project.currency ?? null;
+export function CoupleReport({
+  rapport,
+  title,
+  subtitle,
+  currency = null,
+  now = Date.now(),
+}: {
+  rapport: Rapport;
+  title: string;
+  subtitle?: string;
+  currency?: string | null;
+  now?: number;
+}) {
 
   return (
     <article data-testid="couple-report" className="mx-auto max-w-2xl bg-[#FBFAF8] px-6 py-16 text-[#171410]">
@@ -64,10 +73,10 @@ export function CoupleReport({ project, now = Date.now() }: { project: WorldProj
       <header className="text-center">
         <p className="text-[11px] uppercase tracking-[0.38em] text-[#8A8375]">Le rapport</p>
         <h1 className={`mt-6 text-4xl leading-tight sm:text-5xl ${ink}`} style={serif}>
-          {project.title}
+          {title}
         </h1>
-        {project.subtitle ? (
-          <p className={`mt-4 text-[15px] ${muted}`}>{project.subtitle}</p>
+        {subtitle ? (
+          <p className={`mt-4 text-[15px] ${muted}`}>{subtitle}</p>
         ) : null}
         <p className={`mt-6 text-[11px] uppercase tracking-[0.25em] ${muted}`}>
           Présenté le {dateLong.format(now)}

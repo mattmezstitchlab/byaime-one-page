@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CoupleReport } from "./CoupleReport";
+import { buildRapport } from "@/lib/rapport";
 import { formatCents } from "@/lib/money";
 import type { WorldProject } from "@/lib/types";
 
@@ -10,6 +11,18 @@ import type { WorldProject } from "@/lib/types";
  * Aucune chaîne testée ne contient d'apostrophe : renderToStaticMarkup rend
  * les entités typographiques telles quelles.
  */
+
+function renderReport(source: typeof project) {
+  return renderToStaticMarkup(
+    <CoupleReport
+      rapport={buildRapport(source, NOW)}
+      title={source.title}
+      subtitle={source.subtitle}
+      currency={source.currency}
+      now={NOW}
+    />,
+  );
+}
 
 const DAY = 86_400_000;
 const NOW = Date.UTC(2027, 5, 1, 12, 0, 0);
@@ -33,7 +46,7 @@ const project = {
 
 describe("le livrable CoupleReport", () => {
   it("ouvre sur le frontispice du mariage", () => {
-    const html = renderToStaticMarkup(<CoupleReport project={project} now={NOW} />);
+    const html = renderReport(project);
 
     expect(html).toContain("Camille et Jules");
     expect(html).toContain("Un mariage en juin");
@@ -42,7 +55,7 @@ describe("le livrable CoupleReport", () => {
   });
 
   it("déroule le Jour J en page verticale", () => {
-    const html = renderToStaticMarkup(<CoupleReport project={project} now={NOW} />);
+    const html = renderReport(project);
 
     expect(html).toContain("Le Jour J, minute par minute");
     expect(html).toContain("Dégustation");
@@ -51,7 +64,7 @@ describe("le livrable CoupleReport", () => {
   });
 
   it("présente l'argent en quatre chiffres, formatés", () => {
-    const html = renderToStaticMarkup(<CoupleReport project={project} now={NOW} />);
+    const html = renderReport(project);
 
     expect(html).toContain("Engagé");
     expect(html).toContain("Payé");
@@ -62,7 +75,7 @@ describe("le livrable CoupleReport", () => {
   });
 
   it("date les documents et compte les invités", () => {
-    const html = renderToStaticMarkup(<CoupleReport project={project} now={NOW} />);
+    const html = renderReport(project);
 
     expect(html).toContain("Contrat salle");
     expect(html).toContain("Confirmés");
@@ -78,7 +91,7 @@ describe("le livrable CoupleReport", () => {
       payments: [],
       providers: [],
     } as unknown as WorldProject;
-    const html = renderToStaticMarkup(<CoupleReport project={vide} now={NOW} />);
+    const html = renderReport(vide);
 
     expect(html).not.toContain("data-testid=\"couple-report-budget\"");
     expect(html).not.toContain("data-testid=\"couple-report-invites\"");
