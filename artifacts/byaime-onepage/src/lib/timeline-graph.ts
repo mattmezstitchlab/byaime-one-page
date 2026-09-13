@@ -89,6 +89,23 @@ export function findTimelineConflicts(events: TimelineEvent[]): TimelineConflict
   return conflicts;
 }
 
+/**
+ * Indexe les conflits par Moment, pour l'affichage sur le fil.
+ *
+ * Un Moment peut en porter plusieurs. Les Moments sans conflit n'apparaissent
+ * pas dans la map : l'appelant n'a donc jamais à afficher un indicateur à zéro,
+ * ce qui évite l'effet tableau de bord sur le fil.
+ */
+export function indexTimelineConflicts(events: TimelineEvent[]): Map<string, string[]> {
+  const index = new Map<string, string[]>();
+  for (const conflict of findTimelineConflicts(events)) {
+    for (const eventId of conflict.eventIds) {
+      index.set(eventId, [...(index.get(eventId) ?? []), conflict.message]);
+    }
+  }
+  return index;
+}
+
 export function analyzeEventImpact(project: WorldProject, eventId: string, patch: Partial<TimelineEvent>) {
   const event = project.timeline.find(item => item.id === eventId);
   if (!event) throw new Error("Événement introuvable");

@@ -98,5 +98,10 @@ export default mergeConfig(baseConfig, {
       { find: /^@clerk\/react$/, replacement: stub },
     ],
   },
-  server: { host: "0.0.0.0", port: 4173, strictPort: false },
+  /* `allowedHosts: true` : Vite ≥ 5.4 rejette par défaut tout hôte qui n'est
+     pas localhost (« Blocked request. This host is not allowed. »). L'aperçu
+     est servi derrière un hôte de prévisualisation, il faut donc l'autoriser.
+     Ce réglage ne vit que dans ce fichier d'aperçu local : `vite.config.ts`,
+     la config de build, ne le reçoit pas. */
+  server: { host: "0.0.0.0", port: 4173, strictPort: false, allowedHosts: true },
 });

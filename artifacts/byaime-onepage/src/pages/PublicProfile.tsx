@@ -2,10 +2,7 @@ import { type ReactNode, useEffect, useMemo, useState, useRef } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import {
-  MapPin, CalendarDays, User, FileText, Folder, Wallet,
-  Calendar, Users, Image as ImageIcon, Network, BookOpen, Fingerprint, Lock, Globe2, Plus, Pencil, ZoomIn, ZoomOut
-} from "lucide-react";
+import { MapPin, CalendarDays, User, Folder, Image as ImageIcon, Network, BookOpen, Fingerprint, Plus, Pencil, ZoomIn, ZoomOut } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useLocation, useParams } from "wouter";
 import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicProfile } from "@workspace/api-client-react";
@@ -17,7 +14,9 @@ import { PanelChromeProvider, type PanelChrome } from "@/components/PanelChrome"
 
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
-import { createTimelinePositioner } from "@/lib/profile-timeline-position";
+import { layoutTimeline } from "@/lib/timeline-layout";
+import { EventIcon, FilTrack } from "@/components/FilTrack";
+import { indexTimelineConflicts } from "@/lib/timeline-graph";
 
 import { ProfileFil } from "@/components/ProfileFil";
 
@@ -25,35 +24,15 @@ type ProfileView = Omit<PublicProfile, "timeline"> & {
   timeline: ProfileTimelineEvent[];
 };
 
-function EventIcon({ kind, className }: { kind?: string, className?: string }) {
-  const classes = cn("w-5 h-5", className);
-  switch (kind) {
-    case "document":
-    case "devis":
-    case "facture":
-      return <FileText className={classes} />;
-    case "paiement":
-      return <Wallet className={classes} />;
-    case "evenement":
-    case "jalon":
-      return <Calendar className={classes} />;
-    case "souvenir":
-      return <ImageIcon className={classes} />;
-    case "message":
-    case "team":
-    case "guest":
-      return <Users className={classes} />;
-    default:
-      return <Folder className={classes} />;
-  }
-}
-
 const SECTIONS = [
   { id: "identity", label: "Identité", x: 400, icon: Fingerprint },
   { id: "history", label: "Histoire", x: 2000, icon: BookOpen },
   { id: "archives", label: "Archives", x: 4000, icon: Folder },
   { id: "network", label: "Réseau", x: 5000, icon: Network },
 ];
+
+/** Étiquette de section : au-dessus de la dernière ligne de Moments. */
+const SECTION_LABEL_TOP = -300;
 
 export function ProfileIdentityHero({
   displayName,
@@ -265,13 +244,61 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
     return [...(profile?.timeline || [])].sort((a, b) => a.time - b.time);
   }, [profile?.timeline]);
 
-  const { getEventX } = useMemo(() => {
-    const times = [
-      ...sortedEvents.map(event => event.time),
-      ...guestArrivals.map(arrival => arrival.time),
-    ];
-    return { getEventX: createTimelinePositioner(times) };
-  }, [guestArrivals, sortedEvents]);
+  /*
+   * Placement des repères du fil. Les Moments et les réponses RSVP partagent la
+   * même échelle : leurs abscisses ne peuvent donc jamais tomber les unes sur
+   * les autres. Chaque groupe garde ses propres lignes, et une étiquette qui
+   * n'a pas la place est masquée plutôt que superposée.
+   */
+  const timelineLayout = useMemo(
+    () => layoutTimeline(
+      [
+        ...sortedEvents.map(event => ({ id: event.id, time: event.time, group: "moment" })),
+        ...guestArrivals.map(arrival => ({ id: arrival.id, time: arrival.time, group: "rsvp" })),
+      ],
+      { groups: { rsvp: { lanes: 2 } } },
+    ),
+    [guestArrivals, sortedEvents],
+  );
+
+  const markerById = useMemo(
+    () => new Map(timelineLayout.markers.map(marker => [marker.id, marker])),
+    [timelineLayout],
+  );
+
+  const filArrivals = useMemo(
+    () => guestArrivals.map(arrival => ({
+      id: arrival.id,
+      guestId: arrival.guest.id,
+      guestName: arrival.guest.name,
+      status: arrival.status,
+    })),
+    [guestArrivals],
+  );
+
+  /*
+   * Chevauchements : `findTimelineConflicts` existait déjà, jamais branché sur
+   * le fil. Les Moments sans conflit n'apparaissent pas dans la map, donc aucun
+   * indicateur à zéro n'est affiché.
+   */
+  const timelineConflicts = useMemo(
+    () => (project ? indexTimelineConflicts(project.timeline) : new Map<string, string[]>()),
+    [project],
+  );
+
+  /* Le fil s'allonge avec le nombre de repères : les sections qui suivent
+     l'histoire se calent sur la fin réelle du fil, pas sur une abscisse figée. */
+  const trackEnd = Math.ceil(timelineLayout.trackEnd);
+  const archivesX = Math.max(4000, trackEnd + 700);
+  const networkX = archivesX + 1000;
+  const canvasWidth = networkX + 600;
+
+  const sections = useMemo(() => SECTIONS.map(section => {
+    if (section.id === "history") return { ...section, x: timelineLayout.markers[0]?.x ?? section.x };
+    if (section.id === "archives") return { ...section, x: archivesX };
+    if (section.id === "network") return { ...section, x: networkX };
+    return section;
+  }), [archivesX, networkX, timelineLayout.markers]);
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -353,7 +380,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       { label: "AIME", href: "/" },
       ...(isPrivatePreview ? [{ label: "Profil", href: "/profile" }] : [{ label: profile.title }]),
     ],
-    navigation: SECTIONS.map(section => ({
+    navigation: sections.map(section => ({
       id: section.id,
       label: section.label,
       active: activeSection === section.id,
@@ -382,7 +409,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
               if (ev) {
                 setSelectedNode({ type: "item", collection: "timeline", sourceRef: ev, label: ev.title });
                 setViewMode("timeline");
-                scrollToSection(getEventX(ev.time));
+                scrollToSection(markerById.get(ev.id)?.x ?? sections[0].x);
               }
             }} />
           </div>
@@ -392,20 +419,20 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
         ref={scrollRef}
         className="absolute inset-0 z-10 overflow-x-auto overflow-y-hidden hide-scrollbar animate-in fade-in duration-500"
       >
-        <div className="relative h-full" style={{ width: `${5600 * zoom}px` }}>
+        <div className="relative h-full" style={{ width: `${canvasWidth * zoom}px` }}>
           <div
-            className="absolute inset-y-0 left-0 w-[5600px] origin-left"
-            style={{ transform: `scale(${zoom})`, transformOrigin: "left center" }}
+            className="absolute inset-y-0 left-0 origin-left"
+            style={{ transform: `scale(${zoom})`, transformOrigin: "left center", width: `${canvasWidth}px` }}
           >
           {/* Main Horizontal Trunk */}
           <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-foreground/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
 
           {/* Section Markers */}
-          {SECTIONS.map(section => (
+          {sections.map(section => (
             <div key={section.id} className="absolute top-1/2 -translate-y-1/2" style={{ left: `${section.x}px` }}>
                <div className="w-[1px] h-32 bg-foreground/10 absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2" />
               {section.id !== "identity" && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-foreground/30 font-medium bg-background px-4 py-1 rounded-full border border-foreground/5">
+                <div className="absolute left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-foreground/30 font-medium bg-background px-4 py-1 rounded-full border border-foreground/5" style={{ top: `${SECTION_LABEL_TOP}px` }}>
                   {section.label}
                 </div>
               )}
@@ -456,90 +483,26 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
             </div>
           </div>
 
-          {/* 2. HISTOIRE (Timeline) */}
-          {sortedEvents.map((event, i) => {
-            const x = getEventX(event.time);
-            const isTop = i % 2 === 0;
-            const yOffset = isTop ? -100 : 100;
-            return (
-              <div key={event.id} className="absolute top-1/2" style={{ left: `${x}px` }}>
-                 <div
-                    className="absolute left-0 w-[1px] bg-foreground/15"
-                    style={{
-                       height: `${Math.abs(yOffset)}px`,
-                       top: isTop ? `${yOffset}px` : `0px`,
-                    }}
-                 />
-                 <button
-                    type="button"
-                    onClick={() => {
-                      if (isPrivatePreview) {
-                        setSelectedNode({ type: "item", collection: "timeline", sourceRef: event, label: event.title });
-                      } else {
-                        setSelectedPublicEvent(event);
-                      }
-                    }}
-                    aria-label={`Ouvrir le Moment ${event.title}`}
-                    className="absolute group flex flex-col items-center justify-center w-14 h-14 -translate-x-1/2 -translate-y-1/2"
-                    style={{ top: `${yOffset}px`, left: '0px' }}
-                 >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full border border-foreground/15 bg-background shadow-xl transition-all group-hover:scale-110 group-hover:border-foreground/40 group-hover:bg-foreground/10">
-                       <EventIcon kind={event.kind} className="text-foreground/60 group-hover:text-foreground" />
-                    </div>
-                    <div className={cn(
-                      "absolute flex flex-col items-center w-48 transition-opacity pointer-events-none",
-                      isTop ? "bottom-full mb-3" : "top-full mt-3"
-                    )}>
-                       <span className="text-[10px] uppercase tracking-widest text-foreground/80 text-center truncate w-full group-hover:text-brand-accent">
-                         {event.title}
-                       </span>
-                       <span className="text-[9px] text-foreground/40 mt-1">
-                         {format(event.time, "d MMM yyyy", { locale: fr })}
-                       </span>
-                       {/* Related Entities Branches */}
-                       {event.relations && event.relations.length > 0 && (
-                         <div className="flex gap-1 mt-2">
-                            {event.relations.map((rel, idx) => (
-                               <div key={idx} className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-foreground/10" title={rel.kind}>
-                                  <EventIcon kind={rel.kind} className="w-2 h-2 text-foreground/40" />
-                               </div>
-                            ))}
-                         </div>
-                       )}
-                    </div>
-                 </button>
-              </div>
-            );
-          })}
-
-          {guestArrivals.map(arrival => {
-            const x = getEventX(arrival.time);
-            return (
-              <div key={arrival.id} className="absolute top-1/2" style={{ left: `${x}px` }}>
-                <div className="absolute left-0 top-0 h-44 w-px -translate-y-full bg-brand-accent/25" />
-                <button
-                  type="button"
-                  onClick={() => setSelectedNode({
-                    type: "item",
-                    collection: "guests",
-                    sourceRef: arrival.guest,
-                    label: arrival.guest.name,
-                  })}
-                  aria-label={`Ouvrir l’arrivée de ${arrival.guest.name}`}
-                  className="group absolute left-0 top-[-176px] flex w-44 -translate-x-1/2 flex-col items-center rounded-2xl border border-brand-accent/25 bg-background/85 px-3 py-3 text-center shadow-xl backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-                >
-                  <span className="relative mb-2 grid h-8 w-8 place-items-center rounded-full bg-brand-accent text-brand-accent-foreground">
-                    <span className="absolute inset-0 animate-ping rounded-full bg-brand-accent/35 motion-reduce:animate-none" />
-                    <Users className="relative h-3.5 w-3.5" />
-                  </span>
-                  <span className="text-[9px] uppercase tracking-[.18em] text-foreground/80">{arrival.guest.name}</span>
-                  <span className="mt-1 text-[8px] uppercase tracking-[.14em] text-foreground/40">
-                    {arrival.status === "confirmed" ? "Arrivée confirmée" : "Réponse reçue"}
-                  </span>
-                </button>
-              </div>
-            );
-          })}
+          {/* 2. HISTOIRE (Timeline) — placement calculé par layoutTimeline */}
+          <FilTrack
+            events={sortedEvents}
+            arrivals={filArrivals}
+            markers={markerById}
+            conflicts={timelineConflicts}
+            onOpenMoment={event => {
+              if (isPrivatePreview) {
+                setSelectedNode({ type: "item", collection: "timeline", sourceRef: event, label: event.title });
+              } else {
+                setSelectedPublicEvent(event);
+              }
+            }}
+            onOpenArrival={arrival => setSelectedNode({
+              type: "item",
+              collection: "guests",
+              sourceRef: guests.find(guest => guest.id === arrival.guestId) ?? arrival,
+              label: arrival.guestName,
+            })}
+          />
 
           {/* 3. ARCHIVES */}
           {isPrivatePreview && canEdit && (currentRole === "owner" || currentRole === "planner") && (
@@ -547,7 +510,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
               type="button"
               onClick={() => navigate("/user-portal?create=document-media")}
               className="absolute top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-full border border-foreground/12 bg-background/85 px-5 py-3 text-left shadow-xl backdrop-blur-md transition hover:border-foreground/30 hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-              style={{ left: "4000px" }}
+              style={{ left: `${archivesX}px` }}
               aria-label="Ajouter ou remplacer un visuel du Monde"
             >
               <span className="grid h-8 w-8 place-items-center rounded-full bg-foreground/8">
@@ -634,7 +597,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
         {viewMode === "timeline" && (
           <nav className="flex items-center gap-1 rounded-full border border-border/40 bg-background/88 p-1 shadow-lg backdrop-blur-xl">
-             {SECTIONS.map((section) => (
+             {sections.map((section) => (
                 <button
                    key={section.id}
                    onClick={() => {
