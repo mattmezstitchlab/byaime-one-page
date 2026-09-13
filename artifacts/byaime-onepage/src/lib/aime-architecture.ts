@@ -20,8 +20,9 @@ export type AimeScreenId =
   | "portal:me"
   | "portal:world-settings"
   | "portal:invite"
+  | "assistant"
+  | "folders"
   | "profile"
-  | "guides"
   | "creation"
   | "rsvp"
   | "invite"
@@ -43,7 +44,6 @@ export type AimeScreenId =
   | "panel:guests"
   | "panel:providers"
   | "panel:dayof"
-  | "panel:sections"
   | "panel:seating"
   | "panel:budget"
   | "panel:documents"
@@ -137,9 +137,9 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     ],
     actions: [
       { label: "Créer mon espace", detail: "Ouvre la création de compte ; votre phrase sera reprise.", href: "/creation" },
-      { label: "Comprendre avant", detail: "Vingt-trois démonstrations animées du fonctionnement réel.", href: "/guides" },
+      { label: "Découvrir l'assistant", detail: "Questions, documents et dossiers, une fois connecté.", href: "/assistant" },
     ],
-    related: ["guides", "creation", "portal"],
+    related: ["creation", "portal", "assistant"],
     keywords: ["accueil", "home", "commencer", "champ", "saisir", "présentation", "première fois"],
   },
   portal: {
@@ -158,7 +158,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     ],
     actions: [
       { label: "Synthèse du Monde", detail: "Budget engagé, progression, invités, prestataires, alertes.", focus: { overview: true } },
-      { label: "Voir tous les panneaux", detail: "La liste complète, y compris ceux du Jour J et d'après.", focus: { panel: "sections" } },
+      { label: "Rechercher dans le Monde", detail: "Moments, personnes, documents : tout le mariage en une phrase.", focus: { search: true } },
     ],
     related: ["view:chronological", "phase:avant", "panel:guests", "panel:planning"],
     keywords: ["monde", "portail", "tableau de bord", "accueil privé", "espace", "où suis-je"],
@@ -198,7 +198,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
       { label: "Ouvrir les réglages du Monde", detail: "Date, ville, lieu, enveloppe.", emit: "aime:open-world-settings" },
       { label: "Vérifier ce qui reste à confirmer", detail: "Faits déduits ou manquants.", focus: { overview: true } },
     ],
-    related: ["portal", "panel:sections", "panel:documents"],
+    related: ["portal", "panel:documents"],
     keywords: ["réglages", "monde", "paramètres", "date", "pivot", "ville", "lieu", "budget", "nom", "ouverture", "visibilité", "supprimer"],
   },
   "portal:invite": {
@@ -217,6 +217,47 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     ],
     related: ["profile", "panel:team", "view:collaborative"],
     keywords: ["inviter", "collaborer", "collaboration", "code", "accès", "rôle", "partager", "e-mail"],
+  },
+  assistant: {
+    id: "assistant",
+    label: "Assistant",
+    where: "La page de l'assistant AIME : une question, un document, sept dossiers.",
+    purpose: "Répondre à partir des informations confirmées du Monde, classer les fichiers partagés, ouvrir les bons dossiers.",
+    does: [
+      "Le chat vérifie dans le Monde avant de répondre : chaque réponse cite ses sources et son régime, connecté ou local.",
+      "Le partage devine le dossier du fichier — devis, contrat, déroulé, photo — et ne range qu'après votre accord.",
+      "Les dossiers compacts ouvrent les panneaux du Monde, selon votre rôle.",
+    ],
+    mistakes: [
+      "Poser une question sur ce qui n'est pas encore renseigné : AIME le dit et suggère quoi compléter, il n'invente rien.",
+      "Partager depuis un compte invité : la lecture suffit pour demander, l'ajout reste réservé aux responsables.",
+    ],
+    actions: [
+      { label: "Ouvrir l'assistant", detail: "Question, document, dossiers.", href: "/assistant" },
+      { label: "Ouvrir les dossiers", detail: "Les sept dossiers en grand.", href: "/dossiers" },
+    ],
+    related: ["portal", "folders", "panel:documents"],
+    keywords: ["assistant", "question", "poser", "demander", "document", "partager", "dossier", "chat", "ia", "jumo"],
+  },
+  folders: {
+    id: "folders",
+    label: "Dossiers",
+    where: "Les sept dossiers universels du mariage, les mêmes pour chaque rôle.",
+    purpose: "Retrouver tout le mariage au même endroit, du premier devis aux derniers remerciements.",
+    does: [
+      "Une carte par dossier : invités, enveloppe et devis, contrats, prestataires, déroulé, souvenirs, messages.",
+      "Chaque carte compte ses éléments et ouvre le bon panneau du Monde.",
+      "Les dossiers verrouillés par le rôle restent visibles, mais non cliquables.",
+    ],
+    mistakes: [
+      "Chercher un fichier dans le Monde : les ajouts de l'assistant rejoignent les documents du Monde, classés par dossier.",
+    ],
+    actions: [
+      { label: "Ouvrir les dossiers", detail: "Sept dossiers, un seul écran.", href: "/dossiers" },
+      { label: "Poser une question", detail: "AIME vérifie dans le Monde.", href: "/assistant" },
+    ],
+    related: ["assistant", "portal", "panel:documents"],
+    keywords: ["dossiers", "buro", "classer", "ranger", "contrats", "enveloppe", "souvenirs", "retrouver"],
   },
   profile: {
     id: "profile",
@@ -238,21 +279,6 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     ],
     related: ["public-profile", "portal"],
     keywords: ["profil", "compte", "identité", "histoire", "archives", "supprimer", "mot de passe"],
-  },
-  guides: {
-    id: "guides",
-    label: "Guides",
-    where: "Vingt-trois démonstrations animées, groupées par thème, qui rejouent l'app écran par écran.",
-    purpose: "Comprendre le modèle (Monde, Moments, rôles, RSVP) avant de saisir quoi que ce soit.",
-    does: [
-      "Quatre thèmes : comprendre AIME, organiser le mariage, le Jour J, après & vous.",
-      "Chaque démo est animée, rejouable, et montre le vrai comportement de l'app.",
-      "Ouverte à tous, sans compte, et indexée par les moteurs.",
-    ],
-    mistakes: ["Chercher une démo d'un écran qui n'existe pas encore : la liste des démos suit le code, pas l'inverse."],
-    actions: [{ label: "Ouvrir les guides", detail: "Aucun compte nécessaire.", href: "/guides" }],
-    related: ["home", "portal"],
-    keywords: ["guide", "tutoriel", "démo", "apprendre", "comment ça marche", "aide"],
   },
   creation: {
     id: "creation",
@@ -782,17 +808,6 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     actions: [{ label: "Ouvrir le voyage", detail: "Étapes, réservations, documents.", focus: { panel: "honeymoon" } }],
     related: ["phase:apres", "panel:documents"],
     keywords: ["voyage", "noces", "lune de miel", "vol", "hôtel", "réserver"],
-  },
-  "panel:sections": {
-    id: "panel:sections",
-    label: "Toutes les sections",
-    where: "La liste complète des panneaux du Monde, y compris hors de la phase en cours.",
-    purpose: "Trouver un panneau que la navigation de phase ne met pas en avant.",
-    does: ["Tous les panneaux sont accessibles ici, avec ce qu'ils contiennent."],
-    mistakes: ["Chercher un panneau d'après-mariage pendant la phase Avant : il est là, mais dans toutes les sections."],
-    actions: [{ label: "Ouvrir toutes les sections", detail: "La liste complète.", focus: { panel: "sections" } }],
-    related: ["portal", "panel:planning"],
-    keywords: ["sections", "tous les panneaux", "où est le panneau", "liste des écrans"],
   },
 };
 

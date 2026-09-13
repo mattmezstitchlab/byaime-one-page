@@ -9,8 +9,8 @@ import {
 } from "./i18n-dictionary";
 
 /**
- * Fondation d'internationalisation. La porte d'entrée (hero, onboarding guidé,
- * guides animés et page invité RSVP) est bilingue FR/EN ; l'espace privé est
+ * Fondation d'internationalisation. La porte d'entrée (hero, onboarding et page
+ * invité RSVP) est bilingue FR/EN ; l'espace privé est
  * traduit par lots — le dictionnaire est volontairement regroupé par surface et
  * vit dans `i18n-dictionary.ts` pour rester importable hors React.
  */

@@ -13,6 +13,8 @@ import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { momentVisualOverlayAlpha } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
+import { DayRunTimeline } from "@/components/DayRunTimeline";
+import { ApresOverview } from "@/components/ApresOverview";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
 
@@ -233,6 +235,15 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
 
   let currentSubchapter = "";
   const pivotTime = project.pivot.value;
+  // Le Jour J ne se lit pas comme un film : dès que la vue ne montre que des
+  // Moments « pendant », on bascule sur la timeline verticale de régie
+  // (compte à rebours, horaires agrandis, retards). Le tiroir de détail reste
+  // le même, ouvert depuis chaque Moment.
+  const isDayRun = events.length > 0 && events.every(item => item.phase === "pendant");
+  // Même logique pour l'Après : la tête de vue montre les trois gestes
+  // (galerie, mots doux, film) avec leurs comptes réels, puis le journal
+  // cinématique continue en dessous.
+  const isApresRun = events.length > 0 && events.every(item => item.phase === "apres");
 
   return (
     <div className="w-full flex flex-col bg-background">
@@ -242,7 +253,11 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
         </div>
       )}
 
-      {events.map((item, index) => {
+      {isDayRun && <div className="pt-8"><DayRunTimeline events={events} onOpen={setSelected} /></div>}
+
+      {isApresRun && <ApresOverview />}
+
+      {!isDayRun && events.map((item, index) => {
         const subchapter = getSubchapter(item, pivotTime);
         const isNewSubchapter = subchapter !== currentSubchapter;
         currentSubchapter = subchapter;
@@ -363,10 +378,10 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
           </div>
 
           {ripplePlan && (
-            <section className="overflow-hidden rounded-2xl border border-violet-300/20 bg-[linear-gradient(145deg,rgba(124,58,237,.14),rgba(14,165,233,.06))]">
+            <section className="overflow-hidden rounded-2xl border border-brand-accent/25 bg-brand-accent/5">
               <div className="flex items-start gap-3 border-b border-foreground/10 p-4">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-violet-200/25 bg-background/30">
-                  <Waves className="h-4 w-4 text-violet-200" />
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand-accent/30 bg-background/30">
+                  <Waves className="h-4 w-4 text-brand-accent" />
                 </span>
                 <div>
                   <p className="text-sm font-medium">Onde de changement</p>
@@ -396,7 +411,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                     </div>
                   </div>
                 )}
-                {ripplePlan.warnings.map(warning => <p key={warning} className="rounded-xl border border-amber-300/15 bg-amber-300/5 p-3 text-xs text-amber-100/75">{warning}</p>)}
+                {ripplePlan.warnings.map(warning => <p key={warning} className="rounded-xl border border-brand-accent/20 bg-brand-accent/5 p-3 text-xs text-foreground/80">{warning}</p>)}
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-foreground/15 px-3 py-2.5 text-xs text-foreground/60 hover:text-foreground">Garder l’ancien horaire</button>
                   <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-white px-3 py-2.5 text-xs font-medium text-black">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>

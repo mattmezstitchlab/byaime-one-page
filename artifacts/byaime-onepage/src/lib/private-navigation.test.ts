@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  getDesktopRailReservedWidth,
   getPrivateDestinationId,
   PRIVATE_PRIMARY_NAVIGATION,
 } from "./private-navigation";
@@ -20,7 +19,7 @@ describe("private navigation", () => {
     expect(getPrivateDestinationId("/")).toBe("profile");
   });
 
-  it("exposes only the declared private routes in the main rail", () => {
+  it("exposes only the declared private routes from the orb panel", () => {
     expect(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).toEqual([
       "/profile",
       "/user-portal",
@@ -33,8 +32,4 @@ describe("private navigation", () => {
     ).toBe(false);
   });
 
-  it("reserves the expanded rail width only when pinned", () => {
-    expect(getDesktopRailReservedWidth(false)).toBe(80);
-    expect(getDesktopRailReservedWidth(true)).toBe(276);
-  });
 });

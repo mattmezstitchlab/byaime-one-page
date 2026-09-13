@@ -9,22 +9,22 @@ import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
 import { BottomDock } from './BottomDock';
 import { PhaseTimeCapsule } from './PhaseTimeCapsule';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Grid2X2, Search, Waves } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Eye, Search, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/world-focus';
-import { TimelineAudit } from './TimelineAudit';
 import { CenteredBlock } from './CenteredBlock';
 import { PanelChromeProvider, type PanelChrome, type PanelNavItem } from './PanelChrome';
 import { AIME_SCREENS, setAimeScreenContext, type AimeScreenId } from '@/lib/aime-guidance';
 import { WorldOverview } from './WorldOverview';
+import { PersonSpotlight } from './PersonSpotlight';
+import { MESSAGE_TO_EVENT, OPEN_PANEL_EVENT } from '@/lib/person-spotlight-bus';
 import { VisibilityGraph } from './VisibilityGraph';
 import { WorldSearch } from './WorldSearch';
 import { WorldSwitcher } from './WorldSwitcher';
 import type { Guest, Provider } from '@/lib/types';
 import {
   isWeddingDestinationActive,
-  FACILE_VIEW_IDS,
   getWeddingCapabilities,
   getWeddingNavigation,
   getWeddingPanelLabel,
@@ -41,7 +41,6 @@ import {
 } from '@/lib/wedding-navigation';
 import { setWorldNavState } from '@/lib/world-nav-state';
 import { useI18n } from '@/lib/i18n';
-import { useMode } from '@/lib/mode';
 import { heroVisualOverlayCss } from '@/lib/types';
 import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
 
@@ -100,7 +99,6 @@ function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; inde
 export function ProjectStage() {
   const { project, projects, selectProject, updateProject, canEdit, currentRole } = useProject();
   const { t, locale } = useI18n();
-  const { mode } = useMode();
   /* Les dates suivent la langue : `date-fns` pour les libellés, `Intl` pour les listes. */
   const dateLocale = locale === 'en' ? enUS : fr;
   const pivotDate = project?.pivot.value ?? Date.now();
@@ -114,6 +112,7 @@ export function ProjectStage() {
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [spotlight, setSpotlight] = useState<{ kind: "guest" | "provider"; id: string } | null>(null);
   const [previewRole, setPreviewRole] = useState<WeddingRole | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -141,12 +140,12 @@ export function ProjectStage() {
   }, [project?.id]);
 
   const navigation = useMemo(
-    () => getWeddingNavigation(phase, getWeddingCapabilities(previewRole ?? currentRole), locale, mode),
-    [phase, currentRole, previewRole, locale, mode],
+    () => getWeddingNavigation(phase, getWeddingCapabilities(previewRole ?? currentRole), locale),
+    [phase, currentRole, previewRole, locale],
   );
   const rail = useMemo(
-    () => getWeddingRailItems(phase, getWeddingCapabilities(previewRole ?? currentRole), locale, mode),
-    [phase, currentRole, previewRole, locale, mode],
+    () => getWeddingRailItems(phase, getWeddingCapabilities(previewRole ?? currentRole), locale),
+    [phase, currentRole, previewRole, locale],
   );
 
   useEffect(() => {
@@ -154,21 +153,12 @@ export function ProjectStage() {
     if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
   }, [activePanel, navigation, view, rail]);
 
-  /* Bascule vers le Facile depuis une vue Pro (musique, carte…) : retour au fil chronologique. */
-  useEffect(() => {
-    if (mode === "facile" && !FACILE_VIEW_IDS.includes(view)) setView("chronological");
-  }, [mode, view]);
-
   /*
    * Ouverture de panneau « sûre » : si le panneau demandé n'existe pas dans la
    * phase courante (ex. « Souvenirs » en Avant), on bascule d'abord vers la
    * phase qui le porte, au lieu de le voir se refermer aussitôt.
    */
   const openPanelSafely = (panel: WeddingPanelId) => {
-    if (panel === "sections") {
-      setActivePanel("sections");
-      return;
-    }
     const role = previewRole ?? currentRole;
     const effectiveView: TimelineView = panel === "music" ? "music" : view;
     if (panel === "music") setView("music");
@@ -176,7 +166,7 @@ export function ProjectStage() {
       setActivePanel(panel);
       return;
     }
-    const targetPhase = findPhaseForPanel(panel, role, effectiveView, mode);
+    const targetPhase = findPhaseForPanel(panel, role, effectiveView);
     if (targetPhase) {
       setPhase(targetPhase);
       if (view === "public-info" && targetPhase === "avant") setView("chronological");
@@ -186,7 +176,7 @@ export function ProjectStage() {
   const openPanelSafelyRef = useRef(openPanelSafely);
   openPanelSafelyRef.current = openPanelSafely;
 
-  /* La barre latérale globale éclaire la catégorie du Monde active. */
+  /* Le panneau de l’orbe éclaire la catégorie du Monde active. */
   useEffect(() => {
     setWorldNavState({ active: true, phase, view, panel: activePanel, role: previewRole ?? currentRole });
     return () => setWorldNavState({ active: false });
@@ -207,8 +197,12 @@ export function ProjectStage() {
     };
     const listener = (event: Event) => openCreateTarget((event as CustomEvent<UniversalCreateActionId>).detail);
     const closeWorldPanel = () => setActivePanel(null);
+    const openMessagePanel = () => openPanelSafelyRef.current("messages");
+    const openRequestedPanel = (event: Event) => openPanelSafelyRef.current((event as CustomEvent<WeddingPanelId>).detail);
     window.addEventListener("aime:open-create-target", listener);
     window.addEventListener("aime:close-world-panel", closeWorldPanel);
+    window.addEventListener(MESSAGE_TO_EVENT, openMessagePanel);
+    window.addEventListener(OPEN_PANEL_EVENT, openRequestedPanel);
     const requestedAction = new URLSearchParams(window.location.search).get("create") as UniversalCreateActionId | null;
     if (requestedAction && (requestedAction === MOMENT_CREATE_ACTION || CREATE_PANEL_TARGETS[requestedAction])) {
       openCreateTarget(requestedAction);
@@ -217,6 +211,8 @@ export function ProjectStage() {
     return () => {
       window.removeEventListener("aime:open-create-target", listener);
       window.removeEventListener("aime:close-world-panel", closeWorldPanel);
+      window.removeEventListener(MESSAGE_TO_EVENT, openMessagePanel);
+      window.removeEventListener(OPEN_PANEL_EVENT, openRequestedPanel);
     };
   }, []);
 
@@ -251,6 +247,7 @@ export function ProjectStage() {
       }
       if (request.graph) setGraphOpen(true);
       if (request.overview) setOverviewOpen(true);
+      if (request.search) setSearchOpen(true);
     };
     const pending = consumeWorldFocus();
     if (pending) {
@@ -377,10 +374,6 @@ export function ProjectStage() {
       setView(destination.view);
     }
   };
-  const sectionsAreActive = activePanel === "sections"
-    || (activePanel !== null && !["documents", "budget", "music"].includes(activePanel))
-    || view === "public-info";
-
   /*
    * Navigation en tête des panneaux : quand un panneau est ouvert, on ne montre
    * que les panneaux de SA catégorie (socle commun du rail, ou outils du mode),
@@ -390,11 +383,9 @@ export function ProjectStage() {
   const contextGroup = activePanel
     ? getPanelContextGroup(activePanel, rail, navigation, view, locale)
     : null;
-  const navigationSource: WeddingNavigationItem[] = activePanel === "sections"
-    ? []
-    : contextGroup && activePanel
-      ? contextGroup.items
-      : [...rail, ...navigation.primary];
+  const navigationSource: WeddingNavigationItem[] = contextGroup && activePanel
+    ? contextGroup.items
+    : [...rail, ...navigation.primary, ...navigation.secondary];
   const panelNavigation: PanelNavItem[] = navigationSource.map(item => {
     const destination = item.destination;
     if (destination.kind === "route") return { id: item.id, label: item.label, href: destination.href };
@@ -413,21 +404,6 @@ export function ProjectStage() {
       onClick: () => setActivePanel(destination.panel),
     };
   });
-  if (activePanel && activePanel !== "sections") {
-    panelNavigation.push({
-      id: "sections",
-      label: t("world.nav.allSections"),
-      active: false,
-      onClick: () => setActivePanel("sections"),
-    });
-  } else if (!activePanel) {
-    panelNavigation.push({
-      id: "sections",
-      label: t("world.nav.sections"),
-      active: sectionsAreActive,
-      onClick: () => setActivePanel("sections"),
-    });
-  }
   const panelChrome: PanelChrome = {
     breadcrumb: [
       { label: "AIME", href: "/" },
@@ -450,52 +426,71 @@ export function ProjectStage() {
             }}
           />
         </div>
-        <div className="mx-auto flex max-w-5xl items-center gap-2 overflow-x-auto px-3 py-2.5 hide-scrollbar sm:px-6">
-          {navigation.primary.map(item => item.destination.kind === "route" ? (
-            <Link
-              key={item.id}
-              href={item.destination.href}
-              title={item.description}
-              className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {item.label}
-            </Link>
-          ) : (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => openWeddingDestination(item.destination)}
-              aria-current={isWeddingDestinationActive(item.destination, view, activePanel) ? "page" : undefined}
-              aria-label={t("world.nav.item.aria", { label: item.label, description: item.description })}
-              className={cn(
-                "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isWeddingDestinationActive(item.destination, view, activePanel)
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground"
-              )}
-            >
-              {item.label}
+        <div className="mx-auto grid max-w-5xl grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-2 px-3 py-2.5 sm:px-6">
+          {/* Toutes les entrées de la phase en accès direct, centrées sous la capsule temporelle : la colonne vide à gauche répond aux icônes fixes à droite. */}
+          <span aria-hidden className="min-w-0" />
+          <div className="flex min-w-0 items-center gap-2 overflow-x-auto hide-scrollbar">
+            {[...navigation.primary, ...navigation.secondary].map(item => item.destination.kind === "route" ? (
+              <Link
+                key={item.id}
+                href={item.destination.href}
+                title={item.description}
+                className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => openWeddingDestination(item.destination)}
+                aria-current={isWeddingDestinationActive(item.destination, view, activePanel) ? "page" : undefined}
+                aria-label={t("world.nav.item.aria", { label: item.label, description: item.description })}
+                className={cn(
+                  "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isWeddingDestinationActive(item.destination, view, activePanel)
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+            {/* La synthèse est la salle de contrôle de la préparation : elle n'a de sens qu'en Avant. */}
+            {phase === "avant" && (
+              <button type="button" onClick={() => setOverviewOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {t("world.nav.overview")}
+              </button>
+            )}
+            <span className="mx-1 h-5 w-px shrink-0 bg-border" />
+            <button type="button" onClick={() => setPreviewRole(role => role ? null : "viewer")} aria-pressed={previewRole === "viewer"} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", previewRole === "viewer" ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
+              {previewRole === "viewer" ? t("world.nav.preview.active") : t("world.nav.preview")}
             </button>
-          ))}
-          <span className="mx-1 h-5 w-px shrink-0 bg-border" />
-          <button type="button" onClick={() => setActivePanel("sections")} aria-current={sectionsAreActive ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", sectionsAreActive ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
-            <Grid2X2 className="h-3.5 w-3.5" /> {t("world.nav.sections")}
-          </button>
-          {mode === "pro" && (<>
-          <button type="button" onClick={() => setOverviewOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            {t("world.nav.overview")}
-          </button>
-          <button type="button" onClick={() => setGraphOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            {t("world.nav.graph")}
-          </button>
-          <button type="button" onClick={() => setSearchOpen(true)} className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Search className="h-3.5 w-3.5" /> {t("world.nav.search")}
-          </button>
-          <button type="button" onClick={() => setPreviewRole(role => role ? null : "viewer")} aria-pressed={previewRole === "viewer"} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", previewRole === "viewer" ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
-            {previewRole === "viewer" ? t("world.nav.preview.active") : t("world.nav.preview")}
-          </button>
-          </>)}
-          <TimelinePlayback events={visibleEvents} />
+            <TimelinePlayback events={visibleEvents} />
+          </div>
+          {/* Le graphe (commun à tout le mariage) et la recherche : deux icônes fixes, en haut à droite. */}
+          <div className="flex min-w-0 items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => setGraphOpen(true)}
+              aria-label={t("world.nav.graph")}
+              title={t("world.nav.graph")}
+              data-testid="world-graph-button"
+              className="grid h-9 w-9 place-items-center rounded-full border border-foreground/10 text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label={t("world.nav.search")}
+              title={t("world.nav.search")}
+              data-testid="world-search-button"
+              className="grid h-9 w-9 place-items-center rounded-full border border-foreground/10 text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
         </div>
         {previewRole && (
           <div className="border-t border-border bg-brand-accent/10 px-3 py-2 text-center text-[10px] uppercase tracking-[.14em] text-foreground/70 sm:px-6">
@@ -592,29 +587,7 @@ export function ProjectStage() {
             )}
           </motion.div>}
 
-          {mode === "facile" && <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6 w-full border-t border-white/10 pt-7"
-          >
-            <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{t("world.hero.nextStep.eyebrow")} · {nextCountdown.kind}</p>
-            <p className="mt-3 text-sm text-white/65">{nextCountdown.title}</p>
-            <p className="mt-2 font-display text-2xl font-light tabular-nums">
-              {distanceToNext > 0
-                ? `${format(nextCountdown.time, "EEEE d MMMM", { locale: dateLocale })} · ${formatRemaining(nextCountdown.time)}`
-                : t("world.countdown.arrived")}
-            </p>
-            <button
-              type="button"
-              onClick={() => openPanelSafely(phase === "pendant" ? "dayof" : phase === "apres" ? "memories" : "planning")}
-              className="mt-5 rounded-full bg-white px-6 py-3 text-xs font-semibold text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            >
-              {phase === "pendant" ? t("world.hero.nextStep.dayof") : phase === "apres" ? t("world.hero.nextStep.memories") : t("world.hero.nextStep.tasks")}
-            </button>
-          </motion.div>}
-
-          {mode === "pro" && !isPublicInfo && phase !== "apres" && <motion.div
+          {!isPublicInfo && phase !== "apres" && <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -636,14 +609,14 @@ export function ProjectStage() {
               type="button"
               onClick={() => setTasksOpen(true)}
               className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              style={{ background: `conic-gradient(from -90deg, #ff375f 0deg, #ff9f0a ${completion * 1.2}deg, #ffe620 ${completion * 2.1}deg, #30d158 ${completion * 2.8}deg, #64d2ff ${completion * 3.25}deg, #bf5af2 ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
+              style={{ background: `conic-gradient(from -90deg, hsl(var(--brand-accent)) 0deg ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
               aria-label={t("world.hero.tasks.aria", { percent: completion })}
             >
               <span className="grid h-full w-full place-items-center rounded-full bg-black/90 text-[11px] font-medium tabular-nums text-white">{completion}%</span>
             </button>}
           </motion.div>}
 
-          {mode === "pro" && (isPublicInfo || phase === "avant") && <motion.button
+          {(isPublicInfo || phase === "avant") && <motion.button
             type="button"
             onClick={() => setCountdownsOpen(true)}
             initial={{ opacity: 0, y: 10 }}
@@ -675,7 +648,7 @@ export function ProjectStage() {
               <p className="mt-3 font-display text-4xl font-light">{t("world.countdown.arrived")}</p>
             )}
           </motion.button>}
-          {mode === "pro" && !isPublicInfo && phase === "pendant" && (
+          {!isPublicInfo && phase === "pendant" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-white/10 pt-7">
               <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? t("world.hero.live.now") : t("world.hero.live.next")}</p>
               {featuredDayEvent ? (
@@ -686,7 +659,7 @@ export function ProjectStage() {
               ) : <p className="mt-4 text-sm text-white/45">{t("world.hero.live.empty")}</p>}
             </motion.div>
           )}
-          {mode === "pro" && !isPublicInfo && phase === "apres" && (
+          {!isPublicInfo && phase === "apres" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-white/10 pt-7">
               <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.memories")}</p></div>
               <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.media")}</p></div>
@@ -695,7 +668,7 @@ export function ProjectStage() {
           )}
           {project.missing.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-white/55">
-              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-accent" />
               <span><span className="text-white/75">{t("world.hero.suggestion")}</span>{" "}{t("world.hero.suggestion.body", {
                 subject: project.missing.length > 1
                   ? t("world.hero.suggestion.more", { subject: project.missing[0], count: project.missing.length - 1 })
@@ -740,7 +713,7 @@ export function ProjectStage() {
                       className={cn("group flex flex-col items-center", index % 3 === 1 && "sm:translate-y-8")}
                       aria-label={guest.name}
                     >
-                      <span className="transition duration-300 group-hover:-translate-y-2 group-hover:scale-105"><GuestPortrait guest={guest} index={index} large /></span>
+                      <button type="button" onClick={() => setSpotlight({ kind: "guest", id: guest.id })} aria-label={guest.name} className="rounded-full transition duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent group-hover:-translate-y-2 group-hover:scale-105"><GuestPortrait guest={guest} index={index} large /></button>
                       <span className="mt-3 max-w-24 truncate text-[10px] text-foreground/70 transition group-hover:text-foreground">{guest.name}</span>
                       <span className="mt-1 text-[8px] uppercase tracking-[.14em] text-foreground/40">{guest.role}</span>
                     </div>
@@ -753,20 +726,13 @@ export function ProjectStage() {
           </section>
         )}
         {view !== "map" && <UniversalTimeline events={visibleEvents} />}
-        {mode === "pro" && (
-          <div className="max-w-5xl mx-auto px-6 pt-12 pb-32">
-            <TimelineAudit />
-          </div>
-        )}
       </main>
 
-      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanel} onViewChange={nextView => {
-        setActivePanel(null);
-        setView(nextView);
-      }} onPhaseChange={nextPhase => {
+      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanel} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
       }} />
+      {spotlight && <PersonSpotlight person={spotlight} onClose={() => setSpotlight(null)} />}
       {tasksOpen && (
         <CenteredBlock
           eyebrow={t("world.tasks.eyebrow")}
@@ -777,7 +743,7 @@ export function ProjectStage() {
           leading={
             <span
               className="grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px]"
-              style={{ background: `conic-gradient(from -90deg, #ff375f 0deg, #ff9f0a ${completion * 1.2}deg, #ffe620 ${completion * 2.1}deg, #30d158 ${completion * 2.8}deg, #64d2ff ${completion * 3.25}deg, #bf5af2 ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
+              style={{ background: `conic-gradient(from -90deg, hsl(var(--brand-accent)) 0deg ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
             >
               <span className="grid h-full w-full place-items-center rounded-full bg-card text-[11px] tabular-nums text-foreground">{completion}%</span>
             </span>
@@ -789,7 +755,7 @@ export function ProjectStage() {
                 .sort((a, b) => Number(a.status === "termine") - Number(b.status === "termine") || (a.dueDate ?? Number.MAX_SAFE_INTEGER) - (b.dueDate ?? Number.MAX_SAFE_INTEGER))
                 .map(task => (
                   <div key={task.id} className="flex items-start gap-4 py-4">
-                    <span className={cn("mt-1 h-3 w-3 shrink-0 rounded-full border", task.status === "termine" ? "border-foreground bg-foreground" : task.status === "en_cours" ? "border-amber-500 bg-amber-500/35" : "border-foreground/25")} />
+                    <span className={cn("mt-1 h-3 w-3 shrink-0 rounded-full border", task.status === "termine" ? "border-foreground bg-foreground" : task.status === "en_cours" ? "border-brand-accent bg-brand-accent/35" : "border-foreground/25")} />
                     <div className="min-w-0 flex-1">
                       <p className={cn("text-sm", task.status === "termine" ? "text-foreground/35 line-through" : "text-foreground/85")}>{task.title}</p>
                       <p className="mt-1 text-[10px] uppercase tracking-[.14em] text-foreground/40">

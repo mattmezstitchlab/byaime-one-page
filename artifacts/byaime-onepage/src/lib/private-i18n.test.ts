@@ -97,7 +97,6 @@ describe("coque privée traduite", () => {
     const navigation = getWeddingNavigation("avant", owner, "en");
     expect(getPanelContextGroup("budget", rail, navigation, "chronological", "en").label).toBe("Common ground");
     expect(getPanelContextGroup("seating", rail, navigation, "chronological", "en").label).toBe("Tools for this mode");
-    expect(getPanelContextGroup("sections", rail, navigation, "chronological", "en").label).toBe("World navigation");
   });
 
   it("traduit le libellé de la position courante du Monde", () => {

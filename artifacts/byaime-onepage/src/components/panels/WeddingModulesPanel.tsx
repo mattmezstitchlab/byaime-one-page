@@ -2,13 +2,15 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2, FolderOpen, RefreshCcw, Link2, Copy, FolderSearch } from "lucide-react";
+import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2, FolderOpen, RefreshCcw, Link2, Copy, FolderSearch, X, ChevronLeft, ChevronRight, Heart } from "lucide-react";
 import type { MemoryItem, MusicSearchResult, MusicTrack, Payment } from "@/lib/types";
 import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
+import { MESSAGE_TO_EVENT, consumeMessageDraft } from "@/lib/person-spotlight-bus";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import type { WeddingModule } from "@/lib/wedding-navigation";
 import { LOCAL_IMPORT_POLICY, guessMimeType, localImportSupport, pickLocalFolder, planLocalImports, readableLocalPath } from "@/lib/local-files";
 import { formatCents, currencySymbol } from "@/lib/money";
+import { queueWorldFocus } from "@/lib/world-focus";
 
 export type { WeddingModule } from "@/lib/wedding-navigation";
 
@@ -141,6 +143,13 @@ function Empty({ children }: { children: string }) {
   return <div className="rounded-2xl border border-dashed border-foreground/10 px-5 py-10 text-center text-sm text-foreground/40">{children}</div>;
 }
 
+/* La liste des souvenirs à préparer (shot list, albums, rappels, mots) : la même sous la galerie et en repli. */
+function MemoryChecklist() {
+  const { project, updateEntity, removeEntity } = useProject();
+  if (!project || project.memories.length === 0) return <Empty>Les souvenirs à préparer apparaîtront ici.</Empty>;
+  return <>{project.memories.map(item => <div key={item.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4 flex items-center gap-3"><button onClick={() => updateEntity("memories", item.id, { status: item.status === "termine" ? "a_faire" : "termine" })} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", item.status === "termine" ? "bg-white text-black" : "border-foreground/20")}>{item.status === "termine" && <Check className="w-3 h-3" />}</button><div className="grid flex-1 gap-2 sm:grid-cols-2"><input value={item.title} onChange={e => updateEntity("memories", item.id, { title: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={item.owner || ""} onChange={e => updateEntity("memories", item.id, { owner: e.target.value })} placeholder="Responsable" className="bg-transparent text-xs text-foreground/55 outline-none" /><select value={item.kind} onChange={e => updateEntity("memories", item.id, { kind: e.target.value as MemoryItem["kind"] })} className="rounded-lg bg-foreground/10 px-2 py-1 text-xs outline-none"><option value="shot">Shot list</option><option value="media">Média</option><option value="message">Message</option><option value="album">Album</option><option value="rappel">Rappel</option></select></div><button onClick={() => removeEntity("memories", item.id)} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>)}</>;
+}
+
 export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const { project, currentRole, syncStatus, syncError, participantLinks, refreshParticipantLinks, updateProject, updateEntity, addEntity, removeEntity } = useProject();
   const [query, setQuery] = useState("");
@@ -155,6 +164,23 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [freeRecipients, setFreeRecipients] = useState("");
   const [freeSubject, setFreeSubject] = useState("");
   const [freeBody, setFreeBody] = useState("");
+
+  // Brouillon déposé par la mini-carte personne : le composer libre s'ouvre
+  // pré-adressé dès que le module Messages est affiché.
+  useEffect(() => {
+    if (module !== "messages") return;
+    const applyDraft = () => {
+      const draft = consumeMessageDraft();
+      if (!draft) return;
+      setFreeOpen(true);
+      setFreeRecipients(draft.recipients);
+      setFreeSubject(draft.subject);
+      setFreeBody(draft.body);
+    };
+    applyDraft();
+    window.addEventListener(MESSAGE_TO_EVENT, applyDraft);
+    return () => window.removeEventListener(MESSAGE_TO_EVENT, applyDraft);
+  }, [module]);
   const [rescheduleAt, setRescheduleAt] = useState<Record<string, string>>({});
   const [musicQuery, setMusicQuery] = useState("");
   const [musicResults, setMusicResults] = useState<MusicSearchResult[]>([]);
@@ -163,6 +189,8 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
   const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
   const [songRequests, setSongRequests] = useState<SongRequest[]>([]);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [localBridge, setLocalBridge] = useState<LocalBridgeStatus>({ connected: false });
   const [pairingToken, setPairingToken] = useState<{ token: string; expiresAt: string } | null>(null);
   const [authorizedFoldersText, setAuthorizedFoldersText] = useState("");
@@ -202,13 +230,13 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   }, [canManage, module, projectId]);
 
   useEffect(() => {
-    if (!projectId || !canManage || !["contributions", "film"].includes(module)) return;
+    if (!projectId || !canManage || !["contributions", "film", "memories", "thanks"].includes(module)) return;
     setRemoteError("");
     void api<ParticipantMedia[]>(`/projects/${projectId}/participant-media`).then(setParticipantMedia).catch(error => setRemoteError(error.message));
   }, [canManage, module, projectId]);
 
   useEffect(() => {
-    if (!projectId || !canManage || module !== "music") return;
+    if (!projectId || !canManage || !["music", "thanks"].includes(module)) return;
     setRemoteError("");
     void api<SongRequest[]>(`/projects/${projectId}/song-requests`).then(setSongRequests).catch(error => setRemoteError(error.message));
   }, [canManage, module, projectId]);
@@ -608,7 +636,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     const unassigned = project.guests.filter(g => effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline" && !g.tableId);
     return <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between"><div><p className="text-sm text-foreground/50">{unassigned.length} invité{unassigned.length > 1 ? "s" : ""} sans table</p></div><AddBar label="Ajouter une table" onAdd={() => addEntity("tables", { name: `Table ${project.tables.length + 1}`, capacity: 8 })} /></div>
-      {unassigned.length > 0 && <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-widest text-amber-300"><AlertTriangle className="w-3.5 h-3.5" /> À placer</div><div className="mt-3 grid gap-2 sm:grid-cols-2">{unassigned.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div>}
+      {unassigned.length > 0 && <div className="rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-widest text-brand-accent"><AlertTriangle className="w-3.5 h-3.5" /> À placer</div><div className="mt-3 grid gap-2 sm:grid-cols-2">{unassigned.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div>}
       <div className="grid gap-3 md:grid-cols-2">{project.tables.map(table => { const guests = project.guests.filter(g => g.tableId === table.id && effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline"); return <div key={table.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{table.name}</h4><p className={cn("text-xs mt-1", guests.length > table.capacity ? "text-rose-300" : "text-foreground/40")}>{guests.length} / {table.capacity} places</p></div><button onClick={() => { guests.forEach(g => updateEntity("guests", g.id, { tableId: undefined })); removeEntity("tables", table.id); }} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div><div className="mt-4 space-y-2">{guests.length === 0 ? <p className="text-xs text-foreground/30">Aucun invité assigné</p> : guests.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div> })}</div>
     </div>;
   }
@@ -628,10 +656,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "documents") return <div className="max-w-3xl mx-auto space-y-5">
     <PersistenceState status={syncStatus} error={syncError} />
-    <div className="rounded-2xl border border-sky-300/20 bg-sky-300/5 p-4">
+    <div className="rounded-2xl border border-foreground/15 bg-foreground/[.04] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-sky-100/80">AIME LOCAL</p>
+          <p className="text-xs uppercase tracking-widest text-foreground/60">AIME LOCAL</p>
           <p className="mt-1 text-sm text-foreground/80">AIME peut analyser des fichiers restés sur votre ordinateur, Mac ou PC, sans les importer : c&apos;est le pont AIME LOCAL.</p>
           <p className="mt-1 text-xs text-foreground/45">Sans installation, préférez « Choisir un dossier » plus bas : le navigateur lit les fichiers que vous désignez et les transfère dans ce Monde.</p>
           <p className="mt-1 text-xs text-foreground/45">
@@ -651,7 +679,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       {pairingToken && (
         <div className="mt-3 rounded-xl border border-foreground/10 bg-background/20 p-3 text-xs">
           <p className="text-foreground/75">Terminal (une seule fois):</p>
-          <code className="mt-1 block overflow-auto rounded bg-black/60 p-2 text-[11px] text-emerald-200">
+          <code className="mt-1 block overflow-auto rounded bg-black/60 p-2 text-[11px] text-foreground/85">
             pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base {window.location.origin}/api --pairing-token {pairingToken.token}
           </code>
           <p className="mt-1 text-foreground/45">Commande identique sur macOS, Linux et Windows (PowerShell). Node.js 20+ et pnpm installés dans le dépôt sont requis ; ce pont parle à l&apos;API auto-hébergée, pas au site public. Code valide jusqu&apos;au {new Date(pairingToken.expiresAt).toLocaleTimeString("fr-FR")}.</p>
@@ -747,7 +775,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       </div>
     )}
     {remoteError && <p className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
-    {uploadProgress !== null && <div role="status" aria-live="polite" className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3"><div className="flex justify-between text-xs text-amber-100"><span>Transfert vers l’espace privé</span><span>{uploadProgress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10"><div className="h-full rounded-full bg-amber-200 transition-[width]" style={{ width: `${uploadProgress}%` }} /></div></div>}
+    {uploadProgress !== null && <div role="status" aria-live="polite" className="rounded-xl border border-brand-accent/25 bg-brand-accent/5 p-3"><div className="flex justify-between text-xs text-foreground/80"><span>Transfert vers l’espace privé</span><span>{uploadProgress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10"><div className="h-full rounded-full bg-brand-accent transition-[width]" style={{ width: `${uploadProgress}%` }} /></div></div>}
     {localScan && (
       <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-4">
         <div className="flex items-center justify-between">
@@ -839,9 +867,9 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       updateProject(linkMusicTrackToEvents(project, track.id, next));
     };
     return <div className="max-w-4xl mx-auto space-y-5">
-      {canManage && <section className="rounded-2xl border border-sky-300/20 bg-sky-300/5 p-4">
+      {canManage && <section className="rounded-2xl border border-foreground/15 bg-foreground/[.04] p-4">
         <div className="flex items-start gap-3">
-          <Music2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+          <Music2 className="mt-0.5 h-4 w-4 shrink-0 text-foreground/50" />
           <div><h4 className="text-sm font-medium">Demandes reçues sans interrompre le DJ</h4><p className="mt-1 text-xs leading-relaxed text-foreground/50">Les demandes restent une file de souhaits. Elles ne lancent jamais un morceau et ne promettent pas sa diffusion.</p></div>
         </div>
         {songRequests.length === 0 ? <p className="mt-4 text-xs text-foreground/35">Aucune demande musicale reçue.</p> : <div className="mt-4 space-y-2">{songRequests.map(request => {
@@ -852,10 +880,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           </div>;
         })}</div>}
       </section>}
-      <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/5 p-4">
+      <div className="rounded-2xl border border-foreground/15 bg-foreground/[.04] p-4">
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <ShieldCheck className="h-4 w-4 text-emerald-300" />
-          <span className="font-medium text-emerald-200">Source autorisée connectée</span>
+          <ShieldCheck className="h-4 w-4 text-brand-accent" />
+          <span className="font-medium text-foreground/90">Source autorisée connectée</span>
           <span className="text-foreground/40">· {MUSIC_SOURCE}</span>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-foreground/55">Les métadonnées et les pochettes viennent du catalogue Apple. Un aperçu audio est affiché uniquement quand Apple fournit un extrait légal pour ce morceau.</p>
@@ -901,8 +929,8 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
          const linkedEvent = message.timelineEventId ? project.timeline.find(event => event.id === message.timelineEventId) : undefined;
          const statusLabel = message.status === "sent" ? "envoyé" : message.status === "failed" ? "échec Resend" : message.status === "scheduled" ? "programmé" : message.status === "cancelled" ? "annulé" : "en cours";
          return <div key={message.id} className="border-b border-foreground/5 py-3 text-sm">
-           <div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><p className="truncate">{message.subject}</p>{linkedEvent && <p className="mt-1 text-xs text-emerald-300/75">Lié à « {linkedEvent.title} »</p>}<p className="mt-1 truncate text-xs text-foreground/35">{message.recipients.join(", ")}</p>{message.providerError && <p className="mt-1 text-xs text-rose-300">Resend : {message.providerError}</p>}</div><span className={cn("text-xs", message.status === "sent" ? "text-emerald-300" : message.status === "failed" ? "text-rose-300" : message.status === "cancelled" ? "text-foreground/35" : "text-amber-200")}>{new Date(message.scheduledAt || message.sentAt || message.createdAt).toLocaleString("fr-FR")} · {statusLabel}</span></div>
-           {message.status === "scheduled" && <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-amber-300/10 bg-amber-300/5 p-3"><label className="flex-1 text-[10px] uppercase tracking-widest text-foreground/40">Nouvelle date<input type="datetime-local" value={rescheduleAt[message.id] || (message.scheduledAt ? new Date(message.scheduledAt).toISOString().slice(0, 16) : "")} min={new Date().toISOString().slice(0, 16)} onChange={event => setRescheduleAt(current => ({ ...current, [message.id]: event.target.value }))} className="mt-1 block w-full rounded-lg border border-foreground/10 bg-background/20 px-2 py-1.5 text-xs normal-case tracking-normal outline-none" /></label><button disabled={busy || !rescheduleAt[message.id]} onClick={() => void rescheduleMessage(message.id)} className="rounded-full border border-foreground/15 px-3 py-2 text-xs disabled:opacity-30">Replanifier</button><button disabled={busy} onClick={() => void cancelScheduledMessage(message.id)} className="rounded-full border border-rose-300/20 px-3 py-2 text-xs text-rose-200 disabled:opacity-30">Annuler le rappel</button></div>}
+           <div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><p className="truncate">{message.subject}</p>{linkedEvent && <p className="mt-1 text-xs text-foreground/55">Lié à « {linkedEvent.title} »</p>}<p className="mt-1 truncate text-xs text-foreground/35">{message.recipients.join(", ")}</p>{message.providerError && <p className="mt-1 text-xs text-rose-300">Resend : {message.providerError}</p>}</div><span className={cn("text-xs", message.status === "sent" ? "text-foreground/60" : message.status === "failed" ? "text-rose-300" : message.status === "cancelled" ? "text-foreground/35" : "text-brand-accent")}>{new Date(message.scheduledAt || message.sentAt || message.createdAt).toLocaleString("fr-FR")} · {statusLabel}</span></div>
+           {message.status === "scheduled" && <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-foreground/10 bg-foreground/[.03] p-3"><label className="flex-1 text-[10px] uppercase tracking-widest text-foreground/40">Nouvelle date<input type="datetime-local" value={rescheduleAt[message.id] || (message.scheduledAt ? new Date(message.scheduledAt).toISOString().slice(0, 16) : "")} min={new Date().toISOString().slice(0, 16)} onChange={event => setRescheduleAt(current => ({ ...current, [message.id]: event.target.value }))} className="mt-1 block w-full rounded-lg border border-foreground/10 bg-background/20 px-2 py-1.5 text-xs normal-case tracking-normal outline-none" /></label><button disabled={busy || !rescheduleAt[message.id]} onClick={() => void rescheduleMessage(message.id)} className="rounded-full border border-foreground/15 px-3 py-2 text-xs disabled:opacity-30">Replanifier</button><button disabled={busy} onClick={() => void cancelScheduledMessage(message.id)} className="rounded-full border border-rose-300/20 px-3 py-2 text-xs text-rose-200 disabled:opacity-30">Annuler le rappel</button></div>}
          </div>;
        })}</div>
     </div>;
@@ -916,7 +944,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
         <a href={`/api/storage/files/${media.id}`} target="_blank" rel="noreferrer" className="flex aspect-video items-center justify-center bg-foreground/5 text-foreground/30" aria-label={`Ouvrir ${media.name}`}>
           {media.contentType.startsWith("image/") ? <Image className="h-8 w-8" /> : <Film className="h-8 w-8" />}
         </a>
-        <div className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm">{media.caption || media.name}</p><p className="mt-1 text-xs text-foreground/40">{media.guestName || "Invité"} · {fileSize(media.size)}</p></div><span className={cn("rounded-full border px-2 py-1 text-[9px] uppercase tracking-wider", media.moderationStatus === "approved" ? "border-emerald-300/20 text-emerald-300" : media.moderationStatus === "rejected" ? "border-rose-300/20 text-rose-300" : "border-amber-300/20 text-amber-200")}>{media.moderationStatus === "approved" ? "Partagé" : media.moderationStatus === "rejected" ? "Refusé" : "À vérifier"}</span></div>
+        <div className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm">{media.caption || media.name}</p><p className="mt-1 text-xs text-foreground/40">{media.guestName || "Invité"} · {fileSize(media.size)}</p></div><span className={cn("rounded-full border px-2 py-1 text-[9px] uppercase tracking-wider", media.moderationStatus === "approved" ? "border-foreground/25 text-foreground/60" : media.moderationStatus === "rejected" ? "border-rose-300/20 text-rose-300" : "border-brand-accent/40 text-brand-accent")}>{media.moderationStatus === "approved" ? "Partagé" : media.moderationStatus === "rejected" ? "Refusé" : "À vérifier"}</span></div>
           <p className="mt-2 text-[10px] text-foreground/35">{media.visibility === "guests" ? "Partage avec les invités demandé" : "Couple uniquement"} · consentement {media.consent ? "confirmé" : "absent"}</p>
           {canManage && <div className="mt-3 flex gap-2"><button disabled={busy || media.moderationStatus === "approved" || !media.consent} onClick={() => void moderateMedia(media.id, "approved")} className="rounded-full bg-foreground px-3 py-1.5 text-xs text-background disabled:opacity-30">Valider</button><button disabled={busy || media.moderationStatus === "rejected"} onClick={() => void moderateMedia(media.id, "rejected")} className="rounded-full border border-rose-300/20 px-3 py-1.5 text-xs text-rose-200 disabled:opacity-30">Refuser</button></div>}
         </div>
@@ -926,7 +954,19 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "thanks") {
     const thankYouMessages = messages.filter(message => message.kind === "thank_you");
-    return <div className="mx-auto max-w-4xl space-y-5">
+    const dedications = songRequests.filter(request => request.message?.trim());
+    const guestWords = participantMedia.filter(media => media.caption?.trim() && media.moderationStatus !== "rejected");
+    const notedWords = project.memories.filter(item => item.kind === "message");
+    return <div className="mx-auto max-w-4xl space-y-8">
+      <section>
+        <div><h4 className="flex items-center gap-2 text-sm font-medium"><Heart className="h-4 w-4 text-rose-300" />Les mots doux reçus</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Dédicaces musicales, légendes des photos reçues et mots notés par vos soins : tout ce que vos invités vous ont écrit, réuni avant d’y répondre.</p></div>
+        {dedications.length + guestWords.length + notedWords.length === 0 ? <div className="mt-4"><Empty>Aucun mot doux reçu pour l’instant. Les dédicaces et légendes des invités apparaîtront ici.</Empty></div> : <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {dedications.map(dedication => <figure key={dedication.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><blockquote className="text-sm font-light leading-relaxed">« {dedication.message} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{dedication.guestName || "Invité"} · dédicace pour « {dedication.title} »{dedication.artist ? ` — ${dedication.artist}` : ""}</figcaption></figure>)}
+          {guestWords.map(media => <figure key={media.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><blockquote className="text-sm font-light leading-relaxed">« {media.caption} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{media.guestName || "Invité"} · légende d’une photo reçue</figcaption></figure>)}
+          {notedWords.map(word => <figure key={word.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><blockquote className="text-sm font-light leading-relaxed">« {word.title} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{word.owner || "Noté par vous"}{word.notes ? ` · ${word.notes}` : ""}</figcaption></figure>)}
+        </div>}
+      </section>
+      <section className="space-y-5">
       <div><h4 className="text-sm font-medium">Remercier chaque personne réellement</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Le statut vient du journal d’envoi. Un clic seul ne transforme jamais un remerciement en message envoyé.</p></div>
       {remoteError && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
       <div className="space-y-2">{project.guests.map(guest => {
@@ -935,17 +975,33 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
         const label = !guest.contact ? "Sans adresse" : latest?.status === "sent" ? "Envoyé" : latest?.status === "failed" ? "Erreur" : latest ? "En cours" : "À préparer";
         return <div key={guest.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="min-w-0 flex-1"><p className="text-sm">{guest.name}</p><p className="mt-1 truncate text-xs text-foreground/40">{guest.contact || "Ajoutez une adresse dans Personnes"} · {label}</p>{latest?.providerError && <p className="mt-1 text-xs text-rose-300">{latest.providerError}</p>}</div>{canManage && guest.contact && latest?.status !== "sent" && <button disabled={busy} onClick={() => void sendThankYou(guest.contact!, guest.name)} className="rounded-full bg-foreground px-3 py-2 text-xs font-medium text-background disabled:opacity-30">{latest?.status === "failed" ? "Réessayer" : "Confirmer et envoyer"}</button>}</div>;
       })}</div>
+      </section>
     </div>;
   }
 
   if (module === "film") {
     const videos = files.filter(file => file.contentType.startsWith("video/") && !file.guestId);
     const approvedGuestVideos = participantMedia.filter(file => file.contentType.startsWith("video/") && file.moderationStatus === "approved");
+    const playlist: Array<{ id: string; name: string; size: number; origin: string }> = [
+      ...videos.map(file => ({ id: file.id, name: file.name, size: file.size, origin: "Documents" })),
+      ...approvedGuestVideos.map(file => ({ id: file.id, name: file.caption || file.name, size: file.size, origin: file.guestName ? `Invités · ${file.guestName}` : "Invités" })),
+    ];
+    const selected = playlist.find(video => video.id === selectedVideoId) ?? playlist[0];
     return <div className="mx-auto max-w-4xl space-y-5">
-      <div><h4 className="text-sm font-medium">Film du Jour J</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">AIME ne simule aucun montage. Seules les vidéos réellement déposées dans l’espace privé ou validées depuis les invités apparaissent ici.</p></div>
+      <div><h4 className="text-sm font-medium">Film du Jour J</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">AIME ne simule aucun montage. Seules les vidéos réellement déposées dans l’espace privé ou validées depuis les invités apparaissent ici, lisibles sans quitter la section.</p></div>
       {remoteError && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
-      {[...videos, ...approvedGuestVideos].length === 0 ? <Empty>Aucun film réel n’a encore été livré ou validé.</Empty> : <div className="space-y-2">{[...videos, ...approvedGuestVideos].map(file => <a key={file.id} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4 text-foreground/70 transition hover:text-foreground"><Film className="h-5 w-5" /><span className="min-w-0 flex-1 truncate text-sm">{file.name}</span><span className="text-xs text-foreground/35">{fileSize(file.size)}</span><ExternalLink className="h-4 w-4" /></a>)}</div>}
-      <p className="rounded-xl border border-foreground/10 p-3 text-xs text-foreground/40">Pour livrer le film final, ajoutez la vidéo depuis Documents. Le fichier reste privé tant que vous ne choisissez pas de le partager.</p>
+      {playlist.length === 0 || !selected ? <Empty>Aucun film réel n’a encore été livré ou validé.</Empty> : <>
+        <figure className="overflow-hidden rounded-3xl border border-foreground/10 bg-black">
+          <video key={selected.id} controls preload="metadata" src={`/api/storage/files/${selected.id}`} className="aspect-video w-full" aria-label={selected.name} />
+          <figcaption className="flex flex-wrap items-center gap-2 border-t border-foreground/10 bg-foreground/[.035] p-4">
+            <span className="min-w-0 flex-1 truncate text-sm">{selected.name}</span>
+            <span className="text-xs text-foreground/35">{selected.origin} · {fileSize(selected.size)}</span>
+            <a href={`/api/storage/files/${selected.id}`} download={selected.name} className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-3 py-1.5 text-xs text-foreground/60 transition hover:text-foreground"><Download className="h-3.5 w-3.5" />Télécharger</a>
+          </figcaption>
+        </figure>
+        {playlist.length > 1 && <div><p className="mb-2 text-[10px] uppercase tracking-widest text-foreground/40">Toutes les vidéos ({playlist.length})</p><div className="space-y-2">{playlist.map(video => <button key={video.id} onClick={() => setSelectedVideoId(video.id)} aria-current={video.id === selected.id} className={cn("flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition", video.id === selected.id ? "border-foreground/30 bg-foreground/[.06]" : "border-foreground/10 bg-foreground/[.035] hover:border-foreground/20")}><Film className="h-5 w-5 shrink-0 text-foreground/50" /><span className="min-w-0 flex-1 truncate text-sm">{video.name}</span><span className="shrink-0 text-xs text-foreground/35">{video.origin}</span></button>)}</div></div>}
+      </>}
+      <div className="rounded-xl border border-foreground/10 p-3 text-xs text-foreground/40">Pour livrer le film final, ajoutez la vidéo depuis Documents. Le fichier reste privé tant que vous ne choisissez pas de le partager.{canManage && <div className="mt-2"><button onClick={() => queueWorldFocus({ panel: "documents" })} className="rounded-full border border-foreground/15 px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">Ouvrir Documents</button></div>}</div>
     </div>;
   }
 
@@ -961,11 +1017,48 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "team") return <CollectionPanel title="Répartition des responsabilités" addLabel="Ajouter un rôle" onAdd={() => addEntity("team", { name: "Nouvelle personne", role: "Responsable", contact: "", responsibilities: [] })}>{project.team.length === 0 ? <Empty>Aucun rôle assigné.</Empty> : project.team.map(role => <div key={role.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4 flex items-start gap-4"><div className="grid flex-1 gap-2 sm:grid-cols-3"><input value={role.name} onChange={e => updateEntity("team", role.id, { name: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={role.role} onChange={e => updateEntity("team", role.id, { role: e.target.value })} className="bg-transparent text-xs text-foreground/55 outline-none" /><input value={role.contact || ""} onChange={e => updateEntity("team", role.id, { contact: e.target.value })} placeholder="Contact" className="bg-transparent text-xs text-foreground/55 outline-none" /><input value={role.responsibilities.join(", ")} onChange={e => updateEntity("team", role.id, { responsibilities: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} placeholder="Responsabilités séparées par des virgules" className="sm:col-span-3 bg-transparent text-xs text-foreground/65 outline-none placeholder:text-foreground/25" /></div><button onClick={() => removeEntity("team", role.id)} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>)}</CollectionPanel>;
 
-  return <CollectionPanel title="Souvenirs et après" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}>{project.memories.length === 0 ? <Empty>Les souvenirs à préparer apparaîtront ici.</Empty> : project.memories.map(item => <div key={item.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4 flex items-center gap-3"><button onClick={() => updateEntity("memories", item.id, { status: item.status === "termine" ? "a_faire" : "termine" })} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", item.status === "termine" ? "bg-white text-black" : "border-foreground/20")}>{item.status === "termine" && <Check className="w-3 h-3" />}</button><div className="grid flex-1 gap-2 sm:grid-cols-2"><input value={item.title} onChange={e => updateEntity("memories", item.id, { title: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={item.owner || ""} onChange={e => updateEntity("memories", item.id, { owner: e.target.value })} placeholder="Responsable" className="bg-transparent text-xs text-foreground/55 outline-none" /><select value={item.kind} onChange={e => updateEntity("memories", item.id, { kind: e.target.value as MemoryItem["kind"] })} className="rounded-lg bg-foreground/10 px-2 py-1 text-xs outline-none"><option value="shot">Shot list</option><option value="media">Média</option><option value="message">Message</option><option value="album">Album</option><option value="rappel">Rappel</option></select></div><button onClick={() => removeEntity("memories", item.id)} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>)}</CollectionPanel>;
+  if (module === "memories") {
+    const approvedPhotos = participantMedia.filter(media => media.contentType.startsWith("image/") && media.moderationStatus === "approved");
+    const lightboxIndex = approvedPhotos.findIndex(media => media.id === lightboxId);
+    const lightbox = lightboxIndex >= 0 ? approvedPhotos[lightboxIndex] : undefined;
+    const goLightbox = (direction: 1 | -1) => {
+      if (approvedPhotos.length === 0) return;
+      const from = lightboxIndex < 0 ? 0 : lightboxIndex;
+      const next = (from + direction + approvedPhotos.length) % approvedPhotos.length;
+      setLightboxId(approvedPhotos[next]!.id);
+    };
+    return <div className="mx-auto max-w-4xl space-y-8">
+      <section>
+        <div><h4 className="flex items-center gap-2 text-sm font-medium"><Image className="h-4 w-4 text-foreground/50" />Galerie des invités</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Une vraie galerie : seules les photos réellement reçues et validées. Cliquez sur une photo pour l’agrandir.</p></div>
+        {remoteError && <p role="alert" className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/5 p-3 text-xs text-rose-200">{remoteError}</p>}
+        {approvedPhotos.length === 0 ? <>
+          <div className="mt-4"><Empty>Aucune photo validée pour l’instant. Validez les contributions reçues pour remplir la galerie.</Empty></div>
+          {canManage && <div className="mt-3"><button onClick={() => queueWorldFocus({ panel: "contributions" })} className="rounded-full border border-foreground/15 px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">Modérer les contributions</button></div>}
+        </> : <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {approvedPhotos.map(media => <button key={media.id} onClick={() => setLightboxId(media.id)} aria-label={`Agrandir ${media.caption || media.name}`} className="group relative aspect-square overflow-hidden rounded-2xl border border-foreground/10 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+            <img src={`/api/storage/files/${media.id}`} alt={media.caption || media.name} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-105" />
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6"><span className="block truncate text-[11px] text-white">{media.caption || media.name}</span><span className="block text-[10px] text-white/60">{media.guestName || "Invité"}</span></span>
+          </button>)}
+        </div>}
+        {lightbox && <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-4" onClick={() => setLightboxId(null)} role="dialog" aria-modal="true" aria-label={lightbox.caption || lightbox.name}>
+          <button aria-label="Fermer" onClick={() => setLightboxId(null)} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"><X className="h-5 w-5" /></button>
+          {approvedPhotos.length > 1 && <button aria-label="Photo précédente" onClick={event => { event.stopPropagation(); goLightbox(-1); }} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 sm:left-4"><ChevronLeft className="h-5 w-5" /></button>}
+          <figure className="max-w-4xl" onClick={event => event.stopPropagation()}>
+            <img src={`/api/storage/files/${lightbox.id}`} alt={lightbox.caption || lightbox.name} className="max-h-[76vh] w-auto rounded-2xl object-contain" />
+            <figcaption className="mt-3 text-center text-sm text-white/80">{lightbox.caption || lightbox.name} <span className="text-white/50">· {lightbox.guestName || "Invité"}{approvedPhotos.length > 1 ? ` · ${lightboxIndex + 1}/${approvedPhotos.length}` : ""}</span></figcaption>
+          </figure>
+          {approvedPhotos.length > 1 && <button aria-label="Photo suivante" onClick={event => { event.stopPropagation(); goLightbox(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 sm:right-4"><ChevronRight className="h-5 w-5" /></button>}
+        </div>}
+      </section>
+      <CollectionPanel title="Souvenirs à préparer" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}><MemoryChecklist /></CollectionPanel>
+    </div>;
+  }
+
+  return <CollectionPanel title="Souvenirs et après" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}><MemoryChecklist /></CollectionPanel>;
 }
 
 function GuestSeat({ guest, tables, onChange }: { guest: { name: string; tableId?: string; dietary?: string }; tables: { id: string; name: string }[]; onChange: (value: string) => void }) {
-  return <div className="flex items-center gap-2 rounded-xl bg-background/20 px-3 py-2"><span className="text-sm flex-1 truncate">{guest.name}{guest.dietary && <span className="text-[10px] text-amber-300 ml-2">{guest.dietary}</span>}</span><select value={guest.tableId || ""} onChange={e => onChange(e.target.value)} className="max-w-[130px] rounded-lg bg-foreground/10 px-2 py-1.5 text-xs outline-none"><option value="">Sans table</option>{tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>;
+  return <div className="flex items-center gap-2 rounded-xl bg-background/20 px-3 py-2"><span className="text-sm flex-1 truncate">{guest.name}{guest.dietary && <span className="text-[10px] text-foreground/55 ml-2">{guest.dietary}</span>}</span><select value={guest.tableId || ""} onChange={e => onChange(e.target.value)} className="max-w-[130px] rounded-lg bg-foreground/10 px-2 py-1.5 text-xs outline-none"><option value="">Sans table</option>{tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>;
 }
 
 function formatTrackDuration(durationMs?: number) {
@@ -988,7 +1081,7 @@ function MusicSearchResultRow({ result, disabled, onSelect }: { result: MusicSea
     <div className="min-w-[160px] flex-1">
       <p className="truncate text-sm">{result.title}</p>
       <p className="mt-1 truncate text-xs text-foreground/50">{result.artist}{result.collectionName ? ` · ${result.collectionName}` : ""}</p>
-      <p className="mt-1 text-[10px] text-emerald-300/80">Métadonnées vérifiées · {formatTrackDuration(result.durationMs) || "durée indisponible"}{result.previewUrl ? " · aperçu disponible" : " · aperçu indisponible"}</p>
+      <p className="mt-1 text-[10px] text-foreground/55">Métadonnées vérifiées · {formatTrackDuration(result.durationMs) || "durée indisponible"}{result.previewUrl ? " · aperçu disponible" : " · aperçu indisponible"}</p>
     </div>
     {result.previewUrl && <audio controls preload="none" src={result.previewUrl} className="h-8 max-w-[190px]" aria-label={`Écouter un aperçu de ${result.title}`} />}
     {result.trackUrl && <a href={result.trackUrl} target="_blank" rel="noreferrer" aria-label={`Ouvrir ${result.title} dans ${MUSIC_SOURCE}`} className="p-2 text-foreground/40 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a>}
@@ -1016,10 +1109,10 @@ function MusicTrackRow({
   return <div className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4">
     <div className="flex items-start gap-3">
       <TrackArtwork track={track} />
-      <button type="button" onClick={() => onUpdate({ status: track.status === "valide" ? "a_choisir" : "valide" })} aria-label={track.status === "valide" ? `Marquer ${track.title} à choisir` : `Valider ${track.title}`} className={cn("mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border", track.status === "valide" ? "border-emerald-400 text-emerald-300" : "border-foreground/20 text-foreground/30")}>{track.status === "valide" && <Check className="h-3.5 w-3.5" />}</button>
+      <button type="button" onClick={() => onUpdate({ status: track.status === "valide" ? "a_choisir" : "valide" })} aria-label={track.status === "valide" ? `Marquer ${track.title} à choisir` : `Valider ${track.title}`} className={cn("mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border", track.status === "valide" ? "border-brand-accent text-brand-accent" : "border-foreground/20 text-foreground/30")}>{track.status === "valide" && <Check className="h-3.5 w-3.5" />}</button>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={cn("rounded-full border px-2 py-1 text-[10px]", verified ? "border-emerald-300/20 text-emerald-200" : "border-amber-300/20 text-amber-200")}>{verified ? `Métadonnées vérifiées · ${MUSIC_SOURCE}` : "Saisie manuelle · non vérifiée"}</span>
+          <span className={cn("rounded-full border px-2 py-1 text-[10px]", verified ? "border-foreground/25 text-foreground/60" : "border-brand-accent/40 text-brand-accent")}>{verified ? `Métadonnées vérifiées · ${MUSIC_SOURCE}` : "Saisie manuelle · non vérifiée"}</span>
           {track.provenance === "demo" && <span className="text-[10px] text-foreground/35">Exemple initial</span>}
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -1031,7 +1124,7 @@ function MusicTrackRow({
           {duration && <span>{duration}</span>}
           {verified && track.external?.previewUrl
             ? <audio controls preload="none" src={track.external.previewUrl} className="h-8 max-w-[220px]" aria-label={`Écouter un aperçu de ${track.title}`} />
-            : <span className={cn(verified ? "text-amber-200/80" : "text-foreground/35")}>{verified ? "Lecture indisponible pour ce titre" : "Aucun aperçu : morceau saisi manuellement"}</span>}
+            : <span className={cn(verified ? "text-foreground/55" : "text-foreground/35")}>{verified ? "Lecture indisponible pour ce titre" : "Aucun aperçu : morceau saisi manuellement"}</span>}
           {verified && track.external?.trackUrl && <a href={track.external.trackUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-foreground"><ExternalLink className="h-3.5 w-3.5" />Ouvrir dans Apple Music</a>}
         </div>
       </div>
@@ -1050,7 +1143,7 @@ function MusicTrackRow({
 }
 
 function PaymentRow({ payment, currency, onToggle, onDelete, onEdit }: { payment: Payment; currency?: string; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {
-  return <div className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><button onClick={onToggle} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", payment.state === "paye" ? "bg-emerald-300 text-black border-emerald-300" : "border-foreground/20")}>{payment.state === "paye" && <Check className="w-3.5 h-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="bg-transparent text-sm outline-none w-full" /><p className="text-xs text-foreground/40 mt-1">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><div className="flex items-center gap-1"><input aria-label="Montant du paiement" type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-lg bg-foreground/5 px-2 py-1.5 text-right font-mono text-sm outline-none" /><span className="w-8 text-xs text-foreground/45" aria-hidden>{currencySymbol(currency)}</span></div><button onClick={onDelete} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>;
+  return <div className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><button onClick={onToggle} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", payment.state === "paye" ? "bg-brand-accent text-white border-brand-accent" : "border-foreground/20")}>{payment.state === "paye" && <Check className="w-3.5 h-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="bg-transparent text-sm outline-none w-full" /><p className="text-xs text-foreground/40 mt-1">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><div className="flex items-center gap-1"><input aria-label="Montant du paiement" type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-lg bg-foreground/5 px-2 py-1.5 text-right font-mono text-sm outline-none" /><span className="w-8 text-xs text-foreground/45" aria-hidden>{currencySymbol(currency)}</span></div><button onClick={onDelete} className="text-foreground/30 hover:text-rose-300"><Trash2 className="w-4 h-4" /></button></div>;
 }
 
 function EditableArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -1058,12 +1151,12 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
 }
 
 function CollectionPanel({ title, addLabel, onAdd, children }: { title: string; addLabel: string; onAdd: () => void; children: ReactNode }) {
-  return <div className="max-w-3xl mx-auto space-y-5">{title === "Morceaux reliés aux Moments" && <div className="rounded-xl border border-amber-300/20 bg-amber-300/5 p-3 text-xs text-amber-800/80 dark:text-amber-100/70">Cet outil relie des morceaux aux Moments. La destination majeure « Musique » reste la projection sonore de la Timeline, pas une simple playlist.</div>}<div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{title}</h4><p className="text-xs text-foreground/40 mt-1">Un espace simple, pensé pour avancer.</p></div><AddBar label={addLabel} onAdd={onAdd} /></div><div className="space-y-3">{children}</div></div>;
+  return <div className="max-w-3xl mx-auto space-y-5">{title === "Morceaux reliés aux Moments" && <div className="rounded-xl border border-foreground/10 bg-foreground/[.03] p-3 text-xs text-foreground/60">Cet outil relie des morceaux aux Moments. La destination majeure « Musique » reste la projection sonore de la Timeline, pas une simple playlist.</div>}<div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{title}</h4><p className="text-xs text-foreground/40 mt-1">Un espace simple, pensé pour avancer.</p></div><AddBar label={addLabel} onAdd={onAdd} /></div><div className="space-y-3">{children}</div></div>;
 }
 
 function PersistenceState({ status, error }: { status: "local" | "loading" | "saving" | "saved" | "error" | "conflict"; error?: string }) {
   const state = status === "saving" || status === "loading"
-    ? { label: "Enregistrement en cours…", tone: "text-amber-200 border-amber-300/20 bg-amber-300/5" }
+    ? { label: "Enregistrement en cours…", tone: "text-foreground/60 border-foreground/15 bg-foreground/5" }
     : status === "saved"
       ? { label: "Modifications enregistrées dans le Monde", tone: "text-emerald-300 border-emerald-300/20 bg-emerald-300/5" }
       : status === "conflict"

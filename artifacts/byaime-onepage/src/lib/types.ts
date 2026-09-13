@@ -96,6 +96,8 @@ export type Document = {
   providerId?: string;
   at: number;
   url?: string;
+  /** Dossier universel désigné par l'assistant au partage (`WeddingFolderId`). */
+  folder?: string;
 };
 
 export type CommunicationStatus = "brouillon" | "envoye";

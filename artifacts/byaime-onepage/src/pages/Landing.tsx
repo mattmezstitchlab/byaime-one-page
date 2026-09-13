@@ -1,26 +1,20 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { AppearanceToggle } from "@/components/AppearanceToggle";
-import { ArrowRight, Compass, Gift, Lock, Accessibility, Wifi } from "lucide-react";
+import { ArrowRight, Gift, Lock, Accessibility, Wifi } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
 import { LandingShowcase } from "@/components/LandingShowcase";
 import { ShaderBackdrop } from "@/components/ShaderBackdrop";
 import { useRouteMeta } from "@/lib/page-meta";
-import { AimeGuide } from "@/components/AimeGuide";
-import { CenteredBlock } from "@/components/CenteredBlock";
 import { I18nProvider, useI18n, type I18nKey, type Locale } from "@/lib/i18n";
-import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { cn } from "@/lib/utils";
 
 /**
  * L'accueil d'AIME, dans la direction « Apple du mariage » : un message par
  * écran, de l'espace, de grands visuels pleine page, de grands titres et une
- * hiérarchie minimale. Le hero tient sa promesse en une phrase, puis
- * l'onboarding (deux choix, cinq questions, une par écran). Viennent la
- * vitrine du Monde Mariage, les trois temps (Avant / Jour J / Après) en
- * visuels immersifs, les valeurs, un témoignage, un renvoi vers les guides et
- * un appel à créer. Les médias sont du contenu, jamais un thème : le texte des
- * visuels pleine page reste blanc dans les deux apparences.
+ * hiérarchie minimale. Le hero tient sa promesse en une phrase sur fond noir,
+ * puis la vitrine du Monde Mariage, les valeurs (« Pourquoi AIME »), un
+ * témoignage puis un appel à créer.
  */
 export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
   return (
@@ -71,12 +65,11 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <a
-              href="#landing-guides"
+              href="#landing-product"
               className="hidden rounded-full px-3 py-2 text-[11px] text-white/75 transition hover:bg-white/10 hover:text-white md:inline"
             >
-              {t("footer.guides")}
+              {t("nav.howItWorks")}
             </a>
-            <LandingGuideButton label={t("nav.howItWorks")} />
             <LocaleToggle locale={locale} setLocale={setLocale} />
             <AppearanceToggle className="text-white/70 hover:bg-white/10 hover:text-white" />
             {signedIn ? (
@@ -109,8 +102,9 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </div>
       </header>
 
-      {/* ——— Hero : la promesse, directement sur le fond bleu-vert signature ——— */}
-      <section className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden">
+      {/* ——— Hero : la promesse, sur fond noir comme le bas de page ——— */}
+      <section data-testid="landing-hero" className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden">
+        <div aria-hidden className="absolute inset-0 bg-black" />
         <div className="aime-landing-copy relative z-10 flex w-full max-w-5xl flex-col items-center px-6 pb-24 pt-28 text-center md:pb-28 md:pt-32">
           <Reveal className="flex flex-col items-center">
             <p className="aime-apple-eyebrow text-white/70 [text-shadow:0_1px_12px_rgba(0,0,0,0.45)]">{t("hero.eyebrow")}</p>
@@ -150,35 +144,6 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
           </Reveal>
         </div>
       </section>
-
-      {/* ——— Les trois temps, en visuels immersifs ——— */}
-      <ImmersiveSection
-        id="landing-avant"
-        image={AIME_VISUALS.timelineAmbientImages[2]}
-        eyebrow={t("apple.avant.eyebrow")}
-        title={t("apple.avant.title")}
-        subtitle={t("apple.avant.subtitle")}
-        link1={t("apple.avant.link1")}
-        link2={t("apple.avant.link2")}
-      />
-      <ImmersiveSection
-        id="landing-jourj"
-        image={AIME_VISUALS.world.heroImage}
-        eyebrow={t("apple.jourj.eyebrow")}
-        title={t("apple.jourj.title")}
-        subtitle={t("apple.jourj.subtitle")}
-        link1={t("apple.jourj.link1")}
-        link2={t("apple.jourj.link2")}
-      />
-      <ImmersiveSection
-        id="landing-apres"
-        image={AIME_VISUALS.concept.leftImage}
-        eyebrow={t("apple.apres.eyebrow")}
-        title={t("apple.apres.title")}
-        subtitle={t("apple.apres.subtitle")}
-        link1={t("apple.apres.link1")}
-        link2={t("apple.apres.link2")}
-      />
 
       {/* ——— Les valeurs ——— */}
       <section
@@ -224,37 +189,6 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </Reveal>
       </section>
 
-      {/* ——— Les guides : des liens directs, pas une animation factice. ——— */}
-      <section
-        id="landing-guides"
-        data-testid="landing-guides"
-        className="aime-cinematic-surface relative z-10 overflow-hidden border-y border-white/10 py-20 md:py-28"
-      >
-        <div className="relative">
-          <div className="aime-landing-copy mx-auto max-w-3xl px-6 text-center">
-            <p className="aime-apple-eyebrow text-white/60">{t("guides.eyebrow")}</p>
-            <h2 className="aime-apple-title mt-6 text-4xl text-white md:text-6xl">
-              {t("guides.title")}
-            </h2>
-            <p className="aime-apple-lead mx-auto mt-5 max-w-2xl text-base text-white/75 md:text-lg">
-              {t("guides.subtitle")}
-            </p>
-          </div>
-          <div
-            data-testid="landing-guides-links"
-            className="mt-10 flex flex-wrap items-center justify-center gap-3"
-          >
-            <Link href="/guides" className="aime-apple-pill aime-apple-pill-glass">{t("spot.1.title")}</Link>
-            <Link href="/guides" className="aime-apple-pill aime-apple-pill-glass">{t("spot.2.title")}</Link>
-            <Link href="/guides" className="aime-apple-pill aime-apple-pill-glass">{t("spot.3.title")}</Link>
-            <Link href="/guides" className="aime-apple-pill aime-apple-pill-primary">
-              {t("guides.all")}
-              <ArrowRight aria-hidden className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* ——— Appel final ——— */}
       <section
         data-testid="landing-cta"
@@ -286,13 +220,27 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
             <div>
               <p className="font-display tracking-[.28em] text-white/85">AIME</p>
               <p className="mt-4 max-w-xs text-xs leading-relaxed text-white/55">{t("footer.tagline")}</p>
+              <p className="mt-6 text-[11px] font-semibold uppercase tracking-[.14em] text-white/50">{t("dispoo.footer.title")}</p>
+              <ul className="mt-3 space-y-2.5 text-xs text-white/70">
+                <li>
+                  <a
+                    data-testid="footer-dispoo"
+                    href="https://dispoo.app/?utm_source=byaime&utm_medium=footer&utm_campaign=mariage"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition hover:text-white"
+                  >
+                    {t("dispoo.footer.link")}
+                  </a>
+                </li>
+              </ul>
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-white/50">{t("footer.col.product")}</p>
               <ul className="mt-4 space-y-2.5 text-xs text-white/70">
                 <li><a href="#landing-product" className="transition hover:text-white">{t("nav.howItWorks")}</a></li>
                 <li><a href="#landing-values" className="transition hover:text-white">{t("apple.values.eyebrow")}</a></li>
-                <li><Link href="/guides" className="transition hover:text-white">{t("footer.guides")}</Link></li>
+                <li><Link href="/creation" className="transition hover:text-white">{t("nav.signUp")}</Link></li>
               </ul>
             </div>
             <nav aria-label="Pages du site">
@@ -310,50 +258,6 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </div>
       </footer>
     </main>
-  );
-}
-
-/**
- * Une section photographique pleine page : un grand visuel, un titre, une
- * phrase et deux liens. Le texte reste blanc dans les deux apparences — la
- * photo est un média, jamais une surface de thème.
- */
-function ImmersiveSection({
-  id,
-  image,
-  eyebrow,
-  title,
-  subtitle,
-  link1,
-  link2,
-}: {
-  id: string;
-  image: string;
-  eyebrow: string;
-  title: string;
-  subtitle: string;
-  link1: string;
-  link2: string;
-}) {
-  return (
-    <section id={id} data-testid={id} className="relative flex min-h-[90vh] items-center justify-center overflow-hidden">
-      <div aria-hidden className="absolute inset-0">
-        <img src={getAssetUrl(image)} alt="" className="h-full w-full object-cover" />
-        <div className="aime-apple-overlay absolute inset-0" />
-      </div>
-      <div className="aime-landing-copy relative z-10 flex w-full max-w-3xl flex-col items-center px-6 py-28 text-center">
-        <Reveal className="flex flex-col items-center">
-          <p className="aime-apple-eyebrow text-white/60">{eyebrow}</p>
-          <h2 className="aime-apple-title mt-5 text-4xl text-white md:text-6xl">{title}</h2>
-          <p className="aime-apple-lead mx-auto mt-5 max-w-xl text-base text-white/75 md:text-lg">{subtitle}</p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/70">
-            <Link href="/guides" className="transition hover:text-white">{link1}</Link>
-            <span aria-hidden className="text-white/30">·</span>
-            <Link href="/guides" className="transition hover:text-white">{link2}</Link>
-          </div>
-        </Reveal>
-      </div>
-    </section>
   );
 }
 
@@ -428,30 +332,4 @@ function LocaleToggle({ locale, setLocale }: { locale: Locale; setLocale: (value
  * L'aide est disponible avant même d'avoir un compte : la même connaissance de
  * l'architecture que dans l'espace privé, sans projet, sans saisie, sans envoi.
  */
-function LandingGuideButton({ label }: { label: string }) {
-  const [open, setOpen] = useState(false);
-  return <>
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      data-testid="landing-guide-button"
-      className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-3 py-2 text-[11px] text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-    >
-      <Compass aria-hidden className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">{label}</span>
-    </button>
-    {open && (
-      <CenteredBlock
-        eyebrow="AIME · guide"
-        title="Accueil"
-        description="Posez une question sur un écran, ou laissez AIME vous dire par où commencer."
-        onClose={() => setOpen(false)}
-        size="lg"
-        testId="landing-guide"
-        showGuideHint={false}
-      >
-        <AimeGuide project={null} fallbackScreen="home" onJumped={() => setOpen(false)} />
-      </CenteredBlock>
-    )}
-  </>;
-}
+

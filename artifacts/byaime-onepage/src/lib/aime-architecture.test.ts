@@ -20,7 +20,7 @@ const REACHABLE_VIEWS: Exclude<TimelineView, "map">[] = [
   "chronological", "public-info", "day-of", "person", "provider", "music", "logistics", "collaborative", "memories",
 ];
 const KNOWN_ROUTES = [
-  "/", "/guides", "/creation", "/connexion", "/sign-in", "/sign-up", "/user-portal", "/profile", "/conditions", "/confidentialite",
+  "/", "/creation", "/connexion", "/sign-in", "/sign-up", "/user-portal", "/profile", "/assistant", "/dossiers", "/conditions", "/confidentialite",
 ];
 const KNOWN_EVENTS = ["aime:open-ai", "aime:open-me", "aime:open-world-settings", "aime:open-collaboration-invite"];
 
@@ -58,7 +58,7 @@ describe("registre d'architecture d'AIME", () => {
   });
 
   it("décrit les trois phases, les écrans publics et les panneaux du portail", () => {
-    for (const id of ["home", "portal", "profile", "guides", "creation", "rsvp", "invite", "public-profile", "legal"] satisfies AimeScreenId[]) {
+    for (const id of ["home", "portal", "profile", "creation", "rsvp", "invite", "public-profile", "legal"] satisfies AimeScreenId[]) {
       expect(AIME_SCREENS[id].label).toBeTruthy();
     }
     for (const phase of WORLD_PHASES) {

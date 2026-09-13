@@ -51,6 +51,12 @@ import {
 } from "../lib/security";
 import { logger } from "../lib/logger";
 import { suggestForProject } from "../lib/aimeLocalScan";
+import {
+  answerLocally as answerAimeLocally,
+  chatConfigFromEnv,
+  classifyDocument,
+  completeWithModel,
+} from "../lib/aimeChat";
 import { sendResendEmail } from "../lib/resend";
 
 type AuthedRequest = Parameters<RequestHandler>[0] & { userId?: string };
@@ -2615,6 +2621,95 @@ router.put(
       return;
     }
     res.json({ response: updated.response, respondedAt: updated.respondedAt });
+  },
+);
+
+/*
+ * L'assistant AIME côté serveur : chaque réponse est ancrée sur le brief
+ * autorisé du mariage (rôle vérifié via le membership). Sans clé
+ * `AIME_CHAT_API_KEY` — ou si le fournisseur échoue — le régime local
+ * renvoie les segments du brief les plus proches, sans invention.
+ */
+const aimeChatInput = z.object({
+  message: z.string().trim().min(1).max(2000),
+  locale: z.enum(["fr", "en"]).default("fr"),
+});
+
+router.post(
+  "/projects/:id/aime/chat",
+  auth,
+  createRateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 60,
+    key: (req) => `aime-chat:${(req as AuthedRequest).userId}`,
+  }),
+  async (req: AuthedRequest, res): Promise<void> => {
+    const input = parseBody(aimeChatInput, req, res);
+    if (!input) return;
+    const member = await membership(String(req.params.id), req.userId!);
+    if (!member) {
+      res.status(404).json({ error: "Monde introuvable" });
+      return;
+    }
+    const [project] = await db
+      .select({
+        id: projectsTable.id,
+        title: projectsTable.title,
+        data: projectsTable.data,
+      })
+      .from(projectsTable)
+      .where(eq(projectsTable.id, String(req.params.id)));
+    if (!project) {
+      res.status(404).json({ error: "Monde introuvable" });
+      return;
+    }
+    const brief = buildAuthorizedWeddingBrief({
+      projectId: project.id,
+      title: project.title,
+      data: project.data,
+      role: member.role,
+      useWorldLocation: false,
+    });
+    const locale = input.locale ?? "fr";
+    const config = chatConfigFromEnv();
+    if (config) {
+      const reply = await completeWithModel(input.message, brief, locale, config);
+      if (reply) {
+        res.json(reply);
+        return;
+      }
+    }
+    res.json(answerAimeLocally(input.message, brief, locale));
+  },
+);
+
+/*
+ * Classification d'un document partagé dans l'assistant : le nom du fichier
+ * désigne le dossier universel qui l'accueillera. Lecture seule, membre du
+ * Monde suffit — le dépôt effectif reste soumis aux droits d'écriture.
+ */
+const aimeClassifyInput = z.object({
+  name: z.string().trim().min(1).max(255),
+  mimeType: z.string().trim().max(127).optional().default(""),
+});
+
+router.post(
+  "/projects/:id/aime/documents/classify",
+  auth,
+  createRateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 120,
+    key: (req) => `aime-classify:${(req as AuthedRequest).userId}`,
+  }),
+  async (req: AuthedRequest, res): Promise<void> => {
+    const input = parseBody(aimeClassifyInput, req, res);
+    if (!input) return;
+    const member = await membership(String(req.params.id), req.userId!);
+    if (!member) {
+      res.status(404).json({ error: "Monde introuvable" });
+      return;
+    }
+    res.json(classifyDocument({ name: input.name, mimeType: input.mimeType }));
   },
 );
 

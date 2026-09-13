@@ -24,7 +24,7 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain('data-testid="landing-persona"');
     expect(markup).toContain("Wedding planner");
     expect(markup).toContain("Sans carte bancaire");
-    expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-guides"'));
+    expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-showcase"'));
   });
 
   it("pose un hero plein écran sur le fond bleu-vert signature, sans visuel photo", () => {
@@ -37,24 +37,20 @@ describe("Landing (accueil)", () => {
     expect(markup).not.toContain("landing-hero-astronauts.jpg");
     // Le hero occupe tout l'écran.
     expect(markup).toContain("min-h-[100dvh]");
-    expect(markup).toContain('id="landing-guides"');
+    expect(markup).toContain('data-testid="landing-cta"');
   });
 
-  it("met en scène le produit puis les trois temps, avec les visuels du mariage", () => {
+  it("met en scène le produit puis va droit aux valeurs, sans sections visuelles", () => {
     const markup = render(<LandingPage />);
 
-    // La vitrine du Monde Mariage, entre le hero et les guides.
+    // La vitrine du Monde Mariage, juste après le hero.
     expect(markup).toContain('data-testid="landing-showcase"');
     expect(markup).toContain('data-testid="landing-product"');
-    expect(markup.indexOf('data-testid="landing-showcase"')).toBeLessThan(markup.indexOf('data-testid="landing-guides"'));
 
-    // Les trois temps, chacun sur un visuel immersif.
-    expect(markup).toContain('data-testid="landing-avant"');
-    expect(markup).toContain('data-testid="landing-jourj"');
-    expect(markup).toContain('data-testid="landing-apres"');
-    expect(markup).toContain("images/wedding/wedding-guests.jpg");
-    expect(markup).toContain("images/wedding/wedding-reception.jpg");
-    expect(markup).toContain("images/wedding/wedding-portrait.jpg");
+    // Les trois sections visuels immersifs ont été retirées.
+    expect(markup).not.toContain('data-testid="landing-avant"');
+    expect(markup).not.toContain('data-testid="landing-jourj"');
+    expect(markup).not.toContain('data-testid="landing-apres"');
 
     // Valeurs, témoignage et appel final complètent le parcours.
     expect(markup).toContain('data-testid="landing-values"');
@@ -97,23 +93,17 @@ describe("Landing (accueil)", () => {
     expect(member).not.toContain('data-testid="landing-sign-in"');
   });
 
-  it("propose les guides sous le hero par des liens directs, sans animation factice", () => {
+  it("ne renvoie plus vers les guides : les temps mènent à la création de compte", () => {
     const markup = render(<LandingPage />);
 
-    expect(markup).toContain('data-testid="landing-guides"');
-    expect(markup).toContain('data-testid="landing-guides-links"');
-    expect(markup).toContain("Comprendre avant de cliquer.");
-    expect(markup).toContain("Tous les guides");
-    // Les liens mènent au catalogue complet.
-    expect(markup).toContain('href="/guides"');
-    expect(markup.indexOf('data-testid="landing-guides"')).toBeGreaterThan(markup.indexOf('data-testid="landing-composer"'));
+    expect(markup).not.toContain('data-testid="landing-guides"');
+    expect(markup).not.toContain('data-testid="landing-guides-links"');
+    expect(markup).not.toContain('data-testid="landing-guide-button"');
+    expect(markup).not.toContain('href="/guides"');
+    expect(markup).not.toContain("Comprendre avant de cliquer.");
+    // Les liens des trois temps mènent à la création d'espace.
+    expect(markup).toContain('href="/creation"');
     expect(markup.match(/<h1/g)).toHaveLength(1);
-    // Plus d'animation de démonstration sur l'accueil.
-    expect(markup).not.toContain('data-testid="landing-guides-explorer"');
-    expect(markup).not.toContain('data-testid="landing-guides-player"');
-    expect(markup).not.toContain('data-testid="guide-chapters-open"');
-    expect(markup).not.toContain('data-testid="guide-prev"');
-    expect(markup).not.toContain('data-testid="guide-next"');
   });
 
   it("ne parle plus jamais de Laboratoire", () => {
@@ -121,10 +111,10 @@ describe("Landing (accueil)", () => {
     expect(markup).not.toContain("Laboratoire");
   });
 
-  it("termine par un pied de page qui mène aux guides et aux mentions", () => {
+  it("termine par un pied de page qui mène au produit et aux mentions", () => {
     const markup = render(<LandingPage />);
     expect(markup).toContain('aria-label="Pages du site"');
-    expect(markup).toContain('href="/guides"');
+    expect(markup).toContain('href="#landing-product"');
     expect(markup).toContain('href="/conditions"');
     expect(markup).toContain('href="/confidentialite"');
     // Pied de page façon Apple : tagline, colonnes et mention légale.

@@ -94,16 +94,16 @@ export function WorldOverview({ onClose, onOpenPanel }: { onClose: () => void; o
         </section>
 
         {summary.conflicts.length > 0 && (
-          <section className="rounded-2xl border border-amber-300/20 bg-amber-300/5 p-5">
+          <section className="rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-5">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-300" />
-              <p className="text-[10px] uppercase tracking-[.18em] text-amber-200/80">Alertes de planning</p>
+              <AlertTriangle className="h-4 w-4 text-brand-accent" />
+              <p className="text-[10px] uppercase tracking-[.18em] text-brand-accent/80">Alertes de planning</p>
             </div>
             <div className="mt-4 space-y-2">
               {summary.conflicts.map((conflict, i) => (
-                <div key={i} className="rounded-xl border border-amber-300/15 bg-background/30 p-3">
-                  <p className="text-xs text-amber-100/85">{conflict.message}</p>
-                  <p className="mt-1 text-[10px] text-amber-100/45">
+                <div key={i} className="rounded-xl border border-brand-accent/20 bg-background/30 p-3">
+                  <p className="text-xs text-foreground/85">{conflict.message}</p>
+                  <p className="mt-1 text-[10px] text-foreground/45">
                     {conflict.eventIds.map(id => project.timeline.find(e => e.id === id)?.title).filter(Boolean).join(" ⇄ ")}
                   </p>
                 </div>

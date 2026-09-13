@@ -1,14 +1,14 @@
-import { ImmersiveBackdrop } from "@/components/ImmersiveBackdrop";
+import { PortalBackdrop } from "@/components/PortalBackdrop";
 import { LandingComposer } from "@/components/LandingComposer";
 import { useProject } from "@/store/project-store";
-import { AIME_VISUALS } from "@/lib/assets";
 import { useI18n } from "@/lib/i18n";
 
 /**
  * L'onboarding dans l'espace privé : exactement le même parcours que l'accueil
- * (cinq questions, un seul composant), sur le même fond cosmique. Il remplace
- * l'ancienne zone de texte libre : il ne peut plus y avoir deux façons de
- * créer un Monde. Un lien permet toujours d'explorer un mariage de démonstration.
+ * (cinq questions, un seul composant), sur le fond Mesh lagon du portail. Il
+ * remplace l'ancienne zone de texte libre : il ne peut plus y avoir deux
+ * façons de créer un Monde. Un lien permet toujours d'explorer un mariage de
+ * démonstration.
  */
 export function PortalOnboarding() {
   const { createWeddingDemo } = useProject();
@@ -19,7 +19,7 @@ export function PortalOnboarding() {
       data-testid="project-composer"
       className="aime-cinematic-surface relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 md:px-10"
     >
-      <ImmersiveBackdrop image={AIME_VISUALS.hero.backgroundImage} />
+      <PortalBackdrop />
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center pb-24 pt-28 text-center md:pb-28">
         <p className="aime-landing-copy text-[10px] uppercase tracking-[.35em] text-white/55">
           {t("private.onboarding.eyebrow")}

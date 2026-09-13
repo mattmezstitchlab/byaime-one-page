@@ -5,7 +5,6 @@ import { Link } from "wouter";
 import { ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { findAimeScreenByLabel, getAimeScreen, pushAimeScreen, type AimeScreenId } from "@/lib/aime-guidance";
-import { AimeScreenHint } from "./AimeGuide";
 import { usePanelChrome, type PanelNavItem } from "./PanelChrome";
 import { useI18n } from "@/lib/i18n";
 
@@ -18,12 +17,6 @@ type CenteredBlockProps = {
   leading?: ReactNode;
   size?: "md" | "lg" | "xl";
   testId?: string;
-  /**
-   * L'écran est reconnu depuis son titre et publié au contexte de guidage ; le
-   * bouton « Expliquer cet écran » est automatique. Les écrans d'aide le
-   * retirent pour ne pas proposer d'ouvrir de l'aide depuis l'aide.
-   */
-  showGuideHint?: boolean;
   /**
    * Quand le titre n'est pas un libellé d'écran connu (un panneau nommé d'après
    * le projet, par exemple), on précise l'écran à publier dans le contexte.
@@ -73,7 +66,7 @@ function PanelNavigation({ items, onClose, label }: { items: PanelNavItem[]; onC
   );
 }
 
-export function CenteredBlock({ eyebrow, title, description, onClose, children, leading, size = "md", testId, showGuideHint = true, screenId }: CenteredBlockProps) {
+export function CenteredBlock({ eyebrow, title, description, onClose, children, leading, size = "md", testId, screenId }: CenteredBlockProps) {
   const chrome = usePanelChrome();
   const { t } = useI18n();
   const crumbs = [...chrome.breadcrumb, { label: title }];
@@ -124,7 +117,6 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
             <h2 className="mt-3 font-display text-3xl font-semibold leading-tight sm:text-4xl">{title}</h2>
             {description && <p className="mt-3 max-w-2xl text-sm font-light leading-relaxed text-foreground/65">{description}</p>}
           </div>
-          {showGuideHint && <AimeScreenHint />}
           <button onClick={onClose} aria-label={t("panel.close")} className="-mr-2 rounded-full p-2 text-foreground/40 transition hover:text-foreground hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <X className="h-4 w-4" />
           </button>

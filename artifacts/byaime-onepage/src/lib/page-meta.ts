@@ -14,7 +14,7 @@ export type RouteMeta = {
  *
  * L'application est une single-page : sans cette mise à jour, chaque route
  * hériterait du titre de `index.html` et les moteurs de recherche aligneraient
- * l'accueil, les guides et les mentions légales sous le même libellé.
+ * l'accueil et les mentions légales sous le même libellé.
  */
 export function applyRouteMeta({ title, description }: RouteMeta): void {
   if (typeof document === "undefined") return;

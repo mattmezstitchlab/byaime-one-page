@@ -371,7 +371,7 @@ export function answerAime(
       title: "Comment AIME est construit",
       paragraphs: AIME_MODEL.slice(0, 3).map(entry => `${entry.title} — ${entry.body}`),
       steps: AIME_MODEL.slice(3).map(entry => `${entry.title} — ${entry.body}`),
-      actions: [{ label: "Voir toutes les sections du Monde", detail: "La liste des panneaux.", focus: { panel: "sections" } }],
+      actions: [{ label: "Ouvrir la synthèse du Monde", detail: "La salle de contrôle : budget, progression, alertes.", focus: { overview: true } }],
       matches: [],
     };
   }
@@ -416,7 +416,7 @@ export function answerAime(
         "AIME ne répond que sur ce qui existe dans l'app. Reformulez avec le mot d'un panneau (invités, plan de table, finances, musique, logistique, régie…), ou demandez « qu'est-ce que je fais maintenant ».",
       ],
       steps: [],
-      actions: [{ label: "Parcourir les écrans", detail: "Tous les panneaux du Monde.", focus: { panel: "sections" } }],
+      actions: [{ label: "Rechercher dans le Monde", detail: "Retrouver un Moment, une personne, un document.", focus: { search: true } }],
       matches: [],
     };
   }

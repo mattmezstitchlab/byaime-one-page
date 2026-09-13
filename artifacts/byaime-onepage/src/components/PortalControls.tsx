@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { useProject } from "@/store/project-store";
+import { useI18n } from "@/lib/i18n";
 import { focusWorld } from "@/lib/world-focus";
 import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
@@ -173,6 +174,7 @@ export function PortalControls({
     importBackup,
     clearProject,
   } = useProject();
+  const { locale, setLocale } = useI18n();
   const [panel, setPanel] = useState<
     | "me"
     | "world-settings"
@@ -530,7 +532,7 @@ export function PortalControls({
                     {(user?.externalAccounts ?? []).map((account) => (
                       <div key={account.id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                         <span className="capitalize">{account.provider.replace("oauth_", "")}</span>
-                        <span className="text-xs text-emerald-500">Connecté</span>
+                        <span className="text-xs text-foreground/75">Connecté</span>
                       </div>
                     ))}
                     {(user?.externalAccounts?.length ?? 0) === 0 && (
@@ -576,8 +578,30 @@ export function PortalControls({
                     </div>
                     <AppearanceToggle />
                   </div>
+                  <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-3 py-2.5">
+                    <div>
+                      <p className="text-sm">Langue</p>
+                      <p className="mt-0.5 text-xs text-foreground/45">Français ou anglais, sur tout AIME.</p>
+                    </div>
+                    <div className="flex gap-1 rounded-full border border-border p-1" role="group" aria-label="Langue">
+                      {(["fr", "en"] as const).map(code => (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => setLocale(code)}
+                          aria-pressed={locale === code}
+                          className={cn(
+                            "rounded-full px-3 py-1 text-xs uppercase transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            locale === code ? "bg-foreground text-background" : "text-foreground/55 hover:text-foreground",
+                          )}
+                        >
+                          {code}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <p className="text-xs text-foreground/45">
-                    D’autres préférences (langue, notifications) seront ajoutées ici ; le réglage de l’apparence est
+                    D’autres préférences (notifications) seront ajoutées ici ; le réglage de l’apparence est
                     aussi disponible en bas de la barre latérale.
                   </p>
                 </div>

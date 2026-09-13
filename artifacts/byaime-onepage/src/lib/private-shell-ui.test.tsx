@@ -1,10 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { ReactNode } from "react";
-import { ActionCenter, PrivateHomeLink } from "@/components/PrivateLayout";
+import { OrbButton, PrivateHomeLink } from "@/components/PrivateLayout";
 import { TimelinePlayback } from "@/components/TimelinePlayback";
 import type { TimelineEvent } from "@/lib/types";
-import type { PrivateDestinationId } from "@/lib/private-navigation";
 import { Router } from "wouter";
 
 describe("private shell controls", () => {
@@ -12,20 +11,16 @@ describe("private shell controls", () => {
     <Router hook={() => ["/profile", () => {}]}>{children}</Router>
   );
 
-  it.each<PrivateDestinationId>(["profile", "world"])(
-    "keeps AI, create and ME visible from %s",
-    destination => {
-      const markup = renderToStaticMarkup(
-        <Wrapper>
-          <ActionCenter destination={destination} onOpenMe={vi.fn()} />
-        </Wrapper>,
-      );
+  it("shows a single orb button that opens the unified panel", () => {
+    const markup = renderToStaticMarkup(
+      <Wrapper>
+        <OrbButton />
+      </Wrapper>,
+    );
 
-      expect(markup).toContain('aria-label="Ouvrir l’aide"');
-      expect(markup).toContain('aria-label="Créer ou relier"');
-      expect(markup).toContain('aria-label="Ouvrir mon espace ME"');
-    },
-  );
+    expect(markup).toContain('data-testid="orb-button"');
+    expect(markup).toContain('aria-label="Ouvrir le panneau AIME"');
+  });
 
   it("keeps Timeline playback reachable from a World with visible Moments", () => {
     const event = {
