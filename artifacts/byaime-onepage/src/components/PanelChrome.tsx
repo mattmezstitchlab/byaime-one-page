@@ -1,14 +1,9 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 /**
- * Contexte partagé qui donne à chaque panneau (CenteredBlock) le fil d'ariane
- * et la navigation de la page dans laquelle il a été ouvert.
+ * Contexte partagé qui donne à chaque panneau (CenteredBlock) la navigation de
+ * la page dans laquelle il a été ouvert.
  */
-export type PanelBreadcrumbItem = {
-  label: string;
-  href?: string;
-};
-
 export type PanelNavItem = {
   id: string;
   label: string;
@@ -20,12 +15,10 @@ export type PanelNavItem = {
 };
 
 export type PanelChrome = {
-  breadcrumb: PanelBreadcrumbItem[];
   navigation: PanelNavItem[];
 };
 
 const DEFAULT_CHROME: PanelChrome = {
-  breadcrumb: [{ label: "AIME", href: "/" }],
   navigation: [],
 };
 

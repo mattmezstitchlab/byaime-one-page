@@ -179,7 +179,6 @@ const fr = {
   "footer.copyright": "© {year} AIME. Tous droits réservés.",
   // ——— Espace privé · coque du Monde (lot 1) ———
   "panel.nav.page": "Navigation de la page",
-  "panel.nav.breadcrumb": "Fil d’ariane",
   "panel.close": "Fermer",
   "panel.explain": "Expliquer cet écran",
   // Navigation globale
@@ -680,7 +679,6 @@ const en: Record<I18nKey, string> = {
   "footer.copyright": "© {year} AIME. All rights reserved.",
   // ——— Private space · World shell (batch 1) ———
   "panel.nav.page": "Page navigation",
-  "panel.nav.breadcrumb": "Breadcrumb",
   "panel.close": "Close",
   "panel.explain": "Explain this screen",
   "private.nav.profile": "Profile",

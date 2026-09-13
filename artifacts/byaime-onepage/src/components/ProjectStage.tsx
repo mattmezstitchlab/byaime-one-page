@@ -405,11 +405,6 @@ export function ProjectStage() {
     };
   });
   const panelChrome: PanelChrome = {
-    breadcrumb: [
-      { label: "AIME", href: "/" },
-      { label: t("private.nav.world"), href: "/user-portal" },
-      ...(project?.title ? [{ label: project.title }] : []),
-    ],
     navigation: panelNavigation,
   };
 

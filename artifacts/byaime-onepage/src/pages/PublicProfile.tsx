@@ -376,10 +376,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const guests = isPrivatePreview ? (project?.guests || []) : [];
 
   const profileChrome: PanelChrome = {
-    breadcrumb: [
-      { label: "AIME", href: "/" },
-      ...(isPrivatePreview ? [{ label: "Profil", href: "/profile" }] : [{ label: profile.title }]),
-    ],
     navigation: sections.map(section => ({
       id: section.id,
       label: section.label,

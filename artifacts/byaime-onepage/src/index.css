@@ -313,6 +313,26 @@
   --brand-accent: 348 83% 47%;
   --brand-accent-foreground: 0 0% 100%;
 
+  /*
+   * Palette des catégories du Monde : une teinte par famille d'entités, pour
+   * les pastilles du graphe (`VisibilityGraph`) et toute carte qui range le
+   * Monde par catégorie. Les Moments gardent le rouge de la marque ; les
+   * entités se répartissent sur le cercle chromatique. Teintes pensées pour un
+   * fond sombre, reprises plus sombres dans le thème clair.
+   */
+  --cat-event: 348 78% 58%;
+  --cat-guest: 210 72% 62%;
+  --cat-team: 236 58% 70%;
+  --cat-provider: 22 82% 60%;
+  --cat-task: 46 88% 58%;
+  --cat-table: 182 58% 54%;
+  --cat-logistics: 156 48% 52%;
+  --cat-payment: 132 50% 52%;
+  --cat-document: 264 55% 70%;
+  --cat-music: 292 55% 66%;
+  --cat-memory: 320 62% 66%;
+  --cat-message: 100 45% 52%;
+
   --border: 0 0% 12%;
   --input: 0 0% 12%;
   --ring: 0 0% 80%;
@@ -340,6 +360,20 @@
   --accent-foreground: 30 12% 9%;
   --brand-accent: 348 83% 47%;
   --brand-accent-foreground: 0 0% 100%;
+  /* Mêmes teintes que le thème sombre, assombries : sur l'ivoire, une pastille
+     claire n'aurait plus aucun contraste. */
+  --cat-event: 348 75% 44%;
+  --cat-guest: 210 70% 38%;
+  --cat-team: 236 55% 44%;
+  --cat-provider: 22 80% 40%;
+  --cat-task: 42 85% 36%;
+  --cat-table: 182 62% 30%;
+  --cat-logistics: 156 52% 28%;
+  --cat-payment: 132 48% 30%;
+  --cat-document: 264 52% 44%;
+  --cat-music: 292 50% 40%;
+  --cat-memory: 320 55% 40%;
+  --cat-message: 100 42% 30%;
   --border: 30 12% 82%;
   --input: 30 12% 82%;
   --ring: 30 12% 24%;

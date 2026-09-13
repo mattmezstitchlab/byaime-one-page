@@ -64,11 +64,9 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { locale } = useI18n();
   const [openMeSignal, setOpenMeSignal] = useState(0);
-  const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
   const privateNavigation = getPrivateNavigation(locale);
   const activeDestination = getPrivateDestinationId(location);
-  const activeItem = privateNavigation.find(item => item.id === activeDestination)!;
 
   useEffect(() => {
     initAppearance();
@@ -78,10 +76,6 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
   return (
     <PanelChromeProvider chrome={{
-      breadcrumb: [
-        { label: "AIME", href: basePath },
-        { label: activeItem.label },
-      ],
       navigation: privateNavigation.map(item => ({ id: item.id, label: item.label, href: item.href })),
     }}>
     <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
