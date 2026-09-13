@@ -1,6 +1,5 @@
 import { Link } from "wouter";
 import { useRouteMeta } from "@/lib/page-meta";
-import { AppearanceToggle } from "@/components/AppearanceToggle";
 
 // Date de la dernière révision des textes légaux.
 // À mettre à jour à chaque modification des conditions ou de la confidentialité.
@@ -37,7 +36,7 @@ export function LegalPage({ kind }: { kind: keyof typeof sections }) {
     <div className="mx-auto max-w-3xl">
       <div className="flex items-center justify-between gap-4">
         <Link href="/" className="text-sm font-medium tracking-[.3em] text-foreground/70">AIME</Link>
-        <AppearanceToggle />
+        
       </div>
       <p className="mt-20 text-[10px] uppercase tracking-[.25em] text-foreground/35">Version pilote · {LEGAL_VERSION_DATE}</p>
       <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight md:text-6xl">{privacy ? "Confidentialité" : "Conditions d’utilisation"}</h1>

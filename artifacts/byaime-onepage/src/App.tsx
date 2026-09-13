@@ -38,6 +38,7 @@ const LazyAssistant = lazy(() => import('@/pages/Assistant').then(module => ({ d
 const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ default: module.FoldersPage })));
 const LazyAgencyLanding = lazy(() => import('@/pages/AgencyLanding'));
 const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
+const LazyAdmin = lazy(() => import('@/pages/AdminSommaire').then(module => ({ default: module.AdminSommairePage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -140,8 +141,10 @@ function authPath(path: "/connexion" | "/creation", returnTo?: string) {
 }
 
 function invitationReturnPath() {
+  /* Tout chemin interne sûr : /invite/:token bien sûr, mais aussi /admin ou
+     /user-portal — le lien Admin de la landing passe par là après connexion. */
   const value = new URLSearchParams(window.location.search).get("returnTo");
-  return value && /^\/invite\/[0-9a-f-]{36}$/i.test(value) ? value : undefined;
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : undefined;
 }
 
 function SignUpPage({ returnTo }: { returnTo?: string }) {
@@ -333,6 +336,7 @@ function Routes() {
   return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
     <Route path="/agence">{() => <LazyAgencyLanding />}</Route>
           <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
+          <Route path="/admin">{() => <PrivateRoute><LazyAdmin /></PrivateRoute>}</Route>
           <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={LandingRoute} />

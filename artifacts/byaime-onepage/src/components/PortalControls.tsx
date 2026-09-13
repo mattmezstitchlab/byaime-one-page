@@ -12,7 +12,6 @@ import {
   LogOut,
   Trash2,
 } from "lucide-react";
-import { AppearanceToggle } from "@/components/AppearanceToggle";
 import { useProject } from "@/store/project-store";
 import { useI18n } from "@/lib/i18n";
 import { focusWorld } from "@/lib/world-focus";
@@ -576,7 +575,7 @@ export function PortalControls({
                       <p className="text-sm">Apparence</p>
                       <p className="mt-0.5 text-xs text-foreground/45">Mode clair ou sombre, sur tout AIME.</p>
                     </div>
-                    <AppearanceToggle />
+                    
                   </div>
                   <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-3 py-2.5">
                     <div>

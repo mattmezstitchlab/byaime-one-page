@@ -41,6 +41,7 @@ describe("vitrine de l'agence", () => {
     expect(html).toContain("Budget suivi au centime");
     expect(html).toContain("Parlons de votre mariage.");
     expect(html).toContain("Prendre rendez-vous");
+    expect(html).toContain('href="/admin"');
   });
 
   it("sert les visuels avec le jeton de version", () => {

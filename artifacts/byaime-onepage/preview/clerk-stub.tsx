@@ -29,6 +29,13 @@ function readStorage(key: string): string | null {
   }
 }
 
+/** `?returnTo=/x` : où retourner après la session simulée (chemin interne uniquement). */
+function previewReturnTo(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("returnTo");
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+}
+
 function writeStorage(key: string, value: string) {
   if (typeof window === "undefined") return;
   try {
@@ -149,7 +156,7 @@ function PreviewAuthCard({ mode }: { mode: "sign-up" | "sign-in" }) {
               type="button"
               onClick={() => {
                 writeStorage(SESSION_KEY, "1");
-                go("/user-portal");
+                go(previewReturnTo() ?? "/user-portal");
               }}
               style={{
                 appearance: "none",

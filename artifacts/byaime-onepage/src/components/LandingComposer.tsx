@@ -266,7 +266,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
           data-testid="landing-persona"
           role="group"
           aria-label={t("persona.label")}
-          className="rounded-3xl border border-white/15 bg-black/35 p-5 text-white backdrop-blur-xl sm:p-6"
+          className="rounded-3xl border border-white/15 bg-[#171410] p-5 text-white backdrop-blur-xl sm:p-6"
         >
           <p className="text-center text-[13px] font-medium">{t("persona.label")}</p>
           <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
@@ -289,7 +289,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
           </div>
         </div>
       ) : done ? (
-        <div className="rounded-[2rem] border border-white/15 bg-black/35 p-6 text-center text-white backdrop-blur-xl sm:p-8">
+        <div className="rounded-[2rem] border border-white/15 bg-[#171410] p-6 text-center text-white backdrop-blur-xl sm:p-8">
           <span aria-hidden className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-white text-black">
             <Check className="h-5 w-5" />
           </span>
@@ -324,7 +324,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
             event.preventDefault();
             submitAnswer();
           }}
-          className="rounded-[2rem] border border-white/15 bg-black/35 p-6 text-white backdrop-blur-xl sm:p-8"
+          className="rounded-[2rem] border border-white/15 bg-[#171410] p-6 text-white backdrop-blur-xl sm:p-8"
         >
           <div className="flex items-center justify-between gap-4">
             <button
@@ -403,7 +403,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
                     "rounded-full border px-2.5 py-1 text-[11px] tabular-nums transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
                     currency === item.code
                       ? "border-white/50 bg-white text-black"
-                      : "border-white/15 bg-black/30 text-white/70 hover:border-white/35 hover:text-white",
+                      : "border-white/25 bg-black/20 text-white/70 hover:border-white/45 hover:text-white",
                   )}
                 >
                   {item.symbol}

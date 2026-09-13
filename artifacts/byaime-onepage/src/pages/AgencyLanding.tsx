@@ -81,6 +81,13 @@ export default function AgencyLanding() {
               Prestations
             </a>
             <a
+              href="/admin"
+              data-testid="agency-admin"
+              className="text-[11px] uppercase tracking-[0.3em] text-[#6F6A61] transition-colors hover:text-[#171410]"
+            >
+              Admin
+            </a>
+            <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="border border-[#171410] px-5 py-2.5 text-[11px] uppercase tracking-[0.3em] text-[#171410] transition-colors hover:bg-[#171410] hover:text-[#FBFAF8]"
             >
@@ -262,6 +269,9 @@ export default function AgencyLanding() {
           <span>Paris · New York</span>
           <a href="/" className="hover:text-[#171410]">
             Espace privé
+          </a>
+          <a href="/admin" className="hover:text-[#171410]">
+            Admin
           </a>
         </div>
       </footer>
