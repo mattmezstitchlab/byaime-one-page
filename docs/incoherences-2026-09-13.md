@@ -275,3 +275,27 @@ Wedding planners, du plus fort au moins fort :
 4. Timeline/conflits — livrer un Jour J carré à chaque client.
 Manque principal pro : pas de vue agrégée multi-clients (tableau de bord, échéances croisées), pas de
 facturation structurée, démo/seed identique pour tous.
+
+## Passe 4 — 2026-09-13 : mini-site invité complet + entrée Invité dans le Jour J
+
+### Constat
+La projection publique (`projectToPublicProfile`) ne renvoyait que l'identité et les Moments
+`audience` : un invité ouvrant `/profil/:id` voyait un programme sans lieu, sans accès, sans
+plan B. Ces informations existaient pourtant déjà côté serveur dans `participantProjection`
+(portail RSVP) — deux projections divergentes pour le même public.
+
+### Corrections
+1. `lib/api-spec/openapi.yaml` : `PublicProfile.practical` (venue, parking, accessibility,
+   weatherFallback) — codegen orval relancé, diff purement additif (30 insertions).
+2. `artifacts/api-server/src/lib/publicProfile.ts` : projection des infos pratiques depuis
+   `venue` + `logistics`, avec la même discipline que le reste : `privateContact`,
+   `emergencyContacts`, invités, documents et chiffres ne sortent jamais.
+3. `src/pages/PublicProfile.tsx` : bloc « Infos pratiques » rendu pour l'invité **et** dans
+   l'aperçu du couple ; en aperçu, « Modifier ces infos » ouvre le panneau Logistique.
+4. `src/components/panels/DayOfGuestEntry.tsx` : l'entrée Invité quitte les réglages du portail
+   pour le déroulé du Jour J — état de publication, publication/masquage, lien, copie, rappel de
+   ce qui est publié.
+
+### Contrôles
+typecheck racine OK · vitest : 44 fichiers / 235 tests (app) + 10 fichiers (api-server) OK ·
+`vite build` OK · `preview/smoke.mjs` = CONTRÔLE LOCAL OK.

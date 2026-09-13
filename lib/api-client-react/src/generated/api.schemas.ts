@@ -412,6 +412,16 @@ export interface PublicTimelineEvent {
   visibility: 'audience';
 }
 
+/**
+ * Infos pratiques publiées pour les invité·es — jamais les contacts privés ni les chiffres.
+ */
+export type PublicProfilePractical = {
+  venue?: string;
+  parking?: string;
+  accessibility?: string;
+  weatherFallback?: string;
+};
+
 export interface PublicProfile {
   id: string;
   title: string;
@@ -419,6 +429,8 @@ export interface PublicProfile {
   universe?: string;
   city?: string;
   pivot?: number;
+  /** Infos pratiques publiées pour les invité·es — jamais les contacts privés ni les chiffres. */
+  practical?: PublicProfilePractical;
   timeline: PublicTimelineEvent[];
 }
 

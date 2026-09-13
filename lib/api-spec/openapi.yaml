@@ -671,6 +671,14 @@ components:
         universe: { type: string }
         city: { type: string }
         pivot: { type: number }
+        practical:
+          type: object
+          description: Infos pratiques publiées pour les invité·es — jamais les contacts privés ni les chiffres.
+          properties:
+            venue: { type: string }
+            parking: { type: string }
+            accessibility: { type: string }
+            weatherFallback: { type: string }
         timeline:
           type: array
           items: { $ref: "#/components/schemas/PublicTimelineEvent" }

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ProfileIdentityHero } from "./PublicProfile";
+import { ProfileIdentityHero, ProfilePracticalInfo } from "./PublicProfile";
 
 describe("ProfileIdentityHero", () => {
   it("keeps identity metadata in a wrapped block below the title", () => {
@@ -20,5 +20,36 @@ describe("ProfileIdentityHero", () => {
     expect(markup).toContain('data-testid="profile-identity-meta"');
     expect(markup).toContain("flex-wrap");
     expect(markup).toContain("[overflow-wrap:anywhere]");
+  });
+});
+
+describe("ProfilePracticalInfo", () => {
+  it("shows guests the venue, parking, access and rain plan", () => {
+    const markup = renderToStaticMarkup(
+      <ProfilePracticalInfo
+        practical={{ venue: "Le Domaine", parking: "Entrée nord", accessibility: "Accès sans marche", weatherFallback: "Orangerie" }}
+        isPrivatePreview={false}
+        onEdit={() => {}}
+      />,
+    );
+
+    expect(markup).toContain('data-testid="profile-practical"');
+    expect(markup).toContain('data-testid="profile-practical-venue"');
+    expect(markup).toContain("Le Domaine");
+    expect(markup).toContain("Entrée nord");
+    expect(markup).toContain("Accès sans marche");
+    expect(markup).toContain("Orangerie");
+    expect(markup).not.toContain('data-testid="profile-practical-edit"');
+  });
+
+  it("renders nothing for guests while the couple has published no practical info", () => {
+    expect(renderToStaticMarkup(<ProfilePracticalInfo isPrivatePreview={false} onEdit={() => {}} />)).toBe("");
+  });
+
+  it("tells the couple what is missing and lets them open the logistics panel", () => {
+    const markup = renderToStaticMarkup(<ProfilePracticalInfo practical={{ parking: " " }} isPrivatePreview onEdit={() => {}} />);
+
+    expect(markup).toContain('data-testid="profile-practical-empty"');
+    expect(markup).toContain('data-testid="profile-practical-edit"');
   });
 });

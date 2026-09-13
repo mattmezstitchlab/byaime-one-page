@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicProfilePractical } from './publicProfilePractical';
 import type { PublicTimelineEvent } from './publicTimelineEvent';
 
 export interface PublicProfile {
@@ -14,5 +15,7 @@ export interface PublicProfile {
   universe?: string;
   city?: string;
   pivot?: number;
+  /** Infos pratiques publiées pour les invité·es — jamais les contacts privés ni les chiffres. */
+  practical?: PublicProfilePractical;
   timeline: PublicTimelineEvent[];
 }

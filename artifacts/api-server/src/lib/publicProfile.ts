@@ -45,6 +45,16 @@ export function projectToPublicProfile(project: { id: string; title: string; dat
     : [];
   const city = record(data.city);
   const pivot = record(data.pivot);
+  const venue = record(data.venue);
+  const logistics = record(data.logistics) ?? {};
+  const practical = {
+    ...(typeof venue?.value === "string" && venue.value.trim() ? { venue: venue.value.trim() } : {}),
+    ...(["parking", "accessibility", "weatherFallback"] as const).reduce<Record<string, string>>((acc, key) => {
+      const value = logistics[key];
+      if (typeof value === "string" && value.trim()) acc[key] = value.trim();
+      return acc;
+    }, {}),
+  };
 
   return {
     id: project.id,
@@ -53,6 +63,7 @@ export function projectToPublicProfile(project: { id: string; title: string; dat
     ...(typeof data.universe === "string" ? { universe: data.universe } : {}),
     ...(typeof city?.value === "string" && city.value.trim() ? { city: city.value.trim() } : {}),
     ...(typeof pivot?.value === "number" ? { pivot: pivot.value } : {}),
+    ...(Object.keys(practical).length ? { practical } : {}),
     timeline,
   };
 }

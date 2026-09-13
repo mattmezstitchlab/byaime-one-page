@@ -590,6 +590,12 @@ export const GetPublicProfileResponse = zod.object({
   "universe": zod.string().optional(),
   "city": zod.string().optional(),
   "pivot": zod.number().optional(),
+  "practical": zod.object({
+  "venue": zod.string().optional(),
+  "parking": zod.string().optional(),
+  "accessibility": zod.string().optional(),
+  "weatherFallback": zod.string().optional()
+}).optional().describe('Infos pratiques publiées pour les invité·es — jamais les contacts privés ni les chiffres.'),
   "timeline": zod.array(zod.object({
   "id": zod.string(),
   "time": zod.number(),

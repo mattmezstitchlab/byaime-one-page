@@ -57,6 +57,7 @@ export * from './projectInputData';
 export * from './projectRole';
 export * from './projectUpdate';
 export * from './publicProfile';
+export * from './publicProfilePractical';
 export * from './publicTimelineEvent';
 export * from './rsvpInput';
 export * from './rsvpInputAttendance';

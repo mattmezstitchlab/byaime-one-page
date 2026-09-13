@@ -72,4 +72,40 @@ describe("public profile projection", () => {
     expect(JSON.stringify(profile)).not.toContain("5 000");
     expect(JSON.stringify(profile)).not.toContain("7 000");
   });
+
+  it("publishes the practical info guests need, never the private contact", () => {
+    const profile = projectToPublicProfile({
+      id: "project",
+      title: "Camille & Jules",
+      data: {
+        publicProfile: { published: true },
+        venue: { value: "Le Domaine" },
+        logistics: {
+          parking: "Entrée nord",
+          accessibility: "Accès sans marche",
+          weatherFallback: "Orangerie",
+          privateContact: "06 12 34 56 78",
+        },
+        timeline: [event("ceremony", "audience", 1)],
+      },
+    });
+
+    expect(profile?.practical).toEqual({
+      venue: "Le Domaine",
+      parking: "Entrée nord",
+      accessibility: "Accès sans marche",
+      weatherFallback: "Orangerie",
+    });
+    expect(JSON.stringify(profile)).not.toContain("06 12 34 56 78");
+  });
+
+  it("omits the practical block when the couple has nothing to publish yet", () => {
+    const profile = projectToPublicProfile({
+      id: "project",
+      title: "Camille & Jules",
+      data: { publicProfile: { published: true }, logistics: {}, timeline: [] },
+    });
+
+    expect(profile).not.toHaveProperty("practical");
+  });
 });

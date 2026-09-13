@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useMemo, useState, useRef } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { MapPin, CalendarDays, User, Folder, Image as ImageIcon, Network, BookOpen, Fingerprint, Plus, Pencil, ZoomIn, ZoomOut } from "lucide-react";
+import { MapPin, CalendarDays, User, Folder, Image as ImageIcon, Network, BookOpen, Fingerprint, Plus, Pencil, ZoomIn, ZoomOut, Car, Accessibility, CloudRain } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useLocation, useParams } from "wouter";
 import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicProfile } from "@workspace/api-client-react";
@@ -15,6 +15,7 @@ import { PanelChromeProvider, type PanelChrome } from "@/components/PanelChrome"
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
 import { layoutTimeline } from "@/lib/timeline-layout";
+import { focusWorld } from "@/lib/world-focus";
 import { EventIcon, FilTrack } from "@/components/FilTrack";
 import { indexTimelineConflicts } from "@/lib/timeline-graph";
 
@@ -125,6 +126,75 @@ export function ProfileIdentityHero({
   );
 }
 
+/** Ce que le couple publie pour ses invité·es : le lieu, l'accès, le plan B. Jamais les contacts ni les chiffres. */
+export type ProfilePractical = {
+  venue?: string;
+  parking?: string;
+  accessibility?: string;
+  weatherFallback?: string;
+};
+
+const PRACTICAL_ROWS: { key: keyof ProfilePractical; label: string; icon: typeof MapPin }[] = [
+  { key: "venue", label: "Lieu", icon: MapPin },
+  { key: "parking", label: "Stationnement", icon: Car },
+  { key: "accessibility", label: "Accès", icon: Accessibility },
+  { key: "weatherFallback", label: "Plan B", icon: CloudRain },
+];
+
+export function ProfilePracticalInfo({
+  practical,
+  isPrivatePreview,
+  onEdit,
+}: {
+  practical?: ProfilePractical;
+  isPrivatePreview: boolean;
+  onEdit: () => void;
+}) {
+  const rows = PRACTICAL_ROWS.filter(row => practical?.[row.key]?.trim());
+  if (!rows.length && !isPrivatePreview) return null;
+
+  return (
+    <section
+      data-testid="profile-practical"
+      aria-label="Infos pratiques"
+      className="mt-6 w-full max-w-[min(30rem,100%)] rounded-3xl border border-foreground/8 bg-foreground/[0.03] px-5 py-5 text-left"
+    >
+      <p className="text-center text-[10px] uppercase tracking-[0.3em] text-foreground/35">Infos pratiques</p>
+
+      {rows.length === 0 ? (
+        <p data-testid="profile-practical-empty" className="mt-4 text-center text-xs font-light leading-6 text-foreground/45">
+          Rien n'est encore publié : les invité·es ne verront que le programme.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {rows.map(row => (
+            <li key={row.key} data-testid={`profile-practical-${row.key}`} className="flex items-start gap-3">
+              <row.icon className="mt-0.5 h-4 w-4 shrink-0 text-foreground/35" />
+              <span className="min-w-0">
+                <span className="block text-[9px] uppercase tracking-[.18em] text-foreground/40">{row.label}</span>
+                <span className="mt-0.5 block text-sm font-light leading-6 text-foreground/75 [overflow-wrap:anywhere]">
+                  {practical?.[row.key]}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {isPrivatePreview && (
+        <button
+          type="button"
+          data-testid="profile-practical-edit"
+          onClick={onEdit}
+          className="mt-5 w-full rounded-full border border-foreground/12 px-4 py-2 text-[10px] uppercase tracking-[.16em] text-foreground/65 transition hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+        >
+          Modifier ces infos
+        </button>
+      )}
+    </section>
+  );
+}
+
 export function PublicProfilePage({ privatePreview: forcePrivatePreview = false }: { privatePreview?: boolean }) {
   const params = useParams<{ projectId: string }>();
   const [, navigate] = useLocation();
@@ -148,6 +218,15 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
 
   const privatePreview = useMemo<ProfileView | undefined>(() => {
     if (!project || (!forcePrivatePreview && project.id !== params.projectId)) return undefined;
+    /* Ce que les invité·es verront : le couple le remplit dans la logistique,
+       et l'aperçu montre exactement la projection publique — ni contacts, ni chiffres. */
+    const logistics = project.logistics;
+    const publishedPractical: ProfilePractical = {
+      ...(project.venue.value?.trim() ? { venue: project.venue.value.trim() } : {}),
+      ...(logistics?.parking?.trim() ? { parking: logistics.parking.trim() } : {}),
+      ...(logistics?.accessibility?.trim() ? { accessibility: logistics.accessibility.trim() } : {}),
+      ...(logistics?.weatherFallback?.trim() ? { weatherFallback: logistics.weatherFallback.trim() } : {}),
+    };
     return {
       id: project.id,
       title: project.title,
@@ -155,6 +234,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       ...(project.universe ? { universe: project.universe } : {}),
       ...(project.city.value?.trim() ? { city: project.city.value.trim() } : {}),
       pivot: project.pivot.value,
+      ...(Object.keys(publishedPractical).length ? { practical: publishedPractical } : {}),
       timeline: project.timeline
         .filter(event => forcePrivatePreview ? canRoleSeeTimelineEvent(event, currentRole) : event.visibility === "audience")
         .sort((a, b) => a.time - b.time)
@@ -447,6 +527,11 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                 isPrivatePreview={isPrivatePreview}
                 onEditIdentity={() => isPrivatePreview && setSelectedNode({ type: "identity", label: "Identité" })}
               >
+                <ProfilePracticalInfo
+                  practical={profile.practical}
+                  isPrivatePreview={isPrivatePreview}
+                  onEdit={() => focusWorld({ route: "/user-portal", panel: "logistics" })}
+                />
                 {isPrivatePreview && contextItems.length > 0 && (
                   <div className="mt-4 flex max-w-full items-center justify-center -space-x-2 overflow-x-auto px-4 py-4 hide-scrollbar" aria-label="Collections du Monde">
                     {contextItems.map((item, index) => (
