@@ -239,3 +239,39 @@ trio ceremony/logistics/messages. Proposition non appliquée : c'est un choix de
 - Régénérer les 2 derniers visuels (`wedding-patrimoine`, `wedding-attire`) : limite de génération atteinte.
 - Traduire les ~1 200 chaînes FR codées en dur (dont le Graphe) ; dates/montants par locale ; `BASE_PATH`.
 - Décision démo (8.2) et menu « Plus » de la nav (8.3).
+
+---
+
+# Passe 3 — 13 septembre 2026 (positionnement + allègement)
+
+- **Infos publiques retirées de l'APRÈS** (`getWeddingNavigation`) : l'Après est la clôture
+  (mercis, souvenirs, film, lune de miel, cagnottes). Elles restent le Jour J. Test mis à jour (25 OK).
+- **12/12 visuels modernes** générés (`patrimoine`, `tenue` inclus ; tous dans la fenêtre 20–420 Ko).
+- **Entrée Invité** : elle existe déjà mais est enfouie — publication du profil public + « Voir le profil » +
+  « Copier le lien » dans les réglages du Monde (`PortalControls.tsx:1088-1108`, route `/profil/:id`).
+  Proposition : la remonter en entrée de navigation « Invité » (Jour J) qui ouvre/copie le mini-site.
+- **Allègement des panneaux** : les pilules `PanelChromeBar` répètent la barre latérale + la nav horizontale
+  dans le Monde → on peut les masquer dans le Monde et ne les garder que sur le Profil (changeur de sections).
+- **APRÈS = clôture définitive** : proposition d'une action « Clôturer le Monde » (archive, sort de la nav active).
+- **Stratégie** : classement des forces ci-dessous (réponse en session), du plus fort au moins fort,
+  mis en regard des rêves des futurs mariés puis des wedding planners.
+
+## 10. Forces classées (lecture produit, fondée sur le code)
+
+Futurs mariés, du plus fort au moins fort :
+1. Un seul espace privé né d'une phrase (fini tableurs/fils éparpillés) — rêve n°1.
+2. Jour J orchestré : conflits détectés, propagation, run sheet, mini-carte personne — le différenciant.
+3. Qui voit quoi : rôles + graphe de visibilité — partager sans exposer budget/privé.
+4. Mini-site invité + RSVP par lien — mais sous-exposé (réglages), d'où l'« entrée Invité » manquante.
+5. Budget engagé/payé/à régler.
+6. L'après-mémoire : souvenirs, film, mercis, anniversaires.
+7. Assistant AIME (confort).
+8. Local-first / sauvegarde (confiance, invisible).
+
+Wedding planners, du plus fort au moins fort :
+1. Multi-Mondes (catalogue + WorldSwitcher + persona pro) — la base du métier.
+2. Rôles de collaboration (éditer, gérer les accès) — délégation propre.
+3. Prestataires/tâches/budget par Monde — CRM léger.
+4. Timeline/conflits — livrer un Jour J carré à chaque client.
+Manque principal pro : pas de vue agrégée multi-clients (tableau de bord, échéances croisées), pas de
+facturation structurée, démo/seed identique pour tous.
