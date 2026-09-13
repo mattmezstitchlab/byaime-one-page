@@ -309,6 +309,28 @@ ouvert aux modifications par erreur » — mais aucune clôture n'existait.
    par `canEdit`.
 3. `WorldClosure.tsx` dans l'aperçu Après : deux clics pour clôturer, date de clôture,
    réouverture laissée au ou à la propriétaire. Rien n'est effacé : le Monde reste consultable.
-4. Contrôles : typecheck OK · vitest 45 fichiers (app) + 10 (api-server) OK · build OK ·
-   smoke CONTRÔLE LOCAL OK. Non couvert : le second clic de confirmation (pas de jsdom dans ce
-   paquet, rendu statique uniquement).
+4. Contrôles : typecheck OK · vitest 46 fichiers (app) + 10 (api-server) OK · build OK ·
+   smoke CONTRÔLE LOCAL OK. Le paquet n'a pas de jsdom (rendu statique) : l'état de
+   confirmation est donc testé via `WorldClosureView`, la vue pure des trois états.
+
+## Passe 5 — 2026-09-13 : l'Avant avait tout sauf sa tête
+
+### Constat
+`UniversalTimeline` donnait une tête au Jour J (`isDayRun` → `DayRunTimeline`) et à l'Après
+(`isApresRun` → `ApresOverview`), mais rien à l'Avant : filtrer sur les préparations ne
+montrait qu'une liste de Moments, sans jamais dire où en est le couple.
+
+### Correction
+1. `AvantOverview.tsx` : compte à rebours (J-x, « C'est aujourd'hui », « Le Jour J est passé »,
+   « Date à poser »), prochain jalon réellement à venir, puis trois cartes — tâches
+   (ouvertes / en retard + prochaine), prestataires (à réserver / réservés + prochaine action),
+   argent (payé sur engagé, paiements dus) — chacune ouvrant son panneau.
+2. Un rôle sans `seeFinances` (famille, spectateur) ne voit pas l'argent : la troisième carte
+   devient les réponses des invités (confirmés / en attente).
+3. `UniversalTimeline` : `isAvantRun` sur le même modèle que les deux autres.
+
+### Contrôles
+typecheck racine OK · vitest : 46 fichiers (app) + 10 (api-server) + 2 (aime-domain) OK ·
+`vite build` OK · `preview/smoke.mjs` = CONTRÔLE LOCAL OK.
+Découverte au passage : le rendu statique échappe l'apostrophe en `&#x27;`, d'où une assertion
+écrite sans elle.

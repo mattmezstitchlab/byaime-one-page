@@ -15,6 +15,7 @@ import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
 import { DayRunTimeline } from "@/components/DayRunTimeline";
 import { ApresOverview } from "@/components/ApresOverview";
+import { AvantOverview } from "@/components/AvantOverview";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
 
@@ -244,6 +245,9 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
   // (galerie, mots doux, film) avec leurs comptes réels, puis le journal
   // cinématique continue en dessous.
   const isApresRun = events.length > 0 && events.every(item => item.phase === "apres");
+  /* Et pour l'Avant : la tête de vue résume l'état des préparations (tâches,
+     prestataires, argent) avant de laisser la liste des Moments continuer. */
+  const isAvantRun = events.length > 0 && events.every(item => item.phase === "avant");
 
   return (
     <div className="w-full flex flex-col bg-background">
@@ -254,6 +258,8 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
       )}
 
       {isDayRun && <div className="pt-8"><DayRunTimeline events={events} onOpen={setSelected} /></div>}
+
+      {isAvantRun && <AvantOverview />}
 
       {isApresRun && <ApresOverview />}
 

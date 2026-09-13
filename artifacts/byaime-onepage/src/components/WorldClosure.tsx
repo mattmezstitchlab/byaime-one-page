@@ -12,19 +12,29 @@ import { Archive, Lock, Unlock } from "lucide-react";
  * consultable et figé, sans rien effacer. Elle demande deux clics, et le ou la
  * propriétaire peut toujours rouvrir.
  */
-export function WorldClosure({
+
+/**
+ * Rendu pur des trois états (ouvert, confirmation, clos). Séparé de l'état
+ * pour que la confirmation soit testable : ce paquet rend en statique, sans
+ * jsdom, donc un composant qui garde son état ne peut pas être cliqué en test.
+ */
+export function WorldClosureView({
   closedAt,
+  confirming,
   canClose,
+  onRequestClose,
+  onCancel,
   onClose,
   onReopen,
 }: {
   closedAt?: number;
+  confirming: boolean;
   canClose: boolean;
+  onRequestClose: () => void;
+  onCancel: () => void;
   onClose: () => void;
   onReopen: () => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
-
   return (
     <section
       data-testid="world-closure"
@@ -78,7 +88,7 @@ export function WorldClosure({
             <button
               type="button"
               data-testid="world-closure-cancel"
-              onClick={() => setConfirming(false)}
+              onClick={onCancel}
               className="rounded-full border border-foreground/15 px-4 py-2 text-xs text-foreground/65 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
             >
               Pas encore
@@ -88,7 +98,7 @@ export function WorldClosure({
           <button
             type="button"
             data-testid="world-closure-open"
-            onClick={() => setConfirming(true)}
+            onClick={onRequestClose}
             className="mt-4 inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Archive className="h-3.5 w-3.5" />
@@ -101,5 +111,31 @@ export function WorldClosure({
         </p>
       )}
     </section>
+  );
+}
+
+export function WorldClosure({
+  closedAt,
+  canClose,
+  onClose,
+  onReopen,
+}: {
+  closedAt?: number;
+  canClose: boolean;
+  onClose: () => void;
+  onReopen: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <WorldClosureView
+      closedAt={closedAt}
+      confirming={confirming}
+      canClose={canClose}
+      onRequestClose={() => setConfirming(true)}
+      onCancel={() => setConfirming(false)}
+      onClose={onClose}
+      onReopen={onReopen}
+    />
   );
 }
