@@ -21,18 +21,18 @@ const ROLE_HINTS: Record<RoleVisibility, string> = {
 };
 
 const KIND_COLORS: Record<string, string> = {
-  event: "#ffffff",
-  guest: "#64d2ff",
-  table: "#30d158",
-  provider: "#ff9f0a",
-  task: "#ffd60a",
-  payment: "#4cd964",
-  document: "#bf5af2",
-  music: "#ff375f",
-  team: "#5ac8fa",
-  message: "#0a84ff",
-  logistics: "#ff9f0a",
-  memory: "#bf5af2",
+  event: "hsl(var(--foreground) / 0.8)",
+  guest: "hsl(var(--foreground) / 0.8)",
+  table: "hsl(var(--foreground) / 0.8)",
+  provider: "hsl(var(--foreground) / 0.8)",
+  task: "hsl(var(--foreground) / 0.8)",
+  payment: "hsl(var(--foreground) / 0.8)",
+  document: "hsl(var(--foreground) / 0.8)",
+  music: "hsl(var(--foreground) / 0.8)",
+  team: "hsl(var(--foreground) / 0.8)",
+  message: "hsl(var(--foreground) / 0.8)",
+  logistics: "hsl(var(--foreground) / 0.8)",
+  memory: "hsl(var(--foreground) / 0.8)",
 };
 
 const NODE_R = 7;
@@ -134,7 +134,7 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
 
           {/* entity nodes */}
           {entities.map((node, i) => {
-            const color = KIND_COLORS[node.kind] ?? "#ffffff";
+            const color = KIND_COLORS[node.kind] ?? "hsl(var(--foreground) / 0.8)";
             const panel = node.kind !== "event" ? PANEL_FOR_KIND[node.kind as keyof typeof PANEL_FOR_KIND] : undefined;
             const clickable = Boolean(node.visible && panel && onOpenPanel);
             return (
@@ -145,7 +145,7 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
                 style={clickable ? { cursor: "pointer" } : undefined}
               >
                 {clickable && <title>Ouvrir dans son panneau</title>}
-                <circle cx={ENTITY_X} cy={entityY(i)} r={NODE_R} fill={node.visible ? color : "transparent"} stroke={color} strokeWidth={clickable ? 2 : 1.5} strokeDasharray={node.visible ? undefined : "2 3"} />
+                <circle cx={ENTITY_X} cy={entityY(i)} r={NODE_R} fill={node.visible ? color : "transparent"} stroke={clickable ? "hsl(var(--brand-accent))" : color} strokeWidth={clickable ? 2 : 1.5} strokeDasharray={node.visible ? undefined : "2 3"} />
                 <text x={ENTITY_X + NODE_R + 10} y={entityY(i) + 3.5} fill="currentColor" fontSize="11" className={clickable ? "font-medium underline decoration-dotted underline-offset-2" : undefined}>
                   {node.label.length > 28 ? `${node.label.slice(0, 28)}…` : node.label}
                 </text>

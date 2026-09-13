@@ -15,6 +15,8 @@ export type WorldFocusRequest = {
   graph?: boolean;
   /** Ouvre la synthèse du Monde (budget, progression, alertes de conflits). */
   overview?: boolean;
+  /** Ouvre la recherche dans tout le Monde. */
+  search?: boolean;
   momentId?: string;
   entityKind?: string;
   entityId?: string;

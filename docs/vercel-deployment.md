@@ -44,6 +44,14 @@ Preview, Development as needed):
 - `VITE_CLERK_PUBLISHABLE_KEY` — same value as `CLERK_PUBLISHABLE_KEY`;
   without it the site shows a "Connexion momentanément indisponible" screen
   instead of the app.
+- `AIME_CHAT_API_KEY` — optional. Without it the assistant (`/assistant`,
+  `POST /api/projects/:id/aime/chat`) answers in local mode from the
+  authorized wedding brief. With it, answers are drafted by an
+  OpenAI-compatible chat model, still grounded on the same brief.
+- `AIME_CHAT_API_URL` — optional, defaults to
+  `https://api.openai.com/v1/chat/completions`. Any OpenAI-compatible
+  endpoint works (proxy, self-hosted gateway).
+- `AIME_CHAT_MODEL` — optional, defaults to `gpt-4o-mini`.
 
 The build itself can complete without `DATABASE_URL`, but any runtime that
 loads the API bundle without this variable will fail with the explicit error

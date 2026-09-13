@@ -34,9 +34,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Guides AIME",
-      "short_name": "Guides",
-      "url": "/guides",
+      "name": "Assistant AIME",
+      "short_name": "Assistant",
+      "url": "/assistant",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]

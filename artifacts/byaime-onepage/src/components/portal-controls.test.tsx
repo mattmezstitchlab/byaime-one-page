@@ -53,8 +53,10 @@ vi.mock("@clerk/react", () => ({
 
 describe("PortalControls", () => {
   beforeAll(() => {
-    // @ts-ignore
-    global.window = { location: { pathname: "/user-portal" } };
+    global.window = {
+      location: { pathname: "/user-portal" },
+      localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+    } as unknown as Window & typeof globalThis;
   });
 
   it("renders without crashing when project is present", () => {

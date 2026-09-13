@@ -8,15 +8,12 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { LegalPage } from '@/pages/Legal';
-import { GuidesPage } from '@/pages/Guides';
 import { LandingPage } from '@/pages/Landing';
 import { PortalOnboarding } from '@/components/PortalOnboarding';
-import { AimePublicGuide } from '@/components/AimePublicGuide';
+import { PortalBackdrop } from '@/components/PortalBackdrop';
 import { ProjectProvider, useProject } from '@/store/project-store';
-import { ModeProvider } from '@/lib/mode';
 import { useI18n } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
-import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 
 import { PrivateLayout } from '@/components/PrivateLayout';
@@ -32,11 +29,13 @@ const clerkKeyMissing = !clerkPubKey;
 /*
  * Découpage par route : l'espace privé (Monde Mariage, panneaux, Timeline) et
  * le profil public ne sont chargés que lorsqu'on les ouvre — jamais par le
- * visiteur de l'accueil. L'accueil, les guides et l'authentification restent
- * synchrones, car ce sont les parcours d'entrée.
+ * visiteur de l'accueil. L'accueil et l'authentification restent synchrones,
+ * car ce sont les parcours d'entrée.
  */
 const LazyHome = lazy(() => import('@/pages/Home').then(module => ({ default: module.Home })));
 const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module => ({ default: module.PublicProfilePage })));
+const LazyAssistant = lazy(() => import('@/pages/Assistant').then(module => ({ default: module.AssistantPage })));
+const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ default: module.FoldersPage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -161,17 +160,9 @@ function AuthPage({ signup = false }: { signup?: boolean }) {
       data-testid={signup ? 'auth-sign-up' : 'auth-sign-in'}
       className="relative min-h-[100dvh] overflow-hidden bg-black"
     >
-      {/* Grand visuel immersif derrière la carte d'authentification : les médias
-          sont du contenu, jamais un thème (texte et liens restent blancs). */}
-      <div aria-hidden className="absolute inset-0">
-        <img
-          src={getAssetUrl(AIME_VISUALS.hero.backgroundImage)}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-        <div className="aime-apple-overlay absolute inset-0" />
-        <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_20%,rgba(0,187,205,0.14),transparent_62%)]" />
-      </div>
+      {/* Fond Mesh lagon du portail derrière la carte d'authentification : la
+          même identité que l'espace privé, texte et liens blancs. */}
+      <PortalBackdrop />
       <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-4 pb-24 pt-24">
         <img
           src={`${basePath}/logo.svg`}
@@ -216,7 +207,6 @@ function InvitePage({ params }: { params: { token: string } }) {
       }
     }}>{pending ? 'Acceptation…' : "Accepter l’accès au Monde"}</button>}
     {error && <p data-testid="invite-error" className="mt-4 text-sm text-destructive">{error}</p>}
-    <AimePublicGuide screen="invite" testId="invite-guide-button" label="Comprendre cette invitation" />
   </div></div>;
 }
 function RsvpPage({ params }: { params: { token: string } }) {
@@ -281,7 +271,6 @@ function RsvpPage({ params }: { params: { token: string } }) {
       : { day: "numeric", month: "long", year: "numeric" });
   };
   return <main data-testid="rsvp-page" data-rsvp-state={status} className="min-h-screen bg-background text-foreground p-5 py-8 md:p-10"><div className="mx-auto max-w-5xl">
-    <AimePublicGuide screen="rsvp" testId="rsvp-guide-button" label={t('rsvp.guide.label')} />
     <header className="mb-7"><p className="text-xs tracking-[.3em] text-foreground/50">{t('rsvp.eyebrow')}</p><h1 data-testid="rsvp-title" className="mt-2 font-display text-4xl">{projectTitle}</h1><p data-testid="rsvp-guest" className="mt-2 text-foreground/60">{portal.guest?.name ? t('rsvp.hello', { name: portal.guest.name }) : t('rsvp.defaultTitle')} · {t('rsvp.noAccess')}</p>
       <nav aria-label={t('rsvp.nav')} className="mt-5 flex gap-2 overflow-x-auto pb-2">{([['rsvp', 'RSVP'], ['jour-j', t('rsvp.nav.day')], ['partager', t('rsvp.nav.share')], ['musique', t('rsvp.music.eyebrow')], ['apres', t('rsvp.nav.after')]] as const).map(([id, label]) => <a data-testid={`link-rsvp-${id}`} key={id} href={`#${id}`} className="shrink-0 rounded-full border border-border px-4 py-2 text-sm hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{label}</a>)}</nav>
     </header>
@@ -340,13 +329,14 @@ function RouteFallback() {
 
 function Routes() {
   return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
-    <Route path="/guides" component={GuidesPage} />
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>
     <Route path="/user-portal">{() => <PrivateRoute><LazyHome /></PrivateRoute>}</Route>
     <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
+    <Route path="/assistant">{() => <PrivateRoute><LazyAssistant /></PrivateRoute>}</Route>
+    <Route path="/dossiers">{() => <PrivateRoute><LazyFolders /></PrivateRoute>}</Route>
     <Route path="/connexion/*?">{() => <AuthPage />}</Route>
     <Route path="/creation/*?">{() => <AuthPage signup />}</Route>
     <Route path="/sign-in/*?">{() => <AuthPage />}</Route>
@@ -366,9 +356,7 @@ function Providers() {
     <QueryClientProvider client={queryClient}>
       <CacheInvalidator />
       <ProjectProvider>
-        <ModeProvider>
-          <TooltipProvider><Routes /><Toaster /></TooltipProvider>
-        </ModeProvider>
+        <TooltipProvider><Routes /><Toaster /></TooltipProvider>
       </ProjectProvider>
     </QueryClientProvider>
   </ClerkProvider>;

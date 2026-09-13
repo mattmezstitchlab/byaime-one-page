@@ -1,5 +1,4 @@
 import { translate, type Locale } from "./i18n-dictionary";
-import type { AimeMode } from "./mode";
 import type { TimelineView } from "./timeline-graph";
 import type { TimelineEntityKind } from "./types";
 
@@ -61,7 +60,7 @@ export const WEDDING_MODULE_IDS = [
   "contributions", "thanks", "film", "honeymoon",
 ] as const;
 export type WeddingModule = (typeof WEDDING_MODULE_IDS)[number];
-export type WeddingPanelId = WeddingModule | "planning" | "guests" | "providers" | "dayof" | "sections";
+export type WeddingPanelId = WeddingModule | "planning" | "guests" | "providers" | "dayof";
 export type WeddingDestination = { kind: "view"; view: TimelineView } | { kind: "panel"; panel: WeddingPanelId } | { kind: "route"; href: string };
 export type WeddingNavigationItem = { id: string; label: string; description: string; destination: WeddingDestination };
 export type WeddingNavigation = { primary: WeddingNavigationItem[]; secondary: WeddingNavigationItem[] };
@@ -104,44 +103,27 @@ const team = (locale: Locale) => item(locale, "team", "team", { kind: "panel", p
 /**
  * Catégories communes aux trois périodes (Avant / Jour J / Après). Elles vivent
  * dans la barre latérale verticale gauche, comme la navigation globale, pour ne
- * plus encombrer la navigation horizontale de chaque mode.
+ * plus encombrer la navigation horizontale de chaque phase.
  */
 export const WEDDING_RAIL_ICONS = ["timeline", "people", "providers", "tasks", "finances", "documents", "team", "music"] as const;
 export type WeddingRailIcon = (typeof WEDDING_RAIL_ICONS)[number];
 export type WeddingRailItem = WeddingNavigationItem & { icon: WeddingRailIcon };
 
-/**
- * Mode Facile : l'essentiel du mariage. Le rail garde la Timeline, les
- * invités, les prestataires, les tâches et le budget ; les outils de phase
- * gardent le Jour J (pendant) et les souvenirs (apres). Tout le reste
- * (plan de table, cérémonie, logistique, messages, équipe, musique,
- * contributions, remerciements, film, lune de miel…) reste en Pro.
- */
-export const FACILE_RAIL_IDS = ["timeline", "people", "providers", "tasks", "finances"] as const;
-export const FACILE_PHASE_ITEM_IDS = ["day-of", "memories"] as const;
-const FACILE_ENTRY_IDS: readonly string[] = [...FACILE_RAIL_IDS, ...FACILE_PHASE_ITEM_IDS];
-
-/** Vues de la Timeline accessibles en Facile. */
-export const FACILE_VIEW_IDS: readonly TimelineView[] = ["chronological", "day-of"];
-
 export function isWeddingEntryAllowed(
   entry: WeddingNavigationItem,
   capabilities: WeddingCapabilities,
-  mode: AimeMode = "pro",
 ): boolean {
-  if (mode === "facile" && !FACILE_ENTRY_IDS.includes(entry.id)) return false;
   if (entry.id === "finances") return capabilities.seeFinances;
   if (entry.id === "documents" || entry.id === "film") return capabilities.managePrivateDocuments;
   if (capabilities.manage || capabilities.editOperational) return true;
   return ["timeline", "people", "public-info", "music", "contributions", "thanks", "memories", "film", "honeymoon"].includes(entry.id);
 }
 
-/** Barre latérale du Monde : les catégories communes, identiques d'un mode à l'autre. */
+/** Barre latérale du Monde : les catégories communes, identiques d'une phase à l'autre. */
 export function getWeddingRailItems(
   phase: WorldPhase,
   capabilities: WeddingCapabilities,
   locale: Locale = "fr",
-  mode: AimeMode = "pro",
 ): WeddingRailItem[] {
   const timelineByPhase = {
     avant: timeline(locale, ""),
@@ -158,11 +140,11 @@ export function getWeddingRailItems(
     { ...team(locale), icon: "team" },
     { ...music(locale, phase === "pendant"), icon: "music" },
   ];
-  return entries.filter(entry => isWeddingEntryAllowed(entry, capabilities, mode));
+  return entries.filter(entry => isWeddingEntryAllowed(entry, capabilities));
 }
 
 /**
- * Navigation horizontale : ne reste que ce qui est propre au MODE courant.
+ * Navigation horizontale : ne reste que ce qui est propre à la phase courante.
  * Le socle commun (Personnes, Prestataires, Tâches, Finances, Documents,
  * Équipe, Musique) est dans la barre latérale ; cette rangée décrit la période.
  */
@@ -170,7 +152,6 @@ export function getWeddingNavigation(
   phase: WorldPhase,
   capabilities: WeddingCapabilities,
   locale: Locale = "fr",
-  mode: AimeMode = "pro",
 ): WeddingNavigation {
   let primary: WeddingNavigationItem[];
   let secondary: WeddingNavigationItem[];
@@ -184,13 +165,13 @@ export function getWeddingNavigation(
     primary = [thanks(locale), photos(locale), film(locale), honeymoon(locale), contributions(locale), practical(locale)];
     secondary = [ceremony(locale), logistics(locale), messages(locale)];
   }
-  primary = primary.filter(entry => isWeddingEntryAllowed(entry, capabilities, mode));
-  secondary = secondary.filter(entry => isWeddingEntryAllowed(entry, capabilities, mode));
+  primary = primary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
+  secondary = secondary.filter(entry => isWeddingEntryAllowed(entry, capabilities));
   return { primary, secondary };
 }
 
 export const WEDDING_PANEL_IDS = [
-  "planning", "guests", "providers", "dayof", "sections", "seating", "budget", "documents", "ceremony",
+  "planning", "guests", "providers", "dayof", "seating", "budget", "documents", "ceremony",
   "music", "logistics", "messages", "team", "memories", "contributions", "thanks", "film", "honeymoon",
 ] as const;
 
@@ -215,14 +196,14 @@ export function isWeddingDestinationActive(destination: WeddingDestination, view
 /**
  * Navigation contextuelle DANS un panneau : à quelle catégorie de navigation
  * il appartient, et donc quels panneaux voisins proposer en raccourcis.
- *  - « Socle commun » : les catégories présentes toute l'année dans le rail
- *    gauche (Personnes, Prestataires, Tâches, Finances, Documents, Équipe,
+ *  - « Socle commun » : les catégories présentes toute l'année dans le panneau
+ *    de l'orbe (Personnes, Prestataires, Tâches, Finances, Documents, Équipe,
  *    Musique) ;
  *  - « Outils du mode » : les outils propres à la phase courante, de la
- *    rangée horizontale.
- * Le panneau « sections » est le sommaire complet et n'a pas de groupe.
+ *    rangée horizontale — qui liste désormais toutes les entrées, sans
+ *    sommaire intermédiaire.
  */
-export type PanelContextGroup = { id: "rail" | "phase" | "sections"; label: string; items: WeddingNavigationItem[] };
+export type PanelContextGroup = { id: "rail" | "phase"; label: string; items: WeddingNavigationItem[] };
 
 export function getPanelContextGroup(
   panel: WeddingPanelId,
@@ -231,7 +212,6 @@ export function getPanelContextGroup(
   view: TimelineView,
   locale: Locale = "fr",
 ): PanelContextGroup {
-  if (panel === "sections") return { id: "sections", label: translate(locale, "world.group.navigation"), items: [] };
   const phaseItems = [...navigation.primary, ...navigation.secondary];
   const belongsToRail =
     rail.some(item => item.destination.kind === "panel" && item.destination.panel === panel) ||
@@ -242,22 +222,20 @@ export function getPanelContextGroup(
 
 /**
  * Trouve la phase (Avant / Jour J / Après) dans laquelle un panneau donné est
- * accessible pour un rôle. Sert à ouvrir le bon mode quand on arrive sur un
+ * accessible pour un rôle. Sert à ouvrir la bonne phase quand on arrive sur un
  * panneau depuis une statistique, une recherche ou un graphe (ex. « Souvenirs »
- * cliqué en mode Avant doit basculer en Après, pas se refermer en silence).
+ * cliqué en phase Avant doit basculer en Après, pas se refermer en silence).
  */
 export function findPhaseForPanel(
   panel: WeddingPanelId,
   role: string,
   view: TimelineView,
-  mode: AimeMode = "pro",
 ): WorldPhase | null {
-  if (panel === "sections") return null;
   const capabilities = getWeddingCapabilities(role);
   for (const phase of WORLD_PHASE_IDS) {
     /* Question de structure, pas d'affichage : la locale n'entre pas en compte. */
-    const rail = getWeddingRailItems(phase, capabilities, "fr", mode);
-    const navigation = getWeddingNavigation(phase, capabilities, "fr", mode);
+    const rail = getWeddingRailItems(phase, capabilities, "fr");
+    const navigation = getWeddingNavigation(phase, capabilities, "fr");
     if (isWeddingPanelAvailable(panel, navigation, view, rail)) return phase;
   }
   return null;
@@ -269,7 +247,6 @@ export function isWeddingPanelAvailable(
   view: TimelineView,
   rail: WeddingNavigationItem[] = [],
 ) {
-  if (panel === "sections") return true;
   const available = [...rail, ...navigation.primary, ...navigation.secondary].some(
     item => item.destination.kind === "panel" && item.destination.panel === panel,
   );

@@ -33,10 +33,6 @@ export function getPrivateNavigation(locale: Locale = "fr"): PrivateDestination[
 /** La navigation en français : conservée pour les appels non traduits. */
 export const PRIVATE_PRIMARY_NAVIGATION: ReadonlyArray<PrivateDestination> = getPrivateNavigation("fr");
 
-export function getDesktopRailReservedWidth(isPinned: boolean): 80 | 276 {
-  return isPinned ? 276 : 80;
-}
-
 export function getPrivateDestinationId(pathname: string): PrivateDestinationId {
   if (pathname.startsWith("/user-portal")) return "world";
   return "profile";

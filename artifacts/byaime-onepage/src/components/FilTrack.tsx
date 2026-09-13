@@ -155,7 +155,7 @@ export function FilTrack({
                 {confidence && ACTIONABLE_CONFIDENCE.has(event.confidence ?? "") && (
                   <span
                     data-testid={`fil-confidence-${event.id}`}
-                    className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-background bg-amber-300"
+                    className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-background bg-brand-accent"
                   />
                 )}
                 {eventConflicts.length > 0 && (

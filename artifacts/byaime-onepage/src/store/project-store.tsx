@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useAuth } from '@clerk/react';
-import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication, type ParticipantLink } from '../lib/types';
+import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication, fact, type ParticipantLink } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
 import { INTENTION_DRAFT_KEY, INTENTION_META_KEY, MIN_INTENTION_LENGTH, readIntentionMeta, type IntentionMeta } from '@/lib/intention-draft';
 import { normalizeProject } from '../lib/project-migration';
@@ -29,6 +29,7 @@ type ProjectStore = {
   setIntentionText: (text: string) => void;
   commitDraft: () => void;
   createProjectFromIntention: (text: string) => boolean;
+  createProjectFromDraft: (draft: Partial<WorldProject>, subtitle: string) => void;
   createWeddingDemo: () => void;
   clearProject: () => void;
   selectProject: (id: string) => Promise<boolean>;
@@ -317,6 +318,31 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     if (draft && intentionText) createProjectFromIntention(intentionText);
   }, [createProjectFromIntention, draft, intentionText]);
 
+  /* Un Monde neuf depuis une ébauche complète (Dossier Jour J) : pas de phrase
+     d'intention, pas de données de démo — `normalizeProject` fournit les vides. */
+  const createProjectFromDraft = useCallback((draft: Partial<WorldProject>, subtitle: string) => {
+    projectCreationSourceRef.current = 'created';
+    const newProject = normalizeProject({
+      schemaVersion: 2,
+      id: crypto.randomUUID(),
+      title: draft.title || "Projet",
+      subtitle,
+      universe: draft.universe || "Mariage",
+      pivot: draft.pivot || fact(Date.now() + 31536000000, "deduit"),
+      city: draft.city,
+      venue: draft.venue,
+      guestsCount: draft.guestsCount,
+      budget: draft.budget,
+      persona: draft.persona,
+      currency: draft.currency,
+      logistics: draft.logistics,
+    } as WorldProject);
+    setPendingOwnedProjectId(newProject.id);
+    setProject(newProject);
+    setDraft(null);
+    setIntentionTextState('');
+  }, []);
+
   const createWeddingDemo = useCallback(() => {
     projectCreationSourceRef.current = 'created';
     const example = "On se marie le 14 août 2027 près de Lille, 120 invités, ambiance champêtre avec un budget de 20 000€";
@@ -408,6 +434,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       setIntentionText,
       commitDraft,
       createProjectFromIntention,
+      createProjectFromDraft,
       createWeddingDemo,
       clearProject,
       selectProject,

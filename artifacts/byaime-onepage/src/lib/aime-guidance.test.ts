@@ -149,7 +149,7 @@ describe("agent de guidage d'AIME", () => {
     expect(answer.kind).toBe("unknown");
     expect(answer.title).toContain("pas trouvé");
     expect(answer.matches).toHaveLength(0);
-    expect(answer.actions[0].focus?.panel).toBe("sections");
+    expect(answer.actions[0].focus?.search).toBe(true);
   });
 
   it("explique le modèle quand on demande comment AIME fonctionne", () => {

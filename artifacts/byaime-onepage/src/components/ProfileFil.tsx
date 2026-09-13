@@ -21,12 +21,12 @@ import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
 const typeMeta: Record<ProfileFilCard["type"], { label: string; icon: LucideIcon; tone: string }> = {
-  task: { label: "À faire", icon: CheckSquare, tone: "border-sky-400/25 bg-sky-400/10 text-sky-300" },
-  fact: { label: "Point confirmé", icon: Activity, tone: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300" },
+  task: { label: "À faire", icon: CheckSquare, tone: "border-brand-accent/30 bg-brand-accent/10 text-brand-accent" },
+  fact: { label: "Point confirmé", icon: Activity, tone: "border-foreground/15 bg-foreground/5 text-foreground/65" },
   alert: { label: "À regarder", icon: ShieldAlert, tone: "border-rose-400/25 bg-rose-400/10 text-rose-300" },
-  suggestion: { label: "Conseil", icon: Compass, tone: "border-violet-400/25 bg-violet-400/10 text-violet-300" },
-  tutorial: { label: "Comprendre AIME", icon: BookOpen, tone: "border-amber-400/25 bg-amber-400/10 text-amber-300" },
-  inspiration: { label: "Inspiration publique", icon: Sparkles, tone: "border-fuchsia-400/25 bg-fuchsia-400/10 text-fuchsia-300" },
+  suggestion: { label: "Conseil", icon: Compass, tone: "border-foreground/15 bg-foreground/5 text-foreground/65" },
+  tutorial: { label: "Comprendre AIME", icon: BookOpen, tone: "border-foreground/15 bg-foreground/5 text-foreground/65" },
+  inspiration: { label: "Inspiration publique", icon: Sparkles, tone: "border-foreground/15 bg-foreground/5 text-foreground/65" },
 };
 
 const categoryMeta: Record<ProfileFilCardCategory, { eyebrow: string; title: string }> = {
@@ -69,7 +69,7 @@ export function ProfileFilCardView({ card, onAction }: { card: ProfileFilCard; o
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] text-foreground/38">
           <span className="rounded-full border border-foreground/8 bg-foreground/[.025] px-2.5 py-1">{card.source.label}</span>
           {card.evidenceStatus === "verified" && (
-            <span className="flex items-center gap-1 uppercase tracking-[.14em] text-emerald-400/65">
+            <span className="flex items-center gap-1 uppercase tracking-[.14em] text-foreground/55">
               <CheckCircle2 className="h-3 w-3" /> Sourcé
             </span>
           )}
@@ -109,7 +109,7 @@ export function ProfileFil({ projectId, onOpenMoment }: { projectId: string, onO
   if (error || !data) {
     return (
       <div data-testid="profile-fil-error" className="flex flex-col items-center justify-center px-6 py-28 text-center">
-        <AlertCircle className="mb-5 h-8 w-8 text-amber-400/75" />
+        <AlertCircle className="mb-5 h-8 w-8 text-brand-accent/75" />
         <h3 className="mb-2 text-xl font-light">Le Fil est momentanément indisponible</h3>
         <p className="max-w-md text-sm font-light leading-6 text-foreground/50">La Timeline reste accessible et aucune recommandation n’a été inventée.</p>
         <button type="button" onClick={() => void refetch()} className="mt-6 inline-flex items-center gap-2 rounded-full border border-foreground/15 px-4 py-2.5 text-[9px] uppercase tracking-[.16em] text-foreground/65 hover:bg-foreground/5">
@@ -122,7 +122,7 @@ export function ProfileFil({ projectId, onOpenMoment }: { projectId: string, onO
   if (data.cards.length === 0) {
     return (
       <div data-testid="profile-fil-empty" className="flex flex-col items-center justify-center px-6 py-28 text-center">
-        <CheckCircle2 className="mb-5 h-8 w-8 text-emerald-400/70" />
+        <CheckCircle2 className="mb-5 h-8 w-8 text-brand-accent" />
         <h3 className="mb-2 text-xl font-light">Rien ne demande votre attention</h3>
         <p className="max-w-md text-sm font-light leading-6 text-foreground/50">Le Fil n’a aucune carte fiable à proposer pour ce Monde en ce moment.</p>
       </div>

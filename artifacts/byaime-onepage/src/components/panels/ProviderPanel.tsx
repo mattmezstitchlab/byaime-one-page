@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { useProject } from "@/store/project-store";
+import { DispooBanner } from "@/components/DispooBanner";
 
 export function ProviderPanel() {
   const { project, updateEntity, addEntity, removeEntity, canEdit } = useProject();
   const [query, setQuery] = useState("");
   if (!project) return null;
   const providers = project.providers.filter(provider => `${provider.role} ${provider.name || ""}`.toLowerCase().includes(query.toLowerCase()));
+  const city = typeof project.city.value === "string" ? project.city.value : "";
   return <div className="mx-auto max-w-4xl space-y-4"><div className="flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-full border border-foreground/10 px-3"><Search className="h-3.5 w-3.5" /><input value={query} onChange={e => setQuery(e.target.value)} className="w-full bg-transparent py-2 text-sm outline-none" placeholder="Rechercher un professionnel…" /></label>{canEdit && <button onClick={() => addEntity("providers", { role: "Nouveau poste", category: "autre", status: "recherche" })} className="rounded-full border border-foreground/15 px-3 text-xs"><Plus className="mr-1 inline h-3 w-3" />Ajouter</button>}</div>
+    <DispooBanner variant="providers" placement="providers" query={query.trim() || undefined} city={city || undefined} />
     <div className="grid gap-3 md:grid-cols-2">{providers.map(provider => {
       const journey = project.timeline.filter(event => event.relations?.some(relation => relation.kind === "provider" && relation.id === provider.id));
       const payments = project.payments.filter(payment => payment.providerId === provider.id);
