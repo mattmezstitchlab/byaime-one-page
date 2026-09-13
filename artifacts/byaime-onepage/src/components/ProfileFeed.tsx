@@ -46,7 +46,7 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-55"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-[#FBFAF8]/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-[#FFFFFF]/30" />
         <motion.div 
           animate={isActive ? { scale: [1.1, 1], opacity: [0.3, 0.6] } : { scale: 1.1, opacity: 0 }}
           transition={{ duration: 8, ease: "easeOut" }}
@@ -96,7 +96,7 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
   }
 
   return (
-    <div className="absolute inset-0 z-0 bg-[#FBFAF8]">
+    <div className="absolute inset-0 z-0 bg-[#FFFFFF]">
       <motion.div 
          animate={isActive ? { rotate: [0, 1, 0], scale: [1, 1.02, 1] } : {}}
          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
@@ -111,7 +111,7 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
 
 const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isActive: boolean, onSelect: () => void }) => {
   return (
-    <button type="button" className="relative w-full h-full flex flex-col justify-end p-8 md:p-16 overflow-hidden bg-[#FBFAF8] text-left text-[#171410] group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white" onClick={onSelect} aria-label={`Ouvrir le Moment ${event.title}`}>
+    <button type="button" className="relative w-full h-full flex flex-col justify-end p-8 md:p-16 overflow-hidden bg-[#FFFFFF] text-left text-[#171410] group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white" onClick={onSelect} aria-label={`Ouvrir le Moment ${event.title}`}>
        <SlideBackground event={event} isActive={isActive} />
 
        <div className="relative z-10 max-w-4xl transition-transform duration-500 group-hover:-translate-y-2">
@@ -174,7 +174,7 @@ const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isAct
        </div>
        
        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-         <div className="w-20 h-20 rounded-full border border-[#171410]/20 bg-[#FBFAF8]/20 backdrop-blur-md flex items-center justify-center text-[#171410]">
+         <div className="w-20 h-20 rounded-full border border-[#171410]/20 bg-[#FFFFFF]/20 backdrop-blur-md flex items-center justify-center text-[#171410]">
            <ExternalLink className="w-6 h-6" />
          </div>
        </div>
@@ -274,7 +274,7 @@ export function ProfileFeed({
   };
 
   return (
-    <div className="relative w-full h-[70vh] min-h-[500px] bg-[#FBFAF8] flex flex-col rounded-[2.5rem] overflow-hidden border border-foreground/10 shadow-2xl">
+    <div className="relative w-full h-[70vh] min-h-[500px] bg-[#FFFFFF] flex flex-col rounded-[2.5rem] overflow-hidden border border-foreground/10 shadow-2xl">
       <AnimatePresence mode="wait">
         {currentEvent ? (
            <motion.div 
@@ -313,7 +313,7 @@ export function ProfileFeed({
                onClick={() => { setFilter(f.id as any); setCurrentIndex(0); }}
                className={cn(
                  "px-4 py-2 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors backdrop-blur-md border",
-                 filter === f.id ? "bg-[#171410] text-[#FBFAF8] font-semibold border-white" : "bg-[#FBFAF8]/20 text-[#171410] hover:bg-[#171410]/10 border-[#171410]/10"
+                 filter === f.id ? "bg-[#171410] text-[#FFFFFF] font-semibold border-white" : "bg-[#FFFFFF]/20 text-[#171410] hover:bg-[#171410]/10 border-[#171410]/10"
                )}
              >
                {f.label}
@@ -321,12 +321,12 @@ export function ProfileFeed({
            ))}
          </div>
 
-         <div className="flex gap-1 bg-[#FBFAF8]/40 p-1.5 rounded-full backdrop-blur-xl border border-[#171410]/10 pointer-events-auto shrink-0">
+         <div className="flex gap-1 bg-[#FFFFFF]/40 p-1.5 rounded-full backdrop-blur-xl border border-[#171410]/10 pointer-events-auto shrink-0">
             <button 
               onClick={setMaintenant}
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors",
-                mode === "maintenant" ? "bg-[#171410] text-[#FBFAF8] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
+                mode === "maintenant" ? "bg-[#171410] text-[#FFFFFF] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
               )}
             >
               Maintenant
@@ -335,7 +335,7 @@ export function ProfileFeed({
               onClick={() => setMode("replay")}
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors",
-                mode === "replay" ? "bg-[#171410] text-[#FBFAF8] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
+                mode === "replay" ? "bg-[#171410] text-[#FFFFFF] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
               )}
             >
               <Play className="w-3 h-3" /> Replay
@@ -352,7 +352,7 @@ export function ProfileFeed({
                setCurrentIndex(i => (i - 1 + filteredEvents.length) % filteredEvents.length);
              }}
               aria-label="Moment précédent"
-             className="w-14 h-14 rounded-full bg-[#FBFAF8]/20 backdrop-blur-xl flex items-center justify-center text-[#171410] hover:bg-[#171410]/10 transition-colors border border-[#171410]/10 hover:scale-105"
+             className="w-14 h-14 rounded-full bg-[#FFFFFF]/20 backdrop-blur-xl flex items-center justify-center text-[#171410] hover:bg-[#171410]/10 transition-colors border border-[#171410]/10 hover:scale-105"
            >
              <ArrowLeft className="w-5 h-5" />
            </button>
@@ -363,7 +363,7 @@ export function ProfileFeed({
                setCurrentIndex(i => (i + 1) % filteredEvents.length);
              }}
               aria-label="Moment suivant"
-             className="w-14 h-14 rounded-full bg-[#FBFAF8]/20 backdrop-blur-xl flex items-center justify-center text-[#171410] hover:bg-[#171410]/10 transition-colors border border-[#171410]/10 hover:scale-105"
+             className="w-14 h-14 rounded-full bg-[#FFFFFF]/20 backdrop-blur-xl flex items-center justify-center text-[#171410] hover:bg-[#171410]/10 transition-colors border border-[#171410]/10 hover:scale-105"
            >
              <ArrowRight className="w-5 h-5" />
            </button>

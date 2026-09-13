@@ -24,7 +24,7 @@ export function BilanPage() {
   });
 
   return (
-    <main data-testid="bilan-page" className="min-h-[100dvh] bg-[#FBFAF8] text-[#171410] antialiased">
+    <main data-testid="bilan-page" className="min-h-[100dvh] bg-[#FFFFFF] text-[#171410] antialiased">
       {isLoading ? (
         <p className="flex min-h-[100dvh] items-center justify-center text-[11px] uppercase tracking-[0.3em] text-[#8A8375]">
           Ouverture du bilan

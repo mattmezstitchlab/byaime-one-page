@@ -93,7 +93,7 @@ export function LandingShowcase() {
         </div>
 
         {/* Le hero du Monde, sur fond noir comme dans l'app. */}
-        <div className="bg-[#FBFAF8] px-6 py-8 text-[#171410] md:px-8">
+        <div className="bg-[#FFFFFF] px-6 py-8 text-[#171410] md:px-8">
           <div className="flex items-start justify-between gap-6">
             <div>
               <h3 className="font-display text-2xl font-semibold tracking-tight">
@@ -109,7 +109,7 @@ export function LandingShowcase() {
                 background: "conic-gradient(hsl(var(--brand-accent)) 64%, rgba(255,255,255,.14) 0)",
               }}
             >
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-[#FBFAF8] text-[11px] tabular-nums text-[#171410]">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-[#FFFFFF] text-[11px] tabular-nums text-[#171410]">
                 64%
               </span>
             </div>

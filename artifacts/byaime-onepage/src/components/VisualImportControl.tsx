@@ -89,14 +89,14 @@ export function VisualImportControl({
 
       {value ? (
         <div className="mt-3 overflow-hidden rounded-xl border border-foreground/10">
-          <div className="relative aspect-video w-full bg-[#FBFAF8]">
+          <div className="relative aspect-video w-full bg-[#FFFFFF]">
             {value.kind === "image" ? (
               <img src={value.url} alt={value.name ? `Visuel : ${value.name}` : "Aperçu du visuel"} className="h-full w-full object-cover" />
             ) : (
               <video src={value.url} className="h-full w-full object-cover" autoPlay muted loop playsInline />
             )}
-            <div className="pointer-events-none absolute inset-0 bg-[#FBFAF8]" style={{ opacity: overlay / 100 * 0.75 }} aria-hidden />
-            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#FBFAF8]/60 px-2 py-0.5 text-[9px] uppercase tracking-[.14em] text-[#171410]/85 backdrop-blur-sm">
+            <div className="pointer-events-none absolute inset-0 bg-[#FFFFFF]" style={{ opacity: overlay / 100 * 0.75 }} aria-hidden />
+            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#FFFFFF]/60 px-2 py-0.5 text-[9px] uppercase tracking-[.14em] text-[#171410]/85 backdrop-blur-sm">
               {value.kind === "video" ? <Film className="h-3 w-3" /> : <ImagePlus className="h-3 w-3" />}
               {value.kind === "video" ? "Vidéo" : "Image"}{value.name ? ` · ${value.name.length > 24 ? `${value.name.slice(0, 24)}…` : value.name}` : ""}
             </span>

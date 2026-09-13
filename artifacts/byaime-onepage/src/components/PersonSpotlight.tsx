@@ -93,7 +93,7 @@ export function PersonSpotlight({
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={name}>
-      <button type="button" aria-label={t("spotlight.close")} onClick={onClose} className="absolute inset-0 cursor-default bg-[#FBFAF8]/60 backdrop-blur-sm" />
+      <button type="button" aria-label={t("spotlight.close")} onClick={onClose} className="absolute inset-0 cursor-default bg-[#FFFFFF]/60 backdrop-blur-sm" />
       <div data-testid="person-spotlight" className="relative w-full max-w-xs overflow-hidden rounded-3xl border border-foreground/15 bg-card shadow-2xl">
         <div className="flex items-start gap-3 p-4">
           <span className="block h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-foreground/15 bg-zinc-800">

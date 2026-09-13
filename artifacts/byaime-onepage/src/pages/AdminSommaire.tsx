@@ -37,7 +37,7 @@ export function AdminSommairePage() {
   const plan = buildAdminPlan(currentRole ?? "owner");
 
   return (
-    <main data-testid="admin-page" className="min-h-[100dvh] bg-[#FBFAF8] px-6 py-16 text-[#171410] antialiased">
+    <main data-testid="admin-page" className="min-h-[100dvh] bg-[#FFFFFF] px-6 py-16 text-[#171410] antialiased">
       <div className="mx-auto max-w-3xl">
         <header className="text-center">
           <p className="text-[11px] uppercase tracking-[0.38em] text-[#8A8375]">Back-office</p>
@@ -61,7 +61,7 @@ export function AdminSommairePage() {
                 <li key={item.id} className="border-t border-[#E6E1D8]">
                   <button
                     onClick={() => openItem(item)}
-                    className="flex w-full items-baseline gap-5 py-4 text-left transition-colors hover:bg-[#F5F2EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]"
+                    className="flex w-full items-baseline gap-5 py-4 text-left transition-colors hover:bg-[#FFFFFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]"
                   >
                     <span className="text-[16px] text-[#171410]">{item.label}</span>
                     <span className="ml-auto max-w-[46%] text-right text-[12px] leading-snug text-[#8A8375]">
@@ -78,13 +78,13 @@ export function AdminSommairePage() {
           <h2 className="text-[11px] uppercase tracking-[0.38em] text-[#8A8375]">Hors du Monde</h2>
           <ul className="mt-6">
             <li className="border-t border-[#E6E1D8]">
-              <Link href="/profile" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[#F5F2EC]">
+              <Link href="/profile" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[#FFFFFF]">
                 <span className="text-[16px]">Bilan et page des mariés</span>
                 <span className="ml-auto text-[12px] text-[#8A8375]">Le livrable vertical, et son partage.</span>
               </Link>
             </li>
             <li className="border-t border-[#E6E1D8]">
-              <Link href="/agence" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[#F5F2EC]">
+              <Link href="/agence" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[#FFFFFF]">
                 <span className="text-[16px]">Vitrine de l&rsquo;agence</span>
                 <span className="ml-auto text-[12px] text-[#8A8375]">Ce que voient vos futurs mariés.</span>
               </Link>

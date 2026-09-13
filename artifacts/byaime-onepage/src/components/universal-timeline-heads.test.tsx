@@ -77,12 +77,12 @@ describe("UniversalTimeline — une tête par période", () => {
     expect(markup).not.toContain('data-testid="apres-overview"');
   });
 
-  it("montre les trois gestes de l'Après quand tous les Moments sont passés", () => {
+  it("n'impose aucune tête Après : l'Après vit dans un projet séparé", () => {
     const markup = renderToStaticMarkup(
-      <UniversalTimeline events={[event("e3", "apres", now + 60 * DAY, "Album")]} />,
+      <UniversalTimeline events={[event("e3", "apres", now + 60 * DAY, "Album")]} />
     );
 
-    expect(markup).toContain('data-testid="apres-overview"');
+    expect(markup).not.toContain('data-testid="apres-overview"');
     expect(markup).not.toContain('data-testid="avant-overview"');
     expect(markup).not.toContain('data-testid="day-run"');
   });

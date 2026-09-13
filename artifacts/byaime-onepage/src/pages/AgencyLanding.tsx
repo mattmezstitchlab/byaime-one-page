@@ -66,7 +66,7 @@ export default function AgencyLanding() {
   const ceremony = getAssetUrl(AGENCY_VISUALS.ceremony);
 
   return (
-    <main data-testid="agency-landing" className="bg-[#FBFAF8] text-[#171410] antialiased">
+    <main data-testid="agency-landing" className="bg-[#FFFFFF] text-[#171410] antialiased">
       {/* ————— Barre haute ————— */}
       <header className="absolute inset-x-0 top-0 z-10">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
@@ -89,7 +89,7 @@ export default function AgencyLanding() {
             </a>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="border border-[#171410] px-5 py-2.5 text-[11px] uppercase tracking-[0.3em] text-[#171410] transition-colors hover:bg-[#171410] hover:text-[#FBFAF8]"
+              className="border border-[#171410] px-5 py-2.5 text-[11px] uppercase tracking-[0.3em] text-[#171410] transition-colors hover:bg-[#171410] hover:text-[#FFFFFF]"
             >
               Prendre rendez-vous
             </a>
@@ -111,7 +111,7 @@ export default function AgencyLanding() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <a
             href={`mailto:${CONTACT_EMAIL}`}
-            className="bg-[#171410] px-8 py-4 text-[11px] uppercase tracking-[0.3em] text-[#FBFAF8] transition-opacity hover:opacity-80"
+            className="bg-[#171410] px-8 py-4 text-[11px] uppercase tracking-[0.3em] text-[#FFFFFF] transition-opacity hover:opacity-80"
           >
             Prendre rendez-vous
           </a>
@@ -186,7 +186,7 @@ export default function AgencyLanding() {
       </section>
 
       {/* ————— Ce que vous recevez ————— */}
-      <section data-testid="agency-deliverables" aria-label="Ce que vous recevez" className="border-t border-[#E6E1D8] bg-[#F5F2EC]">
+      <section data-testid="agency-deliverables" aria-label="Ce que vous recevez" className="border-t border-[#E6E1D8] bg-[#FFFFFF]">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <Eyebrow>Ce que vous recevez</Eyebrow>
           <div className="mt-10 grid gap-16 lg:grid-cols-2">
@@ -236,7 +236,7 @@ export default function AgencyLanding() {
           className="h-[72dvh] w-full object-cover"
         />
         <figcaption className="absolute inset-0 flex items-center justify-center bg-[#171410]/25 px-6">
-          <p className="max-w-2xl text-center text-3xl leading-snug text-[#FBFAF8] sm:text-4xl" style={serif}>
+          <p className="max-w-2xl text-center text-3xl leading-snug text-[#FFFFFF] sm:text-4xl" style={serif}>
             <em>Le luxe, c&rsquo;est de n&rsquo;avoir rien à gérer.</em>
           </p>
         </figcaption>
@@ -254,7 +254,7 @@ export default function AgencyLanding() {
         </p>
         <a
           href={`mailto:${CONTACT_EMAIL}`}
-          className="mt-10 inline-block bg-[#171410] px-10 py-4 text-[11px] uppercase tracking-[0.3em] text-[#FBFAF8] transition-opacity hover:opacity-80"
+          className="mt-10 inline-block bg-[#171410] px-10 py-4 text-[11px] uppercase tracking-[0.3em] text-[#FFFFFF] transition-opacity hover:opacity-80"
         >
           {CONTACT_EMAIL}
         </a>

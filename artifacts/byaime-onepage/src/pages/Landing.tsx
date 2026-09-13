@@ -53,7 +53,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
       <ShaderBackdrop />
 
       {/* ——— Navigation fine, façon Apple ——— */}
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-[#E6E1D8] bg-[#FBFAF8]/85 backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-[#E6E1D8] bg-[#FFFFFF]/85 backdrop-blur-xl">
         <div className="mx-auto flex h-12 w-full max-w-6xl items-center justify-between px-5 md:px-8">
           <Link
             href="/agence"
@@ -75,7 +75,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
               <Link
                 data-testid="landing-open-space"
                 href="/user-portal"
-                className="inline-flex h-8 items-center rounded-full bg-[#171410] px-4 text-xs font-semibold text-[#FBFAF8] transition hover:opacity-80"
+                className="inline-flex h-8 items-center rounded-full bg-[#171410] px-4 text-xs font-semibold text-[#FFFFFF] transition hover:opacity-80"
               >
                 {t("nav.openSpace")}
               </Link>
@@ -91,7 +91,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
                 <Link
                   data-testid="landing-sign-up"
                   href="/creation"
-                  className="inline-flex h-8 items-center rounded-full bg-[#171410] px-4 text-xs font-semibold text-[#FBFAF8] transition hover:opacity-80"
+                  className="inline-flex h-8 items-center rounded-full bg-[#171410] px-4 text-xs font-semibold text-[#FFFFFF] transition hover:opacity-80"
                 >
                   {t("nav.signUp")}
                 </Link>
@@ -103,7 +103,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
 
       {/* ——— Hero : la promesse, sur fond noir comme le bas de page ——— */}
       <section data-testid="landing-hero" className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden">
-        <div aria-hidden className="absolute inset-0 bg-[#FBFAF8]" />
+        <div aria-hidden className="absolute inset-0 bg-[#FFFFFF]" />
         <div className="aime-landing-copy relative z-10 flex w-full max-w-5xl flex-col items-center px-6 pb-24 pt-28 text-center md:pb-28 md:pt-32">
           <Reveal className="flex flex-col items-center">
             <p className="aime-apple-eyebrow text-[#8A8375]">{t("hero.eyebrow")}</p>
@@ -213,7 +213,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </Reveal>
       </section>
 
-      <footer className="relative z-10 border-t border-[#E6E1D8] bg-[#FBFAF8] px-6 pb-10 pt-14 text-[#4c463d] md:px-10">
+      <footer className="relative z-10 border-t border-[#E6E1D8] bg-[#FFFFFF] px-6 pb-10 pt-14 text-[#4c463d] md:px-10">
         <div className="mx-auto w-full max-w-6xl">
           <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr]">
             <div>

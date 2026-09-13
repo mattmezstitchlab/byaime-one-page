@@ -39,7 +39,7 @@
     .aime-hero-drift { animation: none; }
   }
   .aime-cinematic-surface {
-    --background: 36 24% 97%;
+    --background: 0 0% 100%;
     --foreground: 30 12% 9%;
     --card: 0 0% 100%;
     --card-foreground: 30 12% 9%;
@@ -87,7 +87,7 @@
  * comme le hero du Monde — les médias ne sont jamais un thème.
  */
 @layer components {
-  .aime-apple-surface {--background: 36 24% 97%;
+  .aime-apple-surface {--background: 0 0% 100%;
     --foreground: 30 12% 9%;
     --card: 0 0% 100%;
     --card-foreground: 30 12% 9%;
@@ -103,7 +103,7 @@
     color-scheme: light;
   }
   :root[data-aime-theme="light"] .aime-apple-surface {
-    --background: 36 24% 97%;
+    --background: 0 0% 100%;
     --foreground: 30 12% 9%;
     --card: 0 0% 100%;
     --card-foreground: 30 12% 9%;
@@ -351,16 +351,16 @@
  * n'est plus reachable depuis l'interface.
  */
 :root {
-  --background: 36 24% 96%;
+  --background: 0 0% 100%;
   --foreground: 30 12% 9%;
   --card: 36 22% 93%;
   --card-foreground: 30 12% 9%;
   --card-border: 30 12% 84%;
-  --popover: 36 24% 96%;
+  --popover: 0 0% 100%;
   --popover-foreground: 30 12% 9%;
   --popover-border: 30 12% 84%;
   --primary: 30 12% 9%;
-  --primary-foreground: 36 24% 96%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 30 10% 88%;
   --secondary-foreground: 30 12% 9%;
   --muted: 30 10% 88%;
@@ -394,16 +394,16 @@
 }
 
 :root[data-aime-theme="light"] {
-  --background: 36 24% 96%;
+  --background: 0 0% 100%;
   --foreground: 30 12% 9%;
   --card: 36 22% 93%;
   --card-foreground: 30 12% 9%;
   --card-border: 30 12% 84%;
-  --popover: 36 24% 96%;
+  --popover: 0 0% 100%;
   --popover-foreground: 30 12% 9%;
   --popover-border: 30 12% 84%;
   --primary: 30 12% 9%;
-  --primary-foreground: 36 24% 96%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 30 10% 88%;
   --secondary-foreground: 30 12% 9%;
   --muted: 30 10% 88%;

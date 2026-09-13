@@ -68,7 +68,7 @@ export function CoupleReport({
 }) {
 
   return (
-    <article data-testid="couple-report" className="mx-auto max-w-2xl bg-[#FBFAF8] px-6 py-16 text-[#171410]">
+    <article data-testid="couple-report" className="mx-auto max-w-2xl bg-[#FFFFFF] px-6 py-16 text-[#171410]">
       {/* ————— Frontispice ————— */}
       <header className="text-center">
         <p className="text-[11px] uppercase tracking-[0.38em] text-[#8A8375]">Le rapport</p>

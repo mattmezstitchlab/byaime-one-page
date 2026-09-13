@@ -14,7 +14,6 @@ import { momentVisualOverlayAlpha } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
 import { DayRunTimeline } from "@/components/DayRunTimeline";
-import { ApresOverview } from "@/components/ApresOverview";
 import { AvantOverview } from "@/components/AvantOverview";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
@@ -65,7 +64,7 @@ const images = AIME_VISUALS.timelineAmbientImages;
 
 /* App institutionnelle : le décor des scènes devient un fond ivoire uni. */
 const AmbientBackground = (_props: { event: TimelineEvent; index: number }) => (
-  <div className="absolute inset-0 z-0 bg-[#FBFAF8]" aria-hidden />
+  <div className="absolute inset-0 z-0 bg-[#FFFFFF]" aria-hidden />
 );
 
 function SubchapterTransition({ title }: { title: string }) {
@@ -90,7 +89,7 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="space-y-6 flex flex-col items-center rounded-3xl p-8 md:p-12 bg-[#FBFAF8]/25 backdrop-blur-sm border border-[#171410]/10 hover:bg-[#FBFAF8]/40 transition-colors"
+          className="space-y-6 flex flex-col items-center rounded-3xl p-8 md:p-12 bg-[#FFFFFF]/25 backdrop-blur-sm border border-[#171410]/10 hover:bg-[#FFFFFF]/40 transition-colors"
         >
           <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-[#171410]/65 font-medium">
             <CalendarDays className="w-4 h-4" />
@@ -178,7 +177,6 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
   // Même logique pour l'Après : la tête de vue montre les trois gestes
   // (galerie, mots doux, film) avec leurs comptes réels, puis le journal
   // cinématique continue en dessous.
-  const isApresRun = events.length > 0 && events.every(item => item.phase === "apres");
   /* Et pour l'Avant : la tête de vue résume l'état des préparations (tâches,
      prestataires, argent) avant de laisser la liste des Moments continuer. */
   const isAvantRun = events.length > 0 && events.every(item => item.phase === "avant");
@@ -195,7 +193,6 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
 
       {isAvantRun && <AvantOverview />}
 
-      {isApresRun && <ApresOverview />}
 
       {!isDayRun && events.map((item, index) => {
         const subchapter = getSubchapter(item, pivotTime);
@@ -233,7 +230,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
       {undoTimeline && (
         <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-3 rounded-full border border-foreground/10 bg-background/90 py-2 pl-4 pr-2 text-xs text-foreground shadow-xl backdrop-blur sm:left-6">
           <span>Changement appliqué</span>
-          <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-[#171410] px-3 py-2 font-medium text-[#FBFAF8]">
+          <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-[#171410] px-3 py-2 font-medium text-[#FFFFFF]">
             <Undo2 className="h-3.5 w-3.5" /> Annuler
           </button>
         </div>
@@ -344,7 +341,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                 {ripplePlan.warnings.map(warning => <p key={warning} className="rounded-xl border border-brand-accent/20 bg-brand-accent/5 p-3 text-xs text-foreground/80">{warning}</p>)}
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-foreground/15 px-3 py-2.5 text-xs text-foreground/60 hover:text-foreground">Garder l’ancien horaire</button>
-                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-[#171410] px-3 py-2.5 text-xs font-medium text-[#FBFAF8]">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
+                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-[#171410] px-3 py-2.5 text-xs font-medium text-[#FFFFFF]">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
                 </div>
               </div>
             </section>

@@ -35,7 +35,6 @@ export function buildAdminPlan(role: string, locale: Locale = "fr"): AdminPlan {
   const rail = getWeddingRailItems("avant", caps, locale);
   const avant = allowed(getWeddingNavigation("avant", caps, locale).primary, caps);
   const pendant = allowed(getWeddingNavigation("pendant", caps, locale).primary, caps);
-  const apres = allowed(getWeddingNavigation("apres", caps, locale).primary, caps);
 
   return {
     sections: [
@@ -50,12 +49,6 @@ export function buildAdminPlan(role: string, locale: Locale = "fr"): AdminPlan {
         title: "Le Jour J",
         hint: "Ce qui se vit le jour même : le déroulé, les infos des invités, le plan de table, les contributions.",
         items: pendant,
-      },
-      {
-        id: "apres",
-        title: "Après",
-        hint: "La clôture : remerciements, souvenirs, film, lune de miel.",
-        items: apres,
       },
     ],
   };

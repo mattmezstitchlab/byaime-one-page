@@ -65,7 +65,7 @@ function Monogram({ label, name, large = false }: { label: string; name: string;
   return (
     <span
       className={cn(
-        "relative grid shrink-0 place-items-center rounded-full border border-[#171410]/20 bg-[#F5F2EC] font-display uppercase text-[#171410]",
+        "relative grid shrink-0 place-items-center rounded-full border border-[#171410]/20 bg-[#FFFFFF] font-display uppercase text-[#171410]",
         large ? "h-20 w-20 text-2xl sm:h-24 sm:w-24" : "h-9 w-9 text-sm",
       )}
       title={name}
@@ -468,14 +468,14 @@ export function ProjectStage() {
       </nav>
       {/* Cinematic Header */}
       <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
-        <div className="absolute inset-0 z-0 bg-[#FBFAF8]" aria-hidden />
+        <div className="absolute inset-0 z-0 bg-[#FFFFFF]" aria-hidden />
         <div className="aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6">
           <motion.button
             type="button"
             onClick={() => setWorldMenuOpen(true)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex w-fit items-center gap-2 rounded-full border border-[#171410]/20 bg-[#FBFAF8]/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition hover:bg-[#171410] hover:text-[#FBFAF8]"
+            className="flex w-fit items-center gap-2 rounded-full border border-[#171410]/20 bg-[#FFFFFF]/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition hover:bg-[#171410] hover:text-[#FFFFFF]"
             aria-label={t("world.hero.chooseWorld")}
           >
             {heroCopy.eyebrow}
@@ -557,7 +557,7 @@ export function ProjectStage() {
               style={{ background: `conic-gradient(from -90deg, hsl(var(--brand-accent)) 0deg ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
               aria-label={t("world.hero.tasks.aria", { percent: completion })}
             >
-              <span className="grid h-full w-full place-items-center rounded-full bg-[#FBFAF8]/90 text-[11px] font-medium tabular-nums text-[#171410]">{completion}%</span>
+              <span className="grid h-full w-full place-items-center rounded-full bg-[#FFFFFF]/90 text-[11px] font-medium tabular-nums text-[#171410]">{completion}%</span>
             </button>}
           </motion.div>}
 
@@ -753,7 +753,7 @@ export function ProjectStage() {
                     "relative aspect-square rounded-2xl text-sm transition",
                     !isSameMonth(day, calendarMonth) && "text-foreground/16",
                     isSameMonth(day, calendarMonth) && "text-foreground/58 hover:bg-foreground/[.06] hover:text-foreground",
-                    isSelected && "bg-[#171410] text-[#FBFAF8] hover:bg-[#171410] hover:text-[#FBFAF8]",
+                    isSelected && "bg-[#171410] text-[#FFFFFF] hover:bg-[#171410] hover:text-[#FFFFFF]",
                     isPivot && !isSelected && "ring-1 ring-inset ring-foreground/45"
                   )}
                 >
@@ -778,7 +778,7 @@ export function ProjectStage() {
                 updateProject({ pivot: { ...project.pivot, value: next.getTime() } });
                 setCalendarOpen(false);
               }}
-              className="rounded-full bg-[#171410] px-5 py-2.5 text-xs font-medium text-[#FBFAF8] disabled:cursor-default disabled:opacity-25"
+              className="rounded-full bg-[#171410] px-5 py-2.5 text-xs font-medium text-[#FFFFFF] disabled:cursor-default disabled:opacity-25"
             >
               {isSameDay(selectedDate, project.pivot.value) ? t("world.calendar.currentDate") : t("world.calendar.setPivot")}
             </button>

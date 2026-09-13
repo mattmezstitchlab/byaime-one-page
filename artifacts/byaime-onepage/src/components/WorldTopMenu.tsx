@@ -38,14 +38,14 @@ export function WorldTopMenu({
             onClick={() => setOpen(open === section.id ? null : section.id)}
             className={
               open === section.id
-                ? "rounded-full bg-[#171410] px-4 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[#FBFAF8]"
+                ? "rounded-full bg-[#171410] px-4 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[#FFFFFF]"
                 : "rounded-full px-4 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[#171410]/70 transition-colors hover:bg-[#171410]/10 hover:text-[#171410]"
             }
           >
             {section.title}
           </button>
           {open === section.id && (
-            <div className="absolute left-0 top-full z-50 mt-1 min-w-72 border border-[#E6E1D8] bg-[#FBFAF8] shadow-xl">
+            <div className="absolute left-0 top-full z-50 mt-1 min-w-72 border border-[#E6E1D8] bg-[#FFFFFF] shadow-xl">
               <p className="border-b border-[#E6E1D8] px-4 py-2 text-[11px] leading-relaxed text-[#8A8375]">
                 {section.hint}
               </p>
@@ -57,7 +57,7 @@ export function WorldTopMenu({
                     onOpen(item.destination);
                     setOpen(null);
                   }}
-                  className="flex w-full flex-col gap-0.5 px-4 py-2.5 text-left transition-colors hover:bg-[#F5F2EC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]/40"
+                  className="flex w-full flex-col gap-0.5 px-4 py-2.5 text-left transition-colors hover:bg-[#FFFFFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]/40"
                 >
                   <span className="text-[13px] text-[#171410]">{item.label}</span>
                   <span className="text-[11px] leading-snug text-[#8A8375]">{item.description}</span>

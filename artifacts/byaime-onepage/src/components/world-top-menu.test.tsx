@@ -8,7 +8,7 @@ import { WorldTopMenu } from "./WorldTopMenu";
  */
 
 describe("WorldTopMenu", () => {
-  it("affiche les trois catégories, dans l'ordre du mariage", () => {
+  it("affiche les deux catégories du projet, dans l'ordre du mariage", () => {
     const html = renderToStaticMarkup(
       <WorldTopMenu role="owner" locale="fr" onOpen={() => undefined} />,
     );
@@ -16,7 +16,6 @@ describe("WorldTopMenu", () => {
     expect(html).toContain('data-testid="world-top-menu"');
     expect(html).toContain("Concevoir et préparer");
     expect(html).toContain("Le Jour J");
-    expect(html).toContain("Après");
   });
 
   it("garde les sous-menus fermés : rien ne déborde au rendu", () => {

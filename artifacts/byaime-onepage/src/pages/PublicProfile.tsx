@@ -366,7 +366,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       {viewMode === "rapport" && project ? (
         <div className="w-full h-full overflow-y-auto pt-28 pb-16 animate-in fade-in duration-500 relative z-10">
           {isPrivatePreview && canEdit && (
-            <div className="mx-auto mb-6 mt-2 flex w-full max-w-2xl flex-wrap items-center justify-between gap-3 border border-[#E6E1D8] bg-[#F5F2EC] px-5 py-3">
+            <div className="mx-auto mb-6 mt-2 flex w-full max-w-2xl flex-wrap items-center justify-between gap-3 border border-[#E6E1D8] bg-[#FFFFFF] px-5 py-3">
               <p className="text-[11px] uppercase tracking-[0.25em] text-[#6F6A61]">
                 {shareReport ? "Bilan partagé avec les mariés" : "Bilan non partagé"}
               </p>
@@ -374,7 +374,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                 {shareReport ? <code className="text-[12px] text-[#4c463d]">/bilan/{profileId}</code> : null}
                 <button
                   onClick={toggleShareReport}
-                  className="border border-[#171410] px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-[#171410] transition-colors hover:bg-[#171410] hover:text-[#FBFAF8]"
+                  className="border border-[#171410] px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-[#171410] transition-colors hover:bg-[#171410] hover:text-[#FFFFFF]"
                 >
                   {shareReport ? "Ne plus partager" : "Partager le bilan"}
                 </button>

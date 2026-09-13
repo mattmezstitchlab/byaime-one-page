@@ -63,7 +63,7 @@ function Slideshow({ events, onClose }: { events: TimelineEvent[], onClose: () =
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-[#FBFAF8] text-[#171410] flex flex-col"
+      className="fixed inset-0 z-[100] bg-[#FFFFFF] text-[#171410] flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-label="Lecture de la Timeline"
@@ -141,7 +141,7 @@ function Slideshow({ events, onClose }: { events: TimelineEvent[], onClose: () =
         <button 
           onClick={() => setPlaying(!playing)}
           aria-label={playing ? "Mettre la lecture en pause" : "Reprendre la lecture"}
-          className="w-16 h-16 rounded-full bg-[#171410] text-[#FBFAF8] flex items-center justify-center hover:scale-105 transition-transform"
+          className="w-16 h-16 rounded-full bg-[#171410] text-[#FFFFFF] flex items-center justify-center hover:scale-105 transition-transform"
         >
           {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
         </button>
@@ -231,7 +231,7 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       data-testid="day-conductor"
-      className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-[#FBFAF8] text-[#171410]"
+      className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-[#FFFFFF] text-[#171410]"
       role="dialog"
       aria-modal="true"
       aria-label="Régie du Jour J"
@@ -286,7 +286,7 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
               <Rewind className="h-6 w-6" />
             </button>
             {canEdit && (currentState === "live" || currentState === "late") && (
-              <button onClick={finish} className="inline-flex items-center gap-2 rounded-full bg-[#171410] px-5 py-3 text-sm font-medium text-[#FBFAF8] transition-transform hover:scale-105">
+              <button onClick={finish} className="inline-flex items-center gap-2 rounded-full bg-[#171410] px-5 py-3 text-sm font-medium text-[#FFFFFF] transition-transform hover:scale-105">
                 <Check className="h-4 w-4" /> Terminer
               </button>
             )}
