@@ -1,7 +1,17 @@
+/*
+ * Les visuels sont servis sous un nom stable (`wedding-ceremony.jpg`) pour
+ * qu'un photographe puisse remplacer le fichier sans toucher au code. Contrepartie :
+ * l'URL ne change jamais, et un navigateur qui a déjà mis l'image en cache
+ * continue d'afficher l'ancienne après remplacement. Le jeton de version casse
+ * ce cache — à incrémenter à chaque remplacement de visuel.
+ */
+const ASSETS_VERSION = "2026-09-13";
+
 export function getAssetUrl(path: string) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${cleanPath}`;
+  const separator = cleanPath.includes('?') ? '&' : '?';
+  return `${base}${cleanPath}${separator}v=${ASSETS_VERSION}`;
 }
 
 /*

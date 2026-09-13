@@ -34,6 +34,15 @@ describe("manifeste des visuels du Monde Mariage", () => {
     expect(getAssetUrl(`/${path}`)).toBe(getAssetUrl(path));
   });
 
+  it("versionne l'URL pour qu'un visuel remplacé ne reste pas en cache", () => {
+    const [path] = AIME_VISUAL_PATHS;
+    // Les noms de fichiers sont stables : sans jeton, le navigateur resservirait
+    // l'ancienne image après remplacement du fichier.
+    expect(getAssetUrl(path)).toMatch(/\?v=\d{4}-\d{2}-\d{2}$/);
+    // Un chemin déjà paramétré ne casse pas : le jeton s'ajoute avec &.
+    expect(getAssetUrl(`${path}?x=1`)).toContain("&v=");
+  });
+
   it("couvre tous les usages annoncés par l'interface", () => {
     expect(Object.keys(AIME_VISUALS.universes)).toHaveLength(12);
     expect(AIME_VISUALS.timelineAmbientImages.length).toBeGreaterThanOrEqual(8);

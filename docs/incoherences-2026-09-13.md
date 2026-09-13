@@ -342,3 +342,39 @@ cinq cas — tout Avant (`avant-overview`), tout Jour J (`day-run`), tout Après
 (`apres-overview`), périodes mélangées (aucune tête, Moments listés), vue vide.
 Vérifié par mutation : remplacer `{isAvantRun && <AvantOverview />}` par `{false && …}` fait
 tomber exactement le cas Avant, pas les autres.
+
+## Passe 6 — 2026-09-13 : visuels non vus, « Fiche » mal aiguillée, navigation en doublon
+
+### 1. « Je ne vois pas les visuels changés »
+Vérifié : les 12 fichiers sont bien régénérés (13:06–13:32), `dist` et `public` ont le même
+md5, le serveur d'aperçu renvoie 291 297 octets avec `Last-Modified` du jour, et le manifeste
+(`universes`, `timelineAmbientImages`, `providersByCategory`, `guestPortraitImages`) pointe
+intégralement vers eux. Les visuels sont donc bien servis — mais **sous un nom de fichier
+inchangé**, donc servis depuis le cache du navigateur après remplacement.
+Correction : `getAssetUrl` ajoute un jeton `?v=2026-09-13` (test ajouté). À incrémenter à
+chaque remplacement de visuel.
+À savoir aussi : dans la Timeline, une scène sur deux porte une image, l'autre un dégradé
+(`index % 2 === 0`) — ce n'est pas un oubli de visuel.
+
+### 2. « Fiche » ouvrait la liste des invités
+Cause : `WorldFocusRequest` portait déjà `entityKind`/`entityId`, trois appels du portail les
+envoyaient, mais `applyFocus` ne les lisait pas — la demande tombait par terre, et la mini-carte
+personne se rabattait sur `requestPanel("guests" | "providers")`.
+Correction : `lib/entity-focus.ts` (résolveur entité → nœud éditable, 4 tests), `EntityEditor`
+monté dans le Monde, `applyFocus` traite `entityKind`/`entityId`, les deux boutons « Fiche » de
+`PersonSpotlight` ouvrent la fiche de LA personne. Fiche prestataire ajoutée à `EntityEditor`
+(nom, métier, catégorie, avancement, contact, devis/accompte/payé en euros stockés en centimes,
+prochaine action) — sinon un prestataire tombait sur « non modifiable dans cette vue ».
+`requestPanel` et son écouteur, devenus morts, sont supprimés.
+
+### 3. Les boutons en haut des panneaux
+`CenteredBlock` repeignait la navigation de la page sous l'en-tête de chaque panneau : la même
+rangée existait déjà dans le dock, le rail et l'en-tête du Profil. Supprimée, avec le composant
+`PanelChromeBar`, son test, `PanelChrome.tsx` et les trois `PanelChromeProvider`
+(ProjectStage, PublicProfile, PrivateLayout) devenus inutiles.
+
+### Contrôles
+typecheck racine OK · vitest 47 fichiers / 250 tests (app), 10 / 40 (api-server), 2 / 22
+(aime-domain) · `vite build` OK (jeton présent dans le bundle) · smoke CONTRÔLE LOCAL OK.
+Non vérifié ici : le rendu navigateur réel (pas de Playwright), donc l'effet visuel du retrait
+de la rangée et le rafraîchissement effectif du cache sont à confirmer à l'œil.

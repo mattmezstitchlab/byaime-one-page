@@ -4,10 +4,8 @@ import { cn } from '@/lib/utils';
 import { CommandBar } from '@/components/CommandBar';
 import { GlobalCreateCenter } from '@/components/GlobalCreateCenter';
 import { PortalControls } from '@/components/PortalControls';
-import { PanelChromeProvider } from '@/components/PanelChrome';
 import {
   getPrivateDestinationId,
-  getPrivateNavigation,
 } from '@/lib/private-navigation';
 import { initAppearance } from '@/lib/appearance';
 import { AimeOrb } from '@/components/AimeOrb';
@@ -65,7 +63,6 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const { locale } = useI18n();
   const [openMeSignal, setOpenMeSignal] = useState(0);
 
-  const privateNavigation = getPrivateNavigation(locale);
   const activeDestination = getPrivateDestinationId(location);
 
   useEffect(() => {
@@ -75,9 +72,6 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const openMe = () => setOpenMeSignal(signal => signal + 1);
 
   return (
-    <PanelChromeProvider chrome={{
-      navigation: privateNavigation.map(item => ({ id: item.id, label: item.label, href: item.href })),
-    }}>
     <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       {/* Desktop Logo - Fixed top left */}
       <div className="fixed left-6 top-6 z-[80] hidden md:block">
@@ -108,6 +102,5 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
         <GlobalCreateCenter destination={activeDestination} />
       </div>
     </div>
-    </PanelChromeProvider>
   );
 }

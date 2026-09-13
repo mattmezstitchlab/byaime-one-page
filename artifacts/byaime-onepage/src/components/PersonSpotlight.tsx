@@ -4,7 +4,8 @@ import { useProject } from "@/store/project-store";
 import { useI18n } from "@/lib/i18n";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { formatClock } from "@/lib/day-run";
-import { requestMessage, requestPanel } from "@/lib/person-spotlight-bus";
+import { requestMessage } from "@/lib/person-spotlight-bus";
+import { focusWorld } from "@/lib/world-focus";
 import { cn } from "@/lib/utils";
 import type { Guest, Provider, ProviderCategory } from "@/lib/types";
 
@@ -198,7 +199,7 @@ export function PersonSpotlight({
           ) : (
             <button
               type="button"
-              onClick={() => { onClose(); requestPanel(isProvider ? "providers" : "guests"); }}
+              onClick={() => { onClose(); focusWorld({ route: "/user-portal", entityKind: person.kind, entityId: person.id }); }}
               className="inline-flex items-center justify-center gap-1.5 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:border-foreground/30 hover:text-foreground"
             >
               <UserRound className="h-3.5 w-3.5" />{t("spotlight.file")}
@@ -224,7 +225,7 @@ export function PersonSpotlight({
           {isProvider && contextMoment && (
             <button
               type="button"
-              onClick={() => { onClose(); requestPanel("providers"); }}
+              onClick={() => { onClose(); focusWorld({ route: "/user-portal", entityKind: person.kind, entityId: person.id }); }}
               className={cn(
                 "inline-flex items-center justify-center gap-1.5 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:border-foreground/30 hover:text-foreground",
                 teamRecipients.length < 2 && !PHONE_HINT.test(contact) && "col-span-2",

@@ -355,6 +355,85 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
      );
   }
 
+  /*
+   * La fiche prestataire. Elle n'existait pas : depuis la mini-carte personne,
+   * « Fiche » ne pouvait donc qu'ouvrir le panneau Prestataires entier. Les
+   * montants s'écrivent en euros et sont stockés en centimes, comme partout.
+   */
+  if (node.type === "item" && node.collection === "providers") {
+     const provider = node.sourceRef;
+     const euro = (cents?: number) => (typeof cents === "number" ? cents / 100 : "");
+     const toCents = (value: string) => {
+        const parsed = Number(value);
+        return value.trim() !== "" && Number.isFinite(parsed) ? Math.round(parsed * 100) : undefined;
+     };
+     return (
+        <CenteredBlock eyebrow="Édition Prestataire" title={provider.name || provider.role} onClose={onClose} leading={<Users className="mt-4 w-6 h-6 text-foreground/50" />}>
+           <div className="space-y-6 mt-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                 <div>
+                    <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Nom</label>
+                    <input type="text" className={inputClass} defaultValue={provider.name || ""} disabled={!canEdit}
+                       onBlur={(e) => updateEntity("providers", provider.id, { name: e.target.value })} />
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Métier</label>
+                    <input type="text" className={inputClass} defaultValue={provider.role} disabled={!canEdit}
+                       onBlur={(e) => updateEntity("providers", provider.id, { role: e.target.value })} />
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Catégorie</label>
+                    <select className={selectClass} defaultValue={provider.category} disabled={!canEdit}
+                       onChange={(e) => updateEntity("providers", provider.id, { category: e.target.value })}>
+                       {["lieu", "traiteur", "photo", "video", "fleuriste", "musique", "officiant", "tenue", "beaute", "papeterie", "transport", "hebergement", "autre"].map(category => (
+                          <option key={category} value={category}>{category}</option>
+                       ))}
+                    </select>
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Avancement</label>
+                    <select className={selectClass} defaultValue={provider.status} disabled={!canEdit}
+                       onChange={(e) => updateEntity("providers", provider.id, { status: e.target.value })}>
+                       <option value="recherche">À trouver</option>
+                       <option value="contacte">Contact pris</option>
+                       <option value="rencontre">Rencontré</option>
+                       <option value="devis">Devis reçu</option>
+                       <option value="reserve">Réservé</option>
+                    </select>
+                 </div>
+              </div>
+              <div>
+                 <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Contact</label>
+                 <input type="text" className={inputClass} defaultValue={provider.contact || ""} disabled={!canEdit}
+                    onBlur={(e) => updateEntity("providers", provider.id, { contact: e.target.value })} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                 <div>
+                    <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Devis (€)</label>
+                    <input type="number" min="0" className={inputClass} defaultValue={euro(provider.amountCents)} disabled={!canEdit}
+                       onBlur={(e) => updateEntity("providers", provider.id, { amountCents: toCents(e.target.value) })} />
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Acompte (€)</label>
+                    <input type="number" min="0" className={inputClass} defaultValue={euro(provider.depositCents)} disabled={!canEdit}
+                       onBlur={(e) => updateEntity("providers", provider.id, { depositCents: toCents(e.target.value) })} />
+                 </div>
+                 <div>
+                    <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Payé (€)</label>
+                    <input type="number" min="0" className={inputClass} defaultValue={euro(provider.paidCents)} disabled={!canEdit}
+                       onBlur={(e) => updateEntity("providers", provider.id, { paidCents: toCents(e.target.value) })} />
+                 </div>
+              </div>
+              <div>
+                 <label className="text-[10px] uppercase tracking-widest text-foreground/50 block mb-2">Prochaine action</label>
+                 <input type="text" className={inputClass} defaultValue={provider.nextAction || ""} disabled={!canEdit}
+                    placeholder="Relancer pour le devis final"
+                    onBlur={(e) => updateEntity("providers", provider.id, { nextAction: e.target.value })} />
+              </div>
+           </div>
+        </CenteredBlock>
+     );
+  }
   if (node.type === "item" && node.collection === "memories") {
      const memory = node.sourceRef;
      return (

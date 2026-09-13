@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useClerk } from '@clerk/react';
 import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
@@ -14,11 +15,12 @@ import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/world-focus';
 import { CenteredBlock } from './CenteredBlock';
-import { PanelChromeProvider, type PanelChrome, type PanelNavItem } from './PanelChrome';
+import { EntityEditor } from './EntityEditor';
+import { findEntityNode, type EntityNode } from '@/lib/entity-focus';
 import { AIME_SCREENS, setAimeScreenContext, type AimeScreenId } from '@/lib/aime-guidance';
 import { WorldOverview } from './WorldOverview';
 import { PersonSpotlight } from './PersonSpotlight';
-import { MESSAGE_TO_EVENT, OPEN_PANEL_EVENT } from '@/lib/person-spotlight-bus';
+import { MESSAGE_TO_EVENT } from '@/lib/person-spotlight-bus';
 import { VisibilityGraph } from './VisibilityGraph';
 import { WorldSearch } from './WorldSearch';
 import { WorldSwitcher } from './WorldSwitcher';
@@ -31,12 +33,10 @@ import {
   getWeddingRailItems,
   isWeddingPanelAvailable,
   findPhaseForPanel,
-  getPanelContextGroup,
   getInitialWorldPhase,
   type WorldPhase,
   type WeddingRole,
   type WeddingDestination,
-  type WeddingNavigationItem,
   type WeddingPanelId,
 } from '@/lib/wedding-navigation';
 import { setWorldNavState } from '@/lib/world-nav-state';
@@ -97,7 +97,8 @@ function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; inde
 }
 
 export function ProjectStage() {
-  const { project, projects, selectProject, updateProject, canEdit, currentRole } = useProject();
+  const { project, projects, selectProject, updateProject, updateEntity, canEdit, currentRole } = useProject();
+  const { openUserProfile } = useClerk();
   const { t, locale } = useI18n();
   /* Les dates suivent la langue : `date-fns` pour les libellés, `Intl` pour les listes. */
   const dateLocale = locale === 'en' ? enUS : fr;
@@ -113,6 +114,9 @@ export function ProjectStage() {
   const [graphOpen, setGraphOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [spotlight, setSpotlight] = useState<{ kind: "guest" | "provider"; id: string } | null>(null);
+  /* La fiche d'une entité, ouverte depuis n'importe quel écran (mini-carte personne,
+     relations du portail, recherche) via `entityKind` + `entityId`. */
+  const [entityNode, setEntityNode] = useState<EntityNode | null>(null);
   const [previewRole, setPreviewRole] = useState<WeddingRole | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
@@ -176,6 +180,13 @@ export function ProjectStage() {
   const openPanelSafelyRef = useRef(openPanelSafely);
   openPanelSafelyRef.current = openPanelSafely;
 
+  const openEntityFiche = (kind?: string, id?: string) => {
+    const node = findEntityNode(project, kind, id);
+    if (node) setEntityNode(node);
+  };
+  const openEntityFicheRef = useRef(openEntityFiche);
+  openEntityFicheRef.current = openEntityFiche;
+
   /* Le panneau de l’orbe éclaire la catégorie du Monde active. */
   useEffect(() => {
     setWorldNavState({ active: true, phase, view, panel: activePanel, role: previewRole ?? currentRole });
@@ -198,11 +209,9 @@ export function ProjectStage() {
     const listener = (event: Event) => openCreateTarget((event as CustomEvent<UniversalCreateActionId>).detail);
     const closeWorldPanel = () => setActivePanel(null);
     const openMessagePanel = () => openPanelSafelyRef.current("messages");
-    const openRequestedPanel = (event: Event) => openPanelSafelyRef.current((event as CustomEvent<WeddingPanelId>).detail);
     window.addEventListener("aime:open-create-target", listener);
     window.addEventListener("aime:close-world-panel", closeWorldPanel);
     window.addEventListener(MESSAGE_TO_EVENT, openMessagePanel);
-    window.addEventListener(OPEN_PANEL_EVENT, openRequestedPanel);
     const requestedAction = new URLSearchParams(window.location.search).get("create") as UniversalCreateActionId | null;
     if (requestedAction && (requestedAction === MOMENT_CREATE_ACTION || CREATE_PANEL_TARGETS[requestedAction])) {
       openCreateTarget(requestedAction);
@@ -212,7 +221,6 @@ export function ProjectStage() {
       window.removeEventListener("aime:open-create-target", listener);
       window.removeEventListener("aime:close-world-panel", closeWorldPanel);
       window.removeEventListener(MESSAGE_TO_EVENT, openMessagePanel);
-      window.removeEventListener(OPEN_PANEL_EVENT, openRequestedPanel);
     };
   }, []);
 
@@ -245,6 +253,7 @@ export function ProjectStage() {
         /* Une destination de vue (Timeline, Musique) referme le panneau ouvert. */
         setActivePanel(null);
       }
+      if (request.entityKind && request.entityId) openEntityFicheRef.current(request.entityKind, request.entityId);
       if (request.graph) setGraphOpen(true);
       if (request.overview) setOverviewOpen(true);
       if (request.search) setSearchOpen(true);
@@ -374,42 +383,8 @@ export function ProjectStage() {
       setView(destination.view);
     }
   };
-  /*
-   * Navigation en tête des panneaux : quand un panneau est ouvert, on ne montre
-   * que les panneaux de SA catégorie (socle commun du rail, ou outils du mode),
-   * pour une navigation cohérente entre voisins. Sans panneau, on montre tout.
-   * Le sommaire « sections » porte déjà toute la navigation dans son corps.
-   */
-  const contextGroup = activePanel
-    ? getPanelContextGroup(activePanel, rail, navigation, view, locale)
-    : null;
-  const navigationSource: WeddingNavigationItem[] = contextGroup && activePanel
-    ? contextGroup.items
-    : [...rail, ...navigation.primary, ...navigation.secondary];
-  const panelNavigation: PanelNavItem[] = navigationSource.map(item => {
-    const destination = item.destination;
-    if (destination.kind === "route") return { id: item.id, label: item.label, href: destination.href };
-    if (destination.kind === "view") {
-      return {
-        id: item.id,
-        label: item.label,
-        active: isWeddingDestinationActive(destination, view, activePanel),
-        onClick: () => { setActivePanel(null); setView(destination.view); },
-      };
-    }
-    return {
-      id: item.id,
-      label: item.label,
-      active: isWeddingDestinationActive(destination, view, activePanel),
-      onClick: () => setActivePanel(destination.panel),
-    };
-  });
-  const panelChrome: PanelChrome = {
-    navigation: panelNavigation,
-  };
 
   return (
-    <PanelChromeProvider chrome={panelChrome}>
     <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
       <nav aria-label={t("world.nav.main")} className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
         <div className="flex justify-center px-3 pt-2.5">
@@ -859,12 +834,23 @@ export function ProjectStage() {
           <VisibilityGraph onOpenPanel={panel => { setGraphOpen(false); openPanelSafely(panel); }} />
         </CenteredBlock>
       )}
+      {entityNode && (
+        <EntityEditor
+          node={entityNode}
+          onClose={() => setEntityNode(null)}
+          project={project}
+          updateProject={updateProject}
+          updateEntity={updateEntity}
+          openUserProfile={openUserProfile}
+          currentRole={currentRole}
+          canEdit={canEdit}
+        />
+      )}
       {searchOpen && (
         <CenteredBlock eyebrow={t("world.search.eyebrow")} title={t("world.search.title")} description={t("world.search.desc")} onClose={() => setSearchOpen(false)} size="lg">
           <WorldSearch onClose={() => setSearchOpen(false)} onOpenPanel={panel => { setSearchOpen(false); openPanelSafely(panel); }} />
         </CenteredBlock>
       )}
     </div>
-    </PanelChromeProvider>
   );
 }

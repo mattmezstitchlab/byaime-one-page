@@ -1,11 +1,9 @@
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { findAimeScreenByLabel, getAimeScreen, pushAimeScreen, type AimeScreenId } from "@/lib/aime-guidance";
-import { usePanelChrome, type PanelNavItem } from "./PanelChrome";
 import { useI18n } from "@/lib/i18n";
 
 type CenteredBlockProps = {
@@ -24,66 +22,7 @@ type CenteredBlockProps = {
   screenId?: AimeScreenId;
 };
 
-const navPillClasses = (active?: boolean) =>
-  cn(
-    "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-    active
-      ? "border-foreground bg-foreground text-background"
-      : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground",
-  );
-
-function PanelNavigation({ items, onClose, label }: { items: PanelNavItem[]; onClose: () => void; label: string }) {
-  if (items.length === 0) return null;
-  return (
-    <nav aria-label={label} className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
-      {items.map(item =>
-        item.href ? (
-          <Link
-            key={item.id}
-            href={item.href}
-            onClick={onClose}
-            aria-current={item.active ? "page" : undefined}
-            className={navPillClasses(item.active)}
-          >
-            {item.label}
-          </Link>
-        ) : (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => {
-              onClose();
-              item.onClick?.();
-            }}
-            aria-current={item.active ? "page" : undefined}
-            className={navPillClasses(item.active)}
-          >
-            {item.label}
-          </button>
-        ),
-      )}
-    </nav>
-  );
-}
-
-/**
- * Le bandeau sous l'en-tête d'un panneau : uniquement la navigation de la page
- * d'où le panneau a été ouvert. Le fil d'ariane n'y figure plus — le titre du
- * panneau situe déjà l'écran, et cette rangée porte tous les allers-retours.
- * Sans navigation, le bandeau disparaît plutôt que de laisser une bande vide.
- */
-export function PanelChromeBar({ navigation, onClose }: { navigation: PanelNavItem[]; onClose: () => void }) {
-  const { t } = useI18n();
-  if (navigation.length === 0) return null;
-  return (
-    <div data-testid="panel-chrome-bar" className="shrink-0 border-b border-border/70 px-7 py-2.5 sm:px-10">
-      <PanelNavigation items={navigation} onClose={onClose} label={t("panel.nav.page")} />
-    </div>
-  );
-}
-
 export function CenteredBlock({ eyebrow, title, description, onClose, children, leading, size = "md", testId, screenId }: CenteredBlockProps) {
-  const chrome = usePanelChrome();
   const { t } = useI18n();
   /*
    * Un panneau qui correspond à un écran connu prend la main sur le contexte de
@@ -136,8 +75,6 @@ export function CenteredBlock({ eyebrow, title, description, onClose, children, 
             <X className="h-4 w-4" />
           </button>
         </header>
-
-        <PanelChromeBar navigation={chrome.navigation} onClose={onClose} />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-8 sm:px-10 sm:py-10 hide-scrollbar">{children}</div>
       </motion.section>
