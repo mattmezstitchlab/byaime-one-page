@@ -163,7 +163,10 @@ export function getWeddingNavigation(
     primary = [dayof(locale), practical(locale), seating(locale), contributions(locale)];
     secondary = [ceremony(locale), logistics(locale), messages(locale)];
   } else {
-    primary = [thanks(locale), photos(locale), film(locale), honeymoon(locale), contributions(locale), practical(locale)];
+    /* L'Après est la clôture : souvenirs, mercis, film, lune de miel. Les infos
+       publiques n'y ont plus leur place — elles vivent le Jour J, et l'entrée
+       des invités est le mini-site public, pas une vue du Monde. */
+    primary = [thanks(locale), photos(locale), film(locale), honeymoon(locale), contributions(locale)];
     secondary = [ceremony(locale), logistics(locale), messages(locale)];
   }
   primary = primary.filter(entry => isWeddingEntryAllowed(entry, capabilities));

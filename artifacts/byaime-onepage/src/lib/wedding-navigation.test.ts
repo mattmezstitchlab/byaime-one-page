@@ -51,7 +51,7 @@ describe("wedding navigation", () => {
       "day-of", "public-info", "seating", "contributions",
     ]);
     expect(getWeddingNavigation("apres", owner).primary.map(item => item.id)).toEqual([
-      "thanks", "memories", "film", "honeymoon", "contributions", "public-info",
+      "thanks", "memories", "film", "honeymoon", "contributions",
     ]);
   });
 
