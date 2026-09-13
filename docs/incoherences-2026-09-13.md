@@ -378,3 +378,23 @@ typecheck racine OK · vitest 47 fichiers / 250 tests (app), 10 / 40 (api-server
 (aime-domain) · `vite build` OK (jeton présent dans le bundle) · smoke CONTRÔLE LOCAL OK.
 Non vérifié ici : le rendu navigateur réel (pas de Playwright), donc l'effet visuel du retrait
 de la rangée et le rafraîchissement effectif du cache sont à confirmer à l'œil.
+
+## Passe 7 — 2026-09-13 : la frise « Tout voir »
+
+Une abscisse — le temps — et un couloir par nature de chose : Moments, réponses des invités,
+tâches, documents, argent. Objectif : résumer tout le Monde sans ouvrir six panneaux.
+
+Trois règles de conception, toutes vérifiées par test :
+1. **Aucune date inventée.** Seuls `moments.time`, `tasks.dueDate`, `documents.at`,
+   `payments.at`/`dueDate` et les réponses RSVP horodatées montent sur l'axe. Prestataires,
+   souvenirs, musique, équipe, invités sans réponse et tâches sans échéance vont dans la
+   gouttière « Non daté — hors de l'axe », avec leur compte et un accès au bon panneau.
+2. **Les agrégats ne sont pas des événements.** Budget, comptes et J-x restent dans un bandeau
+   fixe, jamais comme repères.
+3. **Un seul moteur de placement.** `layoutTimeline` (échelle élastique + répartition en lignes),
+   pas un quatrième moteur : le Jour J concentre quinze Moments en quelques heures.
+
+Le Jour J entre dans le calcul comme repère fantôme pour recevoir une abscisse cohérente, puis
+sert de ligne verticale. Un paiement dû se place à son échéance, pas à sa date de saisie.
+Troisième mode du Profil (« Tout voir »), à côté de Timeline et Le Fil — pas un remplacement.
+Pas d'animation dans cette passe : la densité se juge d'abord à l'arrêt.

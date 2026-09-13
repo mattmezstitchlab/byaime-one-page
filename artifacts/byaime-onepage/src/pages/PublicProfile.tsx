@@ -19,6 +19,8 @@ import { EventIcon, FilTrack } from "@/components/FilTrack";
 import { indexTimelineConflicts } from "@/lib/timeline-graph";
 
 import { ProfileFil } from "@/components/ProfileFil";
+import { ProfileFrise } from "@/components/ProfileFrise";
+import { buildFrise } from "@/lib/frise";
 
 type ProfileView = Omit<PublicProfile, "timeline"> & {
   timeline: ProfileTimelineEvent[];
@@ -260,7 +262,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const profile: ProfileView | undefined = forcePrivatePreview ? privatePreview : publishedProfile;
   const isPrivatePreview = forcePrivatePreview && Boolean(privatePreview);
 
-  const [viewMode, setViewMode] = useState<"timeline" | "fil">("timeline");
+  const [viewMode, setViewMode] = useState<"timeline" | "fil" | "frise">("timeline");
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const [selectedPublicEvent, setSelectedPublicEvent] = useState<ProfileTimelineEvent | null>(null);
   const [activeSection, setActiveSection] = useState("identity");
@@ -463,7 +465,26 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       </div>
 
       {/* Main Canvas Scroll Area */}
-      {viewMode === "fil" ? (
+      {viewMode === "frise" && project ? (
+        <div className="w-full h-full overflow-y-auto pt-28 pb-16 animate-in fade-in duration-500 relative z-10">
+          <ProfileFrise
+            frise={buildFrise(
+              project,
+              guestArrivals.map(arrival => ({
+                id: arrival.id,
+                guestId: arrival.guest.id,
+                guestName: arrival.guest.name,
+                time: arrival.time,
+                status: arrival.status,
+              })),
+            )}
+            pivot={project.pivot.value}
+            currency={project.currency}
+            onOpenEntity={(collection, sourceRef, label) => setSelectedNode({ type: "item", collection, sourceRef, label })}
+            onOpenPanel={panel => focusWorld({ route: "/user-portal", panel })}
+          />
+        </div>
+      ) : viewMode === "fil" ? (
         <div className="w-full h-full overflow-y-auto pt-32 pb-24 px-6 animate-in fade-in duration-500 relative z-10">
           <div className="max-w-3xl mx-auto">
             <ProfileFil projectId={profileId} onOpenMoment={(id) => {
@@ -652,6 +673,12 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
               className={cn("whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", viewMode === "timeline" ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground")}
             >
               Timeline
+            </button>
+            <button
+              onClick={() => setViewMode("frise")}
+              className={cn("whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", viewMode === "frise" ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground")}
+            >
+              Tout voir
             </button>
             <button
               onClick={() => setViewMode("fil")}
