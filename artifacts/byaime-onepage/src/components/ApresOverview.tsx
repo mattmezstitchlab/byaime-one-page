@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Camera, Clapperboard, Heart } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { queueWorldFocus } from "@/lib/world-focus";
+import { WorldClosure } from "./WorldClosure";
 
 type OverviewMedia = {
   id: string;
@@ -40,7 +41,7 @@ async function fetchJson<T>(path: string): Promise<T | null> {
  * timeline vide, même avant les premiers retours d'invités.
  */
 export function ApresOverview() {
-  const { project, currentRole } = useProject();
+  const { project, currentRole, updateProject } = useProject();
   const [media, setMedia] = useState<OverviewMedia[]>([]);
   const [songs, setSongs] = useState<OverviewSongRequest[]>([]);
   const [files, setFiles] = useState<OverviewFile[]>([]);
@@ -147,6 +148,15 @@ export function ApresOverview() {
             Regarder
           </button>
         </article>
+      </div>
+
+      <div className="mt-4">
+        <WorldClosure
+          closedAt={project.closure?.closedAt}
+          canClose={currentRole === "owner"}
+          onClose={() => updateProject({ closure: { closedAt: Date.now() } })}
+          onReopen={() => updateProject({ closure: undefined })}
+        />
       </div>
     </section>
   );

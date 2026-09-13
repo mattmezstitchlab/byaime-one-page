@@ -308,6 +308,15 @@ export type WorldProject = {
   publicProfile?: {
     published: boolean;
   };
+  /**
+   * Clôture du Monde. Une fois posée, le Monde devient consultable mais plus
+   * modifiable : c'est la fin annoncée par l'Après, pas un effacement.
+   * Le ou la propriétaire peut toujours rouvrir.
+   */
+  closure?: {
+    closedAt: number;
+    note?: string;
+  };
   universe: string;
   heroVisual?: WorldVisual | null;
   pivot: Fact<number>;

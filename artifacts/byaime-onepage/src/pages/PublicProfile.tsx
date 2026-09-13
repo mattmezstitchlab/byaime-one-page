@@ -547,7 +547,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
                         <span className="sr-only">{item._title}</span>
                       </button>
                     ))}
-                    {currentRole !== 'viewer' && (
+                    {canEdit && (
                       <button
                         type="button"
                         onClick={() => window.dispatchEvent(new Event("aime:open-create"))}

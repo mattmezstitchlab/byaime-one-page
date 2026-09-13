@@ -299,3 +299,16 @@ plan B. Ces informations existaient pourtant déjà côté serveur dans `partici
 ### Contrôles
 typecheck racine OK · vitest : 44 fichiers / 235 tests (app) + 10 fichiers (api-server) OK ·
 `vite build` OK · `preview/smoke.mjs` = CONTRÔLE LOCAL OK.
+
+### Clôturer le Monde (l'Après promis sans l'outil)
+`aime-architecture.ts` prévenait déjà : « Ne pas archiver le Monde : il reste modifiable, donc
+ouvert aux modifications par erreur » — mais aucune clôture n'existait.
+1. `WorldProject.closure?: { closedAt, note? }` (facultatif, aucune migration).
+2. `project-store` : `isClosed` exposé, et `canEdit = currentRole !== 'viewer' && !isClosed`
+   (point unique). Le `+` de l'aperçu privé, seul droit d'édition recalculé à la main, repasse
+   par `canEdit`.
+3. `WorldClosure.tsx` dans l'aperçu Après : deux clics pour clôturer, date de clôture,
+   réouverture laissée au ou à la propriétaire. Rien n'est effacé : le Monde reste consultable.
+4. Contrôles : typecheck OK · vitest 45 fichiers (app) + 10 (api-server) OK · build OK ·
+   smoke CONTRÔLE LOCAL OK. Non couvert : le second clic de confirmation (pas de jsdom dans ce
+   paquet, rendu statique uniquement).
