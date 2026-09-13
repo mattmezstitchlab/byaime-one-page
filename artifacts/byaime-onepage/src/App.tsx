@@ -36,6 +36,7 @@ const LazyHome = lazy(() => import('@/pages/Home').then(module => ({ default: mo
 const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module => ({ default: module.PublicProfilePage })));
 const LazyAssistant = lazy(() => import('@/pages/Assistant').then(module => ({ default: module.AssistantPage })));
 const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ default: module.FoldersPage })));
+const LazyAgencyLanding = lazy(() => import('@/pages/AgencyLanding'));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -329,7 +330,8 @@ function RouteFallback() {
 
 function Routes() {
   return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
-    <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
+    <Route path="/agence">{() => <LazyAgencyLanding />}</Route>
+          <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>

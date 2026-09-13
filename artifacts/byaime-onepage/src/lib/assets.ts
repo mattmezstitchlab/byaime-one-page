@@ -40,6 +40,18 @@ const wedding = {
   patrimoine: 'images/wedding/wedding-patrimoine.jpg',
 } as const;
 
+/*
+ * Vitrine de l'agence « La cerise sur le gâteau — Wedding Architect ».
+ * Photographies éditoriales ivoire / pierre / charbon, servies en lecture seule
+ * depuis `public/images/agency`. Comme pour le Monde Mariage : noms stables,
+ * remplacement par de vraies photos sans toucher au code.
+ */
+export const AGENCY_VISUALS = {
+  hero: 'images/agency/agency-hero.jpg',
+  stationery: 'images/agency/agency-stationery.jpg',
+  ceremony: 'images/agency/agency-ceremony.jpg',
+} as const;
+
 export const AIME_VISUALS = {
   hero: {
     backgroundImage: wedding.heroImmersif,
