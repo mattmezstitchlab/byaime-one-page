@@ -63,7 +63,7 @@ function Slideshow({ events, onClose }: { events: TimelineEvent[], onClose: () =
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-black text-white flex flex-col"
+      className="fixed inset-0 z-[100] bg-[#FBFAF8] text-[#171410] flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-label="Lecture de la Timeline"
@@ -73,13 +73,13 @@ function Slideshow({ events, onClose }: { events: TimelineEvent[], onClose: () =
       
       {/* Top Bar */}
       <div className="relative z-10 flex items-center justify-between p-6">
-        <div className="text-white/60 text-xs tracking-[0.2em] uppercase font-medium">
+        <div className="text-[#171410]/60 text-xs tracking-[0.2em] uppercase font-medium">
           The Art of Connection
         </div>
         <button 
           onClick={onClose}
           aria-label="Fermer la lecture de la Timeline"
-          className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="p-2 rounded-full bg-[#171410]/10 hover:bg-[#171410]/20 text-[#171410] transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -88,9 +88,9 @@ function Slideshow({ events, onClose }: { events: TimelineEvent[], onClose: () =
       {/* Progress Bars */}
       <div className="relative z-10 flex gap-1 px-6 w-full max-w-4xl mx-auto mb-10">
         {playableEvents.map((_, idx) => (
-          <div key={idx} className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
+          <div key={idx} className="flex-1 h-1 bg-[#171410]/20 rounded-full overflow-hidden">
             <motion.div 
-              className="h-full bg-white"
+              className="h-full bg-[#171410]"
               initial={{ width: "0%" }}
               animate={{ width: idx < currentIndex ? "100%" : idx === currentIndex && playing ? "100%" : "0%" }}
               transition={{ duration: idx === currentIndex ? 4 : 0, ease: "linear" }}
@@ -110,18 +110,18 @@ function Slideshow({ events, onClose }: { events: TimelineEvent[], onClose: () =
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="max-w-2xl"
           >
-            <div className="text-white/50 text-sm tracking-widest uppercase mb-6 font-mono">
+            <div className="text-[#171410]/50 text-sm tracking-widest uppercase mb-6 font-mono">
               {new Date(currentEvent.time).toLocaleDateString('fr-FR', {
                 weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
               })}
             </div>
             
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-display text-white font-medium text-balance leading-tight mb-8">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-display text-[#171410] font-medium text-balance leading-tight mb-8">
               {currentEvent.title}
             </h2>
             
             {currentEvent.detail && (
-              <p className="text-lg md:text-xl text-white/70 font-light leading-relaxed">
+              <p className="text-lg md:text-xl text-[#171410]/70 font-light leading-relaxed">
                 {currentEvent.detail}
               </p>
             )}
@@ -134,21 +134,21 @@ function Slideshow({ events, onClose }: { events: TimelineEvent[], onClose: () =
         <button 
           onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
           aria-label="Moment précédent"
-          className="p-3 text-white/50 hover:text-white transition-colors"
+          className="p-3 text-[#171410]/50 hover:text-[#171410] transition-colors"
         >
           <Rewind className="w-6 h-6" />
         </button>
         <button 
           onClick={() => setPlaying(!playing)}
           aria-label={playing ? "Mettre la lecture en pause" : "Reprendre la lecture"}
-          className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform"
+          className="w-16 h-16 rounded-full bg-[#171410] text-[#FBFAF8] flex items-center justify-center hover:scale-105 transition-transform"
         >
           {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
         </button>
         <button 
           onClick={() => setCurrentIndex(Math.min(playableEvents.length - 1, currentIndex + 1))}
           aria-label="Moment suivant"
-          className="p-3 text-white/50 hover:text-white transition-colors"
+          className="p-3 text-[#171410]/50 hover:text-[#171410] transition-colors"
         >
           <FastForward className="w-6 h-6" />
         </button>
@@ -231,23 +231,23 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       data-testid="day-conductor"
-      className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-black text-white"
+      className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-[#FBFAF8] text-[#171410]"
       role="dialog"
       aria-modal="true"
       aria-label="Régie du Jour J"
     >
       <div className="flex items-center justify-between gap-4 p-5 sm:px-8">
-        <p className="text-xs uppercase tracking-[.22em] text-white/55">
-          Régie · Jour J · <span className="tabular-nums text-white/85">{formatClock(now)}:{String(new Date(now).getSeconds()).padStart(2, "0")}</span>
+        <p className="text-xs uppercase tracking-[.22em] text-[#171410]/55">
+          Régie · Jour J · <span className="tabular-nums text-[#171410]/85">{formatClock(now)}:{String(new Date(now).getSeconds()).padStart(2, "0")}</span>
         </p>
-        <button onClick={onClose} aria-label="Fermer la régie" className="rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20">
+        <button onClick={onClose} aria-label="Fermer la régie" className="rounded-full bg-[#171410]/10 p-2 text-[#171410] transition-colors hover:bg-[#171410]/20">
           <X className="h-5 w-5" />
         </button>
       </div>
 
       <div className="mx-auto grid w-full max-w-6xl flex-1 gap-6 px-5 pb-8 sm:px-8 lg:grid-cols-[1fr_300px]">
         {/* Moment orchestré */}
-        <div className="flex flex-col justify-center rounded-3xl border border-white/10 bg-white/[.04] p-6 text-center sm:p-10">
+        <div className="flex flex-col justify-center rounded-3xl border border-[#171410]/10 bg-white/[.04] p-6 text-center sm:p-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={current.id}
@@ -256,14 +256,14 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
               exit={{ opacity: 0, y: -16 }}
               transition={{ duration: 0.35 }}
             >
-              <p className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[.2em] text-white/60">
+              <p className="flex items-center justify-center gap-2 text-[11px] uppercase tracking-[.2em] text-[#171410]/60">
                 <span aria-hidden className={cn("h-2 w-2 rounded-full", CONDUCTOR_STATE[currentState].dot)} />
                 {CONDUCTOR_STATE[currentState].label} · Moment {currentIndex + 1}/{ordered.length}
               </p>
               <p className="mt-4 font-display text-7xl font-semibold tabular-nums tracking-tight sm:text-8xl">{formatClock(current.time)}</p>
               <h2 className="mx-auto mt-4 max-w-2xl text-balance font-display text-3xl font-medium leading-tight sm:text-4xl">{current.title}</h2>
-              {current.detail && <p className="mx-auto mt-3 max-w-xl text-sm font-light leading-relaxed text-white/60">{current.detail}</p>}
-              <p className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-white/55">
+              {current.detail && <p className="mx-auto mt-3 max-w-xl text-sm font-light leading-relaxed text-[#171410]/60">{current.detail}</p>}
+              <p className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[#171410]/55">
                 {(current.durationMinutes ?? 0) > 0 && <span>{current.durationMinutes} min</span>}
                 {current.location && <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{current.location}</span>}
                 {(current.delayMinutes ?? 0) > 0 && <span className="text-brand-accent">Retard +{current.delayMinutes} min déclaré</span>}
@@ -274,7 +274,7 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
                 </p>
               )}
               <p className="mt-5 font-display text-3xl font-semibold tabular-nums sm:text-4xl" aria-live="off">{countdownLabel}</p>
-              <div className="mx-auto mt-4 h-1.5 max-w-md overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Avancement du Moment">
+              <div className="mx-auto mt-4 h-1.5 max-w-md overflow-hidden rounded-full bg-[#171410]/10" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Avancement du Moment">
                 <div className="h-full rounded-full bg-brand-accent" style={{ width: `${Math.round(progress * 100)}%` }} />
               </div>
             </motion.div>
@@ -282,15 +282,15 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
 
           {/* Transport + régie */}
           <div className="mt-8 flex items-center justify-center gap-4">
-            <button onClick={() => goTo(currentIndex - 1)} disabled={currentIndex === 0} aria-label="Moment précédent" className="p-3 text-white/50 transition-colors hover:text-white disabled:opacity-25">
+            <button onClick={() => goTo(currentIndex - 1)} disabled={currentIndex === 0} aria-label="Moment précédent" className="p-3 text-[#171410]/50 transition-colors hover:text-[#171410] disabled:opacity-25">
               <Rewind className="h-6 w-6" />
             </button>
             {canEdit && (currentState === "live" || currentState === "late") && (
-              <button onClick={finish} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition-transform hover:scale-105">
+              <button onClick={finish} className="inline-flex items-center gap-2 rounded-full bg-[#171410] px-5 py-3 text-sm font-medium text-[#FBFAF8] transition-transform hover:scale-105">
                 <Check className="h-4 w-4" /> Terminer
               </button>
             )}
-            <button onClick={() => goTo(currentIndex + 1)} disabled={currentIndex >= ordered.length - 1} aria-label="Moment suivant" className="p-3 text-white/50 transition-colors hover:text-white disabled:opacity-25">
+            <button onClick={() => goTo(currentIndex + 1)} disabled={currentIndex >= ordered.length - 1} aria-label="Moment suivant" className="p-3 text-[#171410]/50 transition-colors hover:text-[#171410] disabled:opacity-25">
               <FastForward className="h-6 w-6" />
             </button>
           </div>
@@ -307,7 +307,7 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
                 </button>
               ))}
               {undo && (
-                <button onClick={() => { updateProject({ timeline: undo }); setUndo(undefined); }} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/60 transition hover:text-white">
+                <button onClick={() => { updateProject({ timeline: undo }); setUndo(undefined); }} className="inline-flex items-center gap-1.5 rounded-full border border-[#171410]/15 px-3 py-1.5 text-xs text-[#171410]/60 transition hover:text-[#171410]">
                   <Undo2 className="h-3.5 w-3.5" /> Annuler
                 </button>
               )}
@@ -319,7 +319,7 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
               role="switch"
               aria-checked={follow}
               onClick={() => setFollow(value => !value)}
-              className={cn("rounded-full border px-3 py-1.5 text-xs transition", follow ? "border-white/50 text-white" : "border-white/15 text-white/45")}
+              className={cn("rounded-full border px-3 py-1.5 text-xs transition", follow ? "border-[#171410]/50 text-[#171410]" : "border-[#171410]/15 text-[#171410]/45")}
             >
               Suivre le direct
             </button>
@@ -327,8 +327,8 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
         </div>
 
         {/* Déroulé : la suite des Moments */}
-        <aside aria-label="Déroulé du Jour J" className="rounded-3xl border border-white/10 bg-white/[.03] p-4">
-          <p className="px-2 pb-2 text-[10px] uppercase tracking-[.2em] text-white/45">{snapshot.doneCount}/{ordered.length} terminés</p>
+        <aside aria-label="Déroulé du Jour J" className="rounded-3xl border border-[#171410]/10 bg-white/[.03] p-4">
+          <p className="px-2 pb-2 text-[10px] uppercase tracking-[.2em] text-[#171410]/45">{snapshot.doneCount}/{ordered.length} terminés</p>
           <ol className="max-h-[50vh] space-y-1 overflow-y-auto lg:max-h-none">
             {ordered.map((event, index) => {
               const state = snapshot.states.get(event.id) ?? "upcoming";
@@ -340,7 +340,7 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
                     aria-current={active ? "true" : undefined}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition",
-                      active ? "bg-white/10" : "hover:bg-white/5",
+                      active ? "bg-[#171410]/10" : "hover:bg-[#171410]/5",
                       state === "done" && "opacity-55",
                     )}
                   >
@@ -355,7 +355,7 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
           </ol>
         </aside>
       </div>
-      <p className="px-6 pb-6 text-center text-[11px] text-white/35">Un retard décale toujours toute la suite du déroulé · Échap pour fermer</p>
+      <p className="px-6 pb-6 text-center text-[11px] text-[#171410]/35">Un retard décale toujours toute la suite du déroulé · Échap pour fermer</p>
       {spotlight && <PersonSpotlight person={{ kind: "provider", id: spotlight }} momentId={current.id} teamContacts={vendors.map(item => item.contact).filter((contact): contact is string => !!contact)} onClose={() => setSpotlight(null)} />}
     </motion.div>
   );

@@ -63,76 +63,10 @@ function getSubchapter(event: TimelineEvent, pivotTime: number): string {
 
 const images = AIME_VISUALS.timelineAmbientImages;
 
-const AmbientBackground = ({ event, index }: { event: TimelineEvent; index: number }) => {
-  const prefersReducedMotion = useReducedMotion();
-
-  // Un visuel importé sur le Moment devient son décor, avec le filtre noir réglé à l'édition.
-  if (event.visual?.url) {
-    return (
-      <div className="absolute inset-0 z-0 overflow-hidden bg-black">
-        {event.visual.kind === "video" ? (
-          <video
-            data-preserve-color
-            key={event.visual.url}
-            src={event.visual.url}
-            className="h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-        ) : (
-          <div
-            data-preserve-color
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${event.visual.url})` }}
-          />
-        )}
-        <div className="absolute inset-0 bg-black" style={{ opacity: momentVisualOverlayAlpha(event.visual) }} aria-hidden />
-      </div>
-    );
-  }
-
-  // Alternate every other scene with an image
-  if (index % 2 === 0) {
-    const imgIndex = (index / 2) % images.length;
-    return (
-      <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat overflow-hidden"
-           style={{ backgroundImage: `url(${getAssetUrl(images[imgIndex])})` }}>
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
-      </div>
-    );
-  }
-
-  const styles = [
-    "from-[#0a0a0a] to-[#000000]",
-    "from-[#110e0c] to-[#000000]",
-    "from-[#0a0c11] to-[#000000]",
-    "from-[#0f110c] to-[#000000]",
-  ];
-  const bg = styles[index % styles.length];
-
-  return (
-    <div className={cn("absolute inset-0 z-0 bg-gradient-to-b overflow-hidden", bg)}>
-      <div
-        className="absolute inset-0 opacity-[0.04] mix-blend-screen pointer-events-none"
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-      />
-      <motion.div
-        className="absolute inset-0 opacity-20"
-        initial={{ opacity: 0.1 }}
-        animate={prefersReducedMotion ? {} : {
-          backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
-        }}
-        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-        style={{
-          backgroundImage: 'radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 60%)',
-          backgroundSize: '150% 150%'
-        }}
-      />
-    </div>
-  );
-};
+/* App institutionnelle : le décor des scènes devient un fond ivoire uni. */
+const AmbientBackground = (_props: { event: TimelineEvent; index: number }) => (
+  <div className="absolute inset-0 z-0 bg-[#FBFAF8]" aria-hidden />
+);
 
 function SubchapterTransition({ title }: { title: string }) {
   return (
@@ -146,7 +80,7 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
   return (
     <button
       onClick={onClick}
-      className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-white/5 px-6 py-24 text-center text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 group"
+      className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-[#171410]/5 px-6 py-24 text-center text-[#171410] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]/50 group"
     >
       <AmbientBackground event={event} index={index} />
 
@@ -156,39 +90,39 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="space-y-6 flex flex-col items-center rounded-3xl p-8 md:p-12 bg-black/25 backdrop-blur-sm border border-white/10 hover:bg-black/40 transition-colors"
+          className="space-y-6 flex flex-col items-center rounded-3xl p-8 md:p-12 bg-[#FBFAF8]/25 backdrop-blur-sm border border-[#171410]/10 hover:bg-[#FBFAF8]/40 transition-colors"
         >
-          <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-white/65 font-medium">
+          <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-[#171410]/65 font-medium">
             <CalendarDays className="w-4 h-4" />
             <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: fr })}</span>
             {event.durationMinutes && (
               <>
-                <span className="w-1 h-1 rounded-full bg-white/30" />
+                <span className="w-1 h-1 rounded-full bg-[#171410]/30" />
                 <Clock3 className="w-4 h-4" />
                 <span>{event.durationMinutes} min</span>
               </>
             )}
           </div>
 
-          <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-white group-hover:text-white/90 transition-colors">
+          <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-[#171410] group-hover:text-[#171410]/90 transition-colors">
             {event.title}
           </h3>
 
           {event.detail && (
-            <p className="text-lg md:text-xl text-white/80 font-light max-w-2xl text-balance leading-relaxed">
+            <p className="text-lg md:text-xl text-[#171410]/80 font-light max-w-2xl text-balance leading-relaxed">
               {event.detail}
             </p>
           )}
 
           <div className="flex flex-wrap justify-center gap-x-7 gap-y-3 pt-8">
             {event.location && (
-              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-[#171410]/60">
                 <MapPin className="w-3 h-3" />
                 {event.location}
               </span>
             )}
             {(event.relations?.length || 0) > 0 && (
-              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-[#171410]/60">
                 <Link2 className="w-3 h-3" />
                 {event.relations!.length} liens
               </span>
@@ -299,7 +233,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
       {undoTimeline && (
         <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-3 rounded-full border border-foreground/10 bg-background/90 py-2 pl-4 pr-2 text-xs text-foreground shadow-xl backdrop-blur sm:left-6">
           <span>Changement appliqué</span>
-          <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 font-medium text-black">
+          <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-[#171410] px-3 py-2 font-medium text-[#FBFAF8]">
             <Undo2 className="h-3.5 w-3.5" /> Annuler
           </button>
         </div>
@@ -410,7 +344,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                 {ripplePlan.warnings.map(warning => <p key={warning} className="rounded-xl border border-brand-accent/20 bg-brand-accent/5 p-3 text-xs text-foreground/80">{warning}</p>)}
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-foreground/15 px-3 py-2.5 text-xs text-foreground/60 hover:text-foreground">Garder l’ancien horaire</button>
-                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-white px-3 py-2.5 text-xs font-medium text-black">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
+                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-[#171410] px-3 py-2.5 text-xs font-medium text-[#FBFAF8]">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
                 </div>
               </div>
             </section>

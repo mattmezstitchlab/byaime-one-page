@@ -9,10 +9,10 @@ import { Link } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
 import { BottomDock } from './BottomDock';
-import { PhaseTimeCapsule } from './PhaseTimeCapsule';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Eye, Search, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
+import { WorldTopMenu } from '@/components/WorldTopMenu';
 import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/world-focus';
 import { CenteredBlock } from './CenteredBlock';
 import { EntityEditor } from './EntityEditor';
@@ -57,44 +57,30 @@ const CREATE_PANEL_TARGETS: Partial<Record<UniversalCreateActionId, WeddingPanel
  */
 const MOMENT_CREATE_ACTION: UniversalCreateActionId = "moment";
 
-const providerImages: Partial<Record<Provider['category'], string>> = {
-  ...AIME_VISUALS.providersByCategory,
-};
-
-const guestPortraitImages = [...AIME_VISUALS.guestPortraitImages];
-
-function ProviderPortrait({ provider, index = 0 }: { provider: Provider; index?: number }) {
-  const image = providerImages[provider.category] || AIME_VISUALS.universes.service;
+/*
+ * App institutionnelle : plus de photographies décoratives. Les personnes et
+ * prestataires sont des monogrammes — une initiale sur ivoire, lisible partout.
+ */
+function Monogram({ label, name, large = false }: { label: string; name: string; large?: boolean }) {
   return (
     <span
-      className="relative block h-9 w-9 overflow-hidden rounded-full border-2 border-black bg-zinc-800"
-      style={{ zIndex: 10 - index }}
-      title={provider.name || provider.role}
+      className={cn(
+        "relative grid shrink-0 place-items-center rounded-full border border-[#171410]/20 bg-[#F5F2EC] font-display uppercase text-[#171410]",
+        large ? "h-20 w-20 text-2xl sm:h-24 sm:w-24" : "h-9 w-9 text-sm",
+      )}
+      title={name}
     >
-      <img src={getAssetUrl(image)} alt="" className="h-full w-full object-cover" />
+      {label}
     </span>
   );
 }
 
-function GuestPortrait({ guest, index = 0, large = false }: { guest: Guest; index?: number; large?: boolean }) {
-  const image = guestPortraitImages[index % guestPortraitImages.length];
-  return (
-    <span
-      className={cn(
-        "relative block shrink-0 overflow-hidden rounded-full border-[3px] border-black bg-zinc-900 shadow-xl",
-        large ? "h-20 w-20 sm:h-24 sm:w-24" : "h-14 w-14"
-      )}
-      style={{ zIndex: 20 - index }}
-      title={guest.name}
-    >
-      <img
-        src={getAssetUrl(image)}
-        alt={`Portrait de ${guest.name}`}
-        className="h-full w-full scale-125 object-cover transition duration-500 hover:scale-[1.35]"
-        style={{ objectPosition: `${30 + (index % 3) * 20}% center` }}
-      />
-    </span>
-  );
+function ProviderPortrait({ provider }: { provider: Provider; index?: number }) {
+  return <Monogram label={(provider.name || provider.role).charAt(0)} name={provider.name || provider.role} />;
+}
+
+function GuestPortrait({ guest, large = false }: { guest: Guest; index?: number; large?: boolean }) {
+  return <Monogram label={guest.name.charAt(0)} name={guest.name} large={large} />;
 }
 
 export function ProjectStage() {
@@ -401,15 +387,12 @@ export function ProjectStage() {
   return (
     <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
       <nav aria-label={t("world.nav.main")} className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
-        <div className="flex justify-center px-3 pt-2.5">
-          <PhaseTimeCapsule
-            phase={phase}
-            onPhaseChange={nextPhase => {
-              setPhase(nextPhase);
-              if (view === "public-info") setView("chronological");
-            }}
-          />
-        </div>
+        <WorldTopMenu
+          role={previewRole ?? currentRole}
+          locale={locale}
+          onOpen={openWeddingDestination}
+        />
+
         <div className="mx-auto grid max-w-5xl grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-2 px-3 py-2.5 sm:px-6">
           {/* Toutes les entrées de la phase en accès direct, centrées sous la capsule temporelle : la colonne vide à gauche répond aux icônes fixes à droite. */}
           <span aria-hidden className="min-w-0" />
@@ -485,36 +468,14 @@ export function ProjectStage() {
       </nav>
       {/* Cinematic Header */}
       <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
-        {project.heroVisual?.kind === "video" ? (
-          <video
-            data-preserve-color
-            key={project.heroVisual.url}
-            className="absolute inset-0 z-0 h-full w-full object-cover"
-            src={project.heroVisual.url}
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-        ) : (
-          <div
-            data-preserve-color
-            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${project.heroVisual?.url || getAssetUrl(AIME_VISUALS.world.heroImage)})` }}
-          />
-        )}
-        {project.heroVisual ? (
-          <div className="absolute inset-0 z-10" style={{ background: heroVisualOverlayCss(project.heroVisual) }} aria-hidden />
-        ) : (
-          <div className="aime-world-hero-overlay absolute inset-0 z-10" aria-hidden />
-        )}
+        <div className="absolute inset-0 z-0 bg-[#FBFAF8]" aria-hidden />
         <div className="aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6">
           <motion.button
             type="button"
             onClick={() => setWorldMenuOpen(true)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex w-fit items-center gap-2 rounded-full border border-white/20 bg-black/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition hover:bg-white hover:text-black"
+            className="flex w-fit items-center gap-2 rounded-full border border-[#171410]/20 bg-[#FBFAF8]/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition hover:bg-[#171410] hover:text-[#FBFAF8]"
             aria-label={t("world.hero.chooseWorld")}
           >
             {heroCopy.eyebrow}
@@ -534,7 +495,7 @@ export function ProjectStage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={cn("min-h-12 max-w-2xl text-[15px] font-light leading-relaxed text-white/70 md:text-base", !heroCopy.description && "invisible")}
+            className={cn("min-h-12 max-w-2xl text-[15px] font-light leading-relaxed text-[#171410]/70 md:text-base", !heroCopy.description && "invisible")}
           >
             {heroCopy.description || t("world.hero.fallback")}
           </motion.p>
@@ -548,24 +509,24 @@ export function ProjectStage() {
             <button
               type="button"
               onClick={() => setCalendarOpen(true)}
-              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm transition hover:border-white/30 hover:bg-white/10"
+              className="flex items-center gap-2 rounded-full border border-[#171410]/10 bg-[#171410]/5 px-4 py-1.5 backdrop-blur-sm transition hover:border-[#171410]/30 hover:bg-[#171410]/10"
               aria-label={t("world.hero.calendar")}
             >
-              <CalendarDays className="h-3.5 w-3.5 text-white/55" />
+              <CalendarDays className="h-3.5 w-3.5 text-[#171410]/55" />
               {format(pivotDate, 'd MMMM yyyy', { locale: dateLocale })}
             </button>
             {project.city.value && (
-              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
+              <span className="rounded-full border border-[#171410]/10 bg-[#171410]/5 px-4 py-1.5 backdrop-blur-sm">
                 {[project.city.value, project.venue.value].filter(Boolean).join(" · ")}
               </span>
             )}
             {!project.city.value && project.venue.value && (
-              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
+              <span className="rounded-full border border-[#171410]/10 bg-[#171410]/5 px-4 py-1.5 backdrop-blur-sm">
                 {project.venue.value}
               </span>
             )}
             {project.guestsCount.value && (
-              <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
+              <span className="rounded-full border border-[#171410]/10 bg-[#171410]/5 px-4 py-1.5 backdrop-blur-sm">
                 {t("world.hero.guests", { count: project.guestsCount.value })}
               </span>
             )}
@@ -580,12 +541,12 @@ export function ProjectStage() {
             <button
               type="button"
               onClick={() => setView("person")}
-              className="group flex items-center gap-2 py-1 pr-2 text-xs text-white/80 transition hover:text-white"
+              className="group flex items-center gap-2 py-1 pr-2 text-xs text-[#171410]/80 transition hover:text-[#171410]"
                aria-label={t("world.hero.people.aria", { count: project.guests.length + project.providers.length })}
             >
               <span className="flex -space-x-4 py-1">
                 {project.guests.slice(0, 5).map((guest, index) => <GuestPortrait key={guest.id} guest={guest} index={index} />)}
-                {project.guests.length === 0 && <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-black bg-white/10 text-[10px]">0</span>}
+                {project.guests.length === 0 && <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-black bg-[#171410]/10 text-[10px]">0</span>}
               </span>
                <span>{t("world.hero.people", { count: project.guests.length + project.providers.length })}</span>
             </button>
@@ -596,7 +557,7 @@ export function ProjectStage() {
               style={{ background: `conic-gradient(from -90deg, hsl(var(--brand-accent)) 0deg ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
               aria-label={t("world.hero.tasks.aria", { percent: completion })}
             >
-              <span className="grid h-full w-full place-items-center rounded-full bg-black/90 text-[11px] font-medium tabular-nums text-white">{completion}%</span>
+              <span className="grid h-full w-full place-items-center rounded-full bg-[#FBFAF8]/90 text-[11px] font-medium tabular-nums text-[#171410]">{completion}%</span>
             </button>}
           </motion.div>}
 
@@ -606,16 +567,16 @@ export function ProjectStage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-6 block w-full border-t border-white/10 pt-7 text-left transition hover:border-white/25"
+            className="mt-6 block w-full border-t border-[#171410]/10 pt-7 text-left transition hover:border-[#171410]/25"
             aria-label={t("world.countdown.aria")}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{t("world.countdown.next", { kind: nextCountdown.kind })}</p>
-              <p className="text-[10px] uppercase tracking-[.18em] text-white/28">{t("world.countdown.seeAll", { count: countdownTargets.length || 1 })}</p>
+              <p className="text-[10px] uppercase tracking-[.24em] text-[#171410]/42">{t("world.countdown.next", { kind: nextCountdown.kind })}</p>
+              <p className="text-[10px] uppercase tracking-[.18em] text-[#171410]/28">{t("world.countdown.seeAll", { count: countdownTargets.length || 1 })}</p>
             </div>
-            <p className="mt-3 text-sm text-white/65">{nextCountdown.title}</p>
+            <p className="mt-3 text-sm text-[#171410]/65">{nextCountdown.title}</p>
             {distanceToNext > 0 ? (
-              <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2 font-display font-light tabular-nums text-white">
+              <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2 font-display font-light tabular-nums text-[#171410]">
                 {[
                   [nextDays, t("world.unit.days")],
                   [nextHours, t("world.unit.hours")],
@@ -624,7 +585,7 @@ export function ProjectStage() {
                 ].map(([value, label]) => (
                   <span key={label} className="inline-flex items-baseline gap-1.5">
                     <span className="text-3xl sm:text-4xl md:text-5xl">{String(value).padStart(2, "0")}</span>
-                    <span className="text-[9px] uppercase tracking-[.16em] text-white/38">{label}</span>
+                    <span className="text-[9px] uppercase tracking-[.16em] text-[#171410]/38">{label}</span>
                   </span>
                 ))}
               </div>
@@ -633,27 +594,27 @@ export function ProjectStage() {
             )}
           </motion.button>}
           {!isPublicInfo && phase === "pendant" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-white/10 pt-7">
-              <p className="text-[10px] uppercase tracking-[.24em] text-white/42">{liveEvent ? t("world.hero.live.now") : t("world.hero.live.next")}</p>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-[#171410]/10 pt-7">
+              <p className="text-[10px] uppercase tracking-[.24em] text-[#171410]/42">{liveEvent ? t("world.hero.live.now") : t("world.hero.live.next")}</p>
               {featuredDayEvent ? (
                 <div className="mt-4 flex flex-wrap items-center gap-5">
                   <span className="font-display text-4xl font-light tabular-nums sm:text-5xl">{format(featuredDayEvent.time, "HH:mm")}</span>
-                  <div><p className="text-base text-white/85">{featuredDayEvent.title}</p><p className="mt-1 text-xs text-white/40">{featuredDayEvent.location || t("world.hero.live.placeLater")}</p></div>
+                  <div><p className="text-base text-[#171410]/85">{featuredDayEvent.title}</p><p className="mt-1 text-xs text-[#171410]/40">{featuredDayEvent.location || t("world.hero.live.placeLater")}</p></div>
                 </div>
-              ) : <p className="mt-4 text-sm text-white/45">{t("world.hero.live.empty")}</p>}
+              ) : <p className="mt-4 text-sm text-[#171410]/45">{t("world.hero.live.empty")}</p>}
             </motion.div>
           )}
           {!isPublicInfo && phase === "apres" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-white/10 pt-7">
-              <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.memories")}</p></div>
-              <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.media")}</p></div>
-              <div><p className="font-display text-3xl font-light">{project.messages.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-white/35">{t("world.hero.after.messages")}</p></div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-[#171410]/10 pt-7">
+              <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[#171410]/35">{t("world.hero.after.memories")}</p></div>
+              <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[#171410]/35">{t("world.hero.after.media")}</p></div>
+              <div><p className="font-display text-3xl font-light">{project.messages.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[#171410]/35">{t("world.hero.after.messages")}</p></div>
             </motion.div>
           )}
           {project.missing.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-white/55">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-[#171410]/55">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-accent" />
-              <span><span className="text-white/75">{t("world.hero.suggestion")}</span>{" "}{t("world.hero.suggestion.body", {
+              <span><span className="text-[#171410]/75">{t("world.hero.suggestion")}</span>{" "}{t("world.hero.suggestion.body", {
                 subject: project.missing.length > 1
                   ? t("world.hero.suggestion.more", { subject: project.missing[0], count: project.missing.length - 1 })
                   : project.missing[0],
@@ -792,7 +753,7 @@ export function ProjectStage() {
                     "relative aspect-square rounded-2xl text-sm transition",
                     !isSameMonth(day, calendarMonth) && "text-foreground/16",
                     isSameMonth(day, calendarMonth) && "text-foreground/58 hover:bg-foreground/[.06] hover:text-foreground",
-                    isSelected && "bg-white text-black hover:bg-white hover:text-black",
+                    isSelected && "bg-[#171410] text-[#FBFAF8] hover:bg-[#171410] hover:text-[#FBFAF8]",
                     isPivot && !isSelected && "ring-1 ring-inset ring-foreground/45"
                   )}
                 >
@@ -817,7 +778,7 @@ export function ProjectStage() {
                 updateProject({ pivot: { ...project.pivot, value: next.getTime() } });
                 setCalendarOpen(false);
               }}
-              className="rounded-full bg-white px-5 py-2.5 text-xs font-medium text-black disabled:cursor-default disabled:opacity-25"
+              className="rounded-full bg-[#171410] px-5 py-2.5 text-xs font-medium text-[#FBFAF8] disabled:cursor-default disabled:opacity-25"
             >
               {isSameDay(selectedDate, project.pivot.value) ? t("world.calendar.currentDate") : t("world.calendar.setPivot")}
             </button>

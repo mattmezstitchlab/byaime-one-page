@@ -94,8 +94,8 @@ function PreviewAuthCard({ mode }: { mode: "sign-up" | "sign-in" }) {
         display: "grid",
         placeItems: "center",
         padding: 24,
-        background: "#050506",
-        color: "#faf6ef",
+        background: "#FBFAF8",
+        color: "#171410",
         fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
       }}
     >
@@ -105,16 +105,16 @@ function PreviewAuthCard({ mode }: { mode: "sign-up" | "sign-in" }) {
           border: "1px solid rgba(250,246,239,.14)",
           borderRadius: 20,
           padding: "32px 28px",
-          background: "rgba(255,255,255,.03)",
+          background: "#ffffff", border: "1px solid #E6E1D8",
         }}
       >
-        <p style={{ fontSize: 10, letterSpacing: ".28em", textTransform: "uppercase", color: "#c9a96a", margin: 0 }}>
+        <p style={{ fontSize: 10, letterSpacing: ".28em", textTransform: "uppercase", color: "#8A8375", margin: 0 }}>
           Aperçu local · Clerk simulé
         </p>
         <h1 style={{ fontSize: 26, fontWeight: 400, margin: "14px 0 10px" }}>
           {mode === "sign-up" ? "Créer mon espace" : "Se connecter"}
         </h1>
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(250,246,239,.66)", margin: 0 }}>
+        <p style={{ fontSize: 14, lineHeight: 1.6, color: "#6F6A61", margin: 0 }}>
           Sur le site réel, cet écran est le formulaire de {mode === "sign-up" ? "création de compte" : "connexion"} de Clerk
           (e-mail, mot de passe, comptes sociaux). En aperçu, aucun réseau n’est appelé : la session est simulée dans ce
           navigateur et l’espace de démonstration est sauvegardé par le serveur de développement.
@@ -124,12 +124,12 @@ function PreviewAuthCard({ mode }: { mode: "sign-up" | "sign-in" }) {
             marginTop: 20,
             padding: "14px 16px",
             borderRadius: 14,
-            border: "1px dashed rgba(250,246,239,.2)",
+            border: "1px dashed #E6E1D8",
             fontSize: 13,
             lineHeight: 1.55,
           }}
         >
-          <span style={{ color: "rgba(250,246,239,.5)" }}>Ce qu’AIME a retenu sur l’accueil : </span>
+          <span style={{ color: "#8A8375" }}>Ce qu’AIME a retenu sur l’accueil : </span>
           <em>{draft && draft.trim() ? draft : "rien — reprenez la phrase dans le champ de l’accueil."}</em>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 22 }}>
@@ -142,8 +142,8 @@ function PreviewAuthCard({ mode }: { mode: "sign-up" | "sign-in" }) {
                 border: 0,
                 borderRadius: 999,
                 padding: "12px 18px",
-                background: "#faf6ef",
-                color: "#050506",
+                background: "#171410",
+                color: "#FBFAF8",
                 fontSize: 14,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -163,8 +163,8 @@ function PreviewAuthCard({ mode }: { mode: "sign-up" | "sign-in" }) {
                 border: 0,
                 borderRadius: 999,
                 padding: "12px 18px",
-                background: "#faf6ef",
-                color: "#050506",
+                background: "#171410",
+                color: "#FBFAF8",
                 fontSize: 14,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -178,11 +178,11 @@ function PreviewAuthCard({ mode }: { mode: "sign-up" | "sign-in" }) {
             onClick={() => go("/")}
             style={{
               appearance: "none",
-              border: "1px solid rgba(250,246,239,.22)",
+              border: "1px solid #E6E1D8",
               borderRadius: 999,
               padding: "11px 18px",
               background: "transparent",
-              color: "rgba(250,246,239,.8)",
+              color: "#4c463d",
               fontSize: 13,
               cursor: "pointer",
             }}
@@ -190,7 +190,7 @@ function PreviewAuthCard({ mode }: { mode: "sign-up" | "sign-in" }) {
             Revenir à l’accueil
           </button>
         </div>
-        <p style={{ fontSize: 11, color: "rgba(250,246,239,.45)", marginBottom: 0, marginTop: 18 }}>
+        <p style={{ fontSize: 11, color: "#8A8375", marginBottom: 0, marginTop: 18 }}>
           Pour essayer le vrai parcours Clerk : `VITE_CLERK_PUBLISHABLE_KEY=… corepack pnpm exec vite` (config normale, sans
           ce stub).
         </p>

@@ -46,7 +46,7 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-55"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-[#FBFAF8]/30" />
         <motion.div 
           animate={isActive ? { scale: [1.1, 1], opacity: [0.3, 0.6] } : { scale: 1.1, opacity: 0 }}
           transition={{ duration: 8, ease: "easeOut" }}
@@ -71,7 +71,7 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
                    key={i}
                    animate={isActive ? { height: [Math.max(10, Math.abs(h)) + '%', Math.max(10, Math.abs(h)) * 1.5 + '%', Math.max(10, Math.abs(h)) + '%'] } : {}}
                    transition={{ duration: 1.5 + (i%3)*0.5, repeat: Infinity }}
-                   className="w-1 bg-white rounded-full"
+                   className="w-1 bg-[#171410] rounded-full"
                  />
                );
             })}
@@ -87,7 +87,7 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
         <motion.div 
           animate={isActive ? { opacity: [0, 0.1, 0.05], x: [20, 0] } : { opacity: 0 }}
           transition={{ duration: 2, ease: "easeOut" }}
-          className="absolute -right-20 top-20 text-[30vw] font-display font-bold text-white/5 leading-none select-none pointer-events-none"
+          className="absolute -right-20 top-20 text-[30vw] font-display font-bold text-[#171410]/5 leading-none select-none pointer-events-none"
         >
           {event.subtitle?.replace(/[^0-9]/g, '').slice(0, 4) || "0000"}
         </motion.div>
@@ -96,7 +96,7 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
   }
 
   return (
-    <div className="absolute inset-0 z-0 bg-black">
+    <div className="absolute inset-0 z-0 bg-[#FBFAF8]">
       <motion.div 
          animate={isActive ? { rotate: [0, 1, 0], scale: [1, 1.02, 1] } : {}}
          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
@@ -111,17 +111,17 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
 
 const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isActive: boolean, onSelect: () => void }) => {
   return (
-    <button type="button" className="relative w-full h-full flex flex-col justify-end p-8 md:p-16 overflow-hidden bg-black text-left text-white group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white" onClick={onSelect} aria-label={`Ouvrir le Moment ${event.title}`}>
+    <button type="button" className="relative w-full h-full flex flex-col justify-end p-8 md:p-16 overflow-hidden bg-[#FBFAF8] text-left text-[#171410] group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white" onClick={onSelect} aria-label={`Ouvrir le Moment ${event.title}`}>
        <SlideBackground event={event} isActive={isActive} />
 
        <div className="relative z-10 max-w-4xl transition-transform duration-500 group-hover:-translate-y-2">
-         <div className="flex items-center gap-3 mb-4 text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase text-white/60">
+         <div className="flex items-center gap-3 mb-4 text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase text-[#171410]/60">
             <span className="flex items-center gap-1.5"><Globe2 className="w-3.5 h-3.5"/> {event.universe}</span>
-            <span className="w-1 h-1 rounded-full bg-white/30" />
+            <span className="w-1 h-1 rounded-full bg-[#171410]/30" />
             <span>{format(event.time, "d MMM yyyy", { locale: fr })}</span>
             {event.location && (
               <>
-                <span className="w-1 h-1 rounded-full bg-white/30" />
+                <span className="w-1 h-1 rounded-full bg-[#171410]/30" />
                 <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5"/> {event.location}</span>
               </>
             )}
@@ -141,7 +141,7 @@ const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isAct
              initial={{ opacity: 0, y: 20 }}
              animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
              transition={{ duration: 0.8, delay: 0.3 }}
-             className="text-lg md:text-2xl text-white/60 font-light mb-8 max-w-2xl line-clamp-3"
+             className="text-lg md:text-2xl text-[#171410]/60 font-light mb-8 max-w-2xl line-clamp-3"
            >
              {event.subtitle}
            </motion.p>
@@ -153,19 +153,19 @@ const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isAct
            transition={{ duration: 0.8, delay: 0.4 }}
            className="flex flex-wrap items-center gap-3 mt-8"
          >
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
-               {event.visibility === 'prive' ? <Lock className="w-3.5 h-3.5 text-white/60" /> : 
-                event.visibility === 'equipe' ? <Users className="w-3.5 h-3.5 text-white/60" /> : 
-                <Globe2 className="w-3.5 h-3.5 text-white/60" />}
-               <span className="text-[10px] uppercase tracking-widest text-white/80">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#171410]/10 bg-[#171410]/5 backdrop-blur-md">
+               {event.visibility === 'prive' ? <Lock className="w-3.5 h-3.5 text-[#171410]/60" /> : 
+                event.visibility === 'equipe' ? <Users className="w-3.5 h-3.5 text-[#171410]/60" /> : 
+                <Globe2 className="w-3.5 h-3.5 text-[#171410]/60" />}
+               <span className="text-[10px] uppercase tracking-widest text-[#171410]/80">
                  {event.visibility === "prive" ? "Privé" : event.visibility === "equipe" ? "Réseau" : "Public"}
                </span>
             </div>
 
             {event.relations.map((rel, idx) => (
-               <div key={idx} className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
-                  <rel.icon className="w-3.5 h-3.5 text-white/60" />
-                  <span className="text-[10px] uppercase tracking-widest text-white/80 truncate max-w-[150px]">
+               <div key={idx} className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#171410]/10 bg-[#171410]/5 backdrop-blur-md">
+                  <rel.icon className="w-3.5 h-3.5 text-[#171410]/60" />
+                  <span className="text-[10px] uppercase tracking-widest text-[#171410]/80 truncate max-w-[150px]">
                     {rel.label}
                   </span>
                </div>
@@ -174,7 +174,7 @@ const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isAct
        </div>
        
        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-         <div className="w-20 h-20 rounded-full border border-white/20 bg-black/20 backdrop-blur-md flex items-center justify-center text-white">
+         <div className="w-20 h-20 rounded-full border border-[#171410]/20 bg-[#FBFAF8]/20 backdrop-blur-md flex items-center justify-center text-[#171410]">
            <ExternalLink className="w-6 h-6" />
          </div>
        </div>
@@ -274,7 +274,7 @@ export function ProfileFeed({
   };
 
   return (
-    <div className="relative w-full h-[70vh] min-h-[500px] bg-black flex flex-col rounded-[2.5rem] overflow-hidden border border-foreground/10 shadow-2xl">
+    <div className="relative w-full h-[70vh] min-h-[500px] bg-[#FBFAF8] flex flex-col rounded-[2.5rem] overflow-hidden border border-foreground/10 shadow-2xl">
       <AnimatePresence mode="wait">
         {currentEvent ? (
            <motion.div 
@@ -292,8 +292,8 @@ export function ProfileFeed({
              />
            </motion.div>
         ) : (
-           <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 text-sm">
-             <Globe2 className="w-12 h-12 text-white/20 mb-4" />
+           <div className="absolute inset-0 flex flex-col items-center justify-center text-[#171410]/40 text-sm">
+             <Globe2 className="w-12 h-12 text-[#171410]/20 mb-4" />
              Aucun événement dans cette vue.
            </div>
         )}
@@ -313,7 +313,7 @@ export function ProfileFeed({
                onClick={() => { setFilter(f.id as any); setCurrentIndex(0); }}
                className={cn(
                  "px-4 py-2 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors backdrop-blur-md border",
-                 filter === f.id ? "bg-white text-black font-semibold border-white" : "bg-black/20 text-white hover:bg-white/10 border-white/10"
+                 filter === f.id ? "bg-[#171410] text-[#FBFAF8] font-semibold border-white" : "bg-[#FBFAF8]/20 text-[#171410] hover:bg-[#171410]/10 border-[#171410]/10"
                )}
              >
                {f.label}
@@ -321,12 +321,12 @@ export function ProfileFeed({
            ))}
          </div>
 
-         <div className="flex gap-1 bg-black/40 p-1.5 rounded-full backdrop-blur-xl border border-white/10 pointer-events-auto shrink-0">
+         <div className="flex gap-1 bg-[#FBFAF8]/40 p-1.5 rounded-full backdrop-blur-xl border border-[#171410]/10 pointer-events-auto shrink-0">
             <button 
               onClick={setMaintenant}
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors",
-                mode === "maintenant" ? "bg-white text-black font-semibold" : "text-white/60 hover:text-white"
+                mode === "maintenant" ? "bg-[#171410] text-[#FBFAF8] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
               )}
             >
               Maintenant
@@ -335,7 +335,7 @@ export function ProfileFeed({
               onClick={() => setMode("replay")}
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors",
-                mode === "replay" ? "bg-white text-black font-semibold" : "text-white/60 hover:text-white"
+                mode === "replay" ? "bg-[#171410] text-[#FBFAF8] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
               )}
             >
               <Play className="w-3 h-3" /> Replay
@@ -352,7 +352,7 @@ export function ProfileFeed({
                setCurrentIndex(i => (i - 1 + filteredEvents.length) % filteredEvents.length);
              }}
               aria-label="Moment précédent"
-             className="w-14 h-14 rounded-full bg-black/20 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/10 transition-colors border border-white/10 hover:scale-105"
+             className="w-14 h-14 rounded-full bg-[#FBFAF8]/20 backdrop-blur-xl flex items-center justify-center text-[#171410] hover:bg-[#171410]/10 transition-colors border border-[#171410]/10 hover:scale-105"
            >
              <ArrowLeft className="w-5 h-5" />
            </button>
@@ -363,7 +363,7 @@ export function ProfileFeed({
                setCurrentIndex(i => (i + 1) % filteredEvents.length);
              }}
               aria-label="Moment suivant"
-             className="w-14 h-14 rounded-full bg-black/20 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/10 transition-colors border border-white/10 hover:scale-105"
+             className="w-14 h-14 rounded-full bg-[#FBFAF8]/20 backdrop-blur-xl flex items-center justify-center text-[#171410] hover:bg-[#171410]/10 transition-colors border border-[#171410]/10 hover:scale-105"
            >
              <ArrowRight className="w-5 h-5" />
            </button>
@@ -371,13 +371,13 @@ export function ProfileFeed({
       )}
 
       {mode === "replay" && filteredEvents.length > 0 && (
-        <div className="absolute bottom-0 left-0 w-full h-1.5 bg-white/10 z-20">
+        <div className="absolute bottom-0 left-0 w-full h-1.5 bg-[#171410]/10 z-20">
           <motion.div 
             key={currentIndex} 
             initial={{ width: "0%" }}
             animate={{ width: "100%" }}
             transition={{ duration: 4.5, ease: "linear" }}
-            className="h-full bg-white"
+            className="h-full bg-[#171410]"
           />
         </div>
       )}

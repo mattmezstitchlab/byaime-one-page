@@ -373,13 +373,8 @@ export function PortalControls({
           ? LoaderCircle
           : CloudCheck;
 
-  const audit = project ? auditTimelineConnections(project) : { isolated: [], dangling: [], manualMusic: [] };
+
   const timelineIndex = project ? buildTimelineIndex(project) : { events: new Map() };
-  const reviewCount =
-    audit.isolated.length +
-    audit.dangling.length +
-    audit.manualMusic.length +
-    (syncStatus === "conflict" || syncStatus === "error" ? 1 : 0);
   const currentPath = typeof window === "undefined" ? "/profile" : window.location.pathname;
   const isProfileRoute = currentPath.endsWith("/profile");
   const openWorldContext = (request: Parameters<typeof focusWorld>[0]) => {
@@ -399,30 +394,6 @@ export function PortalControls({
           data-testid="portal-controls"
           className={embedded ? "flex items-center gap-1.5" : "fixed right-4 top-3 z-[60] flex items-center gap-1.5"}
         >
-          <button
-            data-testid="sync-status"
-            data-sync-status={syncStatus}
-            title={
-              syncError ||
-              `${reviewCount} élément${reviewCount === 1 ? "" : "s"} à vérifier`
-            }
-            onClick={() => setPanel("sync")}
-            className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-background px-2.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-2 sm:px-3"
-            aria-label={`${reviewCount} élément${reviewCount === 1 ? "" : "s"} à vérifier`}
-          >
-            <span className="relative grid place-items-center">
-              {reviewCount > 0 && (
-                <span className="absolute inset-0 animate-ping rounded-full bg-foreground/20" />
-              )}
-              <SyncIcon
-                className={`relative h-3.5 w-3.5 ${syncStatus === "loading" || syncStatus === "saving" ? "animate-spin" : ""}`}
-              />
-            </span>
-            <span className="hidden sm:inline">À vérifier</span>
-            <span className="grid h-4 min-w-4 place-items-center rounded-full bg-foreground/10 px-1 text-[9px] font-semibold text-foreground">
-              {reviewCount}
-            </span>
-          </button>
           {canEdit && (
             <button
               data-testid="settings-open"
@@ -641,133 +612,7 @@ export function PortalControls({
         </CenteredBlock>
       )}
 
-      {panel === "sync" && project && (
-        <CenteredBlock
-          eyebrow="Contrôle universel"
-          title="Des changements sont à vérifier"
-          description="AIME réunit ici la sauvegarde, les liens incomplets et les éléments qui demandent une décision humaine, quel que soit l’écran courant."
-          onClose={() => setPanel(null)}
-          size="lg"
-        >
-          <div className="grid gap-2 sm:grid-cols-2">
-            <ReviewCard
-              label="Conservation"
-              value={
-                syncStatus === "conflict" || syncStatus === "error" ? 1 : 0
-              }
-              detail={labels[syncStatus]}
-              alert={syncStatus === "conflict" || syncStatus === "error"}
-            />
-            <ReviewCard
-              label="Éléments sans lien"
-              value={audit.isolated.length}
-              detail="À relier à un Moment"
-            />
-            <ReviewCard
-              label="Liens incomplets"
-              value={audit.dangling.length}
-              detail="Références à réparer"
-              alert={audit.dangling.length > 0}
-            />
-            <ReviewCard
-              label="Musiques manuelles"
-              value={audit.manualMusic.length}
-              detail="À reconnaître ou conserver"
-            />
-          </div>
-          {syncError && (
-            <p className="mt-5 border-l border-destructive/50 py-1 pl-4 text-sm font-light leading-relaxed text-destructive/80">
-              {syncError}
-            </p>
-          )}
-          {(audit.isolated.length > 0 ||
-            syncStatus === "conflict" ||
-            syncStatus === "error" ||
-            audit.dangling.length > 0 ||
-            audit.manualMusic.length > 0) && (
-            <div className="mt-6 space-y-1 border-t border-border pt-5">
-              {(syncStatus === "conflict" || syncStatus === "error") && (
-                <ReviewLine
-                  label={syncStatus === "conflict" ? "Une version du Monde demande vérification" : "La synchronisation a rencontré un problème"}
-                  meta={syncError || labels[syncStatus]}
-                  action={{
-                    label: "Réglages du Monde",
-                    onClick: () => {
-                      setPanel("world-settings");
-                    },
-                  }}
-                />
-              )}
-              {audit.isolated.slice(0, 4).map((entity) => (
-                <ReviewLine
-                  key={`isolated:${entity.kind}:${entity.id}`}
-                  label={entity.label}
-                  meta={`${entity.kind} · sans Moment`}
-                  action={{
-                    label: "Voir le graphe",
-                    onClick: () => openWorldContext({
-                      auditView: "isolated",
-                      entityKind: entity.kind,
-                      entityId: entity.id,
-                    }),
-                  }}
-                />
-              ))}
-              {audit.dangling.slice(0, 4).map(({ eventId, relation }) => (
-                <ReviewLine
-                  key={`dangling:${eventId}:${relation.kind}:${relation.id}`}
-                  label={
-                    timelineIndex.events.get(eventId)?.title ||
-                    "Moment introuvable"
-                  }
-                  meta={`${relation.kind} · référence absente`}
-                  action={{
-                    label: "Voir le lien",
-                    onClick: () => openWorldContext({
-                      auditView: "dangling",
-                      momentId: eventId,
-                      entityKind: relation.kind,
-                      entityId: relation.id,
-                    }),
-                  }}
-                />
-              ))}
-              {audit.manualMusic.slice(0, 4).map((track) => (
-                <ReviewLine
-                  key={`music:${track.id}`}
-                  label={track.title}
-                  meta={`${track.artist} · ajouté à la main`}
-                  action={{
-                    label: "Ouvrir Musique",
-                    onClick: () => openWorldContext({
-                      panel: "music",
-                      auditView: "music",
-                      entityKind: "music",
-                      entityId: track.id,
-                      musicTrackId: track.id,
-                    }),
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          <div className="mt-6 flex flex-wrap gap-2">
-            <button
-              data-testid="me-open"
-              onClick={() => setPanel("me")}
-              className="rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Ouvrir ME
-            </button>
-            <button
-              onClick={() => setPanel(null)}
-              className="rounded-full border border-foreground/15 px-4 py-2 text-xs text-foreground/70 hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Fermer
-            </button>
-          </div>
-        </CenteredBlock>
-      )}
+
 
       {panel === "editor" && project && (
         <CenteredBlock
