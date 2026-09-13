@@ -64,12 +64,6 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
             AIME
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <a
-              href="#landing-product"
-              className="hidden rounded-full px-3 py-2 text-[11px] text-white/75 transition hover:bg-white/10 hover:text-white md:inline"
-            >
-              {t("nav.howItWorks")}
-            </a>
             <LocaleToggle locale={locale} setLocale={setLocale} />
             <AppearanceToggle className="text-white/70 hover:bg-white/10 hover:text-white" />
             {signedIn ? (

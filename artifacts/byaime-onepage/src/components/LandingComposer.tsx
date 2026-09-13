@@ -266,14 +266,14 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
           data-testid="landing-persona"
           role="group"
           aria-label={t("persona.label")}
-          className="rounded-[2rem] border border-white/15 bg-black/35 p-6 text-white backdrop-blur-xl sm:p-8"
+          className="rounded-3xl border border-white/15 bg-black/35 p-5 text-white backdrop-blur-xl sm:p-6"
         >
-          <p className="text-center text-[15px] font-medium">{t("persona.label")}</p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <p className="text-center text-[13px] font-medium">{t("persona.label")}</p>
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
             <PersonaCard
               testId="landing-persona-couple"
               active={persona === "couple"}
-              icon={<Heart className="h-5 w-5" aria-hidden />}
+              icon={<Heart className="h-4 w-4" aria-hidden />}
               label={t("persona.couple")}
               sub={t("persona.couple.sub")}
               onClick={() => choose("couple")}
@@ -281,7 +281,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
             <PersonaCard
               testId="landing-persona-pro"
               active={persona === "pro"}
-              icon={<Briefcase className="h-5 w-5" aria-hidden />}
+              icon={<Briefcase className="h-4 w-4" aria-hidden />}
               label={t("persona.pro")}
               sub={t("persona.pro.sub")}
               onClick={() => choose("pro")}
@@ -458,15 +458,15 @@ function PersonaCard({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-4 rounded-3xl bg-white p-5 text-left text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+        "flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
       )}
     >
-      <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-black/10 bg-black/[0.05]">
+      <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 bg-black/[0.05]">
         {icon}
       </span>
       <span>
-        <span className="block text-[15px] font-semibold leading-tight">{label}</span>
-        <span className="mt-1 block text-[12px] font-light leading-snug text-black/60">
+        <span className="block text-[13px] font-semibold leading-tight">{label}</span>
+        <span className="mt-0.5 block text-[11px] font-light leading-snug text-black/60">
           {sub}
         </span>
       </span>
