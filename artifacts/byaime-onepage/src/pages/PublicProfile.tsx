@@ -20,6 +20,7 @@ import { indexTimelineConflicts } from "@/lib/timeline-graph";
 
 import { ProfileFil } from "@/components/ProfileFil";
 import { ProfileFrise } from "@/components/ProfileFrise";
+import { CoupleReport } from "@/components/CoupleReport";
 import { buildFrise } from "@/lib/frise";
 import { trackEvent } from "@/lib/analytics";
 
@@ -263,7 +264,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const profile: ProfileView | undefined = forcePrivatePreview ? privatePreview : publishedProfile;
   const isPrivatePreview = forcePrivatePreview && Boolean(privatePreview);
 
-  const [viewMode, setViewMode] = useState<"timeline" | "fil" | "frise">("timeline");
+  const [viewMode, setViewMode] = useState<"timeline" | "fil" | "frise" | "rapport">("timeline");
 
   /* Quel mode du Profil est réellement ouvert : cinématique, Fil, ou frise. */
   useEffect(() => {
@@ -490,6 +491,10 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
             onOpenPanel={panel => focusWorld({ route: "/user-portal", panel })}
           />
         </div>
+      ) : viewMode === "rapport" && project ? (
+        <div className="w-full h-full overflow-y-auto pt-28 pb-16 animate-in fade-in duration-500 relative z-10">
+          <CoupleReport project={project} />
+        </div>
       ) : viewMode === "fil" ? (
         <div className="w-full h-full overflow-y-auto pt-32 pb-24 px-6 animate-in fade-in duration-500 relative z-10">
           <div className="max-w-3xl mx-auto">
@@ -685,6 +690,12 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
               className={cn("whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", viewMode === "frise" ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground")}
             >
               Tout voir
+            </button>
+            <button
+              onClick={() => setViewMode("rapport")}
+              className={cn("whitespace-nowrap rounded-full px-4 py-1.5 text-[10px] font-medium uppercase tracking-[.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", viewMode === "rapport" ? "bg-foreground text-background shadow-md" : "text-foreground/60 hover:bg-foreground/10 hover:text-foreground")}
+            >
+              Bilan
             </button>
             <button
               onClick={() => setViewMode("fil")}
