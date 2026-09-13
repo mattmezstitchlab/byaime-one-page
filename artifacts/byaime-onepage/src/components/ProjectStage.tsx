@@ -40,6 +40,7 @@ import {
   type WeddingPanelId,
 } from '@/lib/wedding-navigation';
 import { setWorldNavState } from '@/lib/world-nav-state';
+import { trackEvent } from '@/lib/analytics';
 import { useI18n } from '@/lib/i18n';
 import { heroVisualOverlayCss } from '@/lib/types';
 import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
@@ -109,6 +110,19 @@ export function ProjectStage() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<WeddingPanelId | null>(null);
+
+  /*
+   * Ce qui est réellement regardé. Jusqu'ici les 22 événements mesurés étaient
+   * tous transactionnels (création, RSVP, fichier, partage) : aucun ne disait si
+   * une vue ou un panneau était seulement ouvert. Ces deux événements répondent
+   * à « est-ce qu'ils regardent la Timeline ? » sans rien deviner.
+   */
+  useEffect(() => {
+    trackEvent('world_view_opened', { view, phase });
+  }, [view, phase]);
+  useEffect(() => {
+    if (activePanel) trackEvent('world_panel_opened', { panel: activePanel, phase });
+  }, [activePanel, phase]);
   const [countdownsOpen, setCountdownsOpen] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);

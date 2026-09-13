@@ -21,6 +21,7 @@ import { indexTimelineConflicts } from "@/lib/timeline-graph";
 import { ProfileFil } from "@/components/ProfileFil";
 import { ProfileFrise } from "@/components/ProfileFrise";
 import { buildFrise } from "@/lib/frise";
+import { trackEvent } from "@/lib/analytics";
 
 type ProfileView = Omit<PublicProfile, "timeline"> & {
   timeline: ProfileTimelineEvent[];
@@ -263,6 +264,11 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
   const isPrivatePreview = forcePrivatePreview && Boolean(privatePreview);
 
   const [viewMode, setViewMode] = useState<"timeline" | "fil" | "frise">("timeline");
+
+  /* Quel mode du Profil est réellement ouvert : cinématique, Fil, ou frise. */
+  useEffect(() => {
+    trackEvent("profile_mode_opened", { mode: viewMode });
+  }, [viewMode]);
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const [selectedPublicEvent, setSelectedPublicEvent] = useState<ProfileTimelineEvent | null>(null);
   const [activeSection, setActiveSection] = useState("identity");
