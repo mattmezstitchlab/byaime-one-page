@@ -1,3 +1,4 @@
+import type { CollaborationRole } from "./collaboration-roles";
 import { translate, type Locale } from "./i18n-dictionary";
 import type { TimelineView } from "./timeline-graph";
 import type { TimelineEntityKind } from "./types";

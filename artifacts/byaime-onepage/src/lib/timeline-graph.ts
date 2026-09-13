@@ -1,4 +1,5 @@
 import type { TimelineEntityKind, TimelineEvent, TimelinePhase, TimelineRelation, TimelineVisibility, WorldProject } from "./types";
+import type { CollaborationRole } from "./collaboration-roles";
 
 export const TIMELINE_SCHEMA_VERSION = 2 as const;
 
@@ -213,13 +214,12 @@ export function applyPropagationPlan(project: WorldProject, plan: PropagationPla
   };
 }
 
-export type TimelineView = "chronological" | "public-info" | "map" | "day-of" | "person" | "provider" | "music" | "logistics" | "collaborative" | "memories";
+export type TimelineView = "chronological" | "public-info" | "day-of" | "person" | "provider" | "music" | "logistics" | "collaborative" | "memories";
 export function filterTimeline(project: WorldProject, view: TimelineView) {
   if (view === "chronological") return [...project.timeline].sort((a, b) => a.time - b.time);
   if (view === "public-info") return project.timeline.filter(event => event.visibility === "audience").sort((a, b) => a.time - b.time);
-  if (view === "map") return [];
   if (view === "day-of") return project.timeline.filter(e => e.phase === "pendant").sort((a, b) => a.time - b.time);
-  const kinds: Record<Exclude<TimelineView, "chronological" | "public-info" | "map" | "day-of">, TimelineEntityKind[]> = {
+  const kinds: Record<Exclude<TimelineView, "chronological" | "public-info" | "day-of">, TimelineEntityKind[]> = {
     person: ["guest", "team"], provider: ["provider"], music: ["music"], logistics: ["logistics", "table"],
     collaborative: ["team", "message"], memories: ["memory"],
   };
@@ -243,7 +243,8 @@ export function auditTimelineConnections(project: WorldProject) {
    un Moment publié à l'audience ; les finances et documents restent réservés.
 ———————————————————————————————————————————————— */
 
-export type RoleVisibility = "owner" | "planner" | "family" | "viewer";
+/** Un seul type de rôle pour toute l'app : défini dans collaboration-roles. */
+export type RoleVisibility = CollaborationRole;
 
 export const ENTITY_KIND_LABELS: Record<TimelineEntityKind, string> = {
   guest: "Invité",

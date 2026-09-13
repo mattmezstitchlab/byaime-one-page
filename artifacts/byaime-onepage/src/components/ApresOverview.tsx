@@ -110,7 +110,7 @@ export function ApresOverview() {
         </article>
 
         <article data-testid="apres-overview-words" className="flex flex-col rounded-3xl border border-foreground/10 bg-card p-5">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl border border-foreground/10 bg-foreground/5 text-rose-300/80">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl border border-foreground/10 bg-foreground/5 text-brand-accent/80">
             <Heart className="h-5 w-5" />
           </span>
           <h4 className="mt-4 text-sm font-medium">Mots doux</h4>

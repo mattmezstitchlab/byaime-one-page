@@ -126,7 +126,7 @@ export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; on
                 </>
               ) : snapshot.live ? (
                 <>
-                  <h3 className="mt-1 font-display text-2xl font-semibold leading-tight"><span className="mr-2 inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-rose-400 align-middle" aria-hidden />{snapshot.live.title}</h3>
+                  <h3 className="mt-1 font-display text-2xl font-semibold leading-tight"><span className="mr-2 inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-brand-accent align-middle" aria-hidden />{snapshot.live.title}</h3>
                   <p className="mt-1 text-xs text-foreground/50">
                     En cours · {formatRelativeDayDelay(snapshot.live.time - now)} · se termine {formatRelativeDayDelay(dayEventEnd(snapshot.live) - now)}
                     {snapshot.live.location ? ` · ${snapshot.live.location}` : ""}
@@ -195,7 +195,7 @@ export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; on
                 data-state={state}
                 className={cn(
                   "relative flex gap-4 rounded-3xl border bg-card p-5 transition sm:gap-5 sm:p-6",
-                  state === "live" ? "border-rose-300/40 shadow-[0_0_40px_rgba(251,113,133,.12)]" : "border-foreground/10",
+                  state === "live" ? "border-brand-accent/40/40 shadow-[0_0_40px_rgba(251,113,133,.12)]" : "border-foreground/10",
                   state === "done" && "opacity-70",
                 )}
               >

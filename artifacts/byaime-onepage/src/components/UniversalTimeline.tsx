@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Link2, MapPin, Plus, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints } from "lucide-react";
+import { Link2, MapPin, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
@@ -270,17 +270,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
         );
       })}
 
-      {canEdit ? (
-        <div className="w-full py-32 flex justify-center bg-background border-t border-foreground/5">
-          <button
-            onClick={add}
-            className="group relative flex h-16 w-16 items-center justify-center rounded-full border border-foreground/20 bg-card transition-colors hover:bg-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Ajouter un jalon"
-          >
-            <Plus className="h-6 w-6 text-foreground transition-colors group-hover:text-background" />
-          </button>
-        </div>
-      ) : (
+      {!canEdit && (
         <div className="w-full py-20 flex justify-center bg-background border-t border-foreground/5">
           <p className="text-xs text-foreground/40 tracking-widest uppercase">Lecture seule</p>
         </div>
@@ -500,7 +490,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
 
           {canEdit && (
             <div className="pt-8 border-t border-foreground/10">
-              <button onClick={onDelete} className="w-full rounded-full border border-red-500/30 py-3 text-xs uppercase tracking-widest text-red-400 hover:bg-red-500/10 transition-colors">
+              <button onClick={onDelete} className="w-full rounded-full border border-destructive/40 py-3 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/10 transition-colors">
                 Supprimer l'événement
               </button>
             </div>

@@ -720,7 +720,7 @@ export function ProjectStage() {
             </div>
           </section>
         )}
-        {view !== "map" && <UniversalTimeline events={visibleEvents} />}
+        <UniversalTimeline events={visibleEvents} />
       </main>
 
       <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanel} onPhaseChange={nextPhase => {

@@ -170,3 +170,72 @@ ignoraient `BASE_PATH`, contrairement à `App.tsx:22` et `PortalControls.tsx:209
 2. §3 — remplacer `emerald-*` / `rose-*` / `red-*` par les tokens du thème (contraste en clair).
 3. §2 — passer dates et montants par la locale, puis traduire les panneaux par lots.
 4. §4 / §5 — purger la vue `map`, `ParallaxImage`, et réécrire `preview/smoke.mjs`.
+
+---
+
+# Passe 2 — 13 septembre 2026 (suite de session)
+
+> Demande utilisateur : supprimer les restes de `/guides`, supprimer la vue `map`, retirer le bouton « + »
+> du portail, visuels modernes pour les Moments, lister les boutons inutiles de la nav horizontale
+> (AVANT / LE JOUR J), et statuer sur les boutons « Couple / Wedding planner » et la démo mariage.
+> « Corrige tout » appliqué aux incohérences du relevé ci-dessus qui pouvaient l'être sans casse.
+
+## 7. Fait dans cette passe
+
+- **`/guides` supprimé partout** : la page n'existait déjà plus ; `preview/smoke.mjs` attendait encore
+  `guides-page`, `guide-chapters-open`, « Comprendre avant de cliquer » — ces contrôles sont retirés et le
+  script passe désormais (`CONTRÔLE LOCAL OK`, 0 problème, contre 23 avant).
+- **Vue `map` supprimée** : retirée du type `TimelineView`, de `filterTimeline` et de la garde
+  `ProjectStage.tsx` ; `aime-architecture.test.ts` mis à jour.
+- **Bouton « + » du fil du portail supprimé** (`UniversalTimeline`) : la création d'un Moment reste possible
+  via le « + » de la barre de commande (`GlobalCreateCenter`, événement `aime:new-moment`) et les boutons
+  « Ajouter » de chaque panneau. La mention « Lecture seule » reste pour les rôles sans édition.
+- **Rôles unifiés** : `RoleVisibility` et `WeddingRole` deviennent des alias de `CollaborationRole`
+  (une seule définition). La contradiction planificateur/finances est tranchée dans le sens du comportement
+  réel (le planificateur voit les finances, comme le font déjà le Graphe et la barre du Monde) : les copies
+  d'invitation et `COLLABORATION_ROLE_POLICY` sont alignées, plus de promesse inverse.
+- **Contraste / couleurs** : jeton `--success` ajouté (sombre `152 60% 52%`, clair `152 70% 26%`),
+  `--destructive` rendu lisible (sombre `0 74% 60%`, clair `0 68% 40%`), et les classes hors thème
+  (`emerald-*`, `rose-*`, `red-*` hors primitives `ui/`) remplacées par `success` / `brand-accent` /
+  `destructive`. Le `ui/toast.tsx` (variante destructive shadcn) est laissé tel quel.
+- **Code mort** : `ParallaxImage.tsx`, `ui/breadcrumb.tsx` et 8 clés i18n jamais appelées supprimés
+  (parité FR/EN conservée : 468/468, aucune clé orpheline).
+- **Visuels modernes** : 10 des 12 visuels de Moments régénérés dans une direction éditoriale lumineuse
+  (cérémonie, table, invités, portrait, musique, préparatifs, fleurs, vidéo, transport, réception).
+
+## 8. Réponses aux questions
+
+### 8.1 « Deux fois les boutons Couple / Wedding planner » ?
+Vérifié par rendu statique : sur la page d'accueil, le duo n'apparaît **qu'une seule fois**
+(`landing-persona-couple` ×1, `landing-persona-pro` ×1). Le même composant `LandingComposer` est monté à
+**deux endroits** : le hero de l'accueil (`Landing.tsx:119`) et l'onboarding de l'espace privé
+(`PortalOnboarding.tsx:34`). La seconde instance ne se voit que si l'on arrive sans avoir choisi de persona
+sur l'accueil (le choix est mémorisé et saute l'écran). → **Ne pas supprimer l'une des deux** : elles couvrent
+deux portes d'entrée différentes. Si l'on veut une seule occurrence, garder celle de l'espace privé
+(elle crée réellement le Monde) et transformer le hero de l'accueil en simple appel à l'action.
+
+### 8.2 La démo mariage peut-elle être supprimée ?
+Découverte importante : `createInitialProject` (`parser.ts`) **pré-remplit tout nouveau projet mariage**
+avec les mêmes données de démo (Sophie Martin, Château de la Tour, paiements, etc.) — pas seulement le bouton
+« Explorer un mariage complet ». Donc supprimer le bouton ne supprime pas les données factices : un vrai
+couple qui crée son Monde reçoit aussi des invités/fournisseurs fictifs. Deux options propres :
+1. **Garder le bouton** mais ne pré-remplir que la démo (les vrais projets démarrent vides) ;
+2. **Tout retirer** (bouton + seed) et assumer des Mondes vides au départ.
+→ À trancher ; rien n'a été supprimé ici (le bouton sert aussi aux tests e2e : `e2e/aime.spec.ts:95`).
+
+### 8.3 Boutons inutiles de la nav horizontale
+Lecture de `getWeddingNavigation` : la rangée est censée ne porter que ce qui est propre à la phase, mais
+`ceremony`, `logistics`, `messages` figurent dans les **trois** phases (AVANT en primaire, JOUR J et APRÈS en
+secondaire) → ce ne sont pas des entrées de phase, ce sont des catégories communes. → **À déplacer dans un
+menu « Plus » (ou la barre latérale)** : économie de 3 boutons par phase.
+- AVANT : reste `Plan de table` (+ Synthèse, Aperçu invité).
+- JOUR J : reste `Jour J`, `Infos publiques`, `Plan de table`, `Cagnottes`.
+- APRÈS : reste `Mercis`, `Photos`, `Film`, `Lune de miel`, `Cagnottes`, `Infos publiques`.
+`seating`, `practical`, `contributions` (2 phases sur 3) peuvent rester visibles ; le vrai doublon est le
+trio ceremony/logistics/messages. Proposition non appliquée : c'est un choix de design, à valider.
+
+## 9. Restant ouvert (non fait cette passe, à prioriser)
+
+- Régénérer les 2 derniers visuels (`wedding-patrimoine`, `wedding-attire`) : limite de génération atteinte.
+- Traduire les ~1 200 chaînes FR codées en dur (dont le Graphe) ; dates/montants par locale ; `BASE_PATH`.
+- Décision démo (8.2) et menu « Plus » de la nav (8.3).
