@@ -78,7 +78,8 @@ describe("la Bande : un écran, trois échelles", () => {
     const html = render();
     expect(html).toContain('data-testid="bande-phrase"');
     expect(html).toContain('data-testid="bande-phrase-submit"');
-    expect(html).toContain("Une phrase, et le mariage existe");
+    expect(html).toContain("Décrivez votre mariage en une phrase");
+    expect(html).toContain("Ce qu&#x27;AIME a compris");
     for (const id of ["pivot", "city", "venue", "guestsCount", "budget"]) {
       expect(html, `fait ${id} absent`).toContain(`data-testid="bande-fact-${id}"`);
     }
@@ -140,5 +141,67 @@ describe("la Bande : lisibilité", () => {
     expect(BANDE_META.robots).toBe("noindex, nofollow");
     expect(BANDE_META.title.length).toBeLessThanOrEqual(60);
     expect(BANDE_META.description.length).toBeLessThanOrEqual(165);
+  });
+});
+
+/*
+ * La demande de la fondatrice (14/09) : « ce serait mieux dans le design du
+ * site — la page d'accueil, ce serait bien tout le site comme ça ». Ce volet
+ * verrouille la reprise de cette direction artistique, et l'écart assumé : les
+ * classes de texte de l'accueil posées à `foreground / 0.55` (~3,9:1 sur blanc)
+ * sont sous AA, donc la typographie est reprise mais pas ce contraste-là.
+ */
+describe("la Bande : la direction artistique de l'accueil", () => {
+  it("ouvre sur un hero pleine hauteur, œil-de-bœuf, grand titre et amorce", () => {
+    const html = render();
+    expect(html).toContain('data-testid="bande-hero"');
+    expect(html).toContain("min-h-[100dvh]");
+    expect(html).toContain("aime-apple-title");
+    expect(html).toContain("aime-apple-lead");
+    expect(html).toContain("tracking-[0.24em]");
+    expect(html).toContain("text-5xl");
+    expect(html).toContain("md:text-7xl");
+  });
+
+  it("met la phrase dans la carte sombre arrondie de l'accueil", () => {
+    const html = render();
+    expect(html).toContain('data-testid="bande-composer"');
+    expect(html).toContain("rounded-[2rem]");
+    expect(html).toContain("bg-[var(--agency-ink)]");
+  });
+
+  it("reprend la barre fine, les panneaux bordés et les boutons-pilules", () => {
+    const html = render();
+    expect(html).toContain("h-12");
+    expect(html).toContain("backdrop-blur-xl");
+    expect(html).toContain("tracking-[.28em]");
+    expect(html).toContain("border-t border-[var(--agency-hairline)]");
+    expect(html).toContain("rounded-3xl border");
+    expect(html).toContain("aime-apple-pill");
+  });
+
+  it("révèle au défilement, mais reste lisible sans JavaScript", () => {
+    // `Reveal` rend son contenu visible côté serveur : pas de page blanche au
+    // pré-rendu, et rien ne dépend de l'IntersectionObserver pour être lu.
+    const html = render();
+    expect(html).toContain("opacity-100 translate-y-0");
+    expect(html).not.toContain("opacity-0 translate-y-6");
+    expect(html).toContain("motion-reduce:transition-none");
+  });
+
+  it("reprend la typographie de l'accueil, pas ses contrastes sous AA", () => {
+    // `aime-apple-eyebrow` et `aime-apple-confiance` posent du petit texte à
+    // foreground/0.55, soit ~3,9:1 sur blanc : sous AA. La Bande reprend le
+    // dessin (capitales, espacement) avec un jeton mesuré à 5,20:1.
+    expect(source).not.toContain("aime-apple-eyebrow");
+    expect(source).not.toContain("aime-apple-confiance");
+    expect(source).toContain("var(--agency-eyebrow)");
+  });
+
+  it("ne monte pas le fond animé : il est invisible derrière les panneaux", () => {
+    // Sur l'accueil, le dégradé maillé est recouvert par des panneaux opaques
+    // (hero blanc, sections `bg-background`) : il coûte un contexte WebGL pour
+    // rien. La Bande ne le reprend pas tant que ce n'est pas tranché.
+    expect(source).not.toContain("ShaderBackdrop");
   });
 });

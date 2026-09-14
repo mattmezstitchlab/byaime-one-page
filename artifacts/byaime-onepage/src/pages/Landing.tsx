@@ -4,6 +4,7 @@ import { ArrowRight, Gift, Lock, Accessibility, Wifi } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
 import { LandingShowcase } from "@/components/LandingShowcase";
 import { ShaderBackdrop } from "@/components/ShaderBackdrop";
+import { Reveal } from "@/components/Reveal";
 import { useRouteMeta } from "@/lib/page-meta";
 import { I18nProvider, useI18n, type I18nKey, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -280,45 +281,6 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
   );
 }
 
-/** Révélation douce au défilement, coupée si le mouvement est réduit. */
-function Reveal({ children, className }: { children: ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(() => {
-    if (typeof IntersectionObserver === "undefined") return true;
-    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return true;
-    return false;
-  });
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || shown || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries.some(entry => entry.isIntersecting)) {
-          setShown(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.14, rootMargin: "0px 0px -6% 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [shown]);
-
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "transition-[opacity,transform] duration-700 ease-out will-change-[opacity,transform] motion-reduce:transition-none",
-        shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
 /** FR / EN, discret : la langue choisie est mémorisée et reprise dans l'onboarding. */
 function LocaleToggle({ locale, setLocale }: { locale: Locale; setLocale: (value: Locale) => void }) {
   return (
@@ -351,4 +313,3 @@ function LocaleToggle({ locale, setLocale }: { locale: Locale; setLocale: (value
  * L'aide est disponible avant même d'avoir un compte : la même connaissance de
  * l'architecture que dans l'espace privé, sans projet, sans saisie, sans envoi.
  */
-

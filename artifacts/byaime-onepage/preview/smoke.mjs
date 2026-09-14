@@ -251,7 +251,9 @@ checkHtml(
     'data-testid="bande-regie-jours"',
     'data-testid="bande-resolution-mois"',
     'data-testid="bande-phrase"',
-    "Une phrase, et le mariage existe",
+    'data-testid="bande-composer"',
+    "Ce qu&#x27;AIME a compris",
+    "aime-apple-title",
   ],
   ["Connexion momentanément indisponible", 'data-testid="private-layout"'],
 );

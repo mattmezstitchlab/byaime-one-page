@@ -578,6 +578,46 @@ comme manquant, jamais inventé.
   l'ouverture au référencement se feront ensemble.
 - **La virtualisation** : le germe fait ~60 Moments ; au-delà de ~300 il faudra virtualiser la liste.
 
+#### Reprise de la direction artistique de l'accueil (14/09, demande de la fondatrice)
+
+Demande : « pas mal, mais ce serait mieux dans le design du site — si tu regardes la page
+d'accueil, ce serait bien tout le site comme ça ».
+
+La Bande reprend donc la mise en scène de `Landing.tsx` : hero pleine hauteur (œil-de-bœuf en
+petites capitales espacées, titre `aime-apple-title` en 5xl→7xl, amorce `aime-apple-lead`), la
+phrase dans la **carte sombre arrondie** du compositeur de l'accueil, panneaux blancs bordés d'un
+filet, cartes `rounded-3xl`, icônes posées dans des carrés `rounded-xl`, boutons-pilules
+(`aime-apple-pill`, accent rose pour appliquer un décalage), révélations au défilement.
+`Reveal` est extrait de `Landing.tsx` vers `components/Reveal.tsx` — quatrième extraction pour la
+même raison que les trois autres : une seule implémentation, deux écrans.
+
+Deux écarts assumés :
+
+1. **Les petites capitales de l'accueil sont sous AA.** `.aime-apple-eyebrow` et
+   `.aime-apple-confiance` posent du texte à `foreground / 0.55`, soit ~**3,97:1** sur blanc
+   (mesure recalculée depuis `--foreground: 30 12% 9%`). La Bande reprend leur dessin — capitales,
+   espacement 0,24 em — avec `--agency-eyebrow`, mesuré à **5,20:1**. **À trancher pour le site
+   entier** : corriger ces deux classes (`0.55` → `0.72`, soit ~7:1) ou accepter 3,97:1 sur les
+   yeux-de-bœuf de l'accueil. La règle mémoire « apparence inclusive » demande AA.
+2. **Le rythme est plus serré** (`py-16`/`py-24` au lieu de `py-24`/`py-36`) : l'accueil est une
+   vitrine qui se regarde, la Bande est un écran qui s'emploie. Même langage, pas même respiration.
+
+**Découverte : le dégradé maillé de l'accueil est invisible.** `ShaderBackdrop` est
+`fixed inset-0 z-0`, mais le hero pose un voile blanc `absolute inset-0` et toutes les sections
+sont des panneaux opaques `bg-background`, pied de page compris. Le site paie donc un contexte
+WebGL animé en continu — et la dépendance `@paper-design/shaders-react` — pour un rendu que
+personne ne voit. La Bande ne le reprend pas tant que ce n'est pas tranché. Deux issues : le rendre
+visible (retirer le voile blanc du hero, à vérifier en contraste — le dégradé est saturé) ou le
+retirer. Le commentaire de `ShaderBackdrop.tsx` annonce d'ailleurs une « palette rose/magenta »
+que le test de l'accueil décrit comme un « fond bleu-vert signature » : la documentation et le
+contrôle ne décrivent plus le même objet.
+
+Contrôles après refonte : typecheck racine OK · **56 fichiers / 364 tests OK** (6 nouveaux sur la
+direction artistique, dont l'interdiction des classes sous AA et l'absence du fond animé) · build OK
+(classes générées vérifiées : `rounded-[2rem]`, `accent-[var(--agency-ink)]`, opacité 4 % en
+`color-mix`) · smoke **31 contrôles OK**, `/monde` rendu en nominal (102 710 octets) et en dégradé
+(102 450 octets).
+
 #### Décision attendue
 
 Faut-il substituer la Bande au Monde privé actuel (42 écrans → un écran + tiroirs) ? Si oui, le lot
