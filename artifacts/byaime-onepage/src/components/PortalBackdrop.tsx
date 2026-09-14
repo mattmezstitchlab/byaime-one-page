@@ -13,7 +13,7 @@ export function PortalBackdrop() {
     <div
       aria-hidden
       data-testid="portal-backdrop"
-      className="fixed inset-0 z-0 bg-[#FFFFFF]"
+      className="fixed inset-0 z-0 bg-[var(--agency-paper)]"
     />
   );
 }

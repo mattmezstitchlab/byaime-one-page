@@ -11,13 +11,12 @@ import { cn } from "@/lib/utils";
  *  - réglage du filtre noir (overlay 0–100) pour garder le texte lisible.
  * Les fichiers image sont lus comme données intégrées : le visuel suit la
  * sauvegarde du Monde sans dépendre d'un espace de stockage tiers.
+ * Design blanc agency-paper / hairline / ink, comme le reste de l'app.
  */
 
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
 function looksLikeVideoUrl(url: string) {
-  // Les lecteurs tiers (YouTube, Vimeo) ne peuvent pas être lus en <video> :
-  // on ne reconnaît que les fichiers vidéo directs.
   return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
 }
 
@@ -70,17 +69,20 @@ export function VisualImportControl({
     setUrlDraft("");
   };
 
-  const patchOverlay = (next: number) => onChange(value ? { ...value, overlay: next } : null);
+  const patchOverlay = (next: number) => {
+    if (!value) return;
+    onChange({ ...value, overlay: next });
+  };
 
   return (
-    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4">
+    <div className="rounded-[18px] border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 shadow-[0_2px_16px_rgba(23,20,16,0.06)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] uppercase tracking-[.22em] text-foreground/45">{label}</p>
+        <p className="text-[10px] uppercase tracking-[.22em] text-[var(--agency-eyebrow)]">{label}</p>
         {value && !disabled && (
           <button
             type="button"
             onClick={() => { onChange(null); setError(""); if (fileRef.current) fileRef.current.value = ""; }}
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-foreground/50 transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-[var(--agency-body)] transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/20"
           >
             <Trash2 className="h-3 w-3" /> Retirer
           </button>
@@ -88,23 +90,24 @@ export function VisualImportControl({
       </div>
 
       {value ? (
-        <div className="mt-3 overflow-hidden rounded-xl border border-foreground/10">
-          <div className="relative aspect-video w-full bg-[#FFFFFF]">
+        <div className="mt-3 overflow-hidden rounded-[14px] border border-[var(--agency-hairline)]">
+          <div className="relative aspect-video w-full bg-[var(--agency-paper)]">
             {value.kind === "image" ? (
               <img src={value.url} alt={value.name ? `Visuel : ${value.name}` : "Aperçu du visuel"} className="h-full w-full object-cover" />
             ) : (
               <video src={value.url} className="h-full w-full object-cover" autoPlay muted loop playsInline />
             )}
-            <div className="pointer-events-none absolute inset-0 bg-[#FFFFFF]" style={{ opacity: overlay / 100 * 0.75 }} aria-hidden />
-            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#FFFFFF]/60 px-2 py-0.5 text-[9px] uppercase tracking-[.14em] text-[#171410]/85 backdrop-blur-sm">
+            {/* Overlay noir pour lisibilité */}
+            <div className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: (overlay / 100) * 0.75 }} aria-hidden />
+            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[var(--agency-paper)]/80 px-2.5 py-1 text-[9px] uppercase tracking-[.14em] text-[var(--agency-ink)] backdrop-blur-sm">
               {value.kind === "video" ? <Film className="h-3 w-3" /> : <ImagePlus className="h-3 w-3" />}
               {value.kind === "video" ? "Vidéo" : "Image"}{value.name ? ` · ${value.name.length > 24 ? `${value.name.slice(0, 24)}…` : value.name}` : ""}
             </span>
           </div>
         </div>
       ) : (
-        <p className="mt-2 text-xs font-light leading-relaxed text-foreground/45">
-          Aucun visuel personnalisé — l’illustration par défaut du Monde reste affichée.
+        <p className="mt-2 text-xs font-light leading-relaxed text-[var(--agency-body)]">
+          Aucun visuel personnalisé — le fond blanc reste affiché.
         </p>
       )}
 
@@ -114,7 +117,7 @@ export function VisualImportControl({
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-3 py-1.5 text-[11px] text-foreground/75 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-[11px] text-[var(--agency-ink)] transition hover:bg-[var(--agency-ink)]/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/20"
             >
               <Upload className="h-3.5 w-3.5" /> Importer une image
             </button>
@@ -129,8 +132,8 @@ export function VisualImportControl({
               type="button"
               onClick={() => setUrlMode("image")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                urlMode === "image" ? "border-foreground bg-foreground text-background" : "border-foreground/15 text-foreground/75 hover:bg-foreground/5"
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/20",
+                urlMode === "image" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)] bg-[var(--agency-paper)] text-[var(--agency-body)] hover:bg-[var(--agency-ink)]/[0.04]"
               )}
             >
               <Link2 className="h-3.5 w-3.5" /> URL image
@@ -139,8 +142,8 @@ export function VisualImportControl({
               type="button"
               onClick={() => setUrlMode("video")}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                urlMode === "video" ? "border-foreground bg-foreground text-background" : "border-foreground/15 text-foreground/75 hover:bg-foreground/5"
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/20",
+                urlMode === "video" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)] bg-[var(--agency-paper)] text-[var(--agency-body)] hover:bg-[var(--agency-ink)]/[0.04]"
               )}
             >
               <Film className="h-3.5 w-3.5" /> URL vidéo
@@ -155,20 +158,20 @@ export function VisualImportControl({
               onChange={event => setUrlDraft(event.target.value)}
               onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); submitUrl(); } }}
               placeholder={urlMode === "video" ? "https://…/video.mp4, .webm…" : "https://…/photo.jpg"}
-              className="min-w-0 flex-1 rounded-xl border border-foreground/10 bg-background px-3 py-2 text-xs text-foreground outline-none transition focus:border-foreground/30 disabled:opacity-50"
+              className="min-w-0 flex-1 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs text-[var(--agency-ink)] outline-none transition focus:border-[var(--agency-ink)]/30 disabled:opacity-50"
             />
             <button
               type="button"
               onClick={submitUrl}
               disabled={!urlDraft.trim()}
-              className="shrink-0 rounded-full bg-foreground px-4 py-2 text-[11px] font-medium text-background transition hover:opacity-90 disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="shrink-0 rounded-full bg-[var(--agency-ink)] px-4 py-2 text-[11px] font-medium text-[var(--agency-paper)] transition hover:opacity-90 disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/20"
             >
               Utiliser cette URL
             </button>
           </div>
 
           <label className="mt-4 block">
-            <span className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[.18em] text-foreground/45">
+            <span className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[.18em] text-[var(--agency-eyebrow)]">
               <span>Filtre noir</span>
               <span className="tabular-nums">{overlay}%</span>
             </span>
@@ -179,10 +182,10 @@ export function VisualImportControl({
               value={overlay}
               disabled={!value}
               onChange={event => patchOverlay(Number(event.target.value))}
-              className="w-full accent-foreground disabled:opacity-40"
+              className="w-full accent-[var(--agency-ink)] disabled:opacity-40"
               aria-label="Force du filtre noir sur le visuel"
             />
-            <span className="mt-1 flex justify-between text-[9px] uppercase tracking-[.14em] text-foreground/30">
+            <span className="mt-1 flex justify-between text-[9px] uppercase tracking-[.14em] text-[var(--agency-eyebrow)]/70">
               <span>Photo visible</span><span>Lisibilité du texte</span>
             </span>
           </label>
