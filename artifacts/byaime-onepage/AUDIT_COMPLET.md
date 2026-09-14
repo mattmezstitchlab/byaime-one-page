@@ -178,3 +178,31 @@ Branche: arena/01a09e0c-byaime-one-page
 ## Prochaine étape recommandée
 
 Implémenter `LocalGallery` qui remplace Documents: utiliser `FileReader.readAsDataURL` comme `VisualImportControl` fait déjà, stocker dans `project.documents` local avec `url: dataURL`. Retirer tout `api()` storage. Puis masquer RSVP si pas d'API (try/catch + state `apiAvailable`).
+
+
+---
+
+## P0 + P1 réalisés (2026-09-14)
+
+### P0 — local-first gallery + suppression AIME LOCAL + offline RSVP — FAIT
+- Documents: dataURL local 8Mo max, plus de S3
+- Film/Memories utilisent documents locaux
+- Messages: simulation locale si backend absent
+- GuestPanel: apiAvailable flag masque RSVP si offline
+- Suppression complète AIME LOCAL bridge
+
+### P1 — fusion nav — FAIT
+- Guest + Seating → un seul panneau "Invités" avec plan de table intégré (à placer + tables + assignation)
+- Provider + Budget → un seul panneau "Prestataires" avec budget intégré (estimé/engagé/payé/restant + répartition + échéancier)
+- Rail: Timeline, Personnes, Prestataires, Tâches, Documents, Équipe, Musique (retrait Finances séparé)
+- Nav horizontale Avant: Cérémonie, Logistique, Messages (retrait Plan de table)
+- Nav Jour J: Déroulé, Infos invités, Contributions (retrait Plan de table)
+- PANEL_FOR_KIND: table->guests, payment->providers
+- Compat legacy: seating->guests, budget->providers normalisés dans openPanelSafely, isWeddingPanelAvailable, findPhaseForPanel
+
+### Reste P2 (proposé, non fait)
+- Documents + Memories + Film + Contributions → Galerie unique (déjà partiellement fait via documents locaux, mais UI encore séparée)
+- Messages + Thanks → modèles locaux + copy (déjà partiellement fait)
+- Logistics + Ceremony + Team → Organisation Jour J accordéon
+
+Après P1, app compte 6 entrées rail au lieu de 8, plus de doublons.
