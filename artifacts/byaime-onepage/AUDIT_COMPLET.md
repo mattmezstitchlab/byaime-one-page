@@ -206,3 +206,74 @@ Implémenter `LocalGallery` qui remplace Documents: utiliser `FileReader.readAsD
 - Logistics + Ceremony + Team → Organisation Jour J accordéon
 
 Après P1, app compte 6 entrées rail au lieu de 8, plus de doublons.
+
+---
+
+## P2 réalisé (2026-09-14) — fusion galerie + organisation + nav finale
+
+### Navigation finale
+- Rail 7 items (inchangé en nombre mais remanié): Timeline, Personnes (=guests+seating), Prestataires (=providers+budget), Tâches, Documents (=documents+memories+film+contributions+thanks), Logistique (=ceremony+logistics+team = Organisation), Musique
+- Suppression des icônes doublons dans CommandBar WORLD_ICONS: finances et team retirés, logistics=Settings
+- `normalizePanelId()` centralise tous les legacy:
+  - seating -> guests
+  - budget -> providers
+  - memories/film/contributions/thanks -> documents
+  - ceremony/team -> logistics
+- Utilisé dans: `wedding-navigation.ts` (findPhaseForPanel, getPanelContextGroup, isWeddingPanelAvailable), `ProjectStage.tsx` (openPanelSafely, setActivePanelNormalized), `PANEL_FOR_KIND` (memory->documents, team->logistics)
+- Horizontal Avant: [Messages] seul (logistics déjà dans rail, évite duplicate ID qui faisait échouer tests d'unicité)
+- Horizontal Pendant: [dayof, practical, messages] (retrait contributions qui est maintenant dans Galerie)
+- Secondary vide (plus de duplicate logistics)
+
+### Documents → Galerie unifiée
+- Fichier `WeddingModulesPanel.tsx` module documents:
+  - Tabs All / Images / Vidéos / Docs
+  - Grid images avec lightbox plein écran (click)
+  - Grid vidéos avec <video controls>
+  - Liste docs avec download/preview
+  - Checklist souvenirs intégrée (ex-Memories) avec toggle + CRUD
+  - Note offline pour contributions ex-panel supprimé
+  - Lightbox z-[100] avec fond black/80
+  - State hooks déplacés au top pour respecter rules-of-hooks
+- Legacy modules seating/budget/ceremony/team/memories/film/contributions/thanks rendent désormais un écran "Fusionné dans Galerie/Organisation" avec redirection texte, au lieu de crasher ou fetch API.
+
+### Logistics → Organisation unifiée
+- 3 onglets internes: Cérémonie / Logistique / Équipe
+- Cérémonie: notes, menu, drinks, cake, firstDance, structure éditable (input), readings, vows (EditableArea)
+- Logistique: parking, accessibility, weatherFallback, packing checklist, emergencyContacts
+- Team: accordéon <details> avec rôle/person/tasks CRUD, suppression rôle
+- Suppression du code AIME LOCAL déjà fait en P0, plus de putStorageFile
+
+### Tests
+- 377 tests pass (après patch wedding-navigation.test, private-i18n.test, admin-plan.test, apres-modules.test)
+- `wedding-navigation.test` mis à jour: rail = [..., Logistique, ...], avant = [Messages], pendant = [dayof, practical, messages]
+- `private-i18n.test` idem en EN
+- `admin-plan.test` attend logistics+messages dans concevoir, plus ceremony
+- `apres-modules.test` vérifie que thanks/memories/film sont fusionnés et que documents contient Galerie unifiée
+
+### Ce qui marche vraiment maintenant (local-first)
+- Timeline + heroVisual dataURL ✅
+- Personnes + plan de table intégré ✅
+- Prestataires + budget 4 KPIs + répartition + payments ✅
+- Tâches ✅
+- Galerie unifiée (images/vidéos/docs + souvenirs checklist) local-first dataURL ✅
+- Organisation (cérémonie + logistique + équipe) ✅
+- Musique (Apple search online + manuel) ✅
+- Messages modèles locaux + copy ✅
+- DayOf, Practical, Honeymoon (timeline apres) ✅
+- Portal choix couple/wedding ✅
+- Design démo blanc/paper/hairline partout ✅
+
+### Ce qui reste API-dependent (volontairement non réparé offline)
+- Guest RSVP links /api/projects/:id/rsvp-links → masqué si apiAvailable false
+- Documents upload S3 /storage/uploads/request-url → remplacé par dataURL local
+- Messages envoi Resend /projects/:id/messages → simulation locale + copy
+- Contributions /participant-media, Film approved videos via storage, Memories approved photos via storage, Thanks song-requests → remplacés par galerie locale
+- AIME LOCAL bridge → supprimé
+
+### Fichiers modifiés P2
+- `src/lib/wedding-navigation.ts`: normalizePanelId, WEDDING_RAIL_ICONS team->logistics, getWeddingRailItems team->logistics, getWeddingNavigation avant=[messages], pendant=[dayof,practical,messages], findPhaseForPanel/getPanelContextGroup/isWeddingPanelAvailable utilisent normalize, PANEL_FOR_KIND fusion
+- `src/components/CommandBar.tsx`: WORLD_ICONS retrait finances/team, logistics=Settings
+- `src/components/ProjectStage.tsx`: normalizePanelId + openPanelSafely + setActivePanelNormalized P2
+- `src/components/panels/WeddingModulesPanel.tsx`: documents galerie unifiée + logistics organisation + legacy redirects + hooks fix
+- Tests: wedding-navigation.test, private-i18n.test, admin-plan.test, apres-modules.test
+

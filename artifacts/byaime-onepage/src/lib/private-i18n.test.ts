@@ -69,10 +69,10 @@ describe("coque privée traduite", () => {
     const ids = (locale: Locale) => getWeddingRailItems("avant", owner, locale).map(item => item.id);
     expect(ids("en")).toEqual(ids("fr"));
     expect(getWeddingRailItems("avant", owner, "en").map(item => item.label)).toEqual([
-      "Timeline", "People", "Vendors", "Tasks", "Documents", "Team", "Music",
+      "Timeline", "People", "Vendors", "Tasks", "Documents", "Logistics", "Music",
     ]);
     expect(getWeddingNavigation("avant", owner, "en").primary.map(item => item.label)).toEqual([
-      "Ceremony & reception", "Logistics", "Messages",
+      "Messages",
     ]);
   });
 

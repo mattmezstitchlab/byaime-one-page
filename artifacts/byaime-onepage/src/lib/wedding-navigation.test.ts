@@ -37,10 +37,10 @@ describe("wedding navigation", () => {
     for (const role of ["owner", "planner"] as const) {
       const capabilities = getWeddingCapabilities(role);
       expect(getWeddingRailItems("avant", capabilities).map(item => item.label)).toEqual([
-        "Timeline", "Personnes", "Prestataires", "Tâches", "Documents", "Équipe", "Musique",
+        "Timeline", "Personnes", "Prestataires", "Tâches", "Documents", "Logistique", "Musique",
       ]);
       expect(getWeddingNavigation("avant", capabilities).primary.map(item => item.label)).toEqual([
-        "Cérémonie & réception", "Logistique", "Messages",
+        "Messages",
       ]);
     }
   });
@@ -48,7 +48,7 @@ describe("wedding navigation", () => {
   it("only puts period-specific tools in the horizontal navigation of each mode", () => {
     const owner = getWeddingCapabilities("owner");
     expect(getWeddingNavigation("pendant", owner).primary.map(item => item.id)).toEqual([
-      "day-of", "public-info", "contributions",
+      "day-of", "public-info", "messages",
     ]);
     /* L'Après vit dans un projet séparé : sa navigation horizontale est vide. */
     expect(getWeddingNavigation("apres", owner).primary).toEqual([]);
@@ -116,7 +116,7 @@ describe("wedding navigation", () => {
     const dayof = getPanelContextGroup("dayof", rail, navigation, "chronological");
     expect(dayof.id).toBe("phase");
     expect(dayof.label).toBe("Outils du mode");
-    expect(dayof.items.map(item => item.id)).toContain("contributions");
+    expect(dayof.items.map(item => item.id)).toContain("messages");
     expect(dayof.items.map(item => item.id)).not.toContain("finances");
   });
 

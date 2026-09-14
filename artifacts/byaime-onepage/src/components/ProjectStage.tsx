@@ -50,6 +50,14 @@ const CREATE_PANEL_TARGETS: Partial<Record<UniversalCreateActionId, WeddingPanel
   task: "planning",
   "document-media": "documents",
 };
+
+function normalizePanelId(panel: WeddingPanelId): WeddingPanelId {
+  if (panel === "seating") return "guests";
+  if (panel === "budget") return "providers";
+  if (panel === "memories" || panel === "film" || panel === "contributions" || panel === "thanks") return "documents";
+  if (panel === "ceremony" || panel === "team") return "logistics";
+  return panel;
+}
 /*
  * Créer un Moment n'ouvre pas un panneau : c'est un jalon de la Timeline. On
  * revient à la vue chronologique et on demande l'ajout d'un jalon (la Timeline
@@ -154,8 +162,7 @@ export function ProjectStage() {
 
   const setActivePanelNormalized = (panel: WeddingPanelId | null) => {
     if (!panel) { setActivePanel(null); return; }
-    const normalized = (panel === "seating" ? "guests" : panel === "budget" ? "providers" : panel) as WeddingPanelId;
-    setActivePanel(normalized);
+    setActivePanel(normalizePanelId(panel));
   };
 
   useEffect(() => {
@@ -169,8 +176,7 @@ export function ProjectStage() {
    * phase qui le porte, au lieu de le voir se refermer aussitôt.
    */
   const openPanelSafely = (panel: WeddingPanelId) => {
-    // Fusion P1: seating->guests, budget->providers
-    const normalized = (panel === "seating" ? "guests" : panel === "budget" ? "providers" : panel) as WeddingPanelId;
+    const normalized = normalizePanelId(panel);
     const role = previewRole ?? currentRole;
     const effectiveView: TimelineView = normalized === "music" ? "music" : view;
     if (normalized === "music") setView("music");

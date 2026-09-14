@@ -66,6 +66,15 @@ export type WeddingDestination = { kind: "view"; view: TimelineView } | { kind: 
 export type WeddingNavigationItem = { id: string; label: string; description: string; destination: WeddingDestination };
 export type WeddingNavigation = { primary: WeddingNavigationItem[]; secondary: WeddingNavigationItem[] };
 
+function normalizePanelId(panel: WeddingPanelId): WeddingPanelId {
+  if (panel === "seating") return "guests";
+  if (panel === "budget") return "providers";
+  if (panel === "memories" || panel === "film" || panel === "contributions" || panel === "thanks") return "documents";
+  if (panel === "ceremony" || panel === "team") return "logistics";
+  return panel;
+}
+
+
 const item = (
   locale: Locale,
   id: string,
@@ -102,7 +111,7 @@ const team = (locale: Locale) => item(locale, "team", "team", { kind: "panel", p
  * dans la barre latérale verticale gauche, comme la navigation globale, pour ne
  * plus encombrer la navigation horizontale de chaque phase.
  */
-export const WEDDING_RAIL_ICONS = ["timeline", "people", "providers", "tasks", "documents", "team", "music"] as const;
+export const WEDDING_RAIL_ICONS = ["timeline", "people", "providers", "tasks", "documents", "logistics", "music"] as const;
 export type WeddingRailIcon = (typeof WEDDING_RAIL_ICONS)[number];
 export type WeddingRailItem = WeddingNavigationItem & { icon: WeddingRailIcon };
 
@@ -133,7 +142,7 @@ export function getWeddingRailItems(
     { ...providers(locale), icon: "providers" },
     { ...tasks(locale), icon: "tasks" },
     { ...documents(locale), icon: "documents" },
-    { ...team(locale), icon: "team" },
+    { ...logistics(locale), icon: "logistics" },
     { ...music(locale, phase === "pendant"), icon: "music" },
   ];
   return entries.filter(entry => isWeddingEntryAllowed(entry, capabilities));
@@ -152,13 +161,13 @@ export function getWeddingNavigation(
   let primary: WeddingNavigationItem[];
   let secondary: WeddingNavigationItem[];
   if (phase === "avant") {
-    primary = [ceremony(locale), logistics(locale), messages(locale)];
+    // P2: logistics est dans le rail (Organisation unifiée), plus besoin en horizontal -> uniquement Messages
+    primary = [messages(locale)];
     secondary = [];
   } else if (phase === "pendant") {
-    primary = [dayof(locale), practical(locale), contributions(locale)];
-    secondary = [ceremony(locale), logistics(locale), messages(locale)];
+    primary = [dayof(locale), practical(locale), messages(locale)];
+    secondary = [];
   } else {
-    /* L'Après vit désormais dans un projet séparé : plus aucune entrée ici. */
     primary = [];
     secondary = [];
   }
@@ -209,10 +218,11 @@ export function getPanelContextGroup(
   view: TimelineView,
   locale: Locale = "fr",
 ): PanelContextGroup {
+  const normalized = normalizePanelId(panel);
   const phaseItems = [...navigation.primary, ...navigation.secondary];
   const belongsToRail =
-    rail.some(item => item.destination.kind === "panel" && item.destination.panel === panel) ||
-    (panel === "music" && view === "music");
+    rail.some(item => item.destination.kind === "panel" && item.destination.panel === normalized) ||
+    (normalized === "music" && view === "music");
   if (belongsToRail) return { id: "rail", label: translate(locale, "world.group.rail"), items: rail };
   return { id: "phase", label: translate(locale, "world.group.phase"), items: phaseItems };
 }
@@ -228,8 +238,7 @@ export function findPhaseForPanel(
   role: string,
   view: TimelineView,
 ): WorldPhase | null {
-  // Compat: seating -> guests, budget -> providers (fusion P1)
-  const normalized = panel === "seating" ? "guests" : panel === "budget" ? "providers" : panel;
+  const normalized = normalizePanelId(panel);
   const capabilities = getWeddingCapabilities(role);
   for (const phase of WORLD_PHASE_IDS) {
     const rail = getWeddingRailItems(phase, capabilities, "fr");
@@ -245,13 +254,12 @@ export function isWeddingPanelAvailable(
   view: TimelineView,
   rail: WeddingNavigationItem[] = [],
 ) {
-  // Compat fusion
-  const normalized = panel === "seating" ? "guests" : panel === "budget" ? "providers" : panel;
+  const normalized = normalizePanelId(panel);
   const available = [...rail, ...navigation.primary, ...navigation.secondary].some(
     item => item.destination.kind === "panel" && item.destination.panel === normalized,
   );
   if (available) return true;
-  if (normalized === "guests" || normalized === "providers") return true; // toujours dispo via rail
+  if (["guests", "providers", "documents", "logistics"].includes(normalized)) return true;
   return panel === "music" && view === "music";
 }
 
@@ -277,8 +285,8 @@ export const PANEL_FOR_KIND: Partial<Record<TimelineEntityKind, WeddingPanelId>>
   payment: "providers",
   document: "documents",
   music: "music",
-  team: "team",
+  team: "logistics",
   message: "messages",
   logistics: "logistics",
-  memory: "memories",
+  memory: "documents",
 };

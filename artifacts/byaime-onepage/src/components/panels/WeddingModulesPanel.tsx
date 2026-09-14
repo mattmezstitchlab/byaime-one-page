@@ -247,6 +247,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [localDocError, setLocalDocError] = useState("");
   const [localDocProgress, setLocalDocProgress] = useState<{ done: number; total: number; current: string } | null>(null);
+  const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video" | "doc">("all");
+  const [galleryLightboxUrl, setGalleryLightboxUrl] = useState<string | null>(null);
+  const [galleryLightboxType, setGalleryLightboxType] = useState<"image" | "video" | null>(null);
+  const [orgaSection, setOrgaSection] = useState<"ceremony"|"logistics"|"team">("ceremony");
   const musicSearchAbortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -502,152 +506,43 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   };
 
   if (module === "seating") {
-    const unassigned = project.guests.filter((g) => effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline" && !g.tableId);
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-foreground/50">
-              {unassigned.length} invité{unassigned.length > 1 ? "s" : ""} sans table
-            </p>
-          </div>
-          <AddBar label="Ajouter une table" onAdd={() => addEntity("tables", { name: `Table ${project.tables.length + 1}`, capacity: 8 })} />
-        </div>
-        {unassigned.length > 0 && (
-          <div className="rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-4">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-brand-accent">
-              <AlertTriangle className="w-3.5 h-3.5" /> À placer
-            </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {unassigned.map((g) => (
-                <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={(tableId) => updateEntity("guests", g.id, { tableId: tableId || undefined })} />
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="grid gap-3 md:grid-cols-2">
-          {project.tables.map((table) => {
-            const guests = project.guests.filter((g) => g.tableId === table.id && effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline");
-            return (
-              <div key={table.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-medium">{table.name}</h4>
-                    <p className={cn("text-xs mt-1", guests.length > table.capacity ? "text-brand-accent" : "text-foreground/40")}>
-                      {guests.length} / {table.capacity} places
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      guests.forEach((g) => updateEntity("guests", g.id, { tableId: undefined }));
-                      removeEntity("tables", table.id);
-                    }}
-                    className="text-foreground/30 hover:text-brand-accent"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {guests.length === 0 ? (
-                    <p className="text-xs text-foreground/30">Aucun invité assigné</p>
-                  ) : (
-                    guests.map((g) => (
-                      <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={(tableId) => updateEntity("guests", g.id, { tableId: tableId || undefined })} />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">seating fusionné</p>
+          <p className="mt-2">Ce panneau est maintenant dans <strong>guests</strong>. Le rail vous y emmène automatiquement.</p>
         </div>
       </div>
     );
   }
 
   if (module === "budget") {
-    const estimated = project.providers.reduce((sum, p) => sum + (p.amountCents || 0), 0);
-    const committed = project.providers
-      .filter((p) => ["devis", "reserve"].includes(p.status))
-      .reduce((sum, p) => sum + (p.amountCents || 0), 0);
-    const paid = project.payments.filter((p) => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
-    const remaining = Math.max(0, (project.budget.value || estimated / 100) * 100 - paid);
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          {[
-            ["Estimé", estimated],
-            ["Engagé", committed],
-            ["Payé", paid],
-            ["Restant", remaining],
-          ].map(([label, value]) => (
-            <div key={label as string} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-              <p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p>
-              <p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p>
-            </div>
-          ))}
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">budget fusionné</p>
+          <p className="mt-2">Ce panneau est maintenant dans <strong>providers</strong>. Le rail vous y emmène automatiquement.</p>
         </div>
-        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-          <p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p>
-          <div className="mt-4 space-y-3">
-            {Array.from(new Set(project.providers.map((p) => p.category))).map((category) => {
-              const amount = project.providers
-                .filter((p) => p.category === category)
-                .reduce((sum, p) => sum + (p.amountCents || 0), 0);
-              const pct = estimated ? Math.min(100, Math.round((amount / estimated) * 100)) : 0;
-              return (
-                <div key={category}>
-                  <div className="mb-1 flex justify-between text-xs">
-                    <span className="capitalize text-foreground/65">{category}</span>
-                    <span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span>
-                  </div>
-                  <div className="h-1 rounded-full bg-foreground/10">
-                    <div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-sm font-medium">Échéancier</h4>
-            <p className="text-xs text-foreground/40 mt-1">Chaque modification est enregistrée dans ce Monde.</p>
-          </div>
-          <AddBar label="Ajouter un paiement" onAdd={addPayment} />
-        </div>
-        {project.payments.length === 0 ? (
-          <Empty>Aucun paiement à suivre.</Empty>
-        ) : (
-          <div className="space-y-2">
-            {project.payments.map((p) => (
-              <PaymentRow
-                key={p.id}
-                payment={p}
-                currency={project.currency}
-                onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })}
-                onDelete={() => removeEntity("payments", p.id)}
-                onEdit={(updates) => updateEntity("payments", p.id, updates)}
-              />
-            ))}
-          </div>
-        )}
       </div>
     );
   }
 
-  // --- Documents : local-first, AIME LOCAL supprimé ---
-  if (module === "documents")
+  if (module === "documents") {
+    const images = project.documents.filter((d) => d.url?.startsWith("data:image") || d.title.match(/\.(jpg|jpeg|png|webp|gif)$/i));
+    const videos = project.documents.filter((d) => d.url?.startsWith("data:video") || d.title.match(/\.(mp4|webm|mov)$/i));
+    const docs = project.documents.filter((d) => !images.includes(d) && !videos.includes(d));
+    const filtered = galleryFilter === "image" ? images : galleryFilter === "video" ? videos : galleryFilter === "doc" ? docs : project.documents;
     return (
-      <div className="max-w-3xl mx-auto space-y-5">
+      <div className="max-w-4xl mx-auto space-y-6">
         <PersistenceState status={syncStatus} error={syncError} />
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Documents & médias privés</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Galerie unifiée · Documents, souvenirs, film</p>
               <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">
-                Stockés localement dans ce Monde (dataURL, {Math.round(MAX_DOC_BYTES / 1024 / 1024)} Mo max par fichier). Pas de serveur, pas de pont AIME LOCAL — tout reste sur cet appareil et suit la sauvegarde du Monde.
+                Tout est stocké localement dans ce Monde (dataURL, {Math.round(MAX_DOC_BYTES / 1024 / 1024)} Mo max). Images, vidéos, PDFs, souvenirs — plus besoin de panneaux séparés Memories/Film/Contributions/Thanks.
               </p>
-              <p className="mt-2 text-xs text-[var(--agency-eyebrow)]">{project.documents.length} document(s) · Galerie locale</p>
+              <p className="mt-2 text-xs text-[var(--agency-eyebrow)]">{project.documents.length} fichier(s) · {images.length} images · {videos.length} vidéos · {docs.length} docs · {project.memoryChecklist.filter((m)=>m.done).length}/{project.memoryChecklist.length} souvenirs cochés</p>
             </div>
             {canManage && (
               <div className="flex flex-wrap items-center gap-2">
@@ -657,7 +552,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
                   className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs text-[var(--agency-ink)] transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40"
                 >
                   {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                  Ajouter des fichiers
+                  Ajouter
                 </button>
                 <input
                   ref={fileRef}
@@ -673,108 +568,118 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
               </div>
             )}
           </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {(["all","image","video","doc"] as const).map((f) => (
+              <button key={f} onClick={()=>setGalleryFilter(f)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", galleryFilter===f ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{f==="all"?"Tous":f==="image"?"Images":f==="video"?"Vidéos":"Docs"}</button>
+            ))}
+          </div>
         </div>
 
         {localDocProgress && (
           <div role="status" aria-live="polite" className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3 text-xs">
             <div className="flex justify-between">
               <span>Import {localDocProgress.done + 1}/{localDocProgress.total} · {localDocProgress.current}</span>
-              <span className="font-mono text-[var(--agency-eyebrow)]">
-                {localDocProgress.done}/{localDocProgress.total}
-              </span>
+              <span className="font-mono text-[var(--agency-eyebrow)]">{localDocProgress.done}/{localDocProgress.total}</span>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--agency-ink)]/10">
-              <div
-                className="h-full rounded-full bg-[var(--agency-ink)] transition-[width]"
-                style={{ width: `${Math.round((localDocProgress.done / localDocProgress.total) * 100)}%` }}
-              />
-            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--agency-ink)]/10"><div className="h-full rounded-full bg-[var(--agency-ink)] transition-[width]" style={{ width: `${Math.round((localDocProgress.done / localDocProgress.total) * 100)}%` }} /></div>
           </div>
         )}
-
         {localDocError && <p className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#B42318]">{localDocError}</p>}
         {remoteError && <p className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#B42318]">{remoteError}</p>}
 
-        {project.documents.length === 0 ? (
-          <Empty>Aucun document stocké localement. Ajoutez PDF, images, vidéos.</Empty>
-        ) : (
+        {/* Images grid */}
+        {(galleryFilter==="all" || galleryFilter==="image") && images.length>0 && (
           <div className="space-y-2">
-            {project.documents.map((doc) => {
-              const isImage = doc.url?.startsWith("data:image") || doc.title.match(/\.(jpg|jpeg|png|webp|gif)$/i);
-              const isVideo = doc.url?.startsWith("data:video") || doc.title.match(/\.(mp4|webm|mov)$/i);
+            <p className="text-[10px] uppercase tracking-widest text-foreground/40">Images · lightbox local</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {images.map((doc)=>(
+                <div key={doc.id} className="group relative overflow-hidden rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
+                  {doc.url && <img src={doc.url} alt={doc.title} className="h-36 w-full object-cover cursor-pointer" onClick={()=>{ setLightboxUrl(doc.url!); setLightboxType("image"); }} />}
+                  <div className="p-2 flex items-center justify-between gap-1">
+                    <p className="truncate text-[11px]">{doc.title}</p>
+                    {canManage && <button aria-label={`Supprimer ${doc.title}`} onClick={()=>removeEntity("documents", doc.id)} className="p-1 text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Videos grid */}
+        {(galleryFilter==="all" || galleryFilter==="video") && videos.length>0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-foreground/40">Vidéos & film · local-first</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {videos.map((doc)=>(
+                <div key={doc.id} className="rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="truncate text-xs">{doc.title}</p>
+                    {canManage && <button aria-label={`Supprimer ${doc.title}`} onClick={()=>removeEntity("documents", doc.id)} className="p-1 text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3.5 h-3.5"/></button>}
+                  </div>
+                  {doc.url && <video src={doc.url} controls className="w-full rounded-xl max-h-56 bg-black" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Docs list */}
+        {(galleryFilter==="all" || galleryFilter==="doc") && (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-foreground/40">Documents</p>
+            {docs.length===0 && filtered.length===0 ? <Empty>Aucun document. Ajoutez images, vidéos, PDFs — tout reste local.</Empty> : docs.map((doc)=>{
               return (
                 <div key={doc.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
-                    {isImage ? <ImageIcon className="h-4 w-4" /> : isVideo ? <Film className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">{doc.title}</p>
-                    <p className="mt-1 text-xs text-[var(--agency-eyebrow)]">
-                      {doc.kind} · {new Date(doc.at).toLocaleDateString("fr-FR")} · {doc.url ? "local" : "sans fichier"}
-                    </p>
-                  </div>
-                  {doc.url && (
-                    <>
-                      <a aria-label={`Aperçu de ${doc.title}`} target="_blank" rel="noreferrer" href={doc.url} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]">
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                      <a aria-label={`Télécharger ${doc.title}`} href={doc.url} download={doc.title} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]">
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </>
-                  )}
-                  {canManage && (
-                    <button aria-label={`Supprimer ${doc.title}`} onClick={() => removeEntity("documents", doc.id)} className="p-2 text-[var(--agency-eyebrow)] hover:text-[#B42318]">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--agency-hairline)]"><ExternalLink className="h-4 w-4"/></div>
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm">{doc.title}</p><p className="mt-1 text-xs text-[var(--agency-eyebrow)]">{doc.kind} · {new Date(doc.at).toLocaleDateString("fr-FR")}</p></div>
+                  {doc.url && <><a aria-label={`Aperçu ${doc.title}`} target="_blank" rel="noreferrer" href={doc.url} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]"><ExternalLink className="h-4 w-4"/></a><a aria-label={`Télécharger ${doc.title}`} href={doc.url} download={doc.title} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]"><Download className="h-4 w-4"/></a></>}
+                  {canManage && <button aria-label={`Supprimer ${doc.title}`} onClick={()=>removeEntity("documents", doc.id)} className="p-2 text-[var(--agency-eyebrow)] hover:text-[#B42318]"><Trash2 className="h-4 w-4"/></button>}
                 </div>
               );
             })}
+            {galleryFilter!=="doc" && filtered.length===0 && <Empty>Aucun fichier pour ce filtre.</Empty>}
           </div>
         )}
-        {!canManage && <p className="text-xs text-[var(--agency-eyebrow)]">Seuls les responsables peuvent ajouter des documents.</p>}
+
+        {/* Memories checklist intégré */}
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+          <div className="flex items-center justify-between mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Checklist souvenirs · ex-Memories fusionnée</p><span className="text-[10px] text-foreground/30">{project.memoryChecklist.filter((m)=>m.done).length}/{project.memoryChecklist.length}</span></div>
+          {project.memoryChecklist.map((item)=>(
+            <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0">
+              <button onClick={()=>updateProject({ memoryChecklist: project.memoryChecklist.map((x)=> x.id===item.id ? {...x, done:!x.done}:x) })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3"/>}</button>
+              <input value={item.label} onChange={(e)=>updateProject({ memoryChecklist: project.memoryChecklist.map((x)=> x.id===item.id ? {...x, label:e.target.value}:x) })} className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")} />
+              {canManage && <button onClick={()=>updateProject({ memoryChecklist: project.memoryChecklist.filter((x)=>x.id!==item.id) })} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-3.5 h-3.5"/></button>}
+            </div>
+          ))}
+          {canManage && <div className="pt-3"><AddBar label="Souvenir" onAdd={()=>updateProject({ memoryChecklist: [...project.memoryChecklist, { id: newId(), label:"Nouveau souvenir", done:false }] })} /></div>}
+        </div>
+
+        {/* Contributions offline note */}
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-2">Contributions invités · ex-panel supprimé</p>
+          Mode local-first : les contributions invités via /participant-media nécessitent backend. En local, demandez aux invités d'envoyer fichiers par mail et importez-les ici en tant que documents. Le QR code public ne dépose plus en ligne.
+        </div>
+
+        {/* Lightbox */}
+        {galleryLightboxUrl && (
+          <div className="fixed inset-0 z-[100] bg-black/80 grid place-items-center p-4" onClick={()=>setLightboxUrl(null)}>
+            <div className="relative max-w-3xl w-full">
+              <button onClick={()=>setLightboxUrl(null)} className="absolute -top-8 right-0 text-white text-xs uppercase tracking-widest">Fermer ✕</button>
+              {galleryLightboxType==="image" ? <img src={galleryLightboxUrl} className="w-full max-h-[85vh] object-contain rounded-xl" /> : <video src={galleryLightboxUrl} controls autoPlay className="w-full max-h-[85vh] rounded-xl bg-black" />}
+            </div>
+          </div>
+        )}
       </div>
     );
+  }
 
   if (module === "ceremony") {
-    const c = project.ceremony;
+    // Fusion P2: ceremony -> logistics (Organisation)
     return (
-      <div className="max-w-3xl mx-auto space-y-5">
-        <EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={(notes) => updateProject({ ceremony: { ...c, notes } })} />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <EditableArea label="Menu" value={c.menu} onChange={(menu) => updateProject({ ceremony: { ...c, menu } })} />
-          <EditableArea label="Boissons" value={c.drinks} onChange={(drinks) => updateProject({ ceremony: { ...c, drinks } })} />
-          <EditableArea label="Gâteau" value={c.cake} onChange={(cake) => updateProject({ ceremony: { ...c, cake } })} />
-          <EditableArea label="Première danse" value={c.firstDance} onChange={(firstDance) => updateProject({ ceremony: { ...c, firstDance } })} />
-        </div>
-        <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
-          <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Structure</p>
-          {c.structure.map((item, i) => (
-            <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm">
-              <span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>
-              {item}
-            </div>
-          ))}
-        </div>
-        <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
-          <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Lectures et vœux</p>
-          {c.readings.map((r) => (
-            <div key={r.id} className="mb-3">
-              <p className="text-sm">
-                {r.title} <span className="text-foreground/40">· {r.reader}</span>
-              </p>
-              <p className="text-xs text-foreground/45 mt-1">{r.text}</p>
-            </div>
-          ))}
-          {c.vows.map((v) => (
-            <EditableArea
-              key={v.id}
-              label={`Vœux de ${v.person}`}
-              value={v.text}
-              onChange={(text) => updateProject({ ceremony: { ...c, vows: c.vows.map((x) => (x.id === v.id ? { ...x, text } : x)) } })}
-            />
-          ))}
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm leading-relaxed">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Cérémonie fusionnée dans Organisation</p>
+          <p className="mt-2">Ce panneau a été réunifié dans <strong>Organisation</strong> (onglet Cérémonie). Utilisez le rail Logistique.</p>
         </div>
       </div>
     );
@@ -971,85 +876,127 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     );
   }
 
-  if (module === "logistics") {
+    if (module === "logistics") {
     const l = project.logistics;
+    const c = project.ceremony;
+    
     return (
-      <div className="max-w-4xl mx-auto space-y-4">
-        <EditableArea label="Parking" value={l.parking} onChange={(parking) => updateProject({ logistics: { ...l, parking } })} />
-        <EditableArea label="Accessibilité" value={l.accessibility} onChange={(accessibility) => updateProject({ logistics: { ...l, accessibility } })} />
-        <EditableArea label="Plan météo de repli" value={l.weatherFallback} onChange={(weatherFallback) => updateProject({ logistics: { ...l, weatherFallback } })} />
-        <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-[10px] uppercase tracking-widest text-foreground/40">À emporter</p>
-            <AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, packing: [...l.packing, { id: newId(), label: "Nouvel élément", done: false }] } })} />
+      <div className="max-w-4xl mx-auto space-y-5">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Organisation unifiée · Cérémonie + Logistique + Équipe</p>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--agency-body)]">Fusion des anciens panneaux Ceremony / Logistics / Team. Tout éditable local-first.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(["ceremony","logistics","team"] as const).map((s)=>(
+              <button key={s} onClick={()=>setOrgaSection(s)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", orgaSection===s ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{s==="ceremony"?"Cérémonie":s==="logistics"?"Logistique":"Équipe"}</button>
+            ))}
           </div>
-          {l.packing.length === 0 ? (
-            <Empty>La liste est vide.</Empty>
-          ) : (
-            l.packing.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0">
-                <button
-                  onClick={() => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, done: !x.done } : x)) } })}
-                  className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}
-                >
-                  {item.done && <Check className="w-3 h-3" />}
-                </button>
-                <input
-                  value={item.label}
-                  onChange={(e) => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, label: e.target.value } : x)) } })}
-                  className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")}
-                />
-                <button
-                  onClick={() => updateProject({ logistics: { ...l, packing: l.packing.filter((x) => x.id !== item.id) } })}
-                  className="text-foreground/30 hover:text-brand-accent"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))
-          )}
         </div>
-        <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] uppercase tracking-widest text-foreground/40">Contacts d'urgence</p>
-            <AddBar
-              label="Ajouter"
-              onAdd={() =>
-                updateProject({
-                  logistics: {
-                    ...l,
-                    emergencyContacts: [...l.emergencyContacts, { id: newId(), name: "Nouveau contact", phone: "", role: "À préciser" }],
-                  },
-                })
-              }
-            />
-          </div>
-          {l.emergencyContacts.map((contact) => (
-            <div key={contact.id} className="grid grid-cols-3 gap-2 border-b border-foreground/5 py-2 last:border-0">
-              <input
-                value={contact.name}
-                onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, name: e.target.value } : x)) } })}
-                className="bg-transparent text-sm outline-none"
-              />
-              <input
-                value={contact.phone}
-                onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, phone: e.target.value } : x)) } })}
-                placeholder="Téléphone"
-                className="bg-transparent text-xs outline-none"
-              />
-              <input
-                value={contact.role}
-                onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, role: e.target.value } : x)) } })}
-                className="bg-transparent text-xs text-foreground/50 outline-none"
-              />
+
+        {orgaSection==="ceremony" && (
+          <div className="space-y-4">
+            <EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={(notes) => updateProject({ ceremony: { ...c, notes } })} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <EditableArea label="Menu" value={c.menu} onChange={(menu) => updateProject({ ceremony: { ...c, menu } })} />
+              <EditableArea label="Boissons" value={c.drinks} onChange={(drinks) => updateProject({ ceremony: { ...c, drinks } })} />
+              <EditableArea label="Gâteau" value={c.cake} onChange={(cake) => updateProject({ ceremony: { ...c, cake } })} />
+              <EditableArea label="Première danse" value={c.firstDance} onChange={(firstDance) => updateProject({ ceremony: { ...c, firstDance } })} />
             </div>
-          ))}
-        </div>
+            <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Structure</p>
+              {c.structure.map((item, i) => (
+                <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm">
+                  <span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>
+                  <input value={item} onChange={(e)=>{ const next=[...c.structure]; next[i]=e.target.value; updateProject({ ceremony:{...c, structure:next } }); }} className="flex-1 bg-transparent outline-none text-sm" />
+                </div>
+              ))}
+              {canManage && <div className="pt-2"><AddBar label="Étape" onAdd={()=>updateProject({ ceremony:{...c, structure:[...c.structure, "Nouvelle étape"] }})} /></div>}
+            </div>
+            <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Lectures et vœux</p>
+              {c.readings.map((r) => (
+                <div key={r.id} className="mb-3 rounded-xl border border-foreground/5 p-3">
+                  <div className="flex gap-2">
+                    <input value={r.title} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, title:e.target.value}:x) } })} className="text-sm bg-transparent outline-none flex-1" />
+                    <input value={r.reader} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, reader:e.target.value}:x) } })} className="text-xs bg-transparent outline-none text-foreground/50" />
+                  </div>
+                  <textarea value={r.text} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, text:e.target.value}:x) } })} className="mt-2 w-full bg-transparent outline-none text-xs text-foreground/70 min-h-[60px]" />
+                </div>
+              ))}
+              {c.vows.map((v) => (
+                <EditableArea key={v.id} label={`Vœux de ${v.person}`} value={v.text} onChange={(text) => updateProject({ ceremony: { ...c, vows: c.vows.map((x) => (x.id === v.id ? { ...x, text } : x)) } })} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {orgaSection==="logistics" && (
+          <div className="space-y-4">
+            <EditableArea label="Parking" value={l.parking} onChange={(parking) => updateProject({ logistics: { ...l, parking } })} />
+            <EditableArea label="Accessibilité" value={l.accessibility} onChange={(accessibility) => updateProject({ logistics: { ...l, accessibility } })} />
+            <EditableArea label="Plan météo de repli" value={l.weatherFallback} onChange={(weatherFallback) => updateProject({ logistics: { ...l, weatherFallback } })} />
+            <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40">À emporter</p>
+                <AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, packing: [...l.packing, { id: newId(), label: "Nouvel élément", done: false }] } })} />
+              </div>
+              {l.packing.length === 0 ? <Empty>La liste est vide.</Empty> : l.packing.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0">
+                  <button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, done: !x.done } : x)) } })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3" />}</button>
+                  <input value={item.label} onChange={(e) => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, label: e.target.value } : x)) } })} className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")} />
+                  <button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.filter((x) => x.id !== item.id) } })} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40">Contacts d'urgence</p>
+                <AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, emergencyContacts: [...l.emergencyContacts, { id: newId(), name: "Nouveau contact", phone: "", role: "À préciser" }] } })} />
+              </div>
+              {l.emergencyContacts.map((contact) => (
+                <div key={contact.id} className="grid grid-cols-3 gap-2 border-b border-foreground/5 py-2 last:border-0">
+                  <input value={contact.name} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, name: e.target.value } : x)) } })} className="bg-transparent text-sm outline-none" />
+                  <input value={contact.phone} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, phone: e.target.value } : x)) } })} placeholder="Téléphone" className="bg-transparent text-xs outline-none" />
+                  <input value={contact.role} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, role: e.target.value } : x)) } })} className="bg-transparent text-xs text-foreground/50 outline-none" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {orgaSection==="team" && (
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">Ancien panneau Team fusionné ici. Gérez rôles, missions, contacts jour J.</div>
+            <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+              <div className="flex justify-between items-center mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Équipe & rôles</p><AddBar label="Rôle" onAdd={()=>updateProject({ team: [...project.team, { id:newId(), role:"Nouveau rôle", person:"À assigner", tasks:[] }] })} /></div>
+              {project.team.length===0 ? <Empty>Aucun rôle défini.</Empty> : project.team.map((member)=>(
+                <details key={member.id} className="group border-b border-foreground/5 py-3 last:border-0">
+                  <summary className="flex items-center justify-between cursor-pointer list-none">
+                    <div><p className="text-sm">{member.role} <span className="text-foreground/40">· {member.person}</span></p><p className="text-xs text-foreground/40">{member.tasks.length} tâche(s)</p></div>
+                    <span className="text-[10px] uppercase tracking-widest text-foreground/30 group-open:rotate-180 transition">▼</span>
+                  </summary>
+                  <div className="mt-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input value={member.role} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, role:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder="Rôle" />
+                      <input value={member.person} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, person:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder="Personne" />
+                    </div>
+                    {member.tasks.map((t,i)=>(
+                      <div key={`${member.id}-${i}`} className="flex items-center gap-2">
+                        <input value={t} onChange={(e)=>{ const next=[...member.tasks]; next[i]=e.target.value; updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:next}:x) }); }} className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-3 py-1 text-xs outline-none" />
+                        <button onClick={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:x.tasks.filter((_,j)=>j!==i)}:x) })} className="text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>
+                      </div>
+                    ))}
+                    <div className="flex gap-2"><AddBar label="Tâche" onAdd={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:[...x.tasks, "Nouvelle tâche"]}:x) })} /><button onClick={()=>updateProject({ team: project.team.filter((x)=>x.id!==member.id) })} className="text-[10px] uppercase tracking-widest text-[#B42318]">Supprimer rôle</button></div>
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  if (module === "messages") {
+if (module === "messages") {
     const templates = project.messageTemplates.filter((t) => t.title.toLowerCase().includes(query.toLowerCase()));
     return (
       <div className="max-w-4xl mx-auto space-y-5">
@@ -1203,171 +1150,32 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "contributions") {
     return (
-      <div className="mx-auto max-w-4xl space-y-5">
-        <div>
-          <h4 className="text-sm font-medium">Photos et vidéos reçues</h4>
-          <p className="mt-1 text-xs leading-relaxed text-foreground/45">
-            Mode local-first: les contributions invités nécessitent le backend. En one-page, utilisez la Galerie Documents locale. Ci-dessous, aperçu des médias approuvés si backend présent.
-          </p>
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Contributions fusionné dans Galerie</p>
+          <p className="mt-2">Ce contenu est maintenant dans <strong>Documents → Galerie unifiée</strong> (images, vidéos, docs, souvenirs).</p>
         </div>
-        {participantMedia.length === 0 ? (
-          <Empty>Aucune contribution — mode hors-ligne. Ajoutez vos photos dans Documents.</Empty>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {participantMedia.map((media) => (
-              <article key={media.id} className="overflow-hidden rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
-                <div className="flex aspect-video items-center justify-center bg-foreground/5 text-foreground/30">
-                  {media.contentType.startsWith("image/") ? <ImageIcon className="h-8 w-8" /> : <Film className="h-8 w-8" />}
-                </div>
-                <div className="p-4">
-                  <p className="truncate text-sm">{media.caption || media.name}</p>
-                  <p className="mt-1 text-xs text-foreground/40">{media.guestName || "Invité"} · {fileSize(media.size)}</p>
-                  {canManage && (
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        disabled={busy || media.moderationStatus === "approved"}
-                        onClick={() => void moderateMedia(media.id, "approved")}
-                        className="rounded-full bg-foreground px-3 py-1.5 text-xs text-background disabled:opacity-30"
-                      >
-                        Valider
-                      </button>
-                      <button
-                        disabled={busy || media.moderationStatus === "rejected"}
-                        onClick={() => void moderateMedia(media.id, "rejected")}
-                        className="rounded-full border border-brand-accent/20 px-3 py-1.5 text-xs text-brand-accent disabled:opacity-30"
-                      >
-                        Refuser
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
       </div>
     );
   }
 
   if (module === "thanks") {
-    const dedications = songRequests.filter((r) => r.message?.trim());
-    const notedWords = project.memories.filter((item) => item.kind === "message");
     return (
-      <div className="mx-auto max-w-4xl space-y-8">
-        <section>
-          <div>
-            <h4 className="flex items-center gap-2 text-sm font-medium">
-              <Heart className="h-4 w-4 text-brand-accent" />
-              Les mots doux reçus
-            </h4>
-            <p className="mt-1 text-xs leading-relaxed text-foreground/45">Dédicaces et mots notés localement.</p>
-          </div>
-          {dedications.length + notedWords.length === 0 ? (
-            <div className="mt-4">
-              <Empty>Aucun mot doux reçu pour l’instant.</Empty>
-            </div>
-          ) : (
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {dedications.map((d) => (
-                <figure key={d.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-                  <blockquote className="text-sm font-light leading-relaxed">« {d.message} »</blockquote>
-                  <figcaption className="mt-2 text-xs text-foreground/45">{d.guestName || "Invité"} · {d.title}</figcaption>
-                </figure>
-              ))}
-              {notedWords.map((w) => (
-                <figure key={w.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-                  <blockquote className="text-sm font-light leading-relaxed">« {w.title} »</blockquote>
-                  <figcaption className="mt-2 text-xs text-foreground/45">{w.owner || "Noté"}</figcaption>
-                </figure>
-              ))}
-            </div>
-          )}
-        </section>
-        <section className="space-y-5">
-          <div>
-            <h4 className="text-sm font-medium">Remercier</h4>
-            <p className="mt-1 text-xs leading-relaxed text-foreground/45">Mode hors-ligne: copie locale.</p>
-          </div>
-          <div className="space-y-2">
-            {project.guests.map((guest) => (
-              <div key={guest.id} className="flex flex-wrap items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm">{guest.name}</p>
-                  <p className="mt-1 truncate text-xs text-foreground/40">{guest.contact || "Sans contact"}</p>
-                </div>
-                {canManage && guest.contact && (
-                  <button disabled={busy} onClick={() => void sendThankYou(guest.contact!, guest.name)} className="rounded-full bg-foreground px-3 py-2 text-xs font-medium text-background disabled:opacity-30">
-                    Conserver remerciement
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Thanks fusionné dans Galerie</p>
+          <p className="mt-2">Ce contenu est maintenant dans <strong>Documents → Galerie unifiée</strong> (images, vidéos, docs, souvenirs).</p>
+        </div>
       </div>
     );
   }
 
   if (module === "film") {
-    // Local-first: utilise documents locaux qui sont vidéos
-    const localVideos = project.documents.filter(
-      (d) => d.url && (d.url.startsWith("data:video") || d.title.match(/\.(mp4|webm|mov)$/i)),
-    );
-    const selected = localVideos.find((v) => v.id === selectedVideoId) ?? localVideos[0];
     return (
-      <div className="mx-auto max-w-4xl space-y-5">
-        <div>
-          <h4 className="text-sm font-medium">Film du Jour J</h4>
-          <p className="mt-1 text-xs leading-relaxed text-foreground/45">Vidéos locales de la galerie Documents.</p>
-        </div>
-        {localVideos.length === 0 || !selected ? (
-          <Empty>Aucune vidéo locale. Ajoutez-en dans Documents.</Empty>
-        ) : (
-          <>
-            <figure className="overflow-hidden rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
-              <video key={selected.id} controls preload="metadata" src={selected.url} className="aspect-video w-full" aria-label={selected.title} />
-              <figcaption className="flex flex-wrap items-center gap-2 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-                <span className="min-w-0 flex-1 truncate text-sm">{selected.title}</span>
-                <a href={selected.url} download={selected.title} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/60 transition hover:text-foreground">
-                  <Download className="h-3.5 w-3.5" />
-                  Télécharger
-                </a>
-              </figcaption>
-            </figure>
-            {localVideos.length > 1 && (
-              <div>
-                <p className="mb-2 text-[10px] uppercase tracking-widest text-foreground/40">Toutes les vidéos ({localVideos.length})</p>
-                <div className="space-y-2">
-                  {localVideos.map((video) => (
-                    <button
-                      key={video.id}
-                      onClick={() => setSelectedVideoId(video.id)}
-                      aria-current={video.id === selected.id}
-                      className={cn(
-                        "flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition",
-                        video.id === selected.id
-                          ? "border-foreground/30 bg-[var(--agency-paper)]"
-                          : "border-[var(--agency-hairline)] bg-[var(--agency-paper)] hover:border-[var(--agency-hairline)]",
-                      )}
-                    >
-                      <Film className="h-5 w-5 shrink-0 text-foreground/50" />
-                      <span className="min-w-0 flex-1 truncate text-sm">{video.title}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-        <div className="rounded-xl border border-[var(--agency-hairline)] p-3 text-xs text-foreground/40">
-          Ajoutez la vidéo depuis Documents. Reste locale.
-          {canManage && (
-            <div className="mt-2">
-              <button onClick={() => queueWorldFocus({ panel: "documents" })} className="rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">
-                Ouvrir Documents
-              </button>
-            </div>
-          )}
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Film fusionné dans Galerie</p>
+          <p className="mt-2">Ce contenu est maintenant dans <strong>Documents → Galerie unifiée</strong> (images, vidéos, docs, souvenirs).</p>
         </div>
       </div>
     );
@@ -1431,134 +1239,28 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "team")
     return (
-      <CollectionPanel title="Répartition des responsabilités" addLabel="Ajouter un rôle" onAdd={() => addEntity("team", { name: "Nouvelle personne", role: "Responsable", contact: "", responsibilities: [] })}>
-        {project.team.length === 0 ? (
-          <Empty>Aucun rôle assigné.</Empty>
-        ) : (
-          project.team.map((role) => (
-            <div key={role.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 flex items-start gap-4">
-              <div className="grid flex-1 gap-2 sm:grid-cols-3">
-                <input value={role.name} onChange={(e) => updateEntity("team", role.id, { name: e.target.value })} className="bg-transparent text-sm outline-none" />
-                <input value={role.role} onChange={(e) => updateEntity("team", role.id, { role: e.target.value })} className="bg-transparent text-xs text-foreground/55 outline-none" />
-                <input
-                  value={role.contact || ""}
-                  onChange={(e) => updateEntity("team", role.id, { contact: e.target.value })}
-                  placeholder="Contact"
-                  className="bg-transparent text-xs text-foreground/55 outline-none"
-                />
-                <input
-                  value={role.responsibilities.join(", ")}
-                  onChange={(e) => updateEntity("team", role.id, { responsibilities: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })}
-                  placeholder="Responsabilités séparées par des virgules"
-                  className="sm:col-span-3 bg-transparent text-xs text-foreground/65 outline-none placeholder:text-foreground/25"
-                />
-              </div>
-              <button onClick={() => removeEntity("team", role.id)} className="text-foreground/30 hover:text-brand-accent">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))
-        )}
-      </CollectionPanel>
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Équipe fusionnée dans Organisation</p>
+          <p className="mt-2">Retrouvez les rôles dans <strong>Organisation → Équipe</strong>.</p>
+        </div>
+      </div>
     );
-
   if (module === "memories") {
-    const localImages = project.documents.filter((d) => d.url && d.url.startsWith("data:image"));
-    const lightboxIndex = localImages.findIndex((media) => media.id === lightboxId);
-    const lightbox = lightboxIndex >= 0 ? localImages[lightboxIndex] : undefined;
-    const goLightbox = (direction: 1 | -1) => {
-      if (localImages.length === 0) return;
-      const from = lightboxIndex < 0 ? 0 : lightboxIndex;
-      const next = (from + direction + localImages.length) % localImages.length;
-      setLightboxId(localImages[next]!.id);
-    };
     return (
-      <div className="mx-auto max-w-4xl space-y-8">
-        <section>
-          <div>
-            <h4 className="flex items-center gap-2 text-sm font-medium">
-              <ImageIcon className="h-4 w-4 text-foreground/50" />
-              Galerie locale
-            </h4>
-            <p className="mt-1 text-xs leading-relaxed text-foreground/45">Photos locales de Documents. Cliquez pour agrandir.</p>
-          </div>
-          {localImages.length === 0 ? (
-            <div className="mt-4">
-              <Empty>Aucune photo locale. Ajoutez-en dans Documents.</Empty>
-            </div>
-          ) : (
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {localImages.map((media) => (
-                <button
-                  key={media.id}
-                  onClick={() => setLightboxId(media.id)}
-                  aria-label={`Agrandir ${media.title}`}
-                  className="group relative aspect-square overflow-hidden rounded-3xl border border-[var(--agency-hairline)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
-                >
-                  <img src={media.url} alt={media.title} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-105" />
-                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--agency-paper)]/70 to-transparent p-2 pt-6">
-                    <span className="block truncate text-[11px] text-[var(--agency-ink)]">{media.title}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          {lightbox && (
-            <div
-              className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--agency-paper)]/90 p-4"
-              onClick={() => setLightboxId(null)}
-              role="dialog"
-              aria-modal="true"
-              aria-label={lightbox.title}
-            >
-              <button aria-label="Fermer" onClick={() => setLightboxId(null)} className="absolute right-4 top-4 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20">
-                <X className="h-5 w-5" />
-              </button>
-              {localImages.length > 1 && (
-                <button
-                  aria-label="Photo précédente"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    goLightbox(-1);
-                  }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20 sm:left-4"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-              )}
-              <figure className="max-w-4xl" onClick={(event) => event.stopPropagation()}>
-                <img src={lightbox.url} alt={lightbox.title} className="max-h-[76vh] w-auto rounded-2xl object-contain" />
-                <figcaption className="mt-3 text-center text-sm text-[var(--agency-ink)]/80">
-                  {lightbox.title}{" "}
-                  <span className="text-[var(--agency-ink)]/50">{localImages.length > 1 ? ` · ${lightboxIndex + 1}/${localImages.length}` : ""}</span>
-                </figcaption>
-              </figure>
-              {localImages.length > 1 && (
-                <button
-                  aria-label="Photo suivante"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    goLightbox(1);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20 sm:right-4"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              )}
-            </div>
-          )}
-        </section>
-        <CollectionPanel title="Souvenirs à préparer" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}>
-          <MemoryChecklist />
-        </CollectionPanel>
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Souvenirs fusionnés dans Galerie</p>
+          <p className="mt-2">Checklist souvenirs + images locales sont dans <strong>Documents → Galerie unifiée</strong>.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <CollectionPanel title="Souvenirs et après" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}>
-      <MemoryChecklist />
-    </CollectionPanel>
+    <div className="max-w-3xl mx-auto space-y-4">
+      <Empty>Module inconnu : {module}</Empty>
+    </div>
   );
 }
 
