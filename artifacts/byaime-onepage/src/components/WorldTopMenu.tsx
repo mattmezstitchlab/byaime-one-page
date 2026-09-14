@@ -1,22 +1,24 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { buildAdminPlan } from "@/lib/admin-plan";
+import { Menu as MenuIcon } from "lucide-react";
+import { buildWorldMenu } from "@/lib/admin-plan";
 import type { Locale } from "@/lib/i18n-dictionary";
-import type { WeddingDestination } from "@/lib/wedding-navigation";
+import type { WeddingDestination, WorldPhase } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { EYEBROW } from "@/lib/site-design";
 
 /*
- * Le menu horizontal du portail — blanc, aligné sur le dessin de l'écran démo :
- * pastilles, jetons agency, pas de jaune.
+ * Le menu du Monde, simplifié (14/09) : UN bouton, UNE liste plate.
  *
- * Réparation du 14/09 : les boutons en haut à gauche « ne fonctionnaient pas ».
- * Ils s'ouvraient bel et bien, mais leur sous-menu était rendu DANS la rangée
- * `overflow-x-auto`. Un `overflow-x: auto` fait passer `overflow-y` en `auto`
- * aussi : le panneau, absolutely positioned, était donc découpé à la hauteur de
- * la rangée — invisible. Il est maintenant rendu dans un portail, positionné en
- * `fixed` sous son bouton, et se ferme au clic extérieur, à Échap, au scroll et
- * au redimensionnement.
+ * La Timeline organise le produit — chaque Moment porte ses repères et ses
+ * actions — donc le menu n'a plus à dérouler deux sections de panneaux. Il
+ * reste un raccourci : le socle commun et les outils de la période courante,
+ * sur un seul niveau, pour retrouver une catégorie sans dérouler le fil.
+ *
+ * Mécanique conservée du 14/09 : le panneau est rendu dans un portail en
+ * `fixed` sous son bouton (jamais dans une rangée `overflow-x-auto`, qui
+ * découperait le sous-menu), et se ferme au clic extérieur, à Échap, au scroll
+ * et au redimensionnement.
  */
 
 type Anchor = { top: number; left: number; width: number };
@@ -24,21 +26,22 @@ type Anchor = { top: number; left: number; width: number };
 export function WorldTopMenu({
   role,
   locale,
+  phase,
   onOpen,
 }: {
   role: string;
   locale: Locale;
+  phase: WorldPhase;
   onOpen: (destination: WeddingDestination) => void;
 }) {
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
-  const rowRef = useRef<HTMLDivElement>(null);
-  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const plan = buildAdminPlan(role, locale);
+  const items = buildWorldMenu(role, phase, locale);
 
-  const place = (sectionId: string) => {
-    const rect = buttonRefs.current[sectionId]?.getBoundingClientRect();
+  const place = (): Anchor | null => {
+    const rect = buttonRef.current?.getBoundingClientRect();
     if (!rect) return null;
     return {
       top: rect.bottom + 8,
@@ -47,20 +50,19 @@ export function WorldTopMenu({
     };
   };
 
-  const toggle = (sectionId: string) => {
-    if (open === sectionId) {
-      setOpen(null);
+  const toggle = () => {
+    if (open) {
+      setOpen(false);
       setAnchor(null);
       return;
     }
-    setAnchor(place(sectionId));
-    setOpen(sectionId);
+    setAnchor(place());
+    setOpen(true);
   };
 
-  /* Le panneau suit son bouton : la rangée défile, la fenêtre se redimensionne. */
   useLayoutEffect(() => {
     if (!open) return undefined;
-    const reposition = () => setAnchor(place(open));
+    const reposition = () => setAnchor(place());
     reposition();
     window.addEventListener("resize", reposition);
     return () => window.removeEventListener("resize", reposition);
@@ -69,19 +71,19 @@ export function WorldTopMenu({
 
   useEffect(() => {
     if (!open) return undefined;
-    const onScroll = () => setAnchor(place(open));
+    const onScroll = () => setAnchor(place());
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
       if (panelRef.current?.contains(target)) return;
-      if (buttonRefs.current[open]?.contains(target)) return;
-      setOpen(null);
+      if (buttonRef.current?.contains(target)) return;
+      setOpen(false);
       setAnchor(null);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(null);
+        setOpen(false);
         setAnchor(null);
-        buttonRefs.current[open]?.focus();
+        buttonRef.current?.focus();
       }
     };
     window.addEventListener("scroll", onScroll, true);
@@ -97,52 +99,48 @@ export function WorldTopMenu({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const section = plan.sections.find(item => item.id === open);
   /* Jamais plus haut que la fenêtre, jamais plus large qu'elle. */
   const maxHeight = anchor ? Math.max(160, window.innerHeight - anchor.top - 16) : undefined;
 
   return (
     <>
       <div
-        ref={rowRef}
         data-testid="world-top-menu"
-        className="flex items-center gap-1 overflow-x-auto bg-[var(--agency-paper)] px-3 pt-2 pr-44"
-        aria-label="Menu horizontal du Monde"
+        className="flex items-center gap-1 bg-[var(--agency-paper)] px-3 pt-2"
+        aria-label="Menu du Monde"
       >
-        {plan.sections.map(item => (
-          <button
-            key={item.id}
-            ref={node => { buttonRefs.current[item.id] = node; }}
-            type="button"
-            data-testid={`world-top-menu-${item.id}`}
-            aria-expanded={open === item.id}
-            aria-haspopup="true"
-            onClick={() => toggle(item.id)}
-            className={cn(
-              "shrink-0 rounded-full px-4 py-1.5 text-[11px] uppercase tracking-[0.18em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/30",
-              open === item.id
-                ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]"
-                : "text-[var(--agency-body)] hover:bg-[var(--agency-ink)]/10 hover:text-[var(--agency-ink)]",
-            )}
-          >
-            {item.title}
-          </button>
-        ))}
+        <button
+          ref={buttonRef}
+          type="button"
+          data-testid="world-top-menu-button"
+          aria-expanded={open}
+          aria-haspopup="true"
+          onClick={toggle}
+          className={cn(
+            "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-1.5 text-[11px] uppercase tracking-[0.18em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/30",
+            open
+              ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]"
+              : "text-[var(--agency-body)] hover:bg-[var(--agency-ink)]/10 hover:text-[var(--agency-ink)]",
+          )}
+        >
+          <MenuIcon className="h-3.5 w-3.5" />
+          Menu
+        </button>
       </div>
 
-      {section && anchor && createPortal(
+      {open && anchor && createPortal(
         <div
           ref={panelRef}
           role="menu"
-          aria-label={section.title}
-          data-testid={`world-top-menu-panel-${section.id}`}
+          aria-label="Le Monde"
+          data-testid="world-top-menu-panel-monde"
           style={{ position: "fixed", top: anchor.top, left: anchor.left, minWidth: 288, maxWidth: "min(360px, calc(100vw - 24px))", maxHeight, overflowY: "auto" }}
           className="z-[130] overflow-hidden rounded-[16px] border border-[var(--agency-hairline)] bg-[var(--agency-paper)] shadow-[0_16px_40px_-12px_rgba(23,20,16,0.24)]"
         >
           <p className={cn(EYEBROW, "border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4 py-2.5 normal-case tracking-normal")}>
-            {section.hint}
+            Le socle et les outils de la période — tout le reste vit dans les Moments.
           </p>
-          {section.items.map(item => (
+          {items.map(item => (
             <button
               key={item.id}
               type="button"
@@ -150,7 +148,7 @@ export function WorldTopMenu({
               data-testid={`world-top-menu-item-${item.id}`}
               onClick={() => {
                 onOpen(item.destination);
-                setOpen(null);
+                setOpen(false);
                 setAnchor(null);
               }}
               className="flex w-full flex-col gap-0.5 bg-[var(--agency-paper)] px-4 py-2.5 text-left transition-colors hover:bg-[var(--agency-ink)]/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/30"

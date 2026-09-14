@@ -115,10 +115,22 @@ describe("le Monde Mariage s'ouvre sur des visuels", () => {
     const scenes = [...el.querySelectorAll<HTMLElement>('[data-testid^="timeline-scene-"]')];
     expect(scenes.length).toBeGreaterThan(5);
     for (const scene of scenes) {
+      /* Un fond par scène : la vidéo réelle quand le manifeste en a une pour la
+         zone, sinon la photo. Jamais de scène nue. */
       const img = scene.querySelector("img");
-      expect(img, `scène « ${scene.textContent?.slice(0, 40)} » sans visuel de fond`).not.toBeNull();
-      expect(img!.getAttribute("src")).toMatch(/\/images\/wedding\/.+\.jpg/);
+      const video = scene.querySelector("video");
+      expect(img ?? video, `scène « ${scene.textContent?.slice(0, 40)} » sans visuel de fond`).not.toBeNull();
+      if (img) expect(img.getAttribute("src")).toMatch(/\/images\/wedding\/.+\.jpg/);
+      if (video) {
+        expect(video!.getAttribute("src")).toMatch(/\/videos\/wedding-.+\.mp4/);
+        expect(video!.getAttribute("poster")).toMatch(/\/images\/wedding\/.+\.jpg/);
+        /* React pose `muted` en propriété, pas en attribut : on lit la propriété. */
+        expect((video as HTMLVideoElement).muted, "une vidéo d'ambiance doit être muette").toBe(true);
+        expect(video!.hasAttribute("playsinline"), "lecture inline sur mobile").toBe(true);
+      }
     }
+    /* Les trois vidéos réelles servent vraiment : au moins une scène en joue une. */
+    expect(el.querySelectorAll("video").length).toBeGreaterThan(0);
     // La zone logique est nommée, pour que le couple sache d'où vient le fond.
     const zones = [...el.querySelectorAll('[data-testid="timeline-zone"]')].map(zone => zone.textContent?.trim());
     expect(new Set(zones).size).toBeGreaterThan(1);

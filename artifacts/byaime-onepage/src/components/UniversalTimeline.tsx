@@ -7,15 +7,19 @@ import type { TimelineEntityKind, TimelineEvent, WorldProject } from "@/lib/type
 import type { WorldFocusRequest } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KIND_LABELS, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
-import { getInitialWorldPhase, PANEL_FOR_KIND } from "@/lib/wedding-navigation";
+import { getInitialWorldPhase, PANEL_FOR_KIND, type WorldPhase } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { getSubchapter } from "@/lib/timeline-chapters";
-import { chapterAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
+import { chapterAmbientAsset, momentAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
 import { momentVisualOverlayAlpha, type WorldVisual } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
 import { DayRunTimeline } from "@/components/DayRunTimeline";
 import { AvantOverview } from "@/components/AvantOverview";
+import { ApresOverview } from "@/components/ApresOverview";
+import { MomentActions, MomentFacts } from "@/components/MomentContext";
+import { buildMomentContext, type MomentAction, type MomentContextModel, type MomentCapabilities } from "@/lib/moment-context";
+import { useI18n } from "@/lib/i18n";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
 
@@ -30,13 +34,26 @@ const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "paym
  * Le visuel du manifeste est un chemin du dossier public : `visualSourceUrl`
  * le résout, et laisse untouched une dataURL ou une URL absolue importée.
  */
-const AmbientBackground = ({ visual }: { visual: WorldVisual }) => {
+const AmbientBackground = ({ visual, poster }: { visual: WorldVisual; poster?: string }) => {
   const alpha = momentVisualOverlayAlpha(visual);
   const src = visualSourceUrl(visual);
   return (
     <>
       {visual.kind === "video" ? (
-        <video src={src} autoPlay muted loop playsInline className="absolute inset-0 z-0 h-full w-full object-cover" />
+        /* Une vidéo RÉELLE du manifeste, là où elle existe : `poster` garde la
+           photo de la zone pendant le chargement (pas de flash noir), `muted` +
+           `playsInline` pour l'autoplay sur mobile, `preload="metadata"` pour ne
+           pas tirer trois vidéos d'un coup sur une longue Timeline. */
+        <video
+          src={src}
+          poster={poster ? visualSourceUrl({ kind: "image", url: poster, overlay: alpha }) : undefined}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 z-0 h-full w-full object-cover"
+        />
       ) : (
         <img src={src} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
       )}
@@ -76,77 +93,129 @@ function SubchapterTransition({ title, event }: { title: string; event?: Timelin
   );
 }
 
-function EventScene({ event, project, onClick }: { event: TimelineEvent; project: WorldProject; onClick: () => void }) {
+function EventScene({
+  event,
+  project,
+  context,
+  onClick,
+  onAction,
+}: {
+  event: TimelineEvent;
+  project: WorldProject;
+  context: MomentContextModel;
+  onClick: () => void;
+  onAction: (action: MomentAction, event: TimelineEvent) => void;
+}) {
+  const { t } = useI18n();
   const visual = momentVisual(event, project);
   const zone = momentVisualZone(event, project);
   const isCustomVisual = Boolean(event.visual?.url);
   return (
-    <button
-      onClick={onClick}
+    <section
       data-testid={`timeline-scene-${event.id}`}
-      className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-[var(--agency-hairline)] px-6 py-24 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40 group"
+      data-moment-intent={context.intent}
+      className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-[var(--agency-hairline)] px-6 py-24 text-center group"
       style={{ backgroundColor: "#000" }}
     >
-      <AmbientBackground visual={visual} />
+      <AmbientBackground visual={visual} poster={momentAmbientAsset(event, project)} />
 
-      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="space-y-6 flex flex-col items-center rounded-[20px] p-8 md:p-12 bg-black/25 backdrop-blur-md border border-white/15 hover:bg-black/30 transition-colors"
+      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center gap-8">
+        {/* Le Moment lui-même reste un grand plan cinéma, cliquable. */}
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={t("moment.open.aria", { title: event.title })}
+          className="w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-[20px]"
         >
-          <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-white/70 font-medium">
-            <CalendarDays className="w-4 h-4" />
-            <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: fr })}</span>
-            {event.durationMinutes && (
-              <>
-                <span className="w-1 h-1 rounded-full bg-current opacity-30" />
-                <Clock3 className="w-4 h-4" />
-                <span>{event.durationMinutes} min</span>
-              </>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-6 flex flex-col items-center rounded-[20px] p-8 md:p-12 bg-black/25 backdrop-blur-md border border-white/15 hover:bg-black/30 transition-colors"
+          >
+            <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-white/70 font-medium">
+              <CalendarDays className="w-4 h-4" />
+              <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: fr })}</span>
+              {event.durationMinutes && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-current opacity-30" />
+                  <Clock3 className="w-4 h-4" />
+                  <span>{event.durationMinutes} min</span>
+                </>
+              )}
+            </div>
+
+            <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-white group-hover:text-white/90 transition-colors">
+              {event.title}
+            </h3>
+
+            {event.detail && (
+              <p className="text-lg md:text-xl text-white/80 font-light max-w-2xl text-balance leading-relaxed">
+                {event.detail}
+              </p>
             )}
-          </div>
 
-          <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-white group-hover:text-white/90 transition-colors">
-            {event.title}
-          </h3>
-
-          {event.detail && (
-            <p className="text-lg md:text-xl text-white/80 font-light max-w-2xl text-balance leading-relaxed">
-              {event.detail}
-            </p>
-          )}
-
-          <div className="flex flex-wrap justify-center gap-x-7 gap-y-3 pt-8">
-            {/* La zone qui a fourni le visuel : le couple voit d'où vient le fond,
-                et sait qu'il peut le remplacer. */}
-            <span data-testid="timeline-zone" className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
-              <Waves className="w-3 h-3" />
-              {isCustomVisual ? "Visuel importé" : ZONE_LABELS[zone]}
-            </span>
-            {event.location && (
-              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
-                <MapPin className="w-3 h-3" />
-                {event.location}
+            <div className="flex flex-wrap justify-center gap-x-7 gap-y-3 pt-8">
+              {/* La zone qui a fourni le visuel : le couple voit d'où vient le fond,
+                  et sait qu'il peut le remplacer. */}
+              <span data-testid="timeline-zone" className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
+                <Waves className="w-3 h-3" />
+                {isCustomVisual ? "Visuel importé" : ZONE_LABELS[zone]}
               </span>
-            )}
-            {(event.relations?.length || 0) > 0 && (
-              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
-                <Link2 className="w-3 h-3" />
-                {event.relations!.length} liens
-              </span>
-            )}
-          </div>
+              {event.location && (
+                <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
+                  <MapPin className="w-3 h-3" />
+                  {event.location}
+                </span>
+              )}
+              {(event.relations?.length || 0) > 0 && (
+                <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
+                  <Link2 className="w-3 h-3" />
+                  {event.relations!.length} liens
+                </span>
+              )}
+            </div>
+          </motion.div>
+        </button>
+
+        {/* UN MOMENT = UN CONTEXTE = SES ACTIONS.
+            Repères déjà connus, puis les actions pertinentes de cet instant —
+            dérivés du WorldProject, jamais dupliqués. */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+          className="flex w-full flex-col items-center gap-4"
+        >
+          <MomentFacts facts={context.facts} />
+          <MomentActions
+            actions={context.actions}
+            primaryCount={context.primaryCount}
+            onAction={action => onAction(action, event)}
+          />
         </motion.div>
       </div>
-    </button>
+    </section>
   );
 }
 
-export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
+export function UniversalTimeline({
+  events,
+  onMomentAction,
+  capabilities,
+  phase,
+}: {
+  events: TimelineEvent[];
+  /** Une action de Moment ouvre la profondeur correspondante (panneau ancré, vue ou route). */
+  onMomentAction: (action: MomentAction, event?: TimelineEvent) => void;
+  capabilities: MomentCapabilities;
+  /** Période ouverte : le Jour J garde sa régie même sans Moment ce jour-là. */
+  phase?: WorldPhase;
+}) {
   const { project, addEntity, updateEntity, updateProject, removeEntity, canEdit } = useProject();
+  const { locale } = useI18n();
   const [selected, setSelected] = useState<string>();
   const [undoTimeline, setUndoTimeline] = useState<TimelineEvent[]>();
 
@@ -185,25 +254,35 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
   // Moments « pendant », on bascule sur la timeline verticale de régie
   // (compte à rebours, horaires agrandis, retards). Le tiroir de détail reste
   // le même, ouvert depuis chaque Moment.
-  const isDayRun = events.length > 0 && events.every(item => item.phase === "pendant");
+  const isDayRun = events.length > 0
+    ? events.every(item => item.phase === "pendant")
+    : phase === "pendant";
   // Même logique pour l'Après : la tête de vue montre les trois gestes
   // (galerie, mots doux, film) avec leurs comptes réels, puis le journal
   // cinématique continue en dessous.
   /* Et pour l'Avant : la tête de vue résume l'état des préparations (tâches,
      prestataires, argent) avant de laisser la liste des Moments continuer. */
   const isAvantRun = events.length > 0 && events.every(item => item.phase === "avant");
+  /* L'Après a sa tête, comme l'Avant et le Jour J : souvenirs, images, vidéos,
+     remerciements — avec leurs comptes réels, avant le journal cinématique. */
+  const isApresRun = events.length > 0 && events.every(item => item.phase === "apres");
 
   return (
     <div className="w-full flex flex-col bg-background">
-      {events.length === 0 && (
+      {events.length === 0 && !isDayRun && (
         <div className="py-32 text-center text-sm text-foreground/40">
           Aucun événement dans cette vue.
         </div>
       )}
 
-      {isDayRun && <div className="pt-8"><DayRunTimeline events={events} onOpen={setSelected} /></div>}
+      {isDayRun && (
+        <div className="pt-8">
+          <DayRunTimeline events={events} onOpen={setSelected} onMomentAction={onMomentAction} capabilities={capabilities} />
+        </div>
+      )}
 
       {isAvantRun && <AvantOverview />}
+      {isApresRun && <ApresOverview />}
 
 
       {!isDayRun && events.map(item => {
@@ -214,7 +293,13 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
         return (
           <Fragment key={item.id}>
             {isNewSubchapter && <SubchapterTransition title={subchapter} event={item} />}
-            <EventScene event={item} project={project} onClick={() => setSelected(item.id)} />
+            <EventScene
+              event={item}
+              project={project}
+              context={buildMomentContext(item, project, capabilities, locale)}
+              onClick={() => setSelected(item.id)}
+              onAction={onMomentAction}
+            />
           </Fragment>
         );
       })}

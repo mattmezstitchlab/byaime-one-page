@@ -1,4 +1,4 @@
-import { AIME_VISUALS, getAssetUrl } from "./assets";
+import { AIME_VIDEOS, AIME_VISUALS, getAssetUrl } from "./assets";
 import { getSubchapter } from "./timeline-chapters";
 import { DEFAULT_VISUAL_OVERLAY, type TimelineEvent, type WorldProject, type WorldVisual } from "./types";
 
@@ -49,6 +49,18 @@ const ZONE_ASSETS: Record<MomentVisualZone, string> = {
   transport: AIME_VISUALS.transport,
   reception: AIME_VISUALS.universes.hotel,
   venue: AIME_VISUALS.universes.patrimoine,
+};
+
+/*
+ * Là où une VRAIE vidéo existe, elle remplace la photo : le Moment vit au lieu
+ * d'être illustré. Trois zones seulement en ont une (portrait, cérémonie,
+ * tenues) — les autres gardent la photo du manifeste. Aucun doublon : chaque
+ * fichier est utilisé une fois, pour le contexte qu'il montre réellement.
+ */
+const ZONE_VIDEOS: Partial<Record<MomentVisualZone, string>> = {
+  portrait: AIME_VIDEOS.portrait,
+  ceremony: AIME_VIDEOS.ceremony,
+  attire: AIME_VIDEOS.attire,
 };
 
 /** Catégorie d'un prestataire → zone visuelle du Moment qui lui est relié. */
@@ -140,13 +152,20 @@ export function momentAmbientAsset(event: TimelineEvent, project?: WorldProject 
   return ZONE_ASSETS[momentVisualZone(event, project)];
 }
 
+/** La vidéo réelle de la zone du Moment, si le manifeste en a une. */
+export function momentAmbientVideo(event: TimelineEvent, project?: WorldProject | null): string | null {
+  return ZONE_VIDEOS[momentVisualZone(event, project)] ?? null;
+}
+
 /**
  * Le visuel de fond d'un Moment : celui que le couple a importé s'il existe,
- * sinon celui que le manifeste propose pour cette zone. Il y a donc toujours un
- * fond — jamais de scène blanche par défaut.
+ * sinon la vidéo réelle de la zone quand il y en a une, sinon la photo du
+ * manifeste. Il y a donc toujours un fond — jamais de scène blanche par défaut.
  */
 export function momentVisual(event: TimelineEvent, project?: WorldProject | null): WorldVisual {
   if (event.visual?.url) return event.visual;
+  const video = momentAmbientVideo(event, project);
+  if (video) return { kind: "video", url: video, overlay: DEFAULT_VISUAL_OVERLAY };
   return { kind: "image", url: momentAmbientAsset(event, project), overlay: DEFAULT_VISUAL_OVERLAY };
 }
 

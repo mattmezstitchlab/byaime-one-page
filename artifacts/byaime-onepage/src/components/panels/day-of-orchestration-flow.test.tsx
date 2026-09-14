@@ -84,7 +84,7 @@ afterEach(() => {
 
 const dayEvents = () => current.timeline.filter(e => e.phase === "pendant").sort((a, b) => a.time - b.time);
 
-/** Ouvre le Monde en Jour J, puis la Régie du Jour J. */
+/** Ouvre le Monde en Jour J, puis la Régie depuis un Moment du Jour J. */
 async function openRunOfShow() {
   const { ProjectStage } = await import("@/components/ProjectStage");
   function Harness() {
@@ -107,9 +107,10 @@ async function openRunOfShow() {
     );
   });
   act(() => document.querySelector<HTMLElement>('[data-testid="world-phase-pendant"]')!.click());
-  act(() => document.querySelector<HTMLElement>('[data-testid="world-top-menu-jour-j"]')!.click());
-  const regie = [...document.querySelectorAll<HTMLElement>('[data-testid^="world-top-menu-item-"]')]
-    .find(node => /Régie du Jour J/.test(node.textContent ?? ""));
+  /* La Régie s'ouvre depuis un Moment du Jour J : c'est sa profondeur, plus
+     une entrée de menu à chercher. */
+  const regie = document.querySelector<HTMLButtonElement>('[data-testid="day-run-regie"]');
+  expect(regie, "aucune entrée Régie sur la Timeline du Jour J").not.toBeNull();
   act(() => regie!.click());
   expect(document.querySelector('[data-testid="dayof-run"]'), "la Régie ne s'ouvre pas").not.toBeNull();
 }

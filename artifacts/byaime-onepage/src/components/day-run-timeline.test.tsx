@@ -31,7 +31,7 @@ import { useProject } from "@/store/project-store";
 describe("DayRunTimeline (régie du Jour J)", () => {
   it("montre le compte à rebours du direct, les horaires agrandis et les prestataires", () => {
     const { project } = useProject();
-    const markup = renderToStaticMarkup(<DayRunTimeline events={project!.timeline} onOpen={vi.fn()} />);
+    const markup = renderToStaticMarkup(<DayRunTimeline events={project!.timeline} onOpen={vi.fn()} onMomentAction={vi.fn()} capabilities={{ seeFinances: true, manageDocuments: true }} />);
 
     // Bandeau du direct : le Moment en cours, son compte à rebours, les retards.
     expect(markup).toContain('data-testid="day-countdown"');
@@ -56,7 +56,7 @@ describe("DayRunTimeline (régie du Jour J)", () => {
   it("annonce le début du Jour J quand rien n'a encore commencé", () => {
     const { project } = useProject();
     const upcoming = project!.timeline.slice(2);
-    const markup = renderToStaticMarkup(<DayRunTimeline events={upcoming} onOpen={vi.fn()} />);
+    const markup = renderToStaticMarkup(<DayRunTimeline events={upcoming} onOpen={vi.fn()} onMomentAction={vi.fn()} capabilities={{ seeFinances: true, manageDocuments: true }} />);
 
     expect(markup).toContain("Dîner");
     expect(markup).toContain("Retard +15 min");

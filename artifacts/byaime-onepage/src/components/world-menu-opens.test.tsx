@@ -85,13 +85,13 @@ async function mountWorld() {
  * par le vrai chemin applicatif, pour qu'un panneau cassé ne puisse plus
  * passer inaperçu.
  */
-describe("chaque entrée du menu du haut s'ouvre sans planter", () => {
-  const sections = ["concevoir", "jour-j"];
+describe("chaque entrée du menu s'ouvre sans planter", () => {
+  const sections = ["monde"];
 
-  it.each(sections)("la section « %s » ouvre tous ses panneaux", async sectionId => {
+  it.each(sections)("la liste « %s » ouvre toutes ses entrées", async sectionId => {
     await mountWorld();
-    const tab = document.querySelector<HTMLButtonElement>(`[data-testid="world-top-menu-${sectionId}"]`);
-    expect(tab, `onglet ${sectionId} absent`).not.toBeNull();
+    const tab = document.querySelector<HTMLButtonElement>('[data-testid="world-top-menu-button"]');
+    expect(tab, `menu ${sectionId} absent`).not.toBeNull();
     act(() => tab!.click());
 
     /* Les identifiants d'items sont stables ; on re-clique l'onglet à chaque

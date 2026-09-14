@@ -171,7 +171,7 @@ describe("parcours complet du couple", () => {
     expect(document.querySelector('[data-testid="day-run"]')).toBeNull();
   });
 
-  it("ouvre les cinq entrées du rail, puis revient à la Timeline", async () => {
+  it("ouvre les entrées du menu aplati, puis revient à la Timeline", async () => {
     newProject();
     await mountWorld();
 
@@ -190,12 +190,13 @@ describe("parcours complet du couple", () => {
     }
     expect(viewItems.size).toBeGreaterThan(0);
 
-    for (const sectionId of ["concevoir", "jour-j"]) {
-      click(`[data-testid="world-top-menu-${sectionId}"]`);
+    /* Une seule liste plate : on l'ouvre et on parcourt toutes ses entrées. */
+    {
+      click('[data-testid="world-top-menu-button"]');
       const ids = [...document.querySelectorAll<HTMLElement>('[data-testid^="world-top-menu-item-"]')]
         .map(node => node.getAttribute("data-testid")!);
       for (const id of ids) {
-        if (!document.querySelector(`[data-testid="${id}"]`)) click(`[data-testid="world-top-menu-${sectionId}"]`);
+        if (!document.querySelector(`[data-testid="${id}"]`)) click('[data-testid="world-top-menu-button"]');
         act(() => document.querySelector<HTMLElement>(`[data-testid="${id}"]`)!.click());
 
         if (viewItems.has(id)) {
@@ -213,7 +214,7 @@ describe("parcours complet du couple", () => {
   it("Documents : la checklist des souvenirs est lue et cochable", async () => {
     const project = newProject();
     await mountWorld();
-    click('[data-testid="world-top-menu-concevoir"]');
+    click('[data-testid="world-top-menu-button"]');
     const docs = [...document.querySelectorAll<HTMLElement>('[data-testid^="world-top-menu-item-"]')]
       .find(node => /Documents/.test(node.textContent ?? ""));
     act(() => docs!.click());

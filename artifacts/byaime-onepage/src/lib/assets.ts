@@ -5,7 +5,7 @@
  * continue d'afficher l'ancienne après remplacement. Le jeton de version casse
  * ce cache — à incrémenter à chaque remplacement de visuel.
  */
-const ASSETS_VERSION = "2026-09-13";
+const ASSETS_VERSION = "2026-09-14";
 
 export function getAssetUrl(path: string) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -39,6 +39,32 @@ const wedding = {
   attire: 'images/wedding/wedding-attire.jpg',
   patrimoine: 'images/wedding/wedding-patrimoine.jpg',
 } as const;
+
+/*
+ * Vidéos réelles du Monde Mariage, servies depuis `public/videos`.
+ *
+ * Audit du 14/09 : trois fichiers vidéo distincts (aucun doublon) accompagnaient
+ * le projet sans être servis — ils vivaient hors du dossier public, donc
+ * invisibles pour le site. Chacun est maintenant nommé d'après ce qu'il montre
+ * réellement, et rattaché à la zone de la Timeline dont il est le contexte :
+ *
+ *   wedding-portrait-photographer.mp4  le photographe au travail (zone portrait)
+ *   wedding-ceremony-vows.mp4          l'échange des vœux (zone cérémonie)
+ *   wedding-attire-muse.mp4            les tenues, l'essayage (zone tenues)
+ *
+ * Une vidéo n'existe pas pour chaque zone : là où il n'y en a pas, la photo du
+ * manifeste reste le fond — jamais d'écran noir, jamais de vidéo inventée.
+ */
+const weddingVideos = {
+  portrait: 'videos/wedding-portrait-photographer.mp4',
+  ceremony: 'videos/wedding-ceremony-vows.mp4',
+  attire: 'videos/wedding-attire-muse.mp4',
+} as const;
+
+export const AIME_VIDEOS = weddingVideos;
+
+/** Toutes les vidéos du manifeste, pour les contrôles de cohérence. */
+export const AIME_VIDEO_PATHS: string[] = Object.values(weddingVideos);
 
 /*
  * Vitrine de l'agence « La cerise sur le gâteau — Wedding Architect », fusionnée

@@ -37,6 +37,8 @@ export function BottomDock({
   activePanel,
   navigation,
   rail = [],
+  momentId = null,
+  onBackToMoment,
   onPanelChange,
   onPhaseChange,
   onViewChange }: {
@@ -45,6 +47,9 @@ export function BottomDock({
   activePanel: WeddingPanelId | null;
   navigation: WeddingNavigation;
   rail?: WeddingRailItem[];
+  /** Le Moment d'où vient le panneau : il devient une profondeur, pas une destination. */
+  momentId?: string | null;
+  onBackToMoment?: () => void;
   onPhaseChange: (phase: WorldPhase) => void;
   onPanelChange: (panel: WeddingPanelId | null) => void;
   /** Retourner à une vue (Timeline, Musique) ferme la fenêtre. */
@@ -53,6 +58,7 @@ export function BottomDock({
   const { t, locale } = useI18n();
   const { project } = useProject();
   const contextGroup = activePanel ? getPanelContextGroup(activePanel, rail, navigation, view, locale) : null;
+  const moment = momentId ? project?.timeline.find(item => item.id === momentId) : undefined;
 
   const dateLocale = locale === "en" ? enUS : fr;
 
@@ -248,6 +254,24 @@ export function BottomDock({
                   <p className={EYEBROW}>{eyebrow}</p>
                   <h2 className={cn(TITLE, "mt-3 text-3xl sm:text-4xl")}>{title}</h2>
                   {description && <p className={cn(LEAD, "mt-3 max-w-2xl text-[15px] leading-relaxed")}>{description}</p>}
+                  {moment && (
+                    <div className="mt-4 flex flex-wrap items-center gap-2" data-testid="monde-panel-moment">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-ink)]/25 bg-[var(--agency-ink)]/[0.05] px-3 py-1.5 text-[11px] text-[var(--agency-ink)]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--agency-ink)]" />
+                        {t("moment.from")} · {moment.title}
+                      </span>
+                      {onBackToMoment && (
+                        <button
+                          type="button"
+                          data-testid="monde-panel-back-moment"
+                          onClick={onBackToMoment}
+                          className="rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-[11px] text-[var(--agency-body)] transition hover:border-[var(--agency-ink)] hover:text-[var(--agency-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/30"
+                        >
+                          {t("moment.back")}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {project && (
                     <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px]">
                       <span className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-[var(--agency-body)]">
@@ -272,7 +296,7 @@ export function BottomDock({
               <div className="mx-auto max-w-4xl">
                 {/* Une seule fenêtre, un seul contenu : le menu de gauche en
                     est la liste d'onglets. */}
-                <MondePanel panel={activePanel} />
+                <MondePanel panel={activePanel} momentId={momentId} />
               </div>
             </div>
           </div>
