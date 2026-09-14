@@ -665,7 +665,32 @@ export function ProjectStage() {
         </div>
       </header>
 
-
+      {/* Onboarding first-time — P6 */}
+      {project.timeline.length === 0 && project.guests.length === 0 && project.providers.length === 0 && (
+        <section className="border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-10">
+          <div className="mx-auto max-w-5xl">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Bienvenue dans votre Monde · 3 étapes pour commencer</p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <button onClick={() => setActivePanel("planning")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">1</span>
+                <p className="mt-3 text-sm font-medium">Ajoutez votre date</p>
+                <p className="mt-1 text-xs text-[var(--agency-body)]">Créez votre premier Moment dans la Timeline.</p>
+              </button>
+              <button onClick={() => setActivePanel("guests")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">2</span>
+                <p className="mt-3 text-sm font-medium">Invités + plan de table</p>
+                <p className="mt-1 text-xs text-[var(--agency-body)]">Ajoutez 2 invités, créez une table, assignez-les.</p>
+              </button>
+              <button onClick={() => setActivePanel("providers")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">3</span>
+                <p className="mt-3 text-sm font-medium">Prestataires + budget</p>
+                <p className="mt-1 text-xs text-[var(--agency-body)]">Ajoutez un prestataire, son budget, un paiement.</p>
+              </button>
+            </div>
+            <p className="mt-4 text-xs text-[var(--agency-eyebrow)]">Tout est local-first : images en dataURL, export .byaime.json, PWA installable. Aucun serveur requis.</p>
+          </div>
+        </section>
+      )}
 
       {/* Main Content Area */}
       <main className="w-full">
