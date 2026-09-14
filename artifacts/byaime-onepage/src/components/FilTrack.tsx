@@ -4,6 +4,7 @@ import { Calendar, FileText, Folder, ImageIcon, Users, Wallet } from "lucide-rea
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import type { TimelineMarkerLayout } from "@/lib/timeline-layout";
 import { cn } from "@/lib/utils";
+import { confidenceLabel } from "@/lib/confidence";
 
 export function EventIcon({ kind, className }: { kind?: string, className?: string }) {
   const classes = cn("w-5 h-5", className);
@@ -46,14 +47,8 @@ export type FilArrival = {
  */
 export const MOMENT_LANE_OFFSETS = [-88, 88, -184, 184] as const;
 
-/** Libellé de confiance affiché dans l'infobulle du repère. */
-const CONFIDENCE_LABELS: Record<string, string> = {
-  confirme: "Confirmé",
-  deduit: "Déduit par AIME",
-  suggere: "Suggéré par AIME",
-  a_confirmer: "À confirmer",
-  manquant: "Information manquante",
-};
+/* Le libellé de confiance affiché dans l'infobulle du repère vient de
+   `lib/confidence.ts` : la même table sert le fil du profil public et la Bande. */
 
 /*
  * États qui appellent une action de votre part, et seuls ceux-là portent un
@@ -122,7 +117,7 @@ export function FilTrack({
         const isTop = yOffset < 0;
         const eventConflicts = conflicts?.get(event.id) ?? [];
         const confidence = event.confidence && event.confidence !== "confirme"
-          ? CONFIDENCE_LABELS[event.confidence] ?? event.confidence
+          ? confidenceLabel(event.confidence)
           : undefined;
         return (
           <div key={event.id} data-testid={`fil-moment-${event.id}`} className="absolute top-1/2" style={{ left: `${marker.x}px` }}>

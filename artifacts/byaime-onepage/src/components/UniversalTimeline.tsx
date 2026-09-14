@@ -10,6 +10,7 @@ import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KI
 import { getInitialWorldPhase, PANEL_FOR_KIND } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
+import { getSubchapter } from "@/lib/timeline-chapters";
 import { momentVisualOverlayAlpha } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
@@ -18,47 +19,6 @@ import { AvantOverview } from "@/components/AvantOverview";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
 
-const MONTH = 30 * 86400000;
-const WEEK = 7 * 86400000;
-const DAY = 86400000;
-const HOUR = 3600000;
-
-function getSubchapter(event: TimelineEvent, pivotTime: number): string {
-  const diff = event.time - pivotTime;
-
-  if (diff < -24 * MONTH) return "L'Idée & La Vision";
-  if (diff < -18 * MONTH) return "18 à 24 mois avant";
-  if (diff < -12 * MONTH) return "12 à 18 mois avant";
-  if (diff < -9 * MONTH) return "9 à 12 mois avant";
-  if (diff < -6 * MONTH) return "6 à 9 mois avant";
-  if (diff < -3 * MONTH) return "3 à 6 mois avant";
-  if (diff < -1 * WEEK) return "1 à 3 mois avant";
-  if (diff < -1 * DAY) return "La dernière ligne droite";
-  if (diff < 0 && event.phase === "avant") return "La veille";
-
-  if (event.phase === "pendant") {
-    if (diff < 9 * HOUR) return "Le réveil";
-    if (diff < 12 * HOUR) return "Les préparatifs";
-    if (diff < 14 * HOUR) return "Mise en place";
-    if (diff < 15.5 * HOUR) return "L'arrivée des invités";
-    if (diff < 17 * HOUR) return "La cérémonie";
-    if (diff < 17.5 * HOUR) return "Après la cérémonie";
-    if (diff < 20 * HOUR) return "Le cocktail";
-    if (diff < 22.5 * HOUR) return "Le repas";
-    if (diff < 23.5 * HOUR) return "L'ouverture du bal";
-    if (diff < 26 * HOUR) return "La soirée";
-    return "Fin de la nuit";
-  }
-
-  if (event.phase === "apres") {
-    if (diff < 2 * DAY) return "Le lendemain";
-    if (diff < 7 * DAY) return "Les jours suivants";
-    if (diff < 30 * DAY) return "Les semaines suivantes";
-    return "L'héritage vivant";
-  }
-
-  return "Jalon";
-}
 
 const images = AIME_VISUALS.timelineAmbientImages;
 

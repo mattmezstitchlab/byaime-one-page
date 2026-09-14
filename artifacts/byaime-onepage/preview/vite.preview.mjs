@@ -91,6 +91,17 @@ function createFakeAimeApi() {
 }
 
 export default mergeConfig(baseConfig, {
+  /*
+   * 3) l'aperçu simule une clé publique d'authentification. Depuis le lot 1.1 du
+   *    plan, c'est la variable d'environnement — pas le retour du helper Clerk —
+   *    qui décide du mode dégradé : sans cette valeur, l'aperçu démarrerait en
+   *    mode dégradé et l'espace privé ne serait plus atteignable ici. Le mode
+   *    dégradé, lui, est contrôlé par `preview/smoke.mjs` (son propre serveur,
+   *    avec la clé définie à `undefined`).
+   */
+  define: {
+    "import.meta.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify("pk_test_preview"),
+  },
   plugins: [createFakeAimeApi()],
   resolve: {
     alias: [

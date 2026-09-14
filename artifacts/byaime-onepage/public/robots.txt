@@ -7,6 +7,11 @@ Disallow: /app
 Disallow: /invite/
 Disallow: /rsvp/
 Disallow: /profil/
+# Le bilan partagé d'un couple (budget, invités, documents) : c'est un lien que
+# le planner envoie aux mariés, pas une page à indexer. `noindex` est aussi posé
+# côté page (BilanPage.tsx) — les deux, parce qu'un robots.txt seul n'empêche
+# pas une URL d'apparaître dans l'index si elle est liée ailleurs.
+Disallow: /bilan/
 Disallow: /api
 
 Sitemap: https://www.byaime.fr/sitemap.xml

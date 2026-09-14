@@ -27,12 +27,17 @@ describe("Landing (accueil)", () => {
     expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-showcase"'));
   });
 
-  it("pose un hero plein écran sur le fond bleu-vert signature, sans visuel photo", () => {
+  it("pose un hero plein écran sur le papier, sans visuel photo ni fond animé", () => {
     const markup = render(<LandingPage />);
 
-    // Le shader est le plan fixe de base ; le hero le laisse visible, sans photo.
-    expect(markup).toContain('data-testid="landing-shader"');
-    expect(markup).toContain("fixed inset-0 z-0");
+    /*
+     * Le dégradé maillé a été retiré le 14/09 : il était `fixed inset-0 z-0`,
+     * donc recouvert par le voile blanc du hero et par des sections toutes
+     * opaques (`bg-background`) — un contexte WebGL animé en continu que
+     * personne ne voyait. Le contrôle ci-dessous l'interdit de revenir sans
+     * qu'une décision le rende visible.
+     */
+    expect(markup).not.toContain('data-testid="landing-shader"');
     expect(markup).not.toContain('data-testid="landing-hero-photo"');
     expect(markup).not.toContain("landing-hero-astronauts.jpg");
     // Le hero occupe tout l'écran.
@@ -124,5 +129,48 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain("Produit");
     expect(markup).toContain("Légal");
     expect(markup).toContain("Tous droits réservés");
+  });
+});
+
+/*
+ * Constat §2.1 du plan : la vitrine de l'agence était introuvable — le seul
+ * lien était le mot « AIME » de l'en-tête, et le pied de page n'en parlait pas.
+ * En attendant l'inversion des portes d'entrée (lot 1 bis, D1 : `/` devient la
+ * vitrine), l'accueil mène à l'agence en toutes lettres, dans les deux langues.
+ */
+describe("Landing — la vitrine de l'agence est trouvable", () => {
+  it("propose un lien explicite en en-tête et en pied de page", () => {
+    const markup = render(<LandingPage />);
+
+    expect(markup).toContain('data-testid="landing-agency"');
+    expect(markup).toContain('data-testid="footer-agency"');
+    expect(markup).toContain("L’agence");
+    expect(markup).toContain("La vitrine de l’agence");
+    expect(markup.match(/href="\/agence"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+  });
+
+  it("mène aussi à la Bande, la démonstration publique du produit", () => {
+    const markup = render(<LandingPage />);
+
+    expect(markup).toContain('data-testid="landing-bande"');
+    expect(markup).toContain('data-testid="footer-bande"');
+    expect(markup).toContain("La Bande");
+    expect(markup.match(/href="\/monde"/g)?.length ?? 0).toBe(2);
+  });
+
+  it("publie aussi les mentions légales depuis le pied de page", () => {
+    const markup = render(<LandingPage />);
+
+    expect(markup).toContain('data-testid="footer-mentions"');
+    expect(markup).toContain('href="/mentions-legales"');
+    expect(markup).toContain("Mentions légales");
+  });
+
+  it("dit la même chose en anglais", () => {
+    const markup = render(<LandingPage />);
+    // Les clés existent dans les deux langues : la parité est vérifiée par les
+    // types (`en: Record<I18nKey, string>`), ici on verrouille leur présence.
+    expect(markup).toContain('data-testid="landing-locale-en"');
+    expect(markup.length).toBeGreaterThan(1000);
   });
 });

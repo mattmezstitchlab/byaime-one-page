@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { buildAdminPlan } from "@/lib/admin-plan";
+import { sitePath } from "@/lib/site-path";
 import { focusWorld } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 import type { WeddingNavigationItem } from "@/lib/wedding-navigation";
@@ -14,10 +15,8 @@ import type { WeddingNavigationItem } from "@/lib/wedding-navigation";
  * avoir à découvrir les icônes du rail ni les dossiers.
  */
 
-const serif = {
-  fontFamily:
-    "'Didot', 'Bodoni MT', 'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif",
-} as const;
+/* Couleurs et serif de titrage : les jetons `--agency-*` partagés avec la
+ * vitrine et le bilan (index.css). Plus de constante recopiée ici. */
 
 function openItem(item: WeddingNavigationItem): void {
   const destination = item.destination;
@@ -29,7 +28,7 @@ function openItem(item: WeddingNavigationItem): void {
     route: "/user-portal",
     ...(destination.kind === "panel" ? { panel: destination.panel } : { view: destination.view }),
   });
-  window.location.assign("/user-portal");
+  window.location.assign(sitePath("/user-portal"));
 }
 
 export function AdminSommairePage() {
@@ -37,14 +36,14 @@ export function AdminSommairePage() {
   const plan = buildAdminPlan(currentRole ?? "owner");
 
   return (
-    <main data-testid="admin-page" className="min-h-[100dvh] bg-[#FFFFFF] px-6 py-16 text-[#171410] antialiased">
+    <main data-testid="admin-page" className="min-h-[100dvh] bg-[var(--agency-paper)] px-6 py-16 text-[var(--agency-ink)] antialiased">
       <div className="mx-auto max-w-3xl">
         <header className="text-center">
-          <p className="text-[11px] uppercase tracking-[0.38em] text-[#8A8375]">Back-office</p>
-          <h1 className="mt-6 text-4xl leading-tight sm:text-5xl" style={serif}>
+          <p className="text-[11px] uppercase tracking-[0.38em] text-[var(--agency-eyebrow)]">Back-office</p>
+          <h1 className="agency-serif mt-6 text-4xl leading-tight sm:text-5xl">
             Le rétroplanning
           </h1>
-          <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[#6F6A61]">
+          <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[var(--agency-body)]">
             Tout le mariage, remis dans l&rsquo;ordre : chaque ligne ouvre la bonne vue du
             Monde. Rien n&rsquo;est caché, tout est expliqué.
           </p>
@@ -52,19 +51,19 @@ export function AdminSommairePage() {
 
         {plan.sections.map((section, sectionIndex) => (
           <section key={section.id} className="mt-16">
-            <h2 className="text-[11px] uppercase tracking-[0.38em] text-[#8A8375]">
+            <h2 className="text-[11px] uppercase tracking-[0.38em] text-[var(--agency-eyebrow)]">
               {sectionIndex + 1}. {section.title}
             </h2>
-            <p className="mt-3 text-[13px] leading-relaxed text-[#6F6A61]">{section.hint}</p>
+            <p className="mt-3 text-[13px] leading-relaxed text-[var(--agency-body)]">{section.hint}</p>
             <ul className="mt-6">
               {section.items.map(item => (
-                <li key={item.id} className="border-t border-[#E6E1D8]">
+                <li key={item.id} className="border-t border-[var(--agency-hairline)]">
                   <button
                     onClick={() => openItem(item)}
-                    className="flex w-full items-baseline gap-5 py-4 text-left transition-colors hover:bg-[#FFFFFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]"
+                    className="flex w-full items-baseline gap-5 py-4 text-left transition-colors hover:bg-[var(--agency-paper)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]"
                   >
-                    <span className="text-[16px] text-[#171410]">{item.label}</span>
-                    <span className="ml-auto max-w-[46%] text-right text-[12px] leading-snug text-[#8A8375]">
+                    <span className="text-[16px] text-[var(--agency-ink)]">{item.label}</span>
+                    <span className="ml-auto max-w-[46%] text-right text-[12px] leading-snug text-[var(--agency-eyebrow)]">
                       {item.description}
                     </span>
                   </button>
@@ -75,18 +74,18 @@ export function AdminSommairePage() {
         ))}
 
         <section className="mt-16">
-          <h2 className="text-[11px] uppercase tracking-[0.38em] text-[#8A8375]">Hors du Monde</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.38em] text-[var(--agency-eyebrow)]">Hors du Monde</h2>
           <ul className="mt-6">
-            <li className="border-t border-[#E6E1D8]">
-              <Link href="/profile" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[#FFFFFF]">
+            <li className="border-t border-[var(--agency-hairline)]">
+              <Link href="/profile" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[var(--agency-paper)]">
                 <span className="text-[16px]">Bilan et page des mariés</span>
-                <span className="ml-auto text-[12px] text-[#8A8375]">Le livrable vertical, et son partage.</span>
+                <span className="ml-auto text-[12px] text-[var(--agency-eyebrow)]">Le livrable vertical, et son partage.</span>
               </Link>
             </li>
-            <li className="border-t border-[#E6E1D8]">
-              <Link href="/agence" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[#FFFFFF]">
+            <li className="border-t border-[var(--agency-hairline)]">
+              <Link href="/agence" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[var(--agency-paper)]">
                 <span className="text-[16px]">Vitrine de l&rsquo;agence</span>
-                <span className="ml-auto text-[12px] text-[#8A8375]">Ce que voient vos futurs mariés.</span>
+                <span className="ml-auto text-[12px] text-[var(--agency-eyebrow)]">Ce que voient vos futurs mariés.</span>
               </Link>
             </li>
           </ul>

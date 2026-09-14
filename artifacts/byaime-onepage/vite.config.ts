@@ -75,7 +75,6 @@ export default defineConfig({
           if (id.includes("@tanstack")) return "vendor-query";
           if (id.includes("date-fns")) return "vendor-dates";
           if (id.includes("recharts")) return "vendor-charts";
-          if (id.includes("@paper-design")) return "vendor-shaders";
           if (id.includes("lucide-react") || id.includes("react-icons")) return "vendor-icons";
           if (id.includes("/zod") || id.includes("zod/v4")) return "vendor-zod";
           return "vendor";

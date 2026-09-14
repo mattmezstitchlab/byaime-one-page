@@ -7,6 +7,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @layer components {
+  /* Titrage de la vitrine et de ses livrables : la serif vient du jeton
+     --agency-serif, plus jamais d'une constante recopiée par fichier. */
+  .agency-serif { font-family: var(--agency-serif); }
   .action { display: flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--color-border); border-radius: .75rem; padding: .7rem; font-size: .75rem; text-align: center; transition: background .2s; }
   .action:hover { background: hsl(var(--foreground) / 0.08); }
   .field { width: 100%; border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: transparent; padding: .65rem 0; color: var(--color-foreground); font-size: .875rem; outline: none; transition: border-color .2s; }
@@ -136,12 +139,18 @@
   /* Hero : plus de visuel photo — le fond bleu-vert du shader reste visible. */
 
   /* Typographie de la direction Apple. */
+  /*
+   * Petites capitales : 0.72 à 0.55 d'opacité posait ~3,97:1 sur blanc, sous le
+   * seuil AA (4,5:1) pour du petit texte — mesuré depuis --foreground: 30 12% 9%.
+   * À 0.72 on obtient ~7:1. Décision de la fondatrice du 14/09 : on corrige,
+   * l'accessibilité passe avant la légèreté du gris.
+   */
   .aime-apple-eyebrow {
     font-size: 0.72rem;
     font-weight: 500;
     letter-spacing: 0.24em;
     text-transform: uppercase;
-    color: hsl(var(--foreground) / 0.55);
+    color: hsl(var(--foreground) / 0.72);
   }
   .aime-apple-title {
     font-family: var(--app-font-display);
@@ -160,7 +169,7 @@
     font-weight: 500;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: hsl(var(--foreground) / 0.55);
+    color: hsl(var(--foreground) / 0.72);
   }
 
   /* Boutons-pilules : blanc sur noir, fantôme, accent rose, et verre pour les
@@ -438,6 +447,34 @@
 
 :root[data-aime-theme="dark"] {
   color-scheme: dark;
+}
+
+/*
+ * Identité de la vitrine et de ses livrables (« La cerise sur le gâteau —
+ * Wedding Architect ») : UN seul jeu de jetons, consommé par la vitrine
+ * (/agence), le bilan partagé (/bilan/:id), le rapport (CoupleReport) et le
+ * back-office (/admin). Jusqu'ici chaque fichier recopiait ses hexadécimaux
+ * et sa pile de serifs — quatre copies divergentes.
+ *
+ * Les gris sont mesurés sur le blanc pur (WCAG 2.1, texte courant < 18 px) :
+ *   --agency-ink      #171410 → 18,36:1
+ *   --agency-body     #6F6A61 →  5,37:1
+ *   --agency-eyebrow  #736C5E →  5,20:1  (était #8A8375 → 3,76:1, sous AA)
+ *   --agency-index    #7A7365 →  4,70:1  (était #B4AC9C → 2,25:1, sous AA)
+ * Le filet (--agency-hairline) n'est pas du texte : il reste décoratif.
+ * `agency-theme.test.ts` recalcule ces contrastes à chaque contrôle.
+ *
+ * La serif reste une pile système tant que la webfont auto-hébergée n'est pas
+ * livrée (lot 3.1 du plan) : c'est le point unique où la remplacer.
+ */
+:root {
+  --agency-paper: #FFFFFF;
+  --agency-ink: #171410;
+  --agency-body: #6F6A61;
+  --agency-eyebrow: #736C5E;
+  --agency-index: #7A7365;
+  --agency-hairline: #E6E1D8;
+  --agency-serif: 'Didot', 'Bodoni MT', 'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
 }
 
 html {

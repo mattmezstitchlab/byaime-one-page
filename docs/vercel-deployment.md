@@ -41,9 +41,21 @@ Preview, Development as needed):
   `SESSION_SECRET`, `OBJECT_STORAGE_BUCKET`, `GCP_CLIENT_EMAIL`,
   `GCP_PRIVATE_KEY` (plus `GCP_PROJECT_ID` when needed), as listed in
   `replit.md`.
-- `VITE_CLERK_PUBLISHABLE_KEY` — same value as `CLERK_PUBLISHABLE_KEY`;
-  without it the site shows a "Connexion momentanément indisponible" screen
-  instead of the app.
+- `VITE_CLERK_PUBLISHABLE_KEY` — same value as `CLERK_PUBLISHABLE_KEY`.
+  Without it the app runs in **degraded mode**: public pages stay served (the
+  agency showcase `/`, `/agence`, `/mentions-legales`, `/confidentialite`,
+  `/conditions`, a couple's report `/bilan/:id`, a guest portal `/rsvp/:token`)
+  and any route that needs a session shows the "Connexion momentanément
+  indisponible" screen with a link to the showcase, instead of mounting a
+  `ClerkProvider` pointed at a non-existent instance.
+
+  Note: the environment variable is the only reliable signal. Clerk's
+  `publishableKeyFromHost(host, key)` fabricates a key from the hostname when
+  `key` is missing (`publishableKeyFromHost("byaime.fr", undefined)` returns
+  `pk_live_Y2xlcmsuYnlhaW1lLmZyJA`), so it never reports an unconfigured
+  deployment — `App.tsx` therefore tests the variable, not the helper's result.
+  Both behaviours are checked by `preview/smoke.mjs` (nominal mode and degraded
+  mode, the latter with its own Vite server).
 - `AIME_CHAT_API_KEY` — optional. Without it the assistant (`/assistant`,
   `POST /api/projects/:id/aime/chat`) answers in local mode from the
   authorized wedding brief. With it, answers are drafted by an
