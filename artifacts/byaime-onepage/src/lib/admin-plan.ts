@@ -41,13 +41,13 @@ export function buildAdminPlan(role: string, locale: Locale = "fr"): AdminPlan {
       {
         id: "concevoir",
         title: "Concevoir et préparer",
-        hint: "Le socle : moments, personnes, prestataires, tâches, argent, documents — puis la cérémonie, la logistique, le plan de table et les messages.",
+        hint: "Le socle : moments, personnes (+ plan de table), prestataires (+ budget), tâches, documents — puis la cérémonie, la logistique et les messages.",
         items: [...rail, ...avant],
       },
       {
         id: "jour-j",
         title: "Le Jour J",
-        hint: "Ce qui se vit le jour même : le déroulé, les infos des invités, le plan de table, les contributions.",
+        hint: "Ce qui se vit le jour même : le déroulé, les infos des invités, les contributions.",
         items: pendant,
       },
     ],

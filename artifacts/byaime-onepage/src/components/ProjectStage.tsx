@@ -50,6 +50,14 @@ const CREATE_PANEL_TARGETS: Partial<Record<UniversalCreateActionId, WeddingPanel
   task: "planning",
   "document-media": "documents",
 };
+
+function normalizePanelId(panel: WeddingPanelId): WeddingPanelId {
+  if (panel === "seating") return "guests";
+  if (panel === "budget") return "providers";
+  if (panel === "memories" || panel === "film" || panel === "contributions" || panel === "thanks") return "documents";
+  if (panel === "ceremony" || panel === "team") return "logistics";
+  return panel;
+}
 /*
  * Créer un Moment n'ouvre pas un panneau : c'est un jalon de la Timeline. On
  * revient à la vue chronologique et on demande l'ajout d'un jalon (la Timeline
@@ -65,7 +73,7 @@ function Monogram({ label, name, large = false }: { label: string; name: string;
   return (
     <span
       className={cn(
-        "relative grid shrink-0 place-items-center rounded-full border border-[#171410]/20 bg-[#FFFFFF] font-display uppercase text-[#171410]",
+        "relative grid shrink-0 place-items-center rounded-full border border-[var(--agency-ink)]/20 bg-[var(--agency-paper)] font-display uppercase text-[var(--agency-ink)]",
         large ? "h-20 w-20 text-2xl sm:h-24 sm:w-24" : "h-9 w-9 text-sm",
       )}
       title={name}
@@ -152,6 +160,11 @@ export function ProjectStage() {
     [phase, currentRole, previewRole, locale],
   );
 
+  const setActivePanelNormalized = (panel: WeddingPanelId | null) => {
+    if (!panel) { setActivePanel(null); return; }
+    setActivePanel(normalizePanelId(panel));
+  };
+
   useEffect(() => {
     if (!activePanel) return;
     if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
@@ -163,19 +176,20 @@ export function ProjectStage() {
    * phase qui le porte, au lieu de le voir se refermer aussitôt.
    */
   const openPanelSafely = (panel: WeddingPanelId) => {
+    const normalized = normalizePanelId(panel);
     const role = previewRole ?? currentRole;
-    const effectiveView: TimelineView = panel === "music" ? "music" : view;
-    if (panel === "music") setView("music");
-    if (isWeddingPanelAvailable(panel, navigation, effectiveView, rail)) {
-      setActivePanel(panel);
+    const effectiveView: TimelineView = normalized === "music" ? "music" : view;
+    if (normalized === "music") setView("music");
+    if (isWeddingPanelAvailable(normalized, navigation, effectiveView, rail)) {
+      setActivePanel(normalized);
       return;
     }
-    const targetPhase = findPhaseForPanel(panel, role, effectiveView);
+    const targetPhase = findPhaseForPanel(normalized, role, effectiveView);
     if (targetPhase) {
       setPhase(targetPhase);
       if (view === "public-info" && targetPhase === "avant") setView("chronological");
     }
-    setActivePanel(panel);
+    setActivePanel(normalized);
   };
   const openPanelSafelyRef = useRef(openPanelSafely);
   openPanelSafelyRef.current = openPanelSafely;
@@ -386,7 +400,7 @@ export function ProjectStage() {
 
   return (
     <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
-      <nav aria-label={t("world.nav.main")} className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
+      <nav aria-label={t("world.nav.main")} className="sticky top-0 z-40 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)]/95 backdrop-blur-xl">
         <WorldTopMenu
           role={previewRole ?? currentRole}
           locale={locale}
@@ -466,16 +480,43 @@ export function ProjectStage() {
           </div>
         )}
       </nav>
-      {/* Cinematic Header */}
-      <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden px-6 pb-24 pt-32 sm:pt-40 md:px-12">
-        <div className="absolute inset-0 z-0 bg-[#FFFFFF]" aria-hidden />
-        <div className="aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6">
+      {/* Cinematic Header — fond blanc par défaut, mais visuel custom si heroVisual est défini */}
+      <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden bg-[var(--agency-paper)] px-6 pb-24 pt-32 sm:pt-40 md:px-12">
+        {project.heroVisual?.url ? (
+          project.heroVisual.kind === "video" ? (
+            <video
+              src={project.heroVisual.url}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 z-0 h-full w-full object-cover"
+            />
+          ) : (
+            <img src={project.heroVisual.url} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
+          )
+        ) : (
+          <div className="absolute inset-0 z-0 bg-[var(--agency-paper)]" aria-hidden />
+        )}
+        <div
+          className="absolute inset-0 z-10"
+          aria-hidden
+          style={project.heroVisual ? { background: heroVisualOverlayCss(project.heroVisual) } : undefined}
+        />
+        {/* Voile blanc léger quand pas de visuel custom, pour garder lisibilité */}
+        {!project.heroVisual?.url && <div className="absolute inset-0 z-10 bg-[var(--agency-paper)]/10" aria-hidden />}
+        <div className={cn("aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6", project.heroVisual?.url && "text-white")}>
           <motion.button
             type="button"
             onClick={() => setWorldMenuOpen(true)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex w-fit items-center gap-2 rounded-full border border-[#171410]/20 bg-[#FFFFFF]/40 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition hover:bg-[#171410] hover:text-[#FFFFFF]"
+            className={cn(
+              "flex w-fit items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition",
+              project.heroVisual?.url
+                ? "border-white/25 bg-white/15 text-white hover:bg-white hover:text-black"
+                : "border-[var(--agency-ink)]/20 bg-[var(--agency-paper)]/60 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)]"
+            )}
             aria-label={t("world.hero.chooseWorld")}
           >
             {heroCopy.eyebrow}
@@ -486,7 +527,7 @@ export function ProjectStage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-6xl md:text-7xl font-display font-semibold tracking-tight"
+            className={cn("text-4xl sm:text-6xl md:text-7xl font-display font-semibold tracking-tight", project.heroVisual?.url ? "text-white" : "text-[var(--agency-ink)]")}
           >
             {heroCopy.title}
           </motion.h1>
@@ -495,7 +536,7 @@ export function ProjectStage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={cn("min-h-12 max-w-2xl text-[15px] font-light leading-relaxed text-[#171410]/70 md:text-base", !heroCopy.description && "invisible")}
+            className={cn("min-h-12 max-w-2xl text-[15px] font-light leading-relaxed md:text-base", !heroCopy.description && "invisible", project.heroVisual?.url ? "text-white/80" : "text-[var(--agency-body)]")}
           >
             {heroCopy.description || t("world.hero.fallback")}
           </motion.p>
@@ -509,24 +550,24 @@ export function ProjectStage() {
             <button
               type="button"
               onClick={() => setCalendarOpen(true)}
-              className="flex items-center gap-2 rounded-full border border-[#171410]/10 bg-[#171410]/5 px-4 py-1.5 backdrop-blur-sm transition hover:border-[#171410]/30 hover:bg-[#171410]/10"
+              className="flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-ink)]/5 px-4 py-1.5 backdrop-blur-sm transition hover:border-[var(--agency-ink)]/30 hover:bg-[var(--agency-ink)]/10"
               aria-label={t("world.hero.calendar")}
             >
-              <CalendarDays className="h-3.5 w-3.5 text-[#171410]/55" />
+              <CalendarDays className="h-3.5 w-3.5 text-[var(--agency-eyebrow)]" />
               {format(pivotDate, 'd MMMM yyyy', { locale: dateLocale })}
             </button>
             {project.city.value && (
-              <span className="rounded-full border border-[#171410]/10 bg-[#171410]/5 px-4 py-1.5 backdrop-blur-sm">
+              <span className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-ink)]/5 px-4 py-1.5 backdrop-blur-sm">
                 {[project.city.value, project.venue.value].filter(Boolean).join(" · ")}
               </span>
             )}
             {!project.city.value && project.venue.value && (
-              <span className="rounded-full border border-[#171410]/10 bg-[#171410]/5 px-4 py-1.5 backdrop-blur-sm">
+              <span className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-ink)]/5 px-4 py-1.5 backdrop-blur-sm">
                 {project.venue.value}
               </span>
             )}
             {project.guestsCount.value && (
-              <span className="rounded-full border border-[#171410]/10 bg-[#171410]/5 px-4 py-1.5 backdrop-blur-sm">
+              <span className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-ink)]/5 px-4 py-1.5 backdrop-blur-sm">
                 {t("world.hero.guests", { count: project.guestsCount.value })}
               </span>
             )}
@@ -541,12 +582,12 @@ export function ProjectStage() {
             <button
               type="button"
               onClick={() => setView("person")}
-              className="group flex items-center gap-2 py-1 pr-2 text-xs text-[#171410]/80 transition hover:text-[#171410]"
+              className="group flex items-center gap-2 py-1 pr-2 text-xs text-[var(--agency-body)] transition hover:text-[var(--agency-ink)]"
                aria-label={t("world.hero.people.aria", { count: project.guests.length + project.providers.length })}
             >
               <span className="flex -space-x-4 py-1">
                 {project.guests.slice(0, 5).map((guest, index) => <GuestPortrait key={guest.id} guest={guest} index={index} />)}
-                {project.guests.length === 0 && <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-black bg-[#171410]/10 text-[10px]">0</span>}
+                {project.guests.length === 0 && <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-[var(--agency-ink)] bg-[var(--agency-ink)]/10 text-[10px]">0</span>}
               </span>
                <span>{t("world.hero.people", { count: project.guests.length + project.providers.length })}</span>
             </button>
@@ -557,7 +598,7 @@ export function ProjectStage() {
               style={{ background: `conic-gradient(from -90deg, hsl(var(--brand-accent)) 0deg ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
               aria-label={t("world.hero.tasks.aria", { percent: completion })}
             >
-              <span className="grid h-full w-full place-items-center rounded-full bg-[#FFFFFF]/90 text-[11px] font-medium tabular-nums text-[#171410]">{completion}%</span>
+              <span className="grid h-full w-full place-items-center rounded-full bg-[var(--agency-paper)]/90 text-[11px] font-medium tabular-nums text-[var(--agency-ink)]">{completion}%</span>
             </button>}
           </motion.div>}
 
@@ -567,16 +608,16 @@ export function ProjectStage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-6 block w-full border-t border-[#171410]/10 pt-7 text-left transition hover:border-[#171410]/25"
+            className="mt-6 block w-full border-t border-[var(--agency-hairline)] pt-7 text-left transition hover:border-[var(--agency-ink)]/25"
             aria-label={t("world.countdown.aria")}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[10px] uppercase tracking-[.24em] text-[#171410]/42">{t("world.countdown.next", { kind: nextCountdown.kind })}</p>
-              <p className="text-[10px] uppercase tracking-[.18em] text-[#171410]/28">{t("world.countdown.seeAll", { count: countdownTargets.length || 1 })}</p>
+              <p className="text-[10px] uppercase tracking-[.24em] text-[var(--agency-eyebrow)]">{t("world.countdown.next", { kind: nextCountdown.kind })}</p>
+              <p className="text-[10px] uppercase tracking-[.18em] text-[var(--agency-eyebrow)]/70">{t("world.countdown.seeAll", { count: countdownTargets.length || 1 })}</p>
             </div>
-            <p className="mt-3 text-sm text-[#171410]/65">{nextCountdown.title}</p>
+            <p className="mt-3 text-sm text-[var(--agency-body)]">{nextCountdown.title}</p>
             {distanceToNext > 0 ? (
-              <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2 font-display font-light tabular-nums text-[#171410]">
+              <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2 font-display font-light tabular-nums text-[var(--agency-ink)]">
                 {[
                   [nextDays, t("world.unit.days")],
                   [nextHours, t("world.unit.hours")],
@@ -585,7 +626,7 @@ export function ProjectStage() {
                 ].map(([value, label]) => (
                   <span key={label} className="inline-flex items-baseline gap-1.5">
                     <span className="text-3xl sm:text-4xl md:text-5xl">{String(value).padStart(2, "0")}</span>
-                    <span className="text-[9px] uppercase tracking-[.16em] text-[#171410]/38">{label}</span>
+                    <span className="text-[9px] uppercase tracking-[.16em] text-[var(--agency-eyebrow)]">{label}</span>
                   </span>
                 ))}
               </div>
@@ -594,27 +635,27 @@ export function ProjectStage() {
             )}
           </motion.button>}
           {!isPublicInfo && phase === "pendant" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-[#171410]/10 pt-7">
-              <p className="text-[10px] uppercase tracking-[.24em] text-[#171410]/42">{liveEvent ? t("world.hero.live.now") : t("world.hero.live.next")}</p>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-6 border-t border-[var(--agency-hairline)] pt-7">
+              <p className="text-[10px] uppercase tracking-[.24em] text-[var(--agency-eyebrow)]">{liveEvent ? t("world.hero.live.now") : t("world.hero.live.next")}</p>
               {featuredDayEvent ? (
                 <div className="mt-4 flex flex-wrap items-center gap-5">
                   <span className="font-display text-4xl font-light tabular-nums sm:text-5xl">{format(featuredDayEvent.time, "HH:mm")}</span>
-                  <div><p className="text-base text-[#171410]/85">{featuredDayEvent.title}</p><p className="mt-1 text-xs text-[#171410]/40">{featuredDayEvent.location || t("world.hero.live.placeLater")}</p></div>
+                  <div><p className="text-base text-[var(--agency-ink)]/85">{featuredDayEvent.title}</p><p className="mt-1 text-xs text-[var(--agency-body)]">{featuredDayEvent.location || t("world.hero.live.placeLater")}</p></div>
                 </div>
-              ) : <p className="mt-4 text-sm text-[#171410]/45">{t("world.hero.live.empty")}</p>}
+              ) : <p className="mt-4 text-sm text-[var(--agency-body)]">{t("world.hero.live.empty")}</p>}
             </motion.div>
           )}
           {!isPublicInfo && phase === "apres" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-[#171410]/10 pt-7">
-              <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[#171410]/35">{t("world.hero.after.memories")}</p></div>
-              <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[#171410]/35">{t("world.hero.after.media")}</p></div>
-              <div><p className="font-display text-3xl font-light">{project.messages.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[#171410]/35">{t("world.hero.after.messages")}</p></div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-6 grid max-w-2xl grid-cols-3 gap-6 border-t border-[var(--agency-hairline)] pt-7">
+              <div><p className="font-display text-3xl font-light">{project.memories.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[var(--agency-eyebrow)]">{t("world.hero.after.memories")}</p></div>
+              <div><p className="font-display text-3xl font-light">{project.media.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[var(--agency-eyebrow)]">{t("world.hero.after.media")}</p></div>
+              <div><p className="font-display text-3xl font-light">{project.messages.length}</p><p className="mt-1 text-[9px] uppercase tracking-[.16em] text-[var(--agency-eyebrow)]">{t("world.hero.after.messages")}</p></div>
             </motion.div>
           )}
           {project.missing.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-[#171410]/55">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} className="mt-3 flex max-w-xl items-start gap-3 text-xs text-[var(--agency-eyebrow)]">
               <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-accent" />
-              <span><span className="text-[#171410]/75">{t("world.hero.suggestion")}</span>{" "}{t("world.hero.suggestion.body", {
+              <span><span className="text-[var(--agency-ink)]/75">{t("world.hero.suggestion")}</span>{" "}{t("world.hero.suggestion.body", {
                 subject: project.missing.length > 1
                   ? t("world.hero.suggestion.more", { subject: project.missing[0], count: project.missing.length - 1 })
                   : project.missing[0],
@@ -624,12 +665,37 @@ export function ProjectStage() {
         </div>
       </header>
 
-
+      {/* Onboarding first-time — P6 */}
+      {project.timeline.length === 0 && project.guests.length === 0 && project.providers.length === 0 && (
+        <section className="border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-10">
+          <div className="mx-auto max-w-5xl">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Bienvenue dans votre Monde · 3 étapes pour commencer</p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <button onClick={() => setActivePanel("planning")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">1</span>
+                <p className="mt-3 text-sm font-medium">Ajoutez votre date</p>
+                <p className="mt-1 text-xs text-[var(--agency-body)]">Créez votre premier Moment dans la Timeline.</p>
+              </button>
+              <button onClick={() => setActivePanel("guests")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">2</span>
+                <p className="mt-3 text-sm font-medium">Invités + plan de table</p>
+                <p className="mt-1 text-xs text-[var(--agency-body)]">Ajoutez 2 invités, créez une table, assignez-les.</p>
+              </button>
+              <button onClick={() => setActivePanel("providers")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">3</span>
+                <p className="mt-3 text-sm font-medium">Prestataires + budget</p>
+                <p className="mt-1 text-xs text-[var(--agency-body)]">Ajoutez un prestataire, son budget, un paiement.</p>
+              </button>
+            </div>
+            <p className="mt-4 text-xs text-[var(--agency-eyebrow)]">Tout est local-first : images en dataURL, export .byaime.json, PWA installable. Aucun serveur requis.</p>
+          </div>
+        </section>
+      )}
 
       {/* Main Content Area */}
       <main className="w-full">
         {view === "music" && (
-          <section className="border-b border-border bg-card px-6 py-16">
+          <section className="border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-16">
             <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[1fr_auto] md:items-end">
               <div className="max-w-2xl">
                 <p className="flex items-center gap-2 text-[10px] uppercase tracking-[.24em] text-foreground/45"><Waves className="h-4 w-4" /> {t("world.music.eyebrow")}</p>
@@ -643,7 +709,7 @@ export function ProjectStage() {
           </section>
         )}
         {view === "person" && (
-          <section className="overflow-hidden border-b border-border bg-card px-6 py-20">
+          <section className="overflow-hidden border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-20">
             <div className="mx-auto max-w-5xl">
               <div className="max-w-2xl">
                 <p className="text-[10px] uppercase tracking-[.24em] text-foreground/40">{t("world.people.eyebrow")}</p>
@@ -673,7 +739,7 @@ export function ProjectStage() {
         <UniversalTimeline events={visibleEvents} />
       </main>
 
-      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanel} onPhaseChange={nextPhase => {
+      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanelNormalized} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
       }} />
@@ -753,7 +819,7 @@ export function ProjectStage() {
                     "relative aspect-square rounded-2xl text-sm transition",
                     !isSameMonth(day, calendarMonth) && "text-foreground/16",
                     isSameMonth(day, calendarMonth) && "text-foreground/58 hover:bg-foreground/[.06] hover:text-foreground",
-                    isSelected && "bg-[#171410] text-[#FFFFFF] hover:bg-[#171410] hover:text-[#FFFFFF]",
+                    isSelected && "bg-[var(--agency-ink)] text-[var(--agency-paper)] hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)]",
                     isPivot && !isSelected && "ring-1 ring-inset ring-foreground/45"
                   )}
                 >
@@ -778,7 +844,7 @@ export function ProjectStage() {
                 updateProject({ pivot: { ...project.pivot, value: next.getTime() } });
                 setCalendarOpen(false);
               }}
-              className="rounded-full bg-[#171410] px-5 py-2.5 text-xs font-medium text-[#FFFFFF] disabled:cursor-default disabled:opacity-25"
+              className="rounded-full bg-[var(--agency-ink)] px-5 py-2.5 text-xs font-medium text-[var(--agency-paper)] disabled:cursor-default disabled:opacity-25"
             >
               {isSameDay(selectedDate, project.pivot.value) ? t("world.calendar.currentDate") : t("world.calendar.setPivot")}
             </button>

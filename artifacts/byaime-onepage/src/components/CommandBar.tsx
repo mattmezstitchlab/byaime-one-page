@@ -54,9 +54,8 @@ const WORLD_ICONS: Record<WeddingRailIcon, ComponentType<{ className?: string }>
   people: Users,
   providers: Briefcase,
   tasks: ListChecks,
-  finances: Wallet,
   documents: FolderClosed,
-  team: UserCog,
+  logistics: Settings,
   music: Music,
 };
 

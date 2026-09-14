@@ -1,7 +1,13 @@
 import { useState } from "react";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Check, Plus, Search, Trash2 } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { DispooBanner } from "@/components/DispooBanner";
+import { CARD, EYEBROW, PILL_SMALL } from "@/lib/site-design";
+import { cn } from "@/lib/utils";
+import { formatCents, currencySymbol } from "@/lib/money";
+import type { Payment } from "@/lib/types";
+
+const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 
 export function ProviderPanel() {
   const { project, updateEntity, addEntity, removeEntity, canEdit } = useProject();
@@ -9,16 +15,217 @@ export function ProviderPanel() {
   if (!project) return null;
   const providers = project.providers.filter(provider => `${provider.role} ${provider.name || ""}`.toLowerCase().includes(query.toLowerCase()));
   const city = typeof project.city.value === "string" ? project.city.value : "";
-  return <div className="mx-auto max-w-4xl space-y-4"><div className="flex gap-2"><label className="flex flex-1 items-center gap-2 rounded-full border border-foreground/10 px-3"><Search className="h-3.5 w-3.5" /><input value={query} onChange={e => setQuery(e.target.value)} className="w-full bg-transparent py-2 text-sm outline-none" placeholder="Rechercher un professionnel…" /></label>{canEdit && <button onClick={() => addEntity("providers", { role: "Nouveau poste", category: "autre", status: "recherche" })} className="rounded-full border border-foreground/15 px-3 text-xs"><Plus className="mr-1 inline h-3 w-3" />Ajouter</button>}</div>
-    <DispooBanner variant="providers" placement="providers" query={query.trim() || undefined} city={city || undefined} />
-    <div className="grid gap-3 md:grid-cols-2">{providers.map(provider => {
-      const journey = project.timeline.filter(event => event.relations?.some(relation => relation.kind === "provider" && relation.id === provider.id));
-      const payments = project.payments.filter(payment => payment.providerId === provider.id);
-      const documents = project.documents.filter(document => document.providerId === provider.id);
-      return <div key={provider.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex gap-2"><div className="flex-1"><input disabled={!canEdit} value={provider.role} onChange={e => updateEntity("providers", provider.id, { role: e.target.value })} className="w-full bg-transparent text-[10px] uppercase tracking-widest text-foreground/45 outline-none" /><input disabled={!canEdit} value={provider.name || ""} onChange={e => updateEntity("providers", provider.id, { name: e.target.value })} placeholder="Nom" className="mt-1 w-full bg-transparent text-base outline-none" /></div>{canEdit && <button onClick={() => removeEntity("providers", provider.id)}><Trash2 className="h-4 w-4 text-foreground/25" /></button>}</div>
-        <div className="mt-3 grid grid-cols-2 gap-2"><select disabled={!canEdit} value={provider.status} onChange={e => updateEntity("providers", provider.id, { status: e.target.value })} className="rounded-lg bg-foreground/10 p-2 text-xs"><option value="recherche">À trouver</option><option value="contacte">Contact pris</option><option value="devis">Prix reçu</option><option value="reserve">Confirmé</option></select><input disabled={!canEdit} value={provider.nextAction || ""} onChange={e => updateEntity("providers", provider.id, { nextAction: e.target.value })} placeholder="À faire ensuite" className="rounded-lg bg-foreground/10 p-2 text-xs outline-none" /></div>
-        <div className="mt-3 border-t border-foreground/5 pt-3"><p className="text-[9px] uppercase tracking-widest text-foreground/35">Suivi · {payments.length} paiement(s) · {documents.length} document(s)</p><div className="mt-2 space-y-1">{journey.length ? journey.map(event => <p key={event.id} className="text-xs text-foreground/55">{new Date(event.time).toLocaleString("fr-FR")} · {event.title}{event.location ? ` · ${event.location}` : ""}</p>) : <p className="text-xs text-foreground/30">Aucun moment prévu avec ce professionnel.</p>}</div></div>
-      </div>;
-    })}</div>
-  </div>;
+
+  const estimated = project.providers.reduce((sum, p) => sum + (p.amountCents || 0), 0);
+  const committed = project.providers.filter(p => ["devis", "reserve"].includes(p.status)).reduce((sum, p) => sum + (p.amountCents || 0), 0);
+  const paid = project.payments.filter(p => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
+  const remaining = Math.max(0, (project.budget.value || estimated / 100) * 100 - paid);
+  const addPayment = () => addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className={cn(CARD, "p-6")}>
+        <p className={EYEBROW}>Prestataires</p>
+        <h3 className="aime-apple-title mt-2 text-2xl text-[var(--agency-ink)]">L'équipe qui porte le Jour J</h3>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">
+          Chaque prestataire porte son rôle, son statut et ses Moments — reliés comme dans la Bande.
+        </p>
+        <div className="mt-5 flex gap-2">
+          <label className="flex flex-1 items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4">
+            <Search className="h-3.5 w-3.5 text-[var(--agency-eyebrow)]" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-[var(--agency-eyebrow)]"
+              placeholder="Rechercher un professionnel…"
+            />
+          </label>
+          {canEdit && (
+            <button
+              onClick={() => addEntity("providers", { role: "Nouveau poste", category: "autre", status: "recherche" })}
+              className={cn(PILL_SMALL, "bg-[var(--agency-ink)] text-[var(--agency-paper)] hover:opacity-85")}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Ajouter
+            </button>
+          )}
+        </div>
+      </div>
+
+      <DispooBanner variant="providers" placement="providers" query={query.trim() || undefined} city={city || undefined} />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {providers.map(provider => {
+          const journey = project.timeline.filter(event => event.relations?.some(relation => relation.kind === "provider" && relation.id === provider.id));
+          const payments = project.payments.filter(payment => payment.providerId === provider.id);
+          const documents = project.documents.filter(document => document.providerId === provider.id);
+
+          return (
+            <div key={provider.id} className={cn(CARD, "p-5")}>
+              <div className="flex gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] font-display text-sm uppercase text-[var(--agency-ink)]">
+                  {(provider.name || provider.role).charAt(0)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <input
+                    disabled={!canEdit}
+                    value={provider.role}
+                    onChange={e => updateEntity("providers", provider.id, { role: e.target.value })}
+                    className="w-full bg-transparent text-[11px] uppercase tracking-[0.24em] text-[var(--agency-eyebrow)] outline-none"
+                  />
+                  <input
+                    disabled={!canEdit}
+                    value={provider.name || ""}
+                    onChange={e => updateEntity("providers", provider.id, { name: e.target.value })}
+                    placeholder="Nom"
+                    className="mt-1 w-full bg-transparent text-[15px] font-medium outline-none text-[var(--agency-ink)] placeholder:text-[var(--agency-eyebrow)]"
+                  />
+                </div>
+                {canEdit && (
+                  <button onClick={() => removeEntity("providers", provider.id)} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <select
+                  disabled={!canEdit}
+                  value={provider.status}
+                  onChange={e => updateEntity("providers", provider.id, { status: e.target.value })}
+                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none"
+                >
+                  <option value="recherche">À trouver</option>
+                  <option value="contacte">Contact pris</option>
+                  <option value="devis">Prix reçu</option>
+                  <option value="reserve">Confirmé</option>
+                </select>
+                <input
+                  disabled={!canEdit}
+                  value={provider.nextAction || ""}
+                  onChange={e => updateEntity("providers", provider.id, { nextAction: e.target.value })}
+                  placeholder="À faire ensuite"
+                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)]"
+                />
+                <input
+                  disabled={!canEdit}
+                  type="number"
+                  value={provider.amountCents ? provider.amountCents / 100 : ""}
+                  onChange={e => updateEntity("providers", provider.id, { amountCents: e.target.value ? Number(e.target.value) * 100 : undefined })}
+                  placeholder="Montant €"
+                  className="col-span-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)]"
+                />
+              </div>
+
+              <div className="mt-4 border-t border-[var(--agency-hairline)] pt-4">
+                <p className={cn(EYEBROW, "text-[9px]")}>
+                  Suivi · {payments.length} paiement(s) · {documents.length} document(s)
+                </p>
+                <div className="mt-3 space-y-1.5">
+                  {journey.length ? (
+                    journey.map(event => (
+                      <p key={event.id} className="text-xs leading-relaxed text-[var(--agency-body)]">
+                        {new Date(event.time).toLocaleString("fr-FR")} · {event.title}
+                        {event.location ? ` · ${event.location}` : ""}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-xs text-[var(--agency-eyebrow)]">Aucun moment prévu avec ce professionnel.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Fusion P1: Budget intégré dans Prestataires */}
+      <div className={cn(CARD, "p-6")}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className={EYEBROW}>Budget & échéancier</p>
+            <h4 className="aime-apple-title mt-2 text-xl text-[var(--agency-ink)]">L'argent du Monde</h4>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--agency-body)]">Même panneau que les prestataires — estimation, engagé, payé, restant.</p>
+          </div>
+          {canEdit && (
+            <button
+              onClick={addPayment}
+              className={cn(PILL_SMALL, "bg-[var(--agency-ink)] text-[var(--agency-paper)] hover:opacity-85")}
+            >
+              <Plus className="h-3.5 w-3.5" /> Paiement
+            </button>
+          )}
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
+          {[
+            ["Estimé", estimated],
+            ["Engagé", committed],
+            ["Payé", paid],
+            ["Restant", remaining],
+          ].map(([label, value]) => (
+            <div key={label as string} className="rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p>
+              <p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p>
+          <div className="mt-4 space-y-3">
+            {Array.from(new Set(project.providers.map(p => p.category))).map(category => {
+              const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0);
+              const pct = estimated ? Math.min(100, Math.round((amount / estimated) * 100)) : 0;
+              return (
+                <div key={category}>
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span className="capitalize text-foreground/65">{category}</span>
+                    <span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-foreground/10">
+                    <div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+            {project.providers.length === 0 && <p className="text-xs text-[var(--agency-eyebrow)]">Ajoutez des prestataires avec montants pour voir la répartition.</p>}
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-2">
+          {project.payments.length === 0 ? (
+            <p className="text-xs text-[var(--agency-eyebrow)]">Aucun paiement à suivre — ajoutez-en un.</p>
+          ) : (
+            project.payments.map(p => (
+              <div key={p.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                <button
+                  onClick={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })}
+                  className={cn("grid h-6 w-6 place-items-center rounded-full border", p.state === "paye" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)]")}
+                >
+                  {p.state === "paye" && <Check className="h-3.5 w-3.5" />}
+                </button>
+                <div className="flex-1">
+                  <input value={p.label} onChange={e => updateEntity("payments", p.id, { label: e.target.value })} className="w-full bg-transparent text-sm outline-none text-[var(--agency-ink)]" />
+                  <p className="mt-1 text-xs text-[var(--agency-body)]">{new Date(p.at).toLocaleDateString("fr-FR")} · {p.state === "paye" ? "réglé" : "à régler"}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={p.amountCents / 100}
+                    onChange={e => updateEntity("payments", p.id, { amountCents: Number(e.target.value) * 100 })}
+                    className="w-24 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-right font-mono text-sm outline-none"
+                  />
+                  <span className="w-8 text-xs text-[var(--agency-body)]">{currencySymbol(project.currency)}</span>
+                </div>
+                <button onClick={() => removeEntity("payments", p.id)} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

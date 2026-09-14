@@ -22,24 +22,40 @@ const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "paym
 
 const images = AIME_VISUALS.timelineAmbientImages;
 
-/* App institutionnelle : le décor des scènes devient un fond ivoire uni. */
-const AmbientBackground = (_props: { event: TimelineEvent; index: number }) => (
-  <div className="absolute inset-0 z-0 bg-[#FFFFFF]" aria-hidden />
-);
+/* Fond : blanc par défaut, visuel custom si event.visual est défini (répare l'importateur visuel) */
+const AmbientBackground = ({ event }: { event: TimelineEvent; index: number }) => {
+  const visual = event.visual;
+  if (!visual?.url) {
+    return <div className="absolute inset-0 z-0 bg-[var(--agency-paper)]" aria-hidden />;
+  }
+  const alpha = momentVisualOverlayAlpha(visual);
+  return (
+    <>
+      {visual.kind === "video" ? (
+        <video src={visual.url} autoPlay muted loop playsInline className="absolute inset-0 z-0 h-full w-full object-cover" />
+      ) : (
+        <img src={visual.url} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
+      )}
+      <div className="absolute inset-0 z-[1] bg-black" style={{ opacity: alpha }} aria-hidden />
+    </>
+  );
+};
 
 function SubchapterTransition({ title }: { title: string }) {
   return (
-    <div className="w-full py-24 flex items-center justify-center bg-background text-foreground relative z-10 border-t border-foreground/5">
+    <div className="w-full py-24 flex items-center justify-center bg-[var(--agency-paper)] text-[var(--agency-ink)] relative z-10 border-t border-foreground/5">
        <h2 className="text-sm tracking-[0.4em] uppercase text-foreground/40">{title}</h2>
     </div>
   );
 }
 
 function EventScene({ event, index, onClick }: { event: TimelineEvent, index: number, onClick: () => void }) {
+  const hasVisual = Boolean(event.visual?.url);
   return (
     <button
       onClick={onClick}
-      className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-[#171410]/5 px-6 py-24 text-center text-[#171410] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]/50 group"
+      className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-[var(--agency-hairline)] px-6 py-24 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40 group"
+      style={{ backgroundColor: hasVisual ? "#000" : "var(--agency-paper)" }}
     >
       <AmbientBackground event={event} index={index} />
 
@@ -49,39 +65,41 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="space-y-6 flex flex-col items-center rounded-3xl p-8 md:p-12 bg-[#FFFFFF]/25 backdrop-blur-sm border border-[#171410]/10 hover:bg-[#FFFFFF]/40 transition-colors"
+          className={hasVisual
+            ? "space-y-6 flex flex-col items-center rounded-[20px] p-8 md:p-12 bg-black/25 backdrop-blur-md border border-white/15 hover:bg-black/30 transition-colors"
+            : "space-y-6 flex flex-col items-center rounded-[20px] p-8 md:p-12 bg-[var(--agency-paper)]/85 backdrop-blur-sm border border-[var(--agency-hairline)] shadow-[0_2px_24px_rgba(23,20,16,0.06)] hover:bg-[var(--agency-paper)] transition-colors"}
         >
-          <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-[#171410]/65 font-medium">
+          <div className={hasVisual ? "flex items-center gap-3 text-xs tracking-widest uppercase text-white/70 font-medium" : "flex items-center gap-3 text-xs tracking-widest uppercase text-[var(--agency-eyebrow)] font-medium"}>
             <CalendarDays className="w-4 h-4" />
             <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: fr })}</span>
             {event.durationMinutes && (
               <>
-                <span className="w-1 h-1 rounded-full bg-[#171410]/30" />
+                <span className="w-1 h-1 rounded-full bg-current opacity-30" />
                 <Clock3 className="w-4 h-4" />
                 <span>{event.durationMinutes} min</span>
               </>
             )}
           </div>
 
-          <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-[#171410] group-hover:text-[#171410]/90 transition-colors">
+          <h3 className={hasVisual ? "text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-white group-hover:text-white/90 transition-colors" : "text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-[var(--agency-ink)] group-hover:text-[var(--agency-ink)]/90 transition-colors"}>
             {event.title}
           </h3>
 
           {event.detail && (
-            <p className="text-lg md:text-xl text-[#171410]/80 font-light max-w-2xl text-balance leading-relaxed">
+            <p className={hasVisual ? "text-lg md:text-xl text-white/80 font-light max-w-2xl text-balance leading-relaxed" : "text-lg md:text-xl text-[var(--agency-body)] font-light max-w-2xl text-balance leading-relaxed"}>
               {event.detail}
             </p>
           )}
 
           <div className="flex flex-wrap justify-center gap-x-7 gap-y-3 pt-8">
             {event.location && (
-              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-[#171410]/60">
+              <span className={hasVisual ? "flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60" : "flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-[var(--agency-eyebrow)]"}>
                 <MapPin className="w-3 h-3" />
                 {event.location}
               </span>
             )}
             {(event.relations?.length || 0) > 0 && (
-              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-[#171410]/60">
+              <span className={hasVisual ? "flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60" : "flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-[var(--agency-eyebrow)]"}>
                 <Link2 className="w-3 h-3" />
                 {event.relations!.length} liens
               </span>
@@ -190,7 +208,7 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
       {undoTimeline && (
         <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-3 rounded-full border border-foreground/10 bg-background/90 py-2 pl-4 pr-2 text-xs text-foreground shadow-xl backdrop-blur sm:left-6">
           <span>Changement appliqué</span>
-          <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-[#171410] px-3 py-2 font-medium text-[#FFFFFF]">
+          <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-[var(--agency-ink)] px-3 py-2 font-medium text-[var(--agency-paper)]">
             <Undo2 className="h-3.5 w-3.5" /> Annuler
           </button>
         </div>
@@ -301,7 +319,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                 {ripplePlan.warnings.map(warning => <p key={warning} className="rounded-xl border border-brand-accent/20 bg-brand-accent/5 p-3 text-xs text-foreground/80">{warning}</p>)}
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-foreground/15 px-3 py-2.5 text-xs text-foreground/60 hover:text-foreground">Garder l’ancien horaire</button>
-                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-[#171410] px-3 py-2.5 text-xs font-medium text-[#FFFFFF]">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
+                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-[var(--agency-ink)] px-3 py-2.5 text-xs font-medium text-[var(--agency-paper)]">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
                 </div>
               </div>
             </section>

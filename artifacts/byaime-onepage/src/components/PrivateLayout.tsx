@@ -72,7 +72,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
   const openMe = () => setOpenMeSignal(signal => signal + 1);
 
   return (
-    <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+    <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-[var(--agency-paper)] text-[var(--agency-ink)]">
       {/* Desktop Logo - Fixed top left */}
       <div className="fixed left-6 top-6 z-[80] hidden md:block">
         <PrivateHomeLink className="rounded-lg" textClassName="text-xl" />
@@ -81,7 +81,7 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
       {/* Main Content Area */}
       <div className="relative flex h-full min-w-0 flex-1 flex-col">
         {/* Header - Mobile only visual, completely empty on desktop */}
-        <header className="z-[60] grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border bg-background/95 px-3 backdrop-blur-xl sm:px-4 md:border-none md:bg-transparent">
+        <header className="z-[60] grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)]/95 px-3 backdrop-blur-xl sm:px-4 md:border-none md:bg-transparent">
           <PrivateHomeLink className="md:hidden" textClassName="text-lg" />
 
           <div className="flex-1" />

@@ -48,7 +48,7 @@ describe("Module Messages", () => {
     expect(markup).toContain("Nouveau modèle");
     // L'entrée unique du message libre (qui remplace le doublon « Envoyer un e-mail » des Réglages).
     expect(markup).toContain("Message libre");
-    expect(markup).toContain("Journal des envois et rappels");
-    expect(markup).toContain("Aucun message envoyé ou programmé");
+    expect(markup).toContain("Journal local");
+    expect(markup).toContain("Aucun message conservé");
   });
 });
