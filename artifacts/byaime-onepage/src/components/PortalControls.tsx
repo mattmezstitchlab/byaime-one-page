@@ -818,15 +818,34 @@ export function PortalControls({
               }
             />
             {currentRole === "owner" && (
-              <a
-                href={`/api/projects/${project.id}/export`}
-                onClick={() =>
-                  trackEvent("project_exported", { format: "json" })
-                }
-                className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Download className="h-4 w-4" /> Sauvegarde du Monde
-              </a>
+              <>
+                <a
+                  href={`/api/projects/${project.id}/export`}
+                  onClick={() =>
+                    trackEvent("project_exported", { format: "json" })
+                  }
+                  className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Download className="h-4 w-4" /> Sauvegarde serveur
+                </a>
+                <button
+                  onClick={() => {
+                    const json = JSON.stringify(project, null, 2);
+                    const blob = new Blob([json], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${project.title || "monde"}-${new Date().toISOString().slice(0,10)}.byaime.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    trackEvent("project_exported", { format: "byaime-local" });
+                    setNotice("Export local .byaime.json téléchargé — inclut images dataURL, 100% offline");
+                  }}
+                  className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Download className="h-4 w-4" /> Exporter .byaime local
+                </button>
+              </>
             )}
             <button
               onClick={exportCsv}

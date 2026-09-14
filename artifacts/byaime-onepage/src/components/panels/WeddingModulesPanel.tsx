@@ -592,7 +592,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {images.map((doc)=>(
                 <div key={doc.id} className="group relative overflow-hidden rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
-                  {doc.url && <img src={doc.url} alt={doc.title} className="h-36 w-full object-cover cursor-pointer" onClick={()=>{ setLightboxUrl(doc.url!); setLightboxType("image"); }} />}
+                  {doc.url && <img src={doc.url} alt={doc.title} className="h-36 w-full object-cover cursor-pointer" onClick={()=>{ setGalleryLightboxUrl(doc.url!); setGalleryLightboxType("image"); }} />}
                   <div className="p-2 flex items-center justify-between gap-1">
                     <p className="truncate text-[11px]">{doc.title}</p>
                     {canManage && <button aria-label={`Supprimer ${doc.title}`} onClick={()=>removeEntity("documents", doc.id)} className="p-1 text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>}
@@ -652,21 +652,21 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           {canManage && <div className="pt-3"><AddBar label="Souvenir" onAdd={()=>updateProject({ memoryChecklist: [...project.memoryChecklist, { id: newId(), label:"Nouveau souvenir", done:false }] })} /></div>}
         </div>
 
+        {/* Lightbox with ESC */}
+        {galleryLightboxUrl && (
+          <div className="fixed inset-0 z-[100] bg-black/80 grid place-items-center p-4" onClick={()=>setGalleryLightboxUrl(null)} onKeyDown={(e)=>{ if(e.key==="Escape") setGalleryLightboxUrl(null); }} tabIndex={-1}>
+            <div className="relative max-w-3xl w-full">
+              <button onClick={()=>setGalleryLightboxUrl(null)} className="absolute -top-8 right-0 text-white text-xs uppercase tracking-widest">Fermer ✕ (ESC)</button>
+              {galleryLightboxType==="image" ? <img src={galleryLightboxUrl} className="w-full max-h-[85vh] object-contain rounded-xl" /> : <video src={galleryLightboxUrl} controls autoPlay className="w-full max-h-[85vh] rounded-xl bg-black" />}
+            </div>
+          </div>
+        )}
+
         {/* Contributions offline note */}
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">
           <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-2">Contributions invités · ex-panel supprimé</p>
           Mode local-first : les contributions invités via /participant-media nécessitent backend. En local, demandez aux invités d'envoyer fichiers par mail et importez-les ici en tant que documents. Le QR code public ne dépose plus en ligne.
         </div>
-
-        {/* Lightbox */}
-        {galleryLightboxUrl && (
-          <div className="fixed inset-0 z-[100] bg-black/80 grid place-items-center p-4" onClick={()=>setLightboxUrl(null)}>
-            <div className="relative max-w-3xl w-full">
-              <button onClick={()=>setLightboxUrl(null)} className="absolute -top-8 right-0 text-white text-xs uppercase tracking-widest">Fermer ✕</button>
-              {galleryLightboxType==="image" ? <img src={galleryLightboxUrl} className="w-full max-h-[85vh] object-contain rounded-xl" /> : <video src={galleryLightboxUrl} controls autoPlay className="w-full max-h-[85vh] rounded-xl bg-black" />}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
