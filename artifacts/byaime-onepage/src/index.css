@@ -139,12 +139,18 @@
   /* Hero : plus de visuel photo — le fond bleu-vert du shader reste visible. */
 
   /* Typographie de la direction Apple. */
+  /*
+   * Petites capitales : 0.72 à 0.55 d'opacité posait ~3,97:1 sur blanc, sous le
+   * seuil AA (4,5:1) pour du petit texte — mesuré depuis --foreground: 30 12% 9%.
+   * À 0.72 on obtient ~7:1. Décision de la fondatrice du 14/09 : on corrige,
+   * l'accessibilité passe avant la légèreté du gris.
+   */
   .aime-apple-eyebrow {
     font-size: 0.72rem;
     font-weight: 500;
     letter-spacing: 0.24em;
     text-transform: uppercase;
-    color: hsl(var(--foreground) / 0.55);
+    color: hsl(var(--foreground) / 0.72);
   }
   .aime-apple-title {
     font-family: var(--app-font-display);
@@ -163,7 +169,7 @@
     font-weight: 500;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: hsl(var(--foreground) / 0.55);
+    color: hsl(var(--foreground) / 0.72);
   }
 
   /* Boutons-pilules : blanc sur noir, fantôme, accent rose, et verre pour les

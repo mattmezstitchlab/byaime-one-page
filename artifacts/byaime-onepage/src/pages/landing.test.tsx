@@ -27,12 +27,17 @@ describe("Landing (accueil)", () => {
     expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-showcase"'));
   });
 
-  it("pose un hero plein écran sur le fond bleu-vert signature, sans visuel photo", () => {
+  it("pose un hero plein écran sur le papier, sans visuel photo ni fond animé", () => {
     const markup = render(<LandingPage />);
 
-    // Le shader est le plan fixe de base ; le hero le laisse visible, sans photo.
-    expect(markup).toContain('data-testid="landing-shader"');
-    expect(markup).toContain("fixed inset-0 z-0");
+    /*
+     * Le dégradé maillé a été retiré le 14/09 : il était `fixed inset-0 z-0`,
+     * donc recouvert par le voile blanc du hero et par des sections toutes
+     * opaques (`bg-background`) — un contexte WebGL animé en continu que
+     * personne ne voyait. Le contrôle ci-dessous l'interdit de revenir sans
+     * qu'une décision le rende visible.
+     */
+    expect(markup).not.toContain('data-testid="landing-shader"');
     expect(markup).not.toContain('data-testid="landing-hero-photo"');
     expect(markup).not.toContain("landing-hero-astronauts.jpg");
     // Le hero occupe tout l'écran.
