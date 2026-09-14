@@ -59,7 +59,7 @@ import { UniversalTimeline } from "./UniversalTimeline";
 describe("UniversalTimeline — une tête par période", () => {
   it("montre l'état des préparations quand tous les Moments sont dans l'Avant", () => {
     const markup = renderToStaticMarkup(
-      <UniversalTimeline events={[event("e1", "avant", now + 9 * DAY, "Dégustation")]} />,
+      <UniversalTimeline events={[event("e1", "avant", now + 9 * DAY, "Dégustation")]} onMomentAction={() => undefined} capabilities={{ seeFinances: true, manageDocuments: true }} />,
     );
 
     expect(markup).toContain('data-testid="avant-overview"');
@@ -69,7 +69,7 @@ describe("UniversalTimeline — une tête par période", () => {
 
   it("montre le déroulé du Jour J quand tous les Moments sont le jour même", () => {
     const markup = renderToStaticMarkup(
-      <UniversalTimeline events={[event("e2", "pendant", now + 30 * DAY, "Cérémonie")]} />,
+      <UniversalTimeline events={[event("e2", "pendant", now + 30 * DAY, "Cérémonie")]} onMomentAction={() => undefined} capabilities={{ seeFinances: true, manageDocuments: true }} />,
     );
 
     expect(markup).toContain('data-testid="day-run"');
@@ -77,12 +77,12 @@ describe("UniversalTimeline — une tête par période", () => {
     expect(markup).not.toContain('data-testid="apres-overview"');
   });
 
-  it("n'impose aucune tête Après : l'Après vit dans un projet séparé", () => {
+  it("donne une tête à l'Après : souvenirs, images, vidéos, remerciements", () => {
     const markup = renderToStaticMarkup(
-      <UniversalTimeline events={[event("e3", "apres", now + 60 * DAY, "Album")]} />
+      <UniversalTimeline events={[event("e3", "apres", now + 60 * DAY, "Album")]} onMomentAction={() => undefined} capabilities={{ seeFinances: true, manageDocuments: true }} />
     );
 
-    expect(markup).not.toContain('data-testid="apres-overview"');
+    expect(markup).toContain('data-testid="apres-overview"');
     expect(markup).not.toContain('data-testid="avant-overview"');
     expect(markup).not.toContain('data-testid="day-run"');
   });
@@ -95,6 +95,8 @@ describe("UniversalTimeline — une tête par période", () => {
           event("e2", "pendant", now + 30 * DAY, "Cérémonie"),
           event("e3", "apres", now + 60 * DAY, "Album"),
         ]}
+        onMomentAction={() => undefined}
+        capabilities={{ seeFinances: true, manageDocuments: true }}
       />,
     );
 
@@ -106,7 +108,7 @@ describe("UniversalTimeline — une tête par période", () => {
   });
 
   it("ne propose aucune tête sur une vue vide", () => {
-    const markup = renderToStaticMarkup(<UniversalTimeline events={[]} />);
+    const markup = renderToStaticMarkup(<UniversalTimeline events={[]} onMomentAction={() => undefined} capabilities={{ seeFinances: true, manageDocuments: true }} />);
 
     expect(markup).toContain("Aucun événement dans cette vue.");
     expect(markup).not.toContain('data-testid="avant-overview"');

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { enUS, fr } from 'date-fns/locale';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
 import { BottomDock } from './BottomDock';
@@ -23,7 +23,8 @@ import { MESSAGE_TO_EVENT } from '@/lib/person-spotlight-bus';
 import { VisibilityGraph } from './VisibilityGraph';
 import { WorldSearch } from './WorldSearch';
 import { WorldSwitcher } from './WorldSwitcher';
-import type { Guest } from '@/lib/types';
+import type { Guest, TimelineEvent } from '@/lib/types';
+import type { MomentAction } from '@/lib/moment-context';
 import {
   normalizePanelId,
   isWeddingDestinationActive,
@@ -86,6 +87,7 @@ export function ProjectStage() {
   const { project, projects, selectProject, updateProject, updateEntity, canEdit, currentRole } = useProject();
   const { openUserProfile } = useClerk();
   const { t, locale } = useI18n();
+  const [, setLocation] = useLocation();
   /* Les dates suivent la langue : `date-fns` pour les libellés, `Intl` pour les listes. */
   const dateLocale = locale === 'en' ? enUS : fr;
   const pivotDate = project?.pivot.value ?? Date.now();
@@ -96,6 +98,14 @@ export function ProjectStage() {
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
   const [heroEditorOpen, setHeroEditorOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<WeddingPanelId | null>(null);
+  /*
+   * Le Moment d'où vient le panneau ouvert. La Timeline organise le produit :
+   * une action de Moment (« Documents », « Invités », « Playlist »…) ouvre le
+   * panneau détaillé ANCRÉ sur ce Moment — filtre et surbrillance viennent des
+   * mêmes relations que les repères affichés sur la scène. `null` = panneau
+   * ouvert par le menu : comportement historique, rien n'est filtré.
+   */
+  const [panelMomentId, setPanelMomentId] = useState<string | null>(null);
 
   /*
    * Ce qui est réellement regardé. Jusqu'ici les 22 événements mesurés étaient
@@ -151,6 +161,12 @@ export function ProjectStage() {
     () => getWeddingRailItems(phase, getWeddingCapabilities(previewRole ?? currentRole), locale),
     [phase, currentRole, previewRole, locale],
   );
+  /* Ce que le rôle peut voir, transmis à la dérivation des Moments : un rôle
+     sans accès aux finances ne voit ni repère budget ni action Budget. */
+  const momentCapabilities = useMemo(() => {
+    const caps = getWeddingCapabilities(previewRole ?? currentRole);
+    return { seeFinances: caps.seeFinances, manageDocuments: caps.managePrivateDocuments };
+  }, [currentRole, previewRole]);
 
   /*
    * `activePanel` garde l'identifiant demandé, PAS sa forme normalisée : un
@@ -188,11 +204,37 @@ export function ProjectStage() {
   const setActivePanelFromMenu = (panel: WeddingPanelId | null) => {
     if (panel === null) {
       setActivePanel(null);
+      setPanelMomentId(null);
       return;
     }
+    /* Ouverture par le menu / le rail : pas de Moment d'origine, le panneau
+       détaillé montre tout son périmètre. */
+    setPanelMomentId(null);
     openPanelSafely(panel);
   };
 
+  /*
+   * UNE ACTION DE MOMENT = LE CHEMIN LE PLUS COURT.
+   *
+   * Panneau ancré sur le Moment (profondeur), vue de la Timeline, ou route
+   * publique (/bilan). Aucune donnée n'est recopiée : le panneau filtrera avec
+   * les MÊMES relations que celles affichées en repère sur la scène.
+   */
+  const handleMomentAction = (action: MomentAction, event?: TimelineEvent) => {
+    trackEvent('moment_action_opened', { action: action.id, phase });
+    if (action.destination.kind === "route") {
+      setLocation(action.destination.href);
+      return;
+    }
+    if (action.destination.kind === "view") {
+      setActivePanel(null);
+      setPanelMomentId(null);
+      setView(action.destination.view);
+      return;
+    }
+    setPanelMomentId(action.scoped && event ? event.id : null);
+    openPanelSafely(action.destination.panel);
+  };
   useEffect(() => {
     if (!activePanel) return;
     if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
@@ -414,6 +456,7 @@ export function ProjectStage() {
         <WorldTopMenu
           role={previewRole ?? currentRole}
           locale={locale}
+          phase={phase}
           onOpen={openWeddingDestination}
         />
 
@@ -800,10 +843,28 @@ export function ProjectStage() {
             </div>
           </section>
         )}
-        <UniversalTimeline events={visibleEvents} />
+        <UniversalTimeline
+          events={visibleEvents}
+          capabilities={momentCapabilities}
+          onMomentAction={handleMomentAction}
+          phase={phase}
+        />
       </main>
 
-      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanelFromMenu} onPhaseChange={nextPhase => {
+      <BottomDock
+        phase={phase}
+        view={view}
+        activePanel={activePanel}
+        navigation={navigation}
+        rail={rail}
+        momentId={panelMomentId}
+        onBackToMoment={() => {
+          const momentId = panelMomentId;
+          setActivePanel(null);
+          setPanelMomentId(null);
+          if (momentId) window.dispatchEvent(new CustomEvent("aime:focus-world", { detail: { momentId } }));
+        }}
+        onPanelChange={setActivePanelFromMenu} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
       }} onViewChange={nextView => {

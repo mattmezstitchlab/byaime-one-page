@@ -37,7 +37,7 @@ const TAB_LABEL_KEYS: Record<PilotageTab, "world.item.people" | "world.item.prov
   planning: "world.item.tasks",
 };
 
-export function PilotagePanel({ initial }: { initial?: PilotageTab }) {
+export function PilotagePanel({ initial, momentId }: { initial?: PilotageTab; momentId?: string | null }) {
   const { t } = useI18n();
   const [tab, setTab] = useState<PilotageTab>(initial ?? "guests");
 
@@ -74,8 +74,8 @@ export function PilotagePanel({ initial }: { initial?: PilotageTab }) {
       </div>
 
       <div className="pt-7">
-        {tab === "guests" && <GuestPanel />}
-        {tab === "providers" && <ProviderPanel />}
+        {tab === "guests" && <GuestPanel momentId={momentId} />}
+        {tab === "providers" && <ProviderPanel momentId={momentId} />}
         {tab === "planning" && <PlanningPanel />}
       </div>
     </div>
@@ -83,13 +83,13 @@ export function PilotagePanel({ initial }: { initial?: PilotageTab }) {
 }
 
 /** Le contenu de la fenêtre unique, pour un panneau donné. */
-export function MondePanel({ panel }: { panel: WeddingPanelId }) {
+export function MondePanel({ panel, momentId = null }: { panel: WeddingPanelId; momentId?: string | null }) {
   const normalized = normalizePanelId(panel);
 
-  if (normalized === "pilotage") return <PilotagePanel initial={pilotageTabFor(panel)} />;
+  if (normalized === "pilotage") return <PilotagePanel initial={pilotageTabFor(panel)} momentId={momentId} />;
   if (normalized === "dayof") return <DayOfPanel />;
   if (normalized === "planning") return <PlanningPanel />;
-  if (normalized === "guests") return <GuestPanel />;
-  if (normalized === "providers") return <ProviderPanel />;
-  return <WeddingModulesPanel module={normalized as WeddingModule} />;
+  if (normalized === "guests") return <GuestPanel momentId={momentId} />;
+  if (normalized === "providers") return <ProviderPanel momentId={momentId} />;
+  return <WeddingModulesPanel module={normalized as WeddingModule} momentId={momentId} />;
 }

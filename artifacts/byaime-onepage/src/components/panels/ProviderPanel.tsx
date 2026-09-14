@@ -5,14 +5,20 @@ import { DispooBanner } from "@/components/DispooBanner";
 import { CARD, EYEBROW, PILL_SMALL } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
 import { formatCents, currencySymbol } from "@/lib/money";
+import { momentProviderIds } from "@/lib/moment-context";
 
 const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 
-export function ProviderPanel() {
+export function ProviderPanel({ momentId = null }: { momentId?: string | null } = {}) {
   const { project, updateEntity, addEntity, removeEntity, canEdit } = useProject();
   const [query, setQuery] = useState("");
   if (!project) return null;
-  const providers = project.providers.filter(provider => `${provider.role} ${provider.name || ""}`.toLowerCase().includes(query.toLowerCase()));
+  /* Ancrage Moment : les professionnels reliés à ce Moment passent en tête et
+     sont signalés — mêmes relations que les repères affichés sur la scène. */
+  const linkedIds = momentId ? momentProviderIds(project, momentId) : [];
+  const providers = project.providers
+    .filter(provider => `${provider.role} ${provider.name || ""}`.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => Number(linkedIds.includes(b.id)) - Number(linkedIds.includes(a.id)));
   const city = typeof project.city.value === "string" ? project.city.value : "";
 
   const estimated = project.providers.reduce((sum, p) => sum + (p.amountCents || 0), 0);
@@ -60,7 +66,11 @@ export function ProviderPanel() {
           const documents = project.documents.filter(document => document.providerId === provider.id);
 
           return (
-            <div key={provider.id} className={cn(CARD, "p-5")}>
+            <div
+              key={provider.id}
+              data-moment-linked={linkedIds.includes(provider.id) ? "true" : undefined}
+              className={cn(CARD, "p-5", linkedIds.includes(provider.id) && "ring-2 ring-[var(--agency-ink)]/35")}
+            >
               <div className="flex gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] font-display text-sm uppercase text-[var(--agency-ink)]">
                   {(provider.name || provider.role).charAt(0)}

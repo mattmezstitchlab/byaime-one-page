@@ -3,6 +3,7 @@ import { AlertTriangle, Copy, ExternalLink, Link2, Plus, Search, Trash2, UserRou
 import { useProject } from "@/store/project-store";
 import type { ParticipantLink } from "@/lib/types";
 import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
+import { momentGuestIds } from "@/lib/moment-context";
 import { CARD, EYEBROW, PILL_SMALL, PILL_SMALL_GHOST, PILL_SMALL_INK } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,7 @@ function participantUrl(token: string) {
   return `${window.location.origin}${root}/rsvp/${token}`;
 }
 
-export function GuestPanel() {
+export function GuestPanel({ momentId = null }: { momentId?: string | null } = {}) {
   const {
     project,
     participantLinks: links,
@@ -61,7 +62,11 @@ export function GuestPanel() {
   }, [canInviteParticipants, projectId, refreshParticipantLinks]);
 
   if (!project) return null;
-  const guests = project.guests.filter(guest => `${guest.name} ${effectiveGuestDietary(guest, links[guest.id])}`.toLowerCase().includes(query.toLowerCase()));
+  /* Ancrage Moment : les personnes reliées à ce Moment passent en tête. */
+  const linkedGuestIds = momentId ? momentGuestIds(project, momentId) : [];
+  const guests = project.guests
+    .filter(guest => `${guest.name} ${effectiveGuestDietary(guest, links[guest.id])}`.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => Number(linkedGuestIds.includes(b.id)) - Number(linkedGuestIds.includes(a.id)));
 
   const createParticipantLink = async (guestId: string) => {
     if (!apiAvailable) {

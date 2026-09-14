@@ -118,11 +118,13 @@ describe("l'orchestration du Jour J est atteignable", () => {
     expect(document.querySelectorAll('[data-testid="day-moment"]').length).toBeGreaterThan(5);
   });
 
-  it("ouvre la Régie du Jour J depuis le menu du haut, même en phase Avant", async () => {
+  it("ouvre la Régie du Jour J depuis la Timeline du Jour J", async () => {
     await mountWorld();
-    click(document.querySelector('[data-testid="world-top-menu-jour-j"]'));
-    const regie = [...document.querySelectorAll<HTMLButtonElement>('[data-testid^="world-top-menu-item-"]')]
-      .find(button => /Régie du Jour J/.test(button.textContent ?? ""));
+    click(document.querySelector('[data-testid="world-phase-pendant"]'));
+    /* La Régie est la profondeur du Jour J : on y entre depuis le déroulé,
+       pas depuis un menu à explorer. */
+    const regie = document.querySelector<HTMLButtonElement>('[data-testid="day-run-regie"]');
+    expect(regie, "aucune entrée Régie sur la Timeline du Jour J").not.toBeNull();
     click(regie);
 
     expect(document.body.textContent).toContain("Le déroulé du Jour J");

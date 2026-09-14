@@ -14,6 +14,9 @@ import {
 import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { AimeOrb } from "@/components/AimeOrb";
 import { PersonSpotlight } from "@/components/PersonSpotlight";
+import { MomentActions, MomentFacts } from "@/components/MomentContext";
+import { buildMomentContext, type MomentAction, type MomentCapabilities } from "@/lib/moment-context";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const vendorImages: Partial<Record<ProviderCategory, string>> = { ...AIME_VISUALS.providersByCategory };
@@ -34,8 +37,20 @@ const STATE_COPY: Record<DayMomentState, { label: string; pill: string; dot: str
  * toute la suite du déroulé. « Terminer » et les détails ouvrent le tiroir
  * existant : rien n'est réinventé, tout reste traçable.
  */
-export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; onOpen: (id: string) => void }) {
+export function DayRunTimeline({
+  events,
+  onOpen,
+  onMomentAction,
+  capabilities,
+}: {
+  events: TimelineEvent[];
+  onOpen: (id: string) => void;
+  /** Les Moments du Jour J portent, eux aussi, leurs actions contextuelles. */
+  onMomentAction: (action: MomentAction, event?: TimelineEvent) => void;
+  capabilities: MomentCapabilities;
+}) {
   const { project, updateEntity, updateProject, canEdit } = useProject();
+  const { locale, t } = useI18n();
   const [now, setNow] = useState(() => Date.now());
   const [followLive, setFollowLive] = useState(true);
   const [undo, setUndo] = useState<{ timeline: TimelineEvent[]; label: string }>();
@@ -79,7 +94,38 @@ export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; on
     if (canEdit) updateEntity("timeline", eventId, { status: "execute" });
   };
 
-  if (snapshot.total === 0) return null;
+  if (snapshot.total === 0) {
+    /* Jour J sans aucun Moment : on ne laisse pas un vide mort, on propose la
+       Régie (qui sait créer le premier Moment du déroulé). */
+    return (
+      <div data-testid="day-run" className="mx-auto w-full max-w-4xl px-4 pb-16 sm:px-6">
+        <section data-testid="day-run-empty" className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-6 text-center">
+          <p className="text-[10px] uppercase tracking-[.22em] text-foreground/45">Régie du Jour J</p>
+          <h3 className="aime-apple-title mt-2 text-xl text-[var(--agency-ink)]">Le déroulé du Jour J est vide</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--agency-body)]">
+            Aucun Moment n&apos;est encore posé le jour même. La Régie permet de construire le déroulé, minute par minute.
+          </p>
+          <button
+            type="button"
+            data-testid="day-run-regie"
+            data-moment-action="regie"
+            onClick={() =>
+              onMomentAction({
+                id: "regie",
+                icon: "clock",
+                label: t("moment.action.regie"),
+                scoped: false,
+                destination: { kind: "panel", panel: "dayof" },
+              })
+            }
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-5 py-2.5 text-xs font-medium uppercase tracking-widest text-[var(--agency-paper)] transition hover:opacity-85"
+          >
+            {t("moment.action.regie")}
+          </button>
+        </section>
+      </div>
+    );
+  }
   const allDone = snapshot.doneCount === snapshot.total;
   const totalDelay = snapshot.ordered.reduce((sum, event) => sum + Math.max(0, event.delayMinutes ?? 0), 0);
 
@@ -181,12 +227,39 @@ export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; on
         </div>
       </section>
 
+      {/* La Régie complète reste la profondeur du Jour J : une seule entrée,
+          posée là où l'on regarde le déroulé — pas dans un menu à chercher. */}
+      <button
+        type="button"
+        data-testid="day-run-regie"
+          data-moment-action="regie"
+          onClick={() =>
+            onMomentAction(
+              {
+                id: "regie",
+                icon: "clock",
+                label: t("moment.action.regie"),
+                scoped: false,
+                destination: { kind: "panel", panel: "dayof" },
+              },
+              delayTarget ?? undefined,
+            )
+          }
+          className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-5 py-2.5 text-xs font-medium uppercase tracking-widest text-[var(--agency-paper)] transition hover:opacity-85"
+        >
+        {t("moment.action.regie")}
+      </button>
+
       {/* ——— Le déroulé vertical ——— */}
       <ol className="mt-8 space-y-3">
         {snapshot.ordered.map(event => {
           const state = snapshot.states.get(event.id) ?? "upcoming";
           const copy = STATE_COPY[state];
           const vendors = vendorsFor(event);
+          /* UN MOMENT = UN CONTEXTE = SES ACTIONS : la régie garde sa logique
+             temps réel, mais chaque Moment du Jour J expose ses repères et ses
+             actions (déroulé, participants, musique, photos, retard…). */
+          const context = buildMomentContext(event, project, capabilities, locale);
           return (
             <li key={event.id}>
               <div
@@ -214,6 +287,11 @@ export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; on
                   <h4 className="mt-2 text-lg font-medium leading-snug">{event.title}</h4>
                   {event.detail && <p className="mt-1 line-clamp-2 text-sm font-light text-foreground/55">{event.detail}</p>}
                   {event.location && <p className="mt-1.5 flex items-center gap-1.5 text-xs text-foreground/50"><MapPin className="h-3.5 w-3.5" />{event.location}</p>}
+                  {context.facts.length > 0 && (
+                    <div className="mt-3 flex justify-start">
+                      <MomentFacts facts={context.facts} variant="light" />
+                    </div>
+                  )}
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     {vendors.length > 0 && (
                       <span className="flex items-center">
@@ -253,6 +331,14 @@ export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; on
                     >
                       Détails
                     </button>
+                  </div>
+                  <div className="mt-3 flex justify-start border-t border-foreground/[0.07] pt-3">
+                    <MomentActions
+                      actions={context.actions}
+                      primaryCount={context.primaryCount}
+                      variant="light"
+                      onAction={action => onMomentAction(action, event)}
+                    />
                   </div>
                 </div>
               </div>

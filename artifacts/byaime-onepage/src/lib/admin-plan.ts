@@ -4,51 +4,54 @@ import {
   getWeddingRailItems,
   isWeddingEntryAllowed,
   type WeddingNavigationItem,
+  type WorldPhase,
 } from "./wedding-navigation";
 import type { Locale } from "./i18n-dictionary";
 
 /*
- * Le rétroplanning du back-office : tout le Monde remis dans l'ordre du
- * mariage, avec une ligne par entrée, son libellé et sa description.
+ * Le menu du Monde, version Timeline-first (14/09).
  *
- * Dérivation pure, testée : elle compose la navigation existante (rail commun
- * + navigation de phase) et filtre par capacités du rôle — le planner voit
- * tout, un invité ne voit que ce qui le regarde. L'ordre est celui d'un
- * mariage : concevoir, vivre le Jour J, clôturer après.
+ * Avant cette refonte, le menu du haut déroulait deux sections listant tous les
+ * panneaux : c'était une seconde porte d'entrée parallèle à la Timeline, et le
+ * chemin le plus court vers une fonctionnalité passait par « menu → panneau →
+ * chercher le contexte ».
+ *
+ * Désormais la Timeline organise le produit : chaque Moment porte ses actions
+ * (lib/moment-context.ts), et les panneaux sont des profondeurs ouvertes depuis
+ * un Moment. Le menu global ne porte plus qu'UNE liste plate — le socle commun
+ * plus les outils de la période courante — pour retrouver une catégorie en un
+ * clic quand on ne veut pas dérouler le fil. Une entrée, un niveau, zéro section.
  */
 
-export type AdminSection = {
-  id: string;
-  title: string;
-  hint: string;
-  items: WeddingNavigationItem[];
-};
-
-export type AdminPlan = { sections: AdminSection[] };
+export type AdminPlan = { sections: Array<{ id: string; title: string; hint: string; items: WeddingNavigationItem[] }> };
 
 const allowed = (items: WeddingNavigationItem[], caps: ReturnType<typeof getWeddingCapabilities>) =>
   items.filter(entry => isWeddingEntryAllowed(entry, caps));
 
-export function buildAdminPlan(role: string, locale: Locale = "fr"): AdminPlan {
+/** La liste plate du menu : socle commun + outils de la phase, sans doublon. */
+export function buildWorldMenu(role: string, phase: WorldPhase, locale: Locale = "fr"): WeddingNavigationItem[] {
   const caps = getWeddingCapabilities(role);
+  const rail = allowed(getWeddingRailItems(phase, caps, locale), caps);
+  const phaseItems = allowed(
+    [...getWeddingNavigation(phase, caps, locale).primary, ...getWeddingNavigation(phase, caps, locale).secondary],
+    caps,
+  );
+  const seen = new Set<string>();
+  return [...rail, ...phaseItems].filter(item => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
 
-  const rail = getWeddingRailItems("avant", caps, locale);
-  const avant = allowed(getWeddingNavigation("avant", caps, locale).primary, caps);
-  const pendant = allowed(getWeddingNavigation("pendant", caps, locale).primary, caps);
-
+export function buildAdminPlan(role: string, locale: Locale = "fr", phase: WorldPhase = "avant"): AdminPlan {
   return {
     sections: [
       {
-        id: "concevoir",
-        title: "Concevoir et préparer",
-        hint: "Le socle : moments, personnes (+ plan de table), prestataires (+ budget), tâches, documents — puis la cérémonie, la logistique et les messages.",
-        items: [...rail, ...avant],
-      },
-      {
-        id: "jour-j",
-        title: "Le Jour J",
-        hint: "Ce qui se vit le jour même : le déroulé, les infos des invités, les contributions.",
-        items: pendant,
+        id: "monde",
+        title: "Le Monde",
+        hint: "Une seule liste : le socle commun et les outils de la période. Tout le reste vit dans les Moments de la Timeline.",
+        items: buildWorldMenu(role, phase, locale),
       },
     ],
   };

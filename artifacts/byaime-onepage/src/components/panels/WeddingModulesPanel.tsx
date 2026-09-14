@@ -17,6 +17,8 @@ import {
 import type { MusicSearchResult, MusicTrack, Document } from "@/lib/types";
 import { MESSAGE_TO_EVENT, consumeMessageDraft } from "@/lib/person-spotlight-bus";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
+import { momentDocumentIds, momentTrackIds } from "@/lib/moment-context";
+import { useI18n } from "@/lib/i18n";
 import type { WeddingModule } from "@/lib/wedding-navigation";
 
 export type { WeddingModule } from "@/lib/wedding-navigation";
@@ -119,7 +121,7 @@ function Empty({ children }: { children: ReactNode }) {
 }
 
 
-export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
+export function WeddingModulesPanel({ module, momentId = null }: { module: WeddingModule; momentId?: string | null }) {
   const {
     project,
     currentRole,
@@ -131,6 +133,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     addEntity,
     removeEntity,
   } = useProject();
+  const { t: tScope } = useI18n();
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<SentMessage[]>([]);
   const [remoteError, setRemoteError] = useState("");
@@ -153,6 +156,10 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [galleryLightboxUrl, setGalleryLightboxUrl] = useState<string | null>(null);
   const [galleryLightboxType, setGalleryLightboxType] = useState<"image" | "video" | null>(null);
   const [orgaSection, setOrgaSection] = useState<"ceremony"|"logistics"|"team">("ceremony");
+  /* Ancrage sur un Moment : la Galerie et la Musique peuvent se restreindre à
+     ce que le Moment relie vraiment — mêmes relations que les repères de la
+     scène. `null` = pas d'ancrage, tout le périmètre du panneau. */
+  const [scopeToMoment, setScopeToMoment] = useState(true);
   const musicSearchAbortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -344,9 +351,13 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   }
 
   if (module === "documents") {
-    const images = project.documents.filter((d) => d.url?.startsWith("data:image") || d.title.match(/\.(jpg|jpeg|png|webp|gif)$/i));
-    const videos = project.documents.filter((d) => d.url?.startsWith("data:video") || d.title.match(/\.(mp4|webm|mov)$/i));
-    const docs = project.documents.filter((d) => !images.includes(d) && !videos.includes(d));
+    const scopedDocIds = momentId && scopeToMoment ? new Set(momentDocumentIds(project, momentId)) : null;
+    const inScope = (d: Document) => !scopedDocIds || scopedDocIds.has(d.id);
+    const source = project.documents.filter(inScope);
+    const images = source.filter((d) => d.url?.startsWith("data:image") || d.title.match(/\.(jpg|jpeg|png|webp|gif)$/i));
+    const videos = source.filter((d) => d.url?.startsWith("data:video") || d.title.match(/\.(mp4|webm|mov)$/i));
+    const docs = source.filter((d) => !images.includes(d) && !videos.includes(d));
+    const momentDocCount = momentId ? momentDocumentIds(project, momentId).length : 0;
     const filtered = galleryFilter === "image" ? images : galleryFilter === "video" ? videos : galleryFilter === "doc" ? docs : project.documents;
     return (
       <div className="max-w-4xl mx-auto space-y-6">
@@ -389,6 +400,28 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
               <button key={f} onClick={()=>setGalleryFilter(f)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", galleryFilter===f ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{f==="all"?"Tous":f==="image"?"Images":f==="video"?"Vidéos":"Docs"}</button>
             ))}
           </div>
+          {momentId && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--agency-hairline)] pt-4" data-testid="documents-moment-scope">
+              <button
+                type="button"
+                onClick={() => setScopeToMoment(value => !value)}
+                aria-pressed={scopeToMoment && momentDocCount > 0}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest transition",
+                  scopeToMoment && momentDocCount > 0
+                    ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]"
+                    : "border-[var(--agency-hairline)] text-foreground/50 hover:text-foreground",
+                )}
+              >
+                {scopeToMoment && momentDocCount > 0 ? tScope("moment.scope.label") : tScope("moment.scope.all")}
+              </button>
+              <span className="text-[11px] text-[var(--agency-body)]">
+                {momentDocCount > 0
+                  ? tScope("moment.scope.count", { count: momentDocCount })
+                  : "Aucun fichier relié à ce Moment : la galerie montre tout le Monde."}
+              </span>
+            </div>
+          )}
         </div>
 
         {localDocProgress && (
@@ -504,9 +537,29 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   if (module === "music") {
     const timelineMusicEvents = [...project.timeline].sort((a, b) => a.time - b.time);
     const selectedTrack = project.music.find((track) => track.id === selectedMusicId) || project.music[0];
+    /* Ancrage Moment : les morceaux reliés à ce Moment passent en tête, et le
+       bandeau rappelle ce que le Moment porte — mêmes relations que la scène. */
+    const momentTrackIdList = momentId ? momentTrackIds(project, momentId) : [];
+    const orderedTracks = momentTrackIdList.length > 0
+      ? [...project.music].sort((a, b) => Number(momentTrackIdList.includes(b.id)) - Number(momentTrackIdList.includes(a.id)))
+      : project.music;
+    const musicScopeBanner = momentId ? (
+      <div data-testid="music-moment-scope" className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+        <p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("moment.scope.label")}</p>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">
+          {momentTrackIdList.length > 0
+            ? orderedTracks
+                .filter(track => momentTrackIdList.includes(track.id))
+                .map(track => `${track.title}${track.artist ? ` · ${track.artist}` : ""}`)
+                .join(" · ")
+            : "Aucun morceau n'est encore relié à ce Moment."}
+        </p>
+      </div>
+    ) : null;
     if (!canEdit)
       return (
         <div className="mx-auto max-w-4xl space-y-5">
+          {musicScopeBanner}
           <div>
             <h4 className="text-sm font-medium">Musique reliée aux Moments</h4>
             <p className="mt-1 text-xs text-foreground/45">Consultation seule.</p>
@@ -514,7 +567,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           {project.music.length === 0 ? (
             <Empty>Aucun morceau n’est encore relié à un Moment.</Empty>
           ) : (
-            project.music.map((track) => (
+            orderedTracks.map((track) => (
               <div key={track.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
                 <TrackArtwork track={track} size="sm" />
                 <div className="min-w-0 flex-1">
@@ -589,6 +642,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     };
     return (
       <div className="max-w-4xl mx-auto space-y-5">
+        {musicScopeBanner}
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <ShieldCheck className="h-4 w-4 text-brand-accent" />
@@ -676,7 +730,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
         {project.music.length === 0 ? (
           <Empty>Aucun morceau n’est encore relié à un Moment.</Empty>
         ) : (
-          project.music.map((track) => (
+          orderedTracks.map((track) => (
             <MusicTrackRow
               key={track.id}
               track={track}

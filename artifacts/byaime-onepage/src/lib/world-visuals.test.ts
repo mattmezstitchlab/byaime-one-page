@@ -1,15 +1,17 @@
+import { existsSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   chapterAmbientAsset,
   DEFAULT_HERO_VISUAL,
   momentAmbientAsset,
+  momentAmbientVideo,
   momentVisual,
   momentVisualZone,
   resolveHeroVisual,
   visualSourceUrl,
   WORLD_VISUAL_CHOICES,
 } from "./world-visuals";
-import { AIME_VISUALS } from "./assets";
+import { AIME_VIDEO_PATHS, AIME_VIDEOS, AIME_VISUALS } from "./assets";
 import type { TimelineEvent, WorldProject } from "./types";
 
 /*
@@ -71,7 +73,52 @@ describe("zones visuelles de la Timeline", () => {
   it("laisse le visuel importé par le couple l'emporter", () => {
     const custom = { kind: "image" as const, url: "data:image/png;base64,AAAA", overlay: 40 };
     expect(momentVisual(event({ title: "L'engagement", visual: custom }))).toEqual(custom);
-    expect(momentVisual(event({ title: "L'engagement" })).url).toMatch(/^images\//);
+    expect(momentVisual(event({ title: "L'engagement" })).url).toMatch(/^videos\//);
+  });
+});
+
+/*
+ * Audit vidéo du 14/09 : trois fichiers réels, trois contextes distincts. Là où
+ * une vidéo existe, elle remplace la photo du manifeste ; ailleurs la photo
+ * reste. Aucun doublon, aucune vidéo inventée, aucun écran noir.
+ */
+describe("vidéos réelles de la Timeline", () => {
+  it("remplace la photo par la vidéo dans les zones qui en ont une", () => {
+    const ceremony = momentVisual(event({ title: "L'engagement", detail: "Échange des vœux" }));
+    expect(ceremony.kind).toBe("video");
+    expect(ceremony.url).toBe(AIME_VIDEOS.ceremony);
+
+    const attire = momentVisual(event({ title: "La première tenue", detail: "Essayages" }));
+    expect(attire.kind).toBe("video");
+    expect(attire.url).toBe(AIME_VIDEOS.attire);
+
+    const portrait = momentVisual(event({ title: "Point d'étape", phase: "avant" }));
+    expect(portrait.kind).toBe("video");
+    expect(portrait.url).toBe(AIME_VIDEOS.portrait);
+  });
+
+  it("garde la photo du manifeste là où aucune vidéo n'existe", () => {
+    const table = momentVisual(event({ title: "Le banquet", detail: "Entrée en salle et saveurs" }));
+    expect(table.kind).toBe("image");
+    expect(table.url).toMatch(/^images\//);
+
+    const music = momentVisual(event({ title: "L'ouverture du bal" }));
+    expect(music.kind).toBe("image");
+  });
+
+  it("n'utilise chaque vidéo qu'une fois, et chaque fichier existe sur le disque", () => {
+    expect(new Set(AIME_VIDEO_PATHS).size).toBe(AIME_VIDEO_PATHS.length);
+    for (const path of AIME_VIDEO_PATHS) {
+      expect(path.endsWith(".mp4"), path).toBe(true);
+      const file = new URL(`../../public/${path}`, import.meta.url);
+      expect(existsSync(file), `${path} introuvable`).toBe(true);
+      expect(statSync(file).size, `${path} vide`).toBeGreaterThan(200_000);
+    }
+  });
+
+  it("résout l'URL de la vidéo comme celle d'une image (base + jeton de version)", () => {
+    const url = visualSourceUrl(momentVisual(event({ title: "L'engagement", detail: "Échange des vœux" })));
+    expect(url).toContain("/videos/wedding-ceremony-vows.mp4?v=");
   });
 });
 
