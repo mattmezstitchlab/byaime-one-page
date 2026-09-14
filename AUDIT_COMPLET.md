@@ -277,3 +277,27 @@ Après P1, app compte 6 entrées rail au lieu de 8, plus de doublons.
 - `src/components/panels/WeddingModulesPanel.tsx`: documents galerie unifiée + logistics organisation + legacy redirects + hooks fix
 - Tests: wedding-navigation.test, private-i18n.test, admin-plan.test, apres-modules.test
 
+
+---
+
+## P3-P6 réalisés (2026-09-14)
+
+### P3 — PortalControls local-first
+- api() wrapper avec apiAvailable flag, fallback local dataURL pour upload, files depuis project.documents, preview/download dataURL, invitations/privacy/delete avec clearProject fallback
+- Suppression états morts participantMedia/songRequests
+
+### P4 — Export local + PWA
+- Export .byaime.json local avec dataURLs (bouton dans world-settings) + importBackup existant
+- PWA déjà existante : public/sw.js (network-first navigations, stale-while-revalidate assets, cache-first images) + site.webmanifest standalone
+
+### P5 — Polish
+- Plus de #171410 dans panels, tokens agency partout
+- Lightbox galerie ESC keydown + tabIndex, fermeture ✕ (ESC)
+
+### P6 — Onboarding
+- Si timeline+guests+providers vides → section 3 cartes "Date → Invités → Prestataires" avec setActivePanel, notice local-first
+
+377 tests verts finaux.
+
+### Reste P7
+README + tag v1.0 + deploy — 0.5j
