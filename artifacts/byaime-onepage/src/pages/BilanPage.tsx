@@ -1,8 +1,11 @@
 import { useParams } from "wouter";
 import { getGetPublicReportQueryKey, useGetPublicReport } from "@workspace/api-client-react";
 import { CoupleReport } from "@/components/CoupleReport";
+import { SiteFooter } from "@/components/SiteChrome";
 import { AGENCY_IDENTITY } from "@/lib/agency-identity";
 import { useRouteMeta } from "@/lib/page-meta";
+import { BODY, EYEBROW, LEAD, TITLE } from "@/lib/site-design";
+import { cn } from "@/lib/utils";
 
 /*
  * L'URL que le planner envoie aux mariés : /bilan/:projectId.
@@ -37,7 +40,7 @@ export function BilanPage() {
   return (
     <main data-testid="bilan-page" className="min-h-[100dvh] bg-[var(--agency-paper)] text-[var(--agency-ink)] antialiased">
       {isLoading ? (
-        <p className="flex min-h-[100dvh] items-center justify-center text-[11px] uppercase tracking-[0.3em] text-[var(--agency-eyebrow)]">
+        <p className={cn(EYEBROW, "flex min-h-[100dvh] items-center justify-center")}>
           Ouverture du bilan
         </p>
       ) : data ? (
@@ -49,16 +52,22 @@ export function BilanPage() {
         />
       ) : (
         <div className="flex min-h-[100dvh] flex-col items-center justify-center px-6 text-center">
-          <p className="text-[11px] uppercase tracking-[0.38em] text-[var(--agency-eyebrow)]">{brand}</p>
-          <h1 className="agency-serif mt-6 text-3xl text-[var(--agency-ink)] sm:text-4xl">
+          <p className={cn(EYEBROW, "tracking-[0.38em]")}>{brand}</p>
+          <h1 className={cn(TITLE, "mt-6 text-3xl sm:text-4xl")}>
             Ce bilan n&rsquo;est pas partagé.
           </h1>
-          <p className="mt-5 max-w-md text-[14px] leading-relaxed text-[var(--agency-body)]">
+          <p className={cn(LEAD, "mt-5 max-w-md text-sm", BODY)}>
             Votre wedding architect n&rsquo;a pas encore ouvert cette page.
             Rien de ce mariage n&rsquo;est visible ici.
           </p>
         </div>
       )}
+      {/*
+        Une URL publique porte l'identité de l'agence et ses textes légaux. Pas
+        de barre de navigation : le bilan s'ouvre depuis un lien envoyé aux
+        mariés, il n'est pas une page à parcourir.
+      */}
+      <SiteFooter />
     </main>
   );
 }

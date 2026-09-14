@@ -1,8 +1,11 @@
+import { SiteFooter, SiteHeader, SiteHero, SitePanel } from "@/components/SiteChrome";
 import { AGENCY_VISUALS, getAssetUrl } from "@/lib/assets";
 import { AGENCY_IDENTITY } from "@/lib/agency-identity";
 import { AGENCY_META, agencyJsonLdScript } from "@/lib/agency-seo";
 import { useRouteMeta } from "@/lib/page-meta";
 import { sitePath } from "@/lib/site-path";
+import { BODY, CARD, EYEBROW, PILL_GHOST, PILL_INK, PILL_SMALL_INK, TITLE } from "@/lib/site-design";
+import { cn } from "@/lib/utils";
 
 /*
  * Vitrine « La cerise sur le gâteau — Wedding Architect ».
@@ -12,14 +15,22 @@ import { sitePath } from "@/lib/site-path";
  * du Jour J, le rapport présenté automatiquement). Cette page vend le planner,
  * pas le logiciel — aucune capture d'écran, aucun vocabulaire produit.
  *
- * Direction artistique : blanc new-yorkais, une seule encre charbon, une seule
- * serif de titrage, beaucoup de vide, zéro illustration de la métaphore
- * « cerise ». Copie française inline : c'est un site d'agence pour le marché
- * France, pas une vue de l'application.
+ * Direction artistique reprise le 14/09 sur celle de l'accueil, à la demande de
+ * la fondatrice (« ce serait bien tout le site comme ça ») : barre fixe fine et
+ * floutée, hero plein écran, panneaux blancs séparés d'un filet, cartes
+ * arrondies, boutons-pilules, entrées au défilement. Le dessin vient de
+ * `lib/site-design.ts` et l'ossature de `components/SiteChrome.tsx` — plus rien
+ * n'est recopié ici.
  *
- * Trois sources uniques, plus rien de recopié ici :
+ * Une décision de typographie accompagne cette reprise : le site parle en sans,
+ * la police d'affichage de l'accueil. La serif `--agency-serif` ne reste que dans
+ * le livrable d'un couple (`components/CoupleReport.tsx`), qui est un document à
+ * lire et à imprimer, pas un écran. Revenir à la serif sur les pages publiques
+ * tient en une ligne : `TITLE`, dans `lib/site-design.ts`.
+ *
+ * Trois sources uniques pour le contenu :
  *  - l'identité (marque, rôle, villes, email)  → `lib/agency-identity.ts`
- *  - les couleurs et la serif                  → jetons `--agency-*` (index.css)
+ *  - les couleurs et les polices               → jetons `--agency-*` (index.css)
  *  - le titre, la description et le JSON-LD    → `lib/agency-seo.ts`
  * Les jetons remplacent des hexadécimaux codés en dur dont deux étaient sous le
  * seuil AA (2,25:1 et 3,76:1 sur blanc) : `agency-theme.test.ts` les mesure.
@@ -27,33 +38,25 @@ import { sitePath } from "@/lib/site-path";
 
 const { brand, role, contactEmail, cities } = AGENCY_IDENTITY;
 
-function Eyebrow({ children }: { children: string }) {
-  return (
-    <p className="text-[11px] uppercase tracking-[0.38em] text-[var(--agency-eyebrow)]">
-      {children}
-    </p>
-  );
-}
-
+/** Une étape de la méthode : une carte, un numéro, un titre, trois lignes. */
 function MethodStep({ index, title, text }: { index: string; title: string; text: string }) {
   return (
-    <div className="border-t border-[var(--agency-hairline)] pt-6">
-      <p className="text-[11px] tracking-[0.3em] text-[var(--agency-index)]">{index}</p>
-      <h3 className="agency-serif mt-3 text-2xl text-[var(--agency-ink)]">
-        {title}
-      </h3>
-      <p className="mt-3 text-[15px] leading-relaxed text-[var(--agency-body)]">{text}</p>
+    <div className={cn(CARD, "p-6 md:p-8")}>
+      <p className="text-[11px] font-medium tracking-[0.3em] text-[var(--agency-index)]">{index}</p>
+      <h3 className={cn(TITLE, "mt-4 text-2xl")}>{title}</h3>
+      <p className={cn(BODY, "mt-3")}>{text}</p>
     </div>
   );
 }
 
+/** Une prestation : une ligne de filet, pas une carte. La liste se lit d'un œil. */
 function ServiceRow({ index, text }: { index: string; text: string }) {
   return (
     <li className="flex items-baseline gap-6 border-t border-[var(--agency-hairline)] py-5">
-      <span className="w-8 shrink-0 text-[11px] tracking-[0.3em] text-[var(--agency-index)]">{index}</span>
-      <span className="agency-serif text-lg text-[var(--agency-ink)]">
-        {text}
+      <span className="w-8 shrink-0 text-[11px] font-medium tracking-[0.3em] text-[var(--agency-index)]">
+        {index}
       </span>
+      <span className="text-lg text-[var(--agency-ink)]">{text}</span>
     </li>
   );
 }
@@ -81,236 +84,212 @@ export default function AgencyLanding() {
         dangerouslySetInnerHTML={{ __html: agencyJsonLdScript() }}
       />
 
-      <main data-testid="agency-landing" className="bg-[var(--agency-paper)] text-[var(--agency-ink)] antialiased">
-        {/* ————— Barre haute ————— */}
-        <header className="absolute inset-x-0 top-0 z-10">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-            <a href="#haut" className="agency-serif text-lg text-[var(--agency-ink)]">
-              {brand}
-            </a>
-            <nav aria-label="Navigation de la vitrine" className="flex items-center gap-8">
-              <a href="#methode" className="hidden text-[11px] uppercase tracking-[0.3em] text-[var(--agency-body)] hover:text-[var(--agency-ink)] sm:block">
-                Méthode
-              </a>
-              <a href="#prestations" className="hidden text-[11px] uppercase tracking-[0.3em] text-[var(--agency-body)] hover:text-[var(--agency-ink)] sm:block">
-                Prestations
-              </a>
-              <a
-                href={sitePath("/mentions-legales")}
-                data-testid="agency-mentions"
-                className="hidden text-[11px] uppercase tracking-[0.3em] text-[var(--agency-body)] transition-colors hover:text-[var(--agency-ink)] sm:block"
-              >
-                Mentions légales
-              </a>
-              <a
-                href={sitePath("/admin")}
-                data-testid="agency-admin"
-                className="text-[11px] uppercase tracking-[0.3em] text-[var(--agency-body)] transition-colors hover:text-[var(--agency-ink)]"
-              >
-                Admin
-              </a>
-              <a
-                href={`mailto:${contactEmail}`}
-                className="border border-[var(--agency-ink)] px-5 py-2.5 text-[11px] uppercase tracking-[0.3em] text-[var(--agency-ink)] transition-colors hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)]"
-              >
-                Prendre rendez-vous
-              </a>
-            </nav>
-          </div>
-        </header>
-
-        {/* ————— Héros ————— */}
-        <section id="haut" data-testid="agency-hero" aria-label="Présentation" className="relative flex min-h-[92dvh] flex-col items-center justify-center px-6 text-center">
-          <Eyebrow>{role}</Eyebrow>
-          <h1 className="agency-serif mt-8 max-w-4xl text-5xl leading-[1.05] text-[var(--agency-ink)] sm:text-7xl">
-            {brand}
-          </h1>
-          <p className="mt-8 max-w-xl text-[15px] leading-relaxed text-[var(--agency-body)]">
-            J&rsquo;architecture votre mariage de bout en bout — lieux, temps, budget,
-            invités, prestataires. Vous ne gardez que le meilleur : une seule page,
-            votre Jour J.
-          </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+      <SiteHeader
+        current="/agence"
+        actions={
+          <>
             <a
-              href={`mailto:${contactEmail}`}
-              className="bg-[var(--agency-ink)] px-8 py-4 text-[11px] uppercase tracking-[0.3em] text-[var(--agency-paper)] transition-opacity hover:opacity-80"
+              href={sitePath("/mentions-legales")}
+              data-testid="agency-mentions"
+              className="hidden h-8 items-center rounded-full px-3 text-xs text-[var(--agency-ink)]/75 motion-safe:transition hover:bg-[var(--agency-ink)]/10 hover:text-[var(--agency-ink)] md:inline-flex"
             >
+              Mentions légales
+            </a>
+            <a
+              href={sitePath("/admin")}
+              data-testid="agency-admin"
+              className="hidden h-8 items-center rounded-full px-3 text-xs text-[var(--agency-ink)]/75 motion-safe:transition hover:bg-[var(--agency-ink)]/10 hover:text-[var(--agency-ink)] sm:inline-flex"
+            >
+              Admin
+            </a>
+            <a href={`mailto:${contactEmail}`} className={PILL_SMALL_INK}>
               Prendre rendez-vous
             </a>
-            <a href="#methode" className="px-8 py-4 text-[11px] uppercase tracking-[0.3em] text-[var(--agency-body)] underline-offset-8 hover:underline">
+          </>
+        }
+      />
+
+      <main
+        data-testid="agency-landing"
+        className="min-h-[100dvh] bg-[var(--agency-paper)] text-[var(--agency-ink)] antialiased"
+      >
+        {/* ————— Héros ————— */}
+        <SiteHero
+          id="haut"
+          testId="agency-hero"
+          eyebrow={role}
+          title={brand}
+          lead={
+            <>
+              J&rsquo;architecture votre mariage de bout en bout — lieux, temps,
+              budget, invités, prestataires. Vous ne gardez que le meilleur : une
+              seule page, votre Jour J.
+            </>
+          }
+          className="min-h-[100dvh] pb-20"
+        >
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a href={`mailto:${contactEmail}`} className={PILL_INK}>
+              Prendre rendez-vous
+            </a>
+            <a href="#methode" className={PILL_GHOST}>
               Découvrir la méthode
             </a>
           </div>
-        </section>
+        </SiteHero>
 
         {/* ————— Image pleine largeur ————— */}
-        <figure data-testid="agency-hero-image" className="relative">
+        <figure data-testid="agency-hero-image" className="relative border-t border-[var(--agency-hairline)]">
           <img
             src={hero}
             alt="Longue table de réception en lin ivoire sous de hautes fenêtres, lumière naturelle"
             className="h-[68dvh] w-full object-cover"
           />
-          <figcaption className="mx-auto flex max-w-6xl justify-between px-6 pt-3 text-[10px] uppercase tracking-[0.3em] text-[var(--agency-body)]">
-            {cities.map(city => <span key={city}>{city}</span>)}
+          <figcaption className="mx-auto flex max-w-6xl justify-between px-6 pt-4">
+            {cities.map(city => (
+              <span key={city} className={cn(EYEBROW, "tracking-[0.3em]")}>
+                {city}
+              </span>
+            ))}
           </figcaption>
         </figure>
 
         {/* ————— Manifeste ————— */}
-        <section data-testid="agency-manifesto" aria-label="Manifeste" className="mx-auto max-w-3xl px-6 py-28 text-center">
-          <p className="agency-serif text-3xl leading-snug text-[var(--agency-ink)] sm:text-4xl">
-            <em>Un mariage ne s&rsquo;improvise pas. Il s&rsquo;architecte.</em>
+        <SitePanel testId="agency-manifesto" className="py-24 md:py-32">
+          <p className={cn(TITLE, "mx-auto max-w-3xl text-3xl leading-snug md:text-4xl")}>
+            Un mariage ne s&rsquo;improvise pas. Il s&rsquo;architecte.
           </p>
-          <p className="mt-8 text-[15px] leading-relaxed text-[var(--agency-body)]">
-            Derrière chaque mariage qui paraît simple, il y a une structure invisible :
-            un plan, des décisions tenues, un déroulé à la minute. Cette structure,
-            c&rsquo;est mon métier. Vous, vous vivez le vôtre.
+          <p className={cn(BODY, "mx-auto mt-8 max-w-xl text-center")}>
+            Derrière chaque mariage qui paraît simple, il y a une structure
+            invisible : un plan, des décisions tenues, un déroulé à la minute.
+            Cette structure, c&rsquo;est mon métier. Vous, vous vivez le vôtre.
           </p>
-        </section>
+        </SitePanel>
 
         {/* ————— Méthode ————— */}
-        <section id="methode" data-testid="agency-method" aria-label="La méthode" className="border-t border-[var(--agency-hairline)]">
-          <div className="mx-auto grid max-w-6xl gap-16 px-6 py-24 lg:grid-cols-[5fr_6fr] lg:gap-24">
-            <div>
-              <Eyebrow>La méthode</Eyebrow>
-              <h2 className="agency-serif mt-6 text-4xl leading-tight text-[var(--agency-ink)]">
-                Quatre temps, un seul plan
-              </h2>
-              <img
-                src={stationery}
-                alt="Papeterie ivoire gravée à sec, sceau de cire et plume sur pierre claire"
-                className="mt-12 hidden w-full object-cover lg:block"
-              />
-            </div>
-            <div className="grid gap-10">
-              <MethodStep
-                index="01"
-                title="La conception"
-                text="Une conversation, un plan. Votre histoire devient une architecture : lieux, temps, budget, invités. Rien n'est laissé à l'humeur."
-              />
-              <MethodStep
-                index="02"
-                title="L'architecture"
-                text="Chaque décision trouve sa place : prestataires, contrats, paiements, documents. Rien ne se perd, rien ne se ressaisit."
-              />
-              <MethodStep
-                index="03"
-                title="L'orchestration"
-                text="Les semaines défilent, les tâches avancent, les invités répondent. Je tiens le plan ; vous vivez l'attente."
-              />
-              <MethodStep
-                index="04"
-                title="Le Jour J"
-                text="Le déroulé minute par minute, tenu à la seconde. Vous êtes présents, je suis derrière."
-              />
-            </div>
+        <SitePanel
+          id="methode"
+          testId="agency-method"
+          eyebrow="La méthode"
+          title="Quatre temps, un seul plan"
+          className="py-20 md:py-28"
+        >
+          <div className="mt-14 grid gap-6 sm:grid-cols-2">
+            <MethodStep
+              index="01"
+              title="La conception"
+              text="Une conversation, un plan. Votre histoire devient une architecture : lieux, temps, budget, invités. Rien n'est laissé à l'humeur."
+            />
+            <MethodStep
+              index="02"
+              title="L'architecture"
+              text="Chaque décision trouve sa place : prestataires, contrats, paiements, documents. Rien ne se perd, rien ne se ressaisit."
+            />
+            <MethodStep
+              index="03"
+              title="L'orchestration"
+              text="Les semaines défilent, les tâches avancent, les invités répondent. Je tiens le plan ; vous vivez l'attente."
+            />
+            <MethodStep
+              index="04"
+              title="Le Jour J"
+              text="Le déroulé minute par minute, tenu à la seconde. Vous êtes présents, je suis derrière."
+            />
           </div>
-        </section>
+          <img
+            src={stationery}
+            alt="Papeterie ivoire gravée à sec, sceau de cire et plume sur pierre claire"
+            className="mt-14 hidden w-full rounded-3xl object-cover lg:block"
+          />
+        </SitePanel>
 
         {/* ————— Ce que vous recevez ————— */}
-        <section data-testid="agency-deliverables" aria-label="Ce que vous recevez" className="border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
-          <div className="mx-auto max-w-6xl px-6 py-24">
-            <Eyebrow>Ce que vous recevez</Eyebrow>
-            <div className="mt-10 grid gap-16 lg:grid-cols-2">
-              <div>
-                <h2 className="agency-serif text-3xl leading-tight text-[var(--agency-ink)]">
-                  Une page. Votre Jour J.
-                </h2>
-                <p className="mt-5 text-[15px] leading-relaxed text-[var(--agency-body)]">
-                  Verticale, limpide, pensée pour le téléphone : horaires, lieux,
-                  contacts, météo de repli. Une seule adresse à partager avec qui
-                  vous voulez — vos invités n&rsquo;ont rien à installer, rien à apprendre.
-                </p>
-              </div>
-              <div>
-                <h2 className="agency-serif text-3xl leading-tight text-[var(--agency-ink)]">
-                  Un rapport, présenté tout seul.
-                </h2>
-                <p className="mt-5 text-[15px] leading-relaxed text-[var(--agency-body)]">
-                  Budget, invités confirmés, tâches closes, documents signés : tout ce
-                  qui a été construit se présente automatiquement. Aucun tableur,
-                  aucune donnée ressaisie, aucun compte à rendre à la main.
-                </p>
-              </div>
+        <SitePanel
+          testId="agency-deliverables"
+          eyebrow="Ce que vous recevez"
+          lead="Deux documents, et rien à tenir vous-même."
+          className="py-20 md:py-28"
+        >
+          <div className="mt-14 grid gap-6 lg:grid-cols-2">
+            <div className={cn(CARD, "p-8 md:p-10")}>
+              <h2 className={cn(TITLE, "text-2xl md:text-3xl")}>Une page. Votre Jour J.</h2>
+              <p className={cn(BODY, "mt-5")}>
+                Verticale, limpide, pensée pour le téléphone : horaires, lieux,
+                contacts, météo de repli. Une seule adresse à partager avec qui vous
+                voulez — vos invités n&rsquo;ont rien à installer, rien à apprendre.
+              </p>
+            </div>
+            <div className={cn(CARD, "p-8 md:p-10")}>
+              <h2 className={cn(TITLE, "text-2xl md:text-3xl")}>
+                Un rapport, présenté tout seul.
+              </h2>
+              <p className={cn(BODY, "mt-5")}>
+                Budget, invités confirmés, tâches closes, documents signés : tout ce
+                qui a été construit se présente automatiquement. Aucun tableur,
+                aucune donnée ressaisie, aucun compte à rendre à la main.
+              </p>
             </div>
           </div>
-        </section>
+        </SitePanel>
 
         {/* ————— Prestations ————— */}
-        <section id="prestations" data-testid="agency-services" aria-label="Prestations" className="border-t border-[var(--agency-hairline)]">
-          <div className="mx-auto max-w-3xl px-6 py-24">
-            <Eyebrow>Prestations</Eyebrow>
-            <ul className="mt-10">
-              <ServiceRow index="01" text="Direction artistique & conception" />
-              <ServiceRow index="02" text="Sélection et contrat des prestataires" />
-              <ServiceRow index="03" text="Budget suivi au centime" />
-              <ServiceRow index="04" text="Invités, RSVP et plan de table" />
-              <ServiceRow index="05" text="Déroulé du Jour J et coordination le jour même" />
-            </ul>
-          </div>
-        </section>
+        <SitePanel
+          id="prestations"
+          testId="agency-services"
+          eyebrow="Prestations"
+          title="Ce que je tiens pour vous"
+          narrow
+          className="py-20 md:py-28"
+        >
+          <ul className="mt-12 border-b border-[var(--agency-hairline)]">
+            <ServiceRow index="01" text="Direction artistique & conception" />
+            <ServiceRow index="02" text="Sélection et contrat des prestataires" />
+            <ServiceRow index="03" text="Budget suivi au centime" />
+            <ServiceRow index="04" text="Invités, RSVP et plan de table" />
+            <ServiceRow index="05" text="Déroulé du Jour J et coordination le jour même" />
+          </ul>
+        </SitePanel>
 
         {/* ————— Respiration image ————— */}
-        <figure data-testid="agency-quote" className="relative">
+        <figure data-testid="agency-quote" className="relative border-t border-[var(--agency-hairline)]">
           <img
             src={ceremony}
             alt="Cérémonie en plein air, rangées de chaises claires face à une arche de branches"
             className="h-[72dvh] w-full object-cover"
           />
-          <figcaption className="absolute inset-0 flex items-center justify-center bg-[var(--agency-ink)]/25 px-6">
-            <p className="agency-serif max-w-2xl text-center text-3xl leading-snug text-[var(--agency-paper)] sm:text-4xl">
-              <em>Le luxe, c&rsquo;est de n&rsquo;avoir rien à gérer.</em>
+          {/*
+            Voile à 55 % d'encre, et non 25 % : une citation blanche posée sur une
+            photographie n'a pas de contraste calculable, on tient donc l'opacité
+            du voile. Sur la zone la plus claire possible (blanc), 55 % d'encre
+            donne 3,98:1 — au-dessus des 3:1 exigés pour du grand texte (30 px et
+            plus, graisse 600). À 25 % on tombait à 1,72:1 : la citation ne se
+            lisait pas sur un ciel clair.
+          */}
+          <figcaption className="absolute inset-0 flex items-center justify-center bg-[var(--agency-ink)]/55 px-6">
+            <p className={cn(TITLE, "max-w-2xl text-center text-3xl leading-snug text-[var(--agency-paper)] md:text-4xl")}>
+              Le luxe, c&rsquo;est de n&rsquo;avoir rien à gérer.
             </p>
           </figcaption>
         </figure>
 
         {/* ————— Contact ————— */}
-        <section id="contact" data-testid="agency-contact" aria-label="Contact" className="mx-auto max-w-3xl px-6 py-28 text-center">
-          <Eyebrow>Contact</Eyebrow>
-          <h2 className="agency-serif mt-6 text-4xl leading-tight text-[var(--agency-ink)] sm:text-5xl">
-            Parlons de votre mariage.
-          </h2>
-          <p className="mt-6 text-[15px] leading-relaxed text-[var(--agency-body)]">
-            Quelques dates par an, pas davantage. Écrivez-moi : je réponds
-            personnellement, sous vingt-quatre heures.
-          </p>
-          <a
-            href={`mailto:${contactEmail}`}
-            className="mt-10 inline-block bg-[var(--agency-ink)] px-10 py-4 text-[11px] uppercase tracking-[0.3em] text-[var(--agency-paper)] transition-opacity hover:opacity-80"
-          >
-            {contactEmail}
-          </a>
-        </section>
-
-        {/* ————— Pied de page ————— */}
-        <footer data-testid="agency-footer" className="border-t border-[var(--agency-hairline)]">
-          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-[10px] uppercase tracking-[0.3em] text-[var(--agency-body)] sm:flex-row">
-            <span className="agency-serif text-sm normal-case tracking-normal text-[var(--agency-ink)]">
-              {brand} — {role}
-            </span>
-            <span>{cities.join(" · ")}</span>
-            <nav data-testid="agency-footer-links" aria-label="Pages du site" className="flex flex-wrap items-center justify-center gap-4">
-              {/* La Bande : le produit lui-même, en démonstration publique et
-                  sans session. En mode dégradé la vitrine est la seule porte
-                  d'entrée du site — la démo doit y être joignable aussi. */}
-              <a href={sitePath("/monde")} data-testid="agency-bande" className="hover:text-[var(--agency-ink)]">
-                La Bande
-              </a>
-              <a href={sitePath("/mentions-legales")} className="hover:text-[var(--agency-ink)]">
-                Mentions légales
-              </a>
-              <a href={sitePath("/confidentialite")} className="hover:text-[var(--agency-ink)]">
-                Confidentialité
-              </a>
-              <a href={sitePath("/")} className="hover:text-[var(--agency-ink)]">
-                Espace privé
-              </a>
-              <a href={sitePath("/admin")} className="hover:text-[var(--agency-ink)]">
-                Admin
-              </a>
-            </nav>
+        <SitePanel
+          id="contact"
+          testId="agency-contact"
+          eyebrow="Contact"
+          title="Parlons de votre mariage."
+          lead="Quelques dates par an, pas davantage. Écrivez-moi : je réponds personnellement, sous vingt-quatre heures."
+          className="py-24 md:py-32"
+        >
+          <div className="mt-10 flex justify-center">
+            <a href={`mailto:${contactEmail}`} className={PILL_INK}>
+              {contactEmail}
+            </a>
           </div>
-        </footer>
+        </SitePanel>
       </main>
+
+      <SiteFooter />
     </>
   );
 }

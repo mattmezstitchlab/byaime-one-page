@@ -59,8 +59,12 @@ const AGENCY_PAGES = [
   "../pages/BilanPage.tsx",
   "../pages/AdminSommaire.tsx",
   "../pages/Mentions.tsx",
+  "../pages/Legal.tsx",
   "../pages/Bande.tsx",
   "../components/CoupleReport.tsx",
+  // Le dessin partagé est lui-même contrôlé : c'est de là que les pages le tiennent.
+  "../components/SiteChrome.tsx",
+  "../lib/site-design.ts",
 ] as const;
 
 describe("identité de l'agence — jetons", () => {

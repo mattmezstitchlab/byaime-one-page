@@ -1,5 +1,8 @@
-import { Link } from "wouter";
+import { SiteFooter, SiteHeader, SiteHero, SitePanel, SiteSection } from "@/components/SiteChrome";
 import { useRouteMeta } from "@/lib/page-meta";
+import { sitePath } from "@/lib/site-path";
+import { BODY, PILL_GHOST, PILL_INK } from "@/lib/site-design";
+import { cn } from "@/lib/utils";
 
 // Date de la dernière révision des textes légaux.
 // À mettre à jour à chaque modification des conditions ou de la confidentialité.
@@ -25,29 +28,65 @@ const sections = {
   ],
 } as const;
 
+/*
+ * Confidentialité et conditions d'utilisation, servies par le même composant.
+ *
+ * Ces deux textes parlaient du pilote AIME dans le dessin du logiciel (grilles
+ * `foreground/35` et `foreground/48`, sous AA, couleurs recopiées) alors qu'ils
+ * sont publiés sur le site de l'agence : un visiteur qui lit la vitrine clique
+ * ici sans jamais ouvrir de compte. Ils passent donc à l'ossature publique
+ * partagée, comme les mentions légales.
+ */
 export function LegalPage({ kind }: { kind: keyof typeof sections }) {
   const privacy = kind === "privacy";
+  const path = privacy ? "/confidentialite" : "/conditions";
+
   useRouteMeta({
     title: privacy ? "Confidentialité — AIME" : "Conditions d’utilisation — AIME",
     description: privacy
       ? "Ce qu’AIME conserve, pourquoi, et comment chaque personne garde la maîtrise de ses données."
       : "Les règles du pilote AIME pour les couples, leurs invités et les prestataires.",
   });
-  return <main className="min-h-[100dvh] bg-background px-6 py-16 text-foreground md:px-10">
-    <div className="mx-auto max-w-3xl">
-      <div className="flex items-center justify-between gap-4">
-        <Link href="/" className="text-sm font-medium tracking-[.3em] text-foreground/70">AIME</Link>
-        
-      </div>
-      <p className="mt-20 text-[10px] uppercase tracking-[.25em] text-foreground/35">Version pilote · {LEGAL_VERSION_DATE}</p>
-      <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight md:text-6xl">{privacy ? "Confidentialité" : "Conditions d’utilisation"}</h1>
-      <p className="mt-7 max-w-2xl text-base font-light leading-relaxed text-foreground/50">{privacy ? "AIME organise des informations personnelles et parfois sensibles. Cette page explique simplement ce qui est conservé et comment chacun garde le contrôle." : "Ces règles protègent les couples, leurs invités, les prestataires et les personnes qui participent au pilote AIME."}</p>
-      <div className="mt-16 space-y-12">{sections[kind].map(([title, body]) => <section key={title} className="border-t border-foreground/10 pt-7"><h2 className="text-lg font-medium">{title}</h2><p className="mt-4 font-light leading-7 text-foreground/48">{body}</p></section>)}</div>
-      <div className="mt-16 flex flex-wrap gap-3 border-t border-foreground/10 pt-8 text-xs">
-        <Link href={privacy ? "/conditions" : "/confidentialite"} className="rounded-full border border-foreground/15 px-4 py-2">{privacy ? "Conditions d’utilisation" : "Confidentialité"}</Link>
-        <Link href="/mentions-legales" className="rounded-full border border-foreground/15 px-4 py-2">Mentions légales</Link>
-        <Link href="/" className="rounded-full bg-foreground px-4 py-2 font-medium text-background">Retour à AIME</Link>
-      </div>
-    </div>
-  </main>;
+
+  return (
+    <>
+      <SiteHeader current={path} />
+      <main
+        data-testid="legal-page"
+        className="min-h-[100dvh] bg-[var(--agency-paper)] text-[var(--agency-ink)] antialiased"
+      >
+        <SiteHero
+          eyebrow={`Version pilote · ${LEGAL_VERSION_DATE}`}
+          title={privacy ? "Confidentialité" : "Conditions d’utilisation"}
+          lead={
+            privacy
+              ? "AIME organise des informations personnelles et parfois sensibles. Cette page explique simplement ce qui est conservé et comment chacun garde le contrôle."
+              : "Ces règles protègent les couples, leurs invités, les prestataires et les personnes qui participent au pilote AIME."
+          }
+          className="min-h-0 pb-4"
+        />
+
+        <SitePanel narrow className="border-t-0 pt-0">
+          {sections[kind].map(([title, body]) => (
+            <SiteSection key={title} title={title}>
+              <p className={cn(BODY, "max-w-2xl")}>{body}</p>
+            </SiteSection>
+          ))}
+
+          <div className="mt-16 flex flex-wrap items-center gap-3 border-t border-[var(--agency-hairline)] pt-8">
+            <a href={sitePath(privacy ? "/conditions" : "/confidentialite")} className={PILL_GHOST}>
+              {privacy ? "Conditions d’utilisation" : "Confidentialité"}
+            </a>
+            <a href={sitePath("/mentions-legales")} className={PILL_GHOST}>
+              Mentions légales
+            </a>
+            <a href={sitePath("/")} className={PILL_INK}>
+              Retour à AIME
+            </a>
+          </div>
+        </SitePanel>
+      </main>
+      <SiteFooter />
+    </>
+  );
 }

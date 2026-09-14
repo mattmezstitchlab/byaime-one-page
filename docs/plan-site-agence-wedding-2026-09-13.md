@@ -624,3 +624,126 @@ Faut-il substituer la Bande au Monde privé actuel (42 écrans → un écran + t
 devient S3 bis et passe **avant** S5, parce qu'il change ce que la vitrine promet et ce que
 l'espace privé montre. Sinon elle reste une démonstration publique, et c'est déjà un argument
 commercial : `/monde` montre le produit sans demander de compte.
+
+---
+
+## 8 ter. Le dessin de l'accueil étendu au site public — livré le 14 septembre 2026
+
+### La demande
+
+Sur le prototype de la Bande : « pas mal mais ce serait mieux dans le design du site en fait si tu
+regarde la demo page d'accueil ce serait bien tout le site comme ça ». Trois choix ont ensuite été
+tranchés explicitement :
+
+| Question | Choix |
+| --- | --- |
+| Portée de la reprise | **tout le site public** — vitrine, mentions légales, confidentialité, conditions, réponse d'un invité, bilan partagé |
+| Le fond animé de l'accueil | **retiré** (composant, dépendance et chunk) |
+| Les petites capitales sous AA | **corrigées maintenant** |
+
+L'espace privé (les 42 écrans derrière `/user-portal` et `/admin`) n'est pas dans cette portée : il
+reste dans le dessin du logiciel.
+
+### Ce qui est écrit une fois, désormais
+
+Deux fichiers portent le dessin, et les pages composent avec :
+
+- **`lib/site-design.ts`** — le vocabulaire : `EYEBROW`, `TITLE`, `LEAD`, `BODY`, `HAIRLINE`,
+  `SITE_BAR`, `WORDMARK`, `PANEL` / `PANEL_INNER` / `PANEL_SPACING`, `CARD`, `CARD_INK`,
+  `PILL_CALL` / `PILL_INK` / `PILL_GHOST` / `PILL_ACCENT`, `PILL_SMALL*`, `FIELD`, `LINK_QUIET`.
+  Aucune couleur en dur : tout passe par les jetons `--agency-*` mesurés au lot 1.8.
+- **`components/SiteChrome.tsx`** — l'ossature : `SiteHeader` (barre fixe fine et floutée,
+  `aria-current` sur la page courante, emplacement `actions` pour l'appel propre à la page),
+  `SiteFooter` (identité de l'agence, pages du site, trois textes légaux, année), `SiteHero`,
+  `SitePanel`, `SiteSection`, `PillChoice` (`role="group"` + `aria-pressed`, l'état ne repose pas sur
+  la couleur).
+
+Deux contraintes expliquent des choix qui peuvent surprendre :
+
+- **les liens sont des `<a href={sitePath(...)}>`, pas le routeur** : les pages publiques sont
+  rendues dans les tests hors de tout `Router`, et le pré-rendu du lot 2 les servira comme des
+  documents. `sitePath()` pose le préfixe si le site est servi sous un sous-répertoire ;
+- **la barre ne lit aucune session** (contrôlé par test : ni `useAuth`, ni `SignedIn`) : une page
+  publique reste entière quand l'authentification n'est pas configurée, comme le veut
+  `lib/public-shell.ts`.
+
+### Les pages reprises
+
+| Page | Avant | Après |
+| --- | --- | --- |
+| `/` accueil | 48 hexadécimaux en dur, fond animé invisible, gris à 3,76:1 | jetons `--agency-*`, plus de fond animé, œil-de-bœuf à 7,08:1 |
+| `/agence` vitrine | en-tête absolu, hero 92 dvh, titres serif, étapes en filets, voile de citation à 25 % | barre fixe partagée, hero plein écran, panneaux bordés, quatre cartes `rounded-3xl`, pilules 44 px, voile à 55 % |
+| `/mentions-legales` | page de texte à part, liens carrés | barre + hero + panneaux + `SiteSection`, encadré « à compléter » en carte, pilules |
+| `/confidentialite`, `/conditions` | dessin du logiciel (`foreground/35`, `/48`), routeur | même ossature que les mentions, texte courant sur jeton mesuré |
+| `/rsvp/:token` | gris à `/50`, `/55`, `/60` (3,9 à 4,7:1), cartes `bg-card` | œil-de-bœuf partagé, titres en `TITLE`, cartes `CARD`, champs `FIELD`, pilules, pied de page public |
+| `/bilan/:projectId` | titre serif, aucun pied de page | états vide et chargement en `TITLE`/`EYEBROW`, pied de page public (pas de barre : le bilan s'ouvre depuis un lien envoyé aux mariés) |
+| `/monde` la Bande | sa propre copie de la barre, du pied de page et de l'œil-de-bœuf | `SiteHeader` + `SiteFooter`, constantes `EYEBROW`/`PANEL`/`CARD` — 5 panneaux et 4 cartes ne recopient plus leurs valeurs |
+
+### Les trois corrections, chiffrées
+
+1. **AA sur les petites capitales.** `.aime-apple-eyebrow` et `.aime-apple-confiance` posaient du
+   texte à `foreground / 0.55`, soit **3,98:1** sur blanc (mesure recalculée depuis
+   `--foreground: 30 12% 9%`) — sous le seuil AA de 4,5:1. Passées à `0.72`, soit **7,08:1**. Ces
+   deux classes servent l'accueil, l'assistant et les dossiers : la correction porte partout d'un
+   coup. L'accueil aggravait le cas en recopiant `#8A8375` (**3,76:1**) six fois par-dessus la
+   classe, et la réponse d'un invité utilisait `foreground/50`, `/55` et `/60` : tout est passé aux
+   jetons (`--agency-eyebrow` 5,20:1, `--agency-body` 5,37:1).
+2. **Le fond animé retiré.** `ShaderBackdrop` était `fixed inset-0 z-0`, donc recouvert par le voile
+   blanc du hero et par des sections toutes opaques, pied de page compris : un contexte WebGL animé
+   en continu que personne ne voyait. Composant supprimé, dépendance
+   `@paper-design/shaders-react` retirée du paquet et du lockfile, chunk `vendor-shaders` supprimé de
+   la configuration Vite. Le test de l'accueil interdit son retour sans décision de le rendre
+   visible. Au passage : le commentaire du composant annonçait une palette rose/magenta, le test un
+   « fond bleu-vert signature » — les deux ne décrivaient plus le même objet.
+3. **Le voile de la citation de la vitrine**, de 25 % à 55 % d'encre : sur une photographie le
+   contraste n'est pas calculable, on tient donc l'opacité. À 55 %, le blanc donne **3,98:1** sur la
+   zone la plus claire possible, au-dessus des 3:1 exigés pour du grand texte (30 px et plus,
+   graisse 600) ; à 25 % on tombait à **1,72:1**.
+
+### La décision de typographie — **à confirmer**
+
+« Tout le site comme l'accueil » a une conséquence que je n'ai pas voulu trancher seul : l'accueil
+titre en **sans** (la police d'affichage du logiciel), la vitrine titrait en **serif**
+(`--agency-serif`, pile Didot/Bodoni), et c'était l'identité éditoriale posée au lot 1.8. J'ai suivi
+la demande littéralement :
+
+- **le site public parle en sans** — accueil, vitrine, mentions, textes légaux, réponse d'un invité,
+  bilan, Bande ;
+- **la serif ne reste qu'au livrable d'un couple** (`components/CoupleReport.tsx`), qui est un
+  document à lire et à imprimer, pas un écran — et à l'atelier admin (`AdminSommaire.tsx`), hors
+  portée publique.
+
+Le test de la vitrine verrouillait la serif (`toContain("agency-serif")`) ; il verrouille désormais
+la sans et l'absence de serif. **Le retour arrière tient en une ligne** : remplacer `TITLE` dans
+`lib/site-design.ts` par `agency-serif text-[var(--agency-ink)]`, puis rétablir les deux assertions
+du test. À confirmer ou à infirmer : c'est la seule perte d'identité de ce lot.
+
+Deux points secondaires, signalés pour décision :
+
+- le pied de page partagé est **en français**, y compris au bas de la page bilingue d'un invité
+  (identité de l'agence et textes légaux publiés en français). Les deux titres de colonne (« Le
+  site », « Informations légales ») peuvent être traduits au lot 3 si tu le souhaites ;
+- la vitrine a gagné deux phrases qui n'existaient pas : une amorce au panneau des livrables
+  (« Deux documents, et rien à tenir vous-même. ») et un titre au panneau des prestations
+  (« Ce que je tiens pour vous »). Copie de travail, à réécrire si elle ne te convient pas.
+
+### Contrôles après reprise
+
+Typecheck racine OK · **57 fichiers / 382 tests OK** (18 nouveaux : `lib/site-design.test.tsx`
+verrouille l'absence de couleur en dur, l'œil-de-bœuf AA, les cibles de 44 px, l'anneau de focus,
+l'absence de session dans la barre, les liens passés par `sitePath()`, et surtout que **les six
+pages publiques consomment l'ossature** au lieu de la redessiner) · build OK · smoke **31 contrôles
+OK**, en nominal et en dégradé : `/agence` 17 534 octets, `/mentions-legales` 14 562,
+`/confidentialite` 10 699, `/monde` 104 491, réponse d'un invité 11 846 en français et 11 806 en
+anglais.
+
+`agency-theme.test.ts` contrôle maintenant aussi `Legal.tsx`, `SiteChrome.tsx` et `site-design.ts` :
+le vocabulaire lui-même ne peut pas recopier une couleur.
+
+### Ce que cela débloque
+
+- le **lot 2** (pré-rendu et SEO) n'aura qu'une ossature à pré-rendre, et non six ;
+- le **lot 4** (formulaire de demande) réutilisera `FIELD`, `PILL_INK` et `SitePanel` : le
+  formulaire de contact arrivera dans le dessin du site sans nouvelle décision visuelle ;
+- le **lot 3** (identité et qualité visuelle) se réduit aux photographies et à la copie réelle,
+  puisque les blocs, les rythmes et les contrastes sont posés et mesurés.

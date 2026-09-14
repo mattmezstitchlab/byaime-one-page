@@ -49,7 +49,7 @@ describe("vitrine de l'agence", () => {
   it("mène à la Bande depuis le pied de page : en mode dégradé, la vitrine est la seule porte", () => {
     const html = renderAgency();
 
-    expect(html).toContain('data-testid="agency-bande"');
+    expect(html).toContain('data-testid="site-footer-monde"');
     expect(html).toContain('href="/monde"');
     expect(html).toContain("La Bande");
   });
@@ -87,7 +87,7 @@ describe("vitrine — identité documentaire et contact", () => {
 
   it("mène aux mentions légales depuis l'en-tête et le pied de page", () => {
     expect(html).toContain('data-testid="agency-mentions"');
-    expect(html).toContain('data-testid="agency-footer-links"');
+    expect(html).toContain('data-testid="site-footer-links"');
     expect(html.match(/href="\/mentions-legales"/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(html).toContain('href="/confidentialite"');
   });
@@ -104,9 +104,38 @@ describe("vitrine — identité documentaire et contact", () => {
     for (const hex of ["#8A8375", "#B4AC9C", "#6F6A61", "#171410"]) {
       expect(html.includes(hex), `${hex} encore présent dans le rendu`).toBe(false);
     }
-    // La serif de titrage est une classe, plus un style inline recopié.
-    expect(html).toContain("agency-serif");
+    /*
+     * Typographie : depuis le 14/09 le site public parle en sans, la police
+     * d'affichage de l'accueil (demande de la fondatrice : « tout le site comme
+     * ça »). La serif `--agency-serif` ne reste que dans le livrable d'un couple,
+     * qui est un document. Aucune des deux ne doit être un style inline recopié.
+     */
+    expect(html).toContain("aime-apple-title");
+    expect(html).not.toContain("agency-serif");
     expect(html).not.toContain("Didot");
+  });
+
+  it("reprend l'ossature de l'accueil au lieu de redessiner la sienne", () => {
+    // Barre fixe et pied de page partagés avec toutes les pages publiques.
+    expect(html).toContain('data-testid="site-header"');
+    expect(html).toContain('data-testid="site-footer"');
+    // Hero plein écran, panneaux séparés d'un filet, cartes arrondies.
+    expect(html).toContain("min-h-[100dvh]");
+    expect(html).toContain("border-t border-[var(--agency-hairline)]");
+    expect(html).toContain("rounded-3xl");
+    // Boutons-pilules, avec une cible d'au moins 44 px pour les appels.
+    expect(html).toContain("rounded-full");
+    expect(html).toContain("min-h-11");
+    // Entrées au défilement, supprimées si l'utilisateur les refuse.
+    expect(html).toContain("motion-reduce:");
+    /*
+     * La citation posée sur la photographie : le voile d'encre est à 55 %, pas à
+     * 25 %. Sur une image le contraste n'est pas calculable, donc on tient
+     * l'opacité du voile : 55 % donne 3,98:1 sur la zone la plus claire, au-dessus
+     * des 3:1 exigés pour du grand texte ; 25 % tombait à 1,72:1.
+     */
+    expect(html).toContain("bg-[var(--agency-ink)]/55");
+    expect(html).not.toContain("bg-[var(--agency-ink)]/25");
   });
 
   it("annonce les mêmes prestations que les données structurées", () => {

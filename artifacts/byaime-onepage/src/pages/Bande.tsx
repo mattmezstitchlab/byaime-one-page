@@ -1,5 +1,4 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Link } from "wouter";
 import { addDays, format, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ArrowRight, CalendarDays, CircleCheck, Landmark, Sparkles, TriangleAlert, Users, Wallet } from "lucide-react";
@@ -8,8 +7,9 @@ import { KIND_COLORS } from "@/lib/category-colors";
 import { cn } from "@/lib/utils";
 import { MIN_INTENTION_LENGTH } from "@/lib/intention-draft";
 import { useRouteMeta } from "@/lib/page-meta";
-import { sitePath } from "@/lib/site-path";
 import { Reveal } from "@/components/Reveal";
+import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { CARD, EYEBROW, PANEL, PANEL_SPACING } from "@/lib/site-design";
 import type { PropagationPlan, RoleVisibility } from "@/lib/timeline-graph";
 import {
   DAY_SHIFT_OPTIONS,
@@ -75,8 +75,6 @@ export const BANDE_META = {
 
 const HOUR = 3_600_000;
 
-/** Œil-de-bœuf de l'accueil, repris avec un contraste mesuré AA (5,20:1). */
-const EYEBROW = "text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]";
 
 const ROLES: ReadonlyArray<{ id: RoleVisibility; label: string; hint: string }> = [
   { id: "owner", label: "Les mariés", hint: "Tout est visible, finances et documents compris." },
@@ -194,31 +192,18 @@ export function BandePage() {
         Aller à la Bande
       </a>
 
-      {/* ——— Navigation fine, façon Apple : la même barre que l'accueil ——— */}
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)]/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-12 w-full max-w-6xl items-center justify-between px-5 md:px-8">
-          <Link
-            href={sitePath("/")}
-            data-testid="bande-home"
-            aria-label="AIME — retour à l'accueil"
-            className="inline-flex items-center font-display text-[15px] font-semibold tracking-[.28em] text-[var(--agency-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40"
-          >
-            AIME
-          </Link>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Link
-              href={sitePath("/agence")}
-              data-testid="bande-agency"
-              className="hidden h-8 items-center rounded-full px-3 text-xs text-[var(--agency-ink)]/75 motion-safe:transition hover:bg-[var(--agency-ink)]/10 hover:text-[var(--agency-ink)] sm:inline-flex"
-            >
-              L'agence
-            </Link>
-            <span className="inline-flex h-8 items-center rounded-full bg-[var(--agency-ink)] px-4 text-xs font-semibold text-[var(--agency-paper)]">
-              La Bande
-            </span>
-          </div>
-        </div>
-      </header>
+      {/*
+        La barre du site public : la même sur la vitrine, les textes légaux, le
+        bilan et ici. `SiteHeader` marque la page courante (`aria-current`).
+      */}
+      <SiteHeader
+        current="/monde"
+        actions={
+          <span className="inline-flex h-8 items-center rounded-full bg-[var(--agency-ink)] px-4 text-xs font-semibold text-[var(--agency-paper)]">
+            La Bande
+          </span>
+        }
+      />
 
       <main id="bande-contenu" data-testid="bande-page">
         {/* ——— Hero : la promesse, et la phrase pour la tenir ——— */}
@@ -300,7 +285,7 @@ export function BandePage() {
         </section>
 
         {/* ——— Ce que la phrase a fait comprendre ——— */}
-        <section className="relative z-10 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] py-16 md:py-24">
+        <section className={cn(PANEL, PANEL_SPACING)}>
           <div className="mx-auto max-w-5xl px-6">
             <Reveal className="text-center">
               <p className={EYEBROW}>La phrase</p>
@@ -334,7 +319,7 @@ export function BandePage() {
         </section>
 
         {/* ——— La régie : cinq nombres ——— */}
-        <section className="relative z-10 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] py-16 md:py-24">
+        <section className={cn(PANEL, PANEL_SPACING)}>
           <div className="mx-auto max-w-5xl px-6">
             <Reveal className="text-center">
               <p className={EYEBROW}>L'état du mariage</p>
@@ -361,7 +346,7 @@ export function BandePage() {
         </section>
 
         {/* ——— L'instant regardé : c'est lui qui choisit l'échelle ——— */}
-        <section className="relative z-10 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] py-16 md:py-24">
+        <section className={cn(PANEL, PANEL_SPACING)}>
           <div className="mx-auto max-w-5xl px-6">
             <Reveal className="text-center">
               <p className={EYEBROW}>L'instant regardé</p>
@@ -452,7 +437,7 @@ export function BandePage() {
         </section>
 
         {/* ——— La Bande ——— */}
-        <section className="relative z-10 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] py-16 md:py-24">
+        <section className={cn(PANEL, PANEL_SPACING)}>
           <div className="mx-auto max-w-5xl px-6">
             <Reveal className="text-center">
               <p className={EYEBROW}>La Bande</p>
@@ -497,7 +482,7 @@ export function BandePage() {
                   <Reveal key={chapter.chapter}>
                     <article
                       data-testid={`bande-chapter-${index}`}
-                      className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 sm:p-7"
+                      className={cn(CARD, "p-5 sm:p-7")}
                     >
                       <header className="flex items-baseline justify-between gap-4 border-b border-[var(--agency-hairline)] pb-3">
                         <h3 className="font-display text-lg font-semibold tracking-tight text-[var(--agency-ink)]">
@@ -534,7 +519,7 @@ export function BandePage() {
                   if (rows.length === 0) return null;
                   return (
                     <Reveal key={urgency}>
-                      <section className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 sm:p-7">
+                      <section className={cn(CARD, "p-5 sm:p-7")}>
                         <header className="flex items-baseline justify-between gap-4 border-b border-[var(--agency-hairline)] pb-3">
                           <h3 className="font-display text-lg font-semibold tracking-tight text-[var(--agency-ink)]">
                             {URGENCY_LABELS[urgency]}
@@ -602,7 +587,7 @@ export function BandePage() {
                   </div>
                 </Reveal>
                 <Reveal className="mt-6">
-                  <ul className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 sm:p-7">
+                  <ul className={cn(CARD, "p-5 sm:p-7")}>
                     {bande.day.moments.map(moment => (
                       <li
                         key={moment.event.id}
@@ -769,7 +754,7 @@ export function BandePage() {
         </section>
 
         {/* ——— Ce que c'est, ce que ce n'est pas ——— */}
-        <section className="relative z-10 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] py-16 md:py-24">
+        <section className={cn(PANEL, PANEL_SPACING)}>
           <div className="mx-auto max-w-3xl px-6 text-center">
             <Reveal>
               <p className={EYEBROW}>Où en est cet écran</p>
@@ -780,33 +765,13 @@ export function BandePage() {
                 envoyée, rien n'est enregistré, aucune connexion n'est demandée. Le plan de table, le budget détaillé et
                 les médias gardent leurs ateliers : la Bande porte le déroulé, pas les contraintes en deux dimensions.
               </p>
-              <div className="mt-9 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm">
-                <Link
-                  href={sitePath("/")}
-                  className="inline-flex items-center gap-2 text-[var(--agency-body)] underline decoration-[var(--agency-hairline)] underline-offset-4 motion-safe:transition hover:text-[var(--agency-ink)]"
-                >
-                  Accueil
-                </Link>
-                <Link
-                  href={sitePath("/agence")}
-                  className="inline-flex items-center gap-2 text-[var(--agency-body)] underline decoration-[var(--agency-hairline)] underline-offset-4 motion-safe:transition hover:text-[var(--agency-ink)]"
-                >
-                  La vitrine de l'agence
-                </Link>
-                <Link
-                  href={sitePath("/mentions-legales")}
-                  className="inline-flex items-center gap-2 text-[var(--agency-body)] underline decoration-[var(--agency-hairline)] underline-offset-4 motion-safe:transition hover:text-[var(--agency-ink)]"
-                >
-                  Mentions légales
-                </Link>
-              </div>
-              <p className="mt-10 text-[11px] uppercase tracking-[.18em] text-[var(--agency-eyebrow)]">
-                AIME — {new Date().getFullYear()}
-              </p>
             </Reveal>
           </div>
         </section>
       </main>
+
+      {/* Identité de l'agence, pages du site et textes légaux : le pied partagé. */}
+      <SiteFooter />
     </div>
   );
 }
@@ -817,7 +782,7 @@ function RegieFigureView({ figure }: { figure: RegieFigure }) {
   return (
     <div
       data-testid={`bande-regie-${figure.id}`}
-      className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left"
+      className={cn(CARD, "p-5 text-left")}
     >
       <span className="grid h-11 w-11 place-items-center rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-ink)]/5 text-[var(--agency-ink)]">
         <Icon aria-hidden className="h-5 w-5" strokeWidth={1.5} />
