@@ -747,3 +747,85 @@ le vocabulaire lui-même ne peut pas recopier une couleur.
   formulaire de contact arrivera dans le dessin du site sans nouvelle décision visuelle ;
 - le **lot 3** (identité et qualité visuelle) se réduit aux photographies et à la copie réelle,
   puisque les blocs, les rythmes et les contrastes sont posés et mesurés.
+
+---
+
+## 8 quater. La vitrine réorganisée sur le plan de dispoo.app — livré le 14 septembre 2026
+
+Demande de la fondatrice : « fais le même site que dispoo.app, en le remettant en ordre avec le
+projet du repo ».
+
+La vitrine `/agence` reprend désormais l'ordre exact de la page d'accueil de dispoo.app, section
+par section, au service du positionnement de ce dépôt (l'agence vend le planner, le couple reçoit
+des livrables, dispoo reste le partenaire de la recherche de professionnels) :
+
+- **hero** « Votre mariage, tout simplement. » puis les métiers en accès rapide (« Service · Où »,
+  recherche dispoo) et les huit domaines en filet ;
+- **le Jour J** : le déroulé que le couple reçoit sur sa page, les deux livrables (« Une page. Votre
+  Jour J. », « Un rapport, présenté tout seul. »), avec la Bande `/monde` en démonstration ;
+- **le Bureau** : six dossiers tenus pour le couple, « tout arrive au bon endroit » ;
+- **la méthode en sept étapes** (Imaginer → Trouver → Composer → Orchestrer → Valider → Partager →
+  Raconter), comme la visite « en 45 secondes » de dispoo ;
+- **les prestations** (inchangées : les cinq annoncées par les données structurées) ;
+- **tous les métiers** : les 22 domaines, chacun avec sa propre recherche dispoo ;
+- **chacun a sa place** : les quatre points de vue sur le même mariage ;
+- **l'appel final** « Votre mariage, tout simplement. ».
+
+Le pont byaime ↔ dispoo gagne un placement `vitrine` (`lib/partner-links.ts`) pour mesurer les
+clics sortants de la vitrine. Le **magazine n'est pas mis en ligne** : pas de contenu réel (règle
+« aucune section vide ou à venir »). La citation sur photographie garde son voile à 55 % d'encre.
+
+### Contrôles après réorganisation
+
+Typecheck racine OK · **57 fichiers / 383 tests OK** (agency-landing réécrit : 14 tests — marque,
+promesse, déroulé, sept étapes dans l'ordre, UTM dispoo `utm_medium=vitrine`, absence de
+vocabulaire produit) · build OK (chunk `AgencyLanding` 17,26 Ko / 5,63 gzip) · smoke **CONTRÔLE
+LOCAL OK** (vitrine 69 522 octets, en nominal comme en dégradé).
+
+### Fichiers
+
+- **Modifiés** : `src/pages/AgencyLanding.tsx` (réécrit sur le plan de dispoo, données en constantes
+  au-dessus du composant), `src/pages/agency-landing.test.tsx`, `src/lib/partner-links.ts`
+  (placement `vitrine`), `preview/smoke.mjs` (aiguilles `/agence` mises à jour).
+
+---
+
+## 8 quinquies. Fusion : la Bande devient la page unique — livré le 14 septembre 2026
+
+Demande de la fondatrice : « fusionne tout en une seule page sur la page La bande ».
+
+La Bande (`/monde`) devient **la page unique du site public** : la démonstration du produit et
+toutes les sections de la vitrine (réorganisées sur le plan de dispoo.app au lot 8 quater) y sont
+désormais assemblées sur une seule page. L'ancienne vitrine `/agence` redirige vers `/monde`, et la
+racine `/` (l'accueil) mène à la Bande.
+
+### Ce qui est écrit une fois
+
+- **`components/VitrineSections.tsx`** (nouveau) : les sections de la vitrine, extraites de
+  `AgencyLanding.tsx` — image pleine largeur, métiers en accès rapide, domaines, Jour J (déroulé +
+  les deux livrables), Bureau, citation, méthode en sept étapes, prestations, tous les métiers
+  (recherche dispoo), chacun a sa place, appel final. Le placement des liens dispoo est un paramètre
+  (`"bande"` sur la Bande), pour que chaque clic sortant reste mesurable.
+- **`pages/Bande.tsx`** assemble : hero → démonstration (phrase, faits, régie, échelles, la Bande,
+  tiroir) → note de périmètre → `VitrineSections` → pied de page. La section « La Bande » porte
+  l'ancre `#bande`, cible du lien « Revoir la démonstration » du panneau Jour J.
+
+### Ce qui a bougé autour
+
+- **`lib/public-shell.ts`** : `resolveDegradedView` sert la Bande sur `/`, `/agence` et `/monde`
+  (une page, trois chemins d'entrée) ; le type `DegradedView` perd la vue `agency`.
+- **`App.tsx`** : `/agence` redirige vers `/monde` ; `AgencyLanding` supprimée (son JSON-LD
+  `ProfessionalService` n'est plus injecté tant que la page est un prototype `noindex` — il revient
+  avec le pré-rendu du lot 2).
+- **Liens croisés** : `Landing`, `PrivateLayout`, `AdminSommaire`, `Mentions`, `SiteChrome`
+  (`SITE_NAV` = la Bande seule) pointent vers `/monde` ; plus aucun lien vers `/agence`.
+- **Supprimés** : `src/pages/AgencyLanding.tsx` et `src/pages/agency-landing.test.tsx` ; les
+  contrôles de thème et d'ossature couvrent désormais `VitrineSections.tsx`.
+
+### Contrôles après fusion
+
+Typecheck racine OK · **56 fichiers / 368 tests OK** (agency-landing supprimé −14, un test
+public-shell fusionné −1 ; bande.test, landing.test, public-shell.test, site-design.test,
+mentions.test et private-shell-ui.test réécrits sur la nouvelle réalité) · build OK (chunk `Bande`
+49,21 Ko / 13,86 gzip, la vitrine incluse) · smoke **CONTRÔLE LOCAL OK** — `/monde` rend la page
+unique (165 672 octets, nominal et dégradé), `/agence` redirige (rendu vide, 277 octets).

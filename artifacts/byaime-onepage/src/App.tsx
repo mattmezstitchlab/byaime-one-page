@@ -64,7 +64,6 @@ const LazyHome = lazy(() => import('@/pages/Home').then(module => ({ default: mo
 const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module => ({ default: module.PublicProfilePage })));
 const LazyAssistant = lazy(() => import('@/pages/Assistant').then(module => ({ default: module.AssistantPage })));
 const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ default: module.FoldersPage })));
-const LazyAgencyLanding = lazy(() => import('@/pages/AgencyLanding'));
 const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
 const LazyAdmin = lazy(() => import('@/pages/AdminSommaire').then(module => ({ default: module.AdminSommairePage })));
 const LazyMentions = lazy(() => import('@/pages/Mentions').then(module => ({ default: module.MentionsLegalesPage })));
@@ -371,9 +370,10 @@ function RouteFallback() {
 
 function Routes() {
   return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
-    {/* Pages publiques, sans session : la vitrine de l'agence, ses mentions
-        légales, le livrable d'un couple et les textes légaux. */}
-    <Route path="/agence">{() => <LazyAgencyLanding />}</Route>
+    {/* Pages publiques, sans session : la Bande (où la vitrine est fusionnée),
+        les mentions légales, le livrable d'un couple et les textes légaux.
+        L'ancienne vitrine `/agence` redirige vers la page unique. */}
+    <Route path="/agence"><Redirect to="/monde" /></Route>
     <Route path="/mentions-legales">{() => <LazyMentions />}</Route>
     <Route path="/monde">{() => <LazyBande />}</Route>
     <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
@@ -431,11 +431,11 @@ function MissingAuthKey({ requestedPath }: { requestedPath?: string }) {
           </p>
         )}
         <a
-          href={sitePath('/agence')}
+          href={sitePath('/monde')}
           data-testid="auth-key-missing-agency"
           className="mt-8 inline-block rounded-full bg-foreground px-6 py-3 text-xs font-medium text-background"
         >
-          Voir la vitrine de l’agence
+          Voir la Bande
         </a>
       </div>
     </main>
@@ -445,9 +445,9 @@ function MissingAuthKey({ requestedPath }: { requestedPath?: string }) {
 /**
  * Mode dégradé : pas de clé publique, donc pas de `ClerkProvider` — et surtout
  * pas de dépendance à un fournisseur d'authentification pour les pages qui
- * n'en ont jamais eu besoin. La vitrine, les mentions légales, les textes
- * légaux et le bilan partagé d'un couple restent servis ; tout ce qui exige une
- * session affiche l'écran ci-dessus.
+ * n'en ont jamais eu besoin. La Bande (la page unique), les mentions légales,
+ * les textes légaux et le bilan partagé d'un couple restent servis ; tout ce
+ * qui exige une session affiche l'écran ci-dessus.
  *
  * Le choix de la vue vient de `resolveDegradedView` (dérivation pure, testée) :
  * ce composant ne fait que l'exécuter.
@@ -457,8 +457,6 @@ function DegradedRoutes() {
   const view = resolveDegradedView(stripBase(location));
 
   switch (view.kind) {
-    case 'agency':
-      return <LazyAgencyLanding />;
     case 'mentions':
       return <LazyMentions />;
     case 'privacy':

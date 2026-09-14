@@ -1,20 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { AGENCY_LANDING_PATH, DEGRADED_PUBLIC_PATHS, resolveDegradedView } from "./public-shell";
+import { DEGRADED_PUBLIC_PATHS, resolveDegradedView } from "./public-shell";
 import { sitePath } from "./site-path";
 
 /*
- * Mode dégradé : la vitrine ne dépend pas de l'authentification.
+ * Mode dégradé : la page unique du site public ne dépend pas de
+ * l'authentification.
  *
  * Constat du plan (§2.8) : sans `VITE_CLERK_PUBLISHABLE_KEY`, TOUTES les routes
- * affichaient « Connexion momentanément indisponible » — y compris `/agence`,
- * qui n'a besoin ni de session, ni de base, ni d'API. Ce test verrouille la
- * liste des pages qui restent servies, et le fait que tout le reste le dit
- * explicitement au lieu de demander une donnée.
+ * affichaient « Connexion momentanément indisponible » — y compris la page qui
+ * n'a besoin ni de session, ni de base, ni d'API. Depuis la fusion du 14/09,
+ * cette page est la Bande (`/monde`) : la racine et l'ancienne vitrine
+ * `/agence` la servent aussi. Ce test verrouille la liste des pages qui restent
+ * servies, et le fait que tout le reste le dit explicitement au lieu de
+ * demander une donnée.
  */
 
 describe("resolveDegradedView — pages servies sans authentification", () => {
-  it("sert la vitrine", () => {
-    expect(resolveDegradedView(AGENCY_LANDING_PATH)).toEqual({ kind: "agency" });
+  it("sert la Bande, la page unique du site public", () => {
+    expect(resolveDegradedView("/monde")).toEqual({ kind: "bande" });
+    expect(DEGRADED_PUBLIC_PATHS).toContain("/monde");
   });
 
   it("sert les obligations légales, toujours accessibles", () => {
@@ -28,22 +32,18 @@ describe("resolveDegradedView — pages servies sans authentification", () => {
     expect(resolveDegradedView("/bilan/proj_123/")).toEqual({ kind: "report", projectId: "proj_123" });
   });
 
-  it("sert la vitrine à la racine, sans redirection vide au rendu serveur", () => {
+  it("sert la Bande à la racine et sur l'ancienne vitrine, sans redirection vide", () => {
     // Un `<Redirect>` ne rend rien côté serveur : la page la plus exposée du
-    // site serait blanche. La racine sert donc la vitrine elle-même.
-    expect(resolveDegradedView("/")).toEqual({ kind: "agency" });
-    expect(resolveDegradedView(AGENCY_LANDING_PATH)).toEqual({ kind: "agency" });
+    // site serait blanche. La racine et `/agence` servent donc la Bande
+    // elle-même (la vitrine y est fusionnée).
+    expect(resolveDegradedView("/")).toEqual({ kind: "bande" });
+    expect(resolveDegradedView("/agence")).toEqual({ kind: "bande" });
   });
 
   it("ignore la query et l'ancre avant de décider", () => {
-    expect(resolveDegradedView("/agence?utm_source=instagram")).toEqual({ kind: "agency" });
-    expect(resolveDegradedView("/agence#methode")).toEqual({ kind: "agency" });
+    expect(resolveDegradedView("/agence?utm_source=instagram")).toEqual({ kind: "bande" });
+    expect(resolveDegradedView("/agence#methode")).toEqual({ kind: "bande" });
     expect(resolveDegradedView("/conditions?returnTo=%2Fadmin")).toEqual({ kind: "terms" });
-  });
-
-  it("sert la Bande, qui ne monte ni Clerk, ni store, ni réseau", () => {
-    expect(resolveDegradedView("/monde")).toEqual({ kind: "bande" });
-    expect(DEGRADED_PUBLIC_PATHS).toContain("/monde");
   });
 
   it("sert le portail d'un invité, qui ne consomme aucune API Clerk", () => {

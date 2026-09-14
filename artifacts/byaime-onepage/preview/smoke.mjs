@@ -224,27 +224,16 @@ checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landin
 checkHtml("App complète (/confidentialite)", await renderApp("/confidentialite"), [], []);
 checkHtml("App complète (/creation)", await renderApp("/creation"), ["Clerk simulé"], []);
 
-/* La vitrine de l'agence et ses mentions légales : deux pages publiques, sans
-   session. Rendues ici par l'App réelle, donc ce contrôle vérifie aussi le
-   câblage des routes et le JSON-LD (lot 1 du plan). */
+/* La vitrine a été fusionnée dans la Bande : `/agence` redirige vers `/monde`
+   (un `<Redirect>` ne rend rien côté serveur, d'où le rendu vide attendu). */
 checkHtml(
-  "Vitrine de l'agence (/agence)",
+  "L'ancienne vitrine (/agence) redirige vers la Bande",
   await renderApp("/agence"),
-  [
-    'data-testid="agency-landing"',
-    'data-testid="agency-jsonld"',
-    '"@type":"ProfessionalService"',
-    "La cerise sur le gâteau",
-    "Wedding Architect",
-    "Quatre temps, un seul plan",
-    "Une page. Votre Jour J.",
-    "bonjour@byaime.fr",
-    'href="/mentions-legales"',
-  ],
-  ["timeline", "panneau", "lacerisesurlegateau"],
+  [],
+  ['data-testid="agency-landing"', 'data-testid="bande-page"'],
 );
 checkHtml(
-  "La Bande (/monde) — démonstration publique, sans session",
+  "La Bande (/monde) — la page unique : démonstration et vitrine fusionnées",
   await renderApp("/monde"),
   [
     'data-testid="bande-page"',
@@ -254,8 +243,19 @@ checkHtml(
     'data-testid="bande-composer"',
     "Ce qu&#x27;AIME a compris",
     "aime-apple-title",
+    // La vitrine, réduite à l'essentiel : une preuve, trois lignes, un contact.
+    "Votre mariage, tout simplement.",
+    "Pourquoi AIME",
+    "Vous organisez moins. Vous décidez mieux.",
+    "Une phrase, pas un tableur",
+    "Une seule page, pour vos invités",
+    "La preuve, pas la promesse",
+    "Parlons de votre mariage.",
+    "La cerise sur le gâteau",
+    "Wedding Architect",
+    "bonjour@byaime.fr",
   ],
-  ["Connexion momentanément indisponible", 'data-testid="private-layout"'],
+  ["Connexion momentanément indisponible", 'data-testid="private-layout"', "timeline", "lacerisesurlegateau"],
 );
 checkHtml(
   "Mentions légales (/mentions-legales)",
@@ -340,9 +340,9 @@ async function renderDegradedApp(path) {
 
 const UNAVAILABLE = "Connexion momentanément indisponible";
 checkHtml(
-  "Dégradé : la vitrine reste servie (/agence)",
+  "Dégradé : la Bande reste servie sur l'ancienne vitrine (/agence)",
   await renderDegradedApp("/agence"),
-  ['data-testid="agency-landing"', "La cerise sur le gâteau", 'data-testid="agency-jsonld"'],
+  ['data-testid="bande-page"', "Votre mariage, tout simplement."],
   [UNAVAILABLE],
 );
 checkHtml(
@@ -358,9 +358,9 @@ checkHtml(
   [UNAVAILABLE],
 );
 checkHtml(
-  "Dégradé : la racine mène à la vitrine",
+  "Dégradé : la racine sert la Bande, la page unique",
   await renderDegradedApp("/"),
-  ['data-testid="agency-landing"'],
+  ['data-testid="bande-page"'],
   [UNAVAILABLE],
 );
 checkHtml(
@@ -378,7 +378,7 @@ checkHtml(
 checkHtml(
   "Dégradé : une route à session explique, sans rien demander",
   await renderDegradedApp("/user-portal"),
-  [UNAVAILABLE, 'data-testid="auth-key-missing-path"', "Voir la vitrine"],
+  [UNAVAILABLE, 'data-testid="auth-key-missing-path"', "Voir la Bande"],
   ['data-testid="private-layout"', 'data-testid="landing"'],
 );
 await degradedVite.close();

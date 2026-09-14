@@ -41,15 +41,23 @@ const wedding = {
 } as const;
 
 /*
- * Vitrine de l'agence « La cerise sur le gâteau — Wedding Architect ».
- * Photographies éditoriales ivoire / pierre / charbon, servies en lecture seule
- * depuis `public/images/agency`. Comme pour le Monde Mariage : noms stables,
- * remplacement par de vraies photos sans toucher au code.
+ * Vitrine de l'agence « La cerise sur le gâteau — Wedding Architect », fusionnée
+ * dans la Bande (`/monde`). Photographies éditoriales ivoire / pierre / charbon
+ * servies en lecture seule depuis `public/images`, et grands visuels immersifs
+ * du Monde Mariage pour les sections pleine largeur de la page unique. Comme
+ * pour le Monde Mariage : noms stables, remplacement par de vraies photos sans
+ * toucher au code.
  */
 export const AGENCY_VISUALS = {
   hero: 'images/agency/agency-hero.jpg',
   stationery: 'images/agency/agency-stationery.jpg',
   ceremony: 'images/agency/agency-ceremony.jpg',
+  /* Grands visuels immersifs : un par grande section de la page unique. */
+  reception: 'images/wedding/wedding-reception.jpg',
+  guests: 'images/wedding/wedding-guests.jpg',
+  table: 'images/wedding/wedding-table.jpg',
+  portrait: 'images/wedding/wedding-portrait.jpg',
+  prep: 'images/wedding/wedding-prep.jpg',
 } as const;
 
 export const AIME_VISUALS = {

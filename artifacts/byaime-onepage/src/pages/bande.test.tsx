@@ -100,7 +100,8 @@ describe("la Bande : aucune dépendance à l'authentification", () => {
   it("est annoncée comme page publique, y compris en mode dégradé", () => {
     expect(BANDE_PATH).toBe("/monde");
     const shell = readFileSync(fileURLToPath(new URL("../lib/public-shell.ts", import.meta.url)), "utf8");
-    expect(shell).toContain('if (clean === "/monde") return { kind: "bande" };');
+    // La Bande est la page unique : la racine et l'ancienne vitrine la servent.
+    expect(shell).toContain('if (clean === "/" || clean === "/agence" || clean === "/monde") return { kind: "bande" };');
   });
 });
 
@@ -161,6 +162,19 @@ describe("la Bande : la direction artistique de l'accueil", () => {
     expect(html).toContain("tracking-[0.24em]");
     expect(html).toContain("text-5xl");
     expect(html).toContain("md:text-7xl");
+  });
+
+  it("porte la promesse en blanc sur une photographie immersive", () => {
+    const html = render();
+    expect(html).toContain('data-testid="bande-hero"');
+    expect(html).toContain("images/wedding/wedding-reception.jpg?v=");
+    expect(html).toContain("Votre mariage, tout simplement.");
+    // Titre et œil-de-bœuf blancs sur le jeton du papier, voile d'encre mesuré.
+    expect(html).toContain("text-[var(--agency-paper)]");
+    expect(html).toContain("bg-[var(--agency-ink)]/60");
+    // L'identité de l'agence est annoncée, plus le numéro de lot interne.
+    expect(html).toContain("La cerise sur le gâteau");
+    expect(html).not.toContain("Prototype · lot 8");
   });
 
   it("met la phrase dans la carte sombre arrondie de l'accueil", () => {

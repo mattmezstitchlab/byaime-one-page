@@ -55,7 +55,7 @@ function contrastRatio(foreground: string, background: string): number {
 /** Les pages qui portent l'identité de l'agence : vitrine et livrables. */
 const AGENCY_PAGES = [
   "../pages/Landing.tsx",
-  "../pages/AgencyLanding.tsx",
+  "../components/VitrineSections.tsx",
   "../pages/BilanPage.tsx",
   "../pages/AdminSommaire.tsx",
   "../pages/Mentions.tsx",

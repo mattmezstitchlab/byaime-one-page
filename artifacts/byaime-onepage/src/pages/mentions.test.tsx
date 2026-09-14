@@ -10,7 +10,7 @@ import { MentionsLegalesPage } from "./Mentions";
  * pas fourni est affiché comme manquant, jamais inventé.
  *
  * Rendu statique : React échappe l'apostrophe droite en `&#x27;`, donc aucune
- * chaîne attendue n'en contient (même contrainte que `agency-landing.test.tsx`).
+ * chaîne attendue n'en contient (même contrainte que la vitrine).
  */
 
 function render(): string {
@@ -71,8 +71,8 @@ describe("mentions légales", () => {
     }
   });
 
-  it("renvoie vers la vitrine, la confidentialité et les conditions", () => {
-    expect(html).toContain('href="/agence"');
+  it("renvoie vers la Bande, la confidentialité et les conditions", () => {
+    expect(html).toContain('href="/monde"');
     expect(html).toContain('href="/confidentialite"');
     expect(html).toContain('href="/conditions"');
   });
