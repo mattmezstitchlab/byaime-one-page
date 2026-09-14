@@ -152,6 +152,12 @@ export function ProjectStage() {
     [phase, currentRole, previewRole, locale],
   );
 
+  const setActivePanelNormalized = (panel: WeddingPanelId | null) => {
+    if (!panel) { setActivePanel(null); return; }
+    const normalized = (panel === "seating" ? "guests" : panel === "budget" ? "providers" : panel) as WeddingPanelId;
+    setActivePanel(normalized);
+  };
+
   useEffect(() => {
     if (!activePanel) return;
     if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
@@ -163,19 +169,21 @@ export function ProjectStage() {
    * phase qui le porte, au lieu de le voir se refermer aussitôt.
    */
   const openPanelSafely = (panel: WeddingPanelId) => {
+    // Fusion P1: seating->guests, budget->providers
+    const normalized = (panel === "seating" ? "guests" : panel === "budget" ? "providers" : panel) as WeddingPanelId;
     const role = previewRole ?? currentRole;
-    const effectiveView: TimelineView = panel === "music" ? "music" : view;
-    if (panel === "music") setView("music");
-    if (isWeddingPanelAvailable(panel, navigation, effectiveView, rail)) {
-      setActivePanel(panel);
+    const effectiveView: TimelineView = normalized === "music" ? "music" : view;
+    if (normalized === "music") setView("music");
+    if (isWeddingPanelAvailable(normalized, navigation, effectiveView, rail)) {
+      setActivePanel(normalized);
       return;
     }
-    const targetPhase = findPhaseForPanel(panel, role, effectiveView);
+    const targetPhase = findPhaseForPanel(normalized, role, effectiveView);
     if (targetPhase) {
       setPhase(targetPhase);
       if (view === "public-info" && targetPhase === "avant") setView("chronological");
     }
-    setActivePanel(panel);
+    setActivePanel(normalized);
   };
   const openPanelSafelyRef = useRef(openPanelSafely);
   openPanelSafelyRef.current = openPanelSafely;
@@ -700,7 +708,7 @@ export function ProjectStage() {
         <UniversalTimeline events={visibleEvents} />
       </main>
 
-      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanel} onPhaseChange={nextPhase => {
+      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanelNormalized} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
       }} />

@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Check, Plus, Search, Trash2 } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { DispooBanner } from "@/components/DispooBanner";
-import { CARD, EYEBROW, PILL_SMALL, FIELD } from "@/lib/site-design";
+import { CARD, EYEBROW, PILL_SMALL } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
+import { formatCents, currencySymbol } from "@/lib/money";
+import type { Payment } from "@/lib/types";
+
+const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 
 export function ProviderPanel() {
   const { project, updateEntity, addEntity, removeEntity, canEdit } = useProject();
@@ -11,6 +15,12 @@ export function ProviderPanel() {
   if (!project) return null;
   const providers = project.providers.filter(provider => `${provider.role} ${provider.name || ""}`.toLowerCase().includes(query.toLowerCase()));
   const city = typeof project.city.value === "string" ? project.city.value : "";
+
+  const estimated = project.providers.reduce((sum, p) => sum + (p.amountCents || 0), 0);
+  const committed = project.providers.filter(p => ["devis", "reserve"].includes(p.status)).reduce((sum, p) => sum + (p.amountCents || 0), 0);
+  const paid = project.payments.filter(p => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
+  const remaining = Math.max(0, (project.budget.value || estimated / 100) * 100 - paid);
+  const addPayment = () => addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -97,6 +107,14 @@ export function ProviderPanel() {
                   placeholder="À faire ensuite"
                   className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)]"
                 />
+                <input
+                  disabled={!canEdit}
+                  type="number"
+                  value={provider.amountCents ? provider.amountCents / 100 : ""}
+                  onChange={e => updateEntity("providers", provider.id, { amountCents: e.target.value ? Number(e.target.value) * 100 : undefined })}
+                  placeholder="Montant €"
+                  className="col-span-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)]"
+                />
               </div>
 
               <div className="mt-4 border-t border-[var(--agency-hairline)] pt-4">
@@ -119,6 +137,94 @@ export function ProviderPanel() {
             </div>
           );
         })}
+      </div>
+
+      {/* Fusion P1: Budget intégré dans Prestataires */}
+      <div className={cn(CARD, "p-6")}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className={EYEBROW}>Budget & échéancier</p>
+            <h4 className="aime-apple-title mt-2 text-xl text-[var(--agency-ink)]">L'argent du Monde</h4>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--agency-body)]">Même panneau que les prestataires — estimation, engagé, payé, restant.</p>
+          </div>
+          {canEdit && (
+            <button
+              onClick={addPayment}
+              className={cn(PILL_SMALL, "bg-[var(--agency-ink)] text-[var(--agency-paper)] hover:opacity-85")}
+            >
+              <Plus className="h-3.5 w-3.5" /> Paiement
+            </button>
+          )}
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
+          {[
+            ["Estimé", estimated],
+            ["Engagé", committed],
+            ["Payé", paid],
+            ["Restant", remaining],
+          ].map(([label, value]) => (
+            <div key={label as string} className="rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p>
+              <p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p>
+          <div className="mt-4 space-y-3">
+            {Array.from(new Set(project.providers.map(p => p.category))).map(category => {
+              const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0);
+              const pct = estimated ? Math.min(100, Math.round((amount / estimated) * 100)) : 0;
+              return (
+                <div key={category}>
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span className="capitalize text-foreground/65">{category}</span>
+                    <span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-foreground/10">
+                    <div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+            {project.providers.length === 0 && <p className="text-xs text-[var(--agency-eyebrow)]">Ajoutez des prestataires avec montants pour voir la répartition.</p>}
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-2">
+          {project.payments.length === 0 ? (
+            <p className="text-xs text-[var(--agency-eyebrow)]">Aucun paiement à suivre — ajoutez-en un.</p>
+          ) : (
+            project.payments.map(p => (
+              <div key={p.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                <button
+                  onClick={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })}
+                  className={cn("grid h-6 w-6 place-items-center rounded-full border", p.state === "paye" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)]")}
+                >
+                  {p.state === "paye" && <Check className="h-3.5 w-3.5" />}
+                </button>
+                <div className="flex-1">
+                  <input value={p.label} onChange={e => updateEntity("payments", p.id, { label: e.target.value })} className="w-full bg-transparent text-sm outline-none text-[var(--agency-ink)]" />
+                  <p className="mt-1 text-xs text-[var(--agency-body)]">{new Date(p.at).toLocaleDateString("fr-FR")} · {p.state === "paye" ? "réglé" : "à régler"}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={p.amountCents / 100}
+                    onChange={e => updateEntity("payments", p.id, { amountCents: Number(e.target.value) * 100 })}
+                    className="w-24 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-right font-mono text-sm outline-none"
+                  />
+                  <span className="w-8 text-xs text-[var(--agency-body)]">{currencySymbol(project.currency)}</span>
+                </div>
+                <button onClick={() => removeEntity("payments", p.id)} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

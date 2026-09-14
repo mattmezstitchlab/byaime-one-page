@@ -20,7 +20,6 @@ describe("buildAdminPlan (le back-office dans l'ordre)", () => {
 
     expect(concevoir).toContain("timeline");
     expect(concevoir).toContain("providers");
-    expect(concevoir).toContain("finances");
     expect(concevoir).toContain("documents");
     expect(concevoir).toContain("ceremony");
     expect(concevoir).toContain("logistics");

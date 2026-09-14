@@ -102,7 +102,7 @@ const team = (locale: Locale) => item(locale, "team", "team", { kind: "panel", p
  * dans la barre latérale verticale gauche, comme la navigation globale, pour ne
  * plus encombrer la navigation horizontale de chaque phase.
  */
-export const WEDDING_RAIL_ICONS = ["timeline", "people", "providers", "tasks", "finances", "documents", "team", "music"] as const;
+export const WEDDING_RAIL_ICONS = ["timeline", "people", "providers", "tasks", "documents", "team", "music"] as const;
 export type WeddingRailIcon = (typeof WEDDING_RAIL_ICONS)[number];
 export type WeddingRailItem = WeddingNavigationItem & { icon: WeddingRailIcon };
 
@@ -132,7 +132,6 @@ export function getWeddingRailItems(
     { ...people(locale), icon: "people" },
     { ...providers(locale), icon: "providers" },
     { ...tasks(locale), icon: "tasks" },
-    { ...finances(locale), icon: "finances" },
     { ...documents(locale), icon: "documents" },
     { ...team(locale), icon: "team" },
     { ...music(locale, phase === "pendant"), icon: "music" },
@@ -153,10 +152,10 @@ export function getWeddingNavigation(
   let primary: WeddingNavigationItem[];
   let secondary: WeddingNavigationItem[];
   if (phase === "avant") {
-    primary = [ceremony(locale), logistics(locale), seating(locale), messages(locale)];
+    primary = [ceremony(locale), logistics(locale), messages(locale)];
     secondary = [];
   } else if (phase === "pendant") {
-    primary = [dayof(locale), practical(locale), seating(locale), contributions(locale)];
+    primary = [dayof(locale), practical(locale), contributions(locale)];
     secondary = [ceremony(locale), logistics(locale), messages(locale)];
   } else {
     /* L'Après vit désormais dans un projet séparé : plus aucune entrée ici. */
@@ -229,12 +228,13 @@ export function findPhaseForPanel(
   role: string,
   view: TimelineView,
 ): WorldPhase | null {
+  // Compat: seating -> guests, budget -> providers (fusion P1)
+  const normalized = panel === "seating" ? "guests" : panel === "budget" ? "providers" : panel;
   const capabilities = getWeddingCapabilities(role);
   for (const phase of WORLD_PHASE_IDS) {
-    /* Question de structure, pas d'affichage : la locale n'entre pas en compte. */
     const rail = getWeddingRailItems(phase, capabilities, "fr");
     const navigation = getWeddingNavigation(phase, capabilities, "fr");
-    if (isWeddingPanelAvailable(panel, navigation, view, rail)) return phase;
+    if (isWeddingPanelAvailable(normalized as WeddingPanelId, navigation, view, rail)) return phase;
   }
   return null;
 }
@@ -245,10 +245,13 @@ export function isWeddingPanelAvailable(
   view: TimelineView,
   rail: WeddingNavigationItem[] = [],
 ) {
+  // Compat fusion
+  const normalized = panel === "seating" ? "guests" : panel === "budget" ? "providers" : panel;
   const available = [...rail, ...navigation.primary, ...navigation.secondary].some(
-    item => item.destination.kind === "panel" && item.destination.panel === panel,
+    item => item.destination.kind === "panel" && item.destination.panel === normalized,
   );
   if (available) return true;
+  if (normalized === "guests" || normalized === "providers") return true; // toujours dispo via rail
   return panel === "music" && view === "music";
 }
 
@@ -268,10 +271,10 @@ export function getWeddingNavigationLabel(
 /** Associe chaque type d'entité de la Timeline au panneau du Monde qui l'édite. */
 export const PANEL_FOR_KIND: Partial<Record<TimelineEntityKind, WeddingPanelId>> = {
   guest: "guests",
-  table: "seating",
+  table: "guests",
   provider: "providers",
   task: "planning",
-  payment: "budget",
+  payment: "providers",
   document: "documents",
   music: "music",
   team: "team",

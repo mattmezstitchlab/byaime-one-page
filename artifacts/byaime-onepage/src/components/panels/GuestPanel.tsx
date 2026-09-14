@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Copy, ExternalLink, Link2, Plus, Search, Trash2, UserRoundPlus, X } from "lucide-react";
+import { AlertTriangle, Copy, ExternalLink, Link2, Plus, Search, Trash2, UserRoundPlus, X } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import type { ParticipantLink } from "@/lib/types";
 import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
@@ -341,6 +341,102 @@ export function GuestPanel() {
           );
         })}
       </div>
+
+      {/* Fusion P1: Seating intégré dans Invités */}
+      <div className={cn(CARD, "p-6")}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className={EYEBROW}>Plan de table</p>
+            <h4 className="aime-apple-title mt-2 text-xl text-[var(--agency-ink)]">Les tables</h4>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--agency-body)]">Même panneau que les invités — assignation locale, sans serveur.</p>
+          </div>
+          {canEdit && (
+            <button
+              onClick={() => addEntity("tables", { name: `Table ${project.tables.length + 1}`, capacity: 8 })}
+              className={cn(PILL_SMALL, "bg-[var(--agency-ink)] text-[var(--agency-paper)] hover:opacity-85")}
+            >
+              <Plus className="h-3.5 w-3.5" /> Table
+            </button>
+          )}
+        </div>
+
+        {(() => {
+          const unassigned = project.guests.filter((g: any) => effectiveGuestRsvp(g, links[g.id]) !== "decline" && !g.tableId);
+          return (
+            <>
+              {unassigned.length > 0 && (
+                <div className="mt-5 rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-4">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-brand-accent">
+                    <AlertTriangle className="w-3.5 h-3.5" /> À placer · {unassigned.length}
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {unassigned.map((g: any) => (
+                      <GuestSeatRow key={g.id} guest={g} tables={project.tables} onChange={(tableId: string) => updateEntity("guests", g.id, { tableId: tableId || undefined })} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {project.tables.map((table: any) => {
+                  const tableGuests = project.guests.filter((g: any) => g.tableId === table.id && effectiveGuestRsvp(g, links[g.id]) !== "decline");
+                  return (
+                    <div key={table.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h5 className="text-sm font-medium">{table.name}</h5>
+                          <p className={cn("text-xs mt-1", tableGuests.length > table.capacity ? "text-brand-accent" : "text-foreground/40")}>
+                            {tableGuests.length} / {table.capacity} places
+                          </p>
+                        </div>
+                        {canEdit && (
+                          <button
+                            onClick={() => {
+                              tableGuests.forEach((g: any) => updateEntity("guests", g.id, { tableId: undefined }));
+                              removeEntity("tables", table.id);
+                            }}
+                            className="text-foreground/30 hover:text-brand-accent"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        {tableGuests.length === 0 ? (
+                          <p className="text-xs text-foreground/30">Aucun invité assigné</p>
+                        ) : (
+                          tableGuests.map((g: any) => (
+                            <GuestSeatRow key={g.id} guest={g} tables={project.tables} onChange={(tid: string) => updateEntity("guests", g.id, { tableId: tid || undefined })} />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {project.tables.length === 0 && <p className="mt-4 text-xs text-[var(--agency-eyebrow)]">Aucune table — ajoutez-en une.</p>}
+            </>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
+function GuestSeatRow({ guest, tables, onChange }: { guest: { name: string; tableId?: string; dietary?: string }; tables: { id: string; name: string }[]; onChange: (value: string) => void }) {
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4 py-2">
+      <span className="flex-1 truncate text-sm text-[var(--agency-ink)]">
+        {guest.name}
+        {guest.dietary && <span className="ml-2 text-[10px] text-[var(--agency-body)]">{guest.dietary}</span>}
+      </span>
+      <select value={guest.tableId || ""} onChange={(e) => onChange(e.target.value)} className="max-w-[130px] rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none">
+        <option value="">Sans table</option>
+        {tables.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

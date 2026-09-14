@@ -37,10 +37,10 @@ describe("wedding navigation", () => {
     for (const role of ["owner", "planner"] as const) {
       const capabilities = getWeddingCapabilities(role);
       expect(getWeddingRailItems("avant", capabilities).map(item => item.label)).toEqual([
-        "Timeline", "Personnes", "Prestataires", "Tâches", "Finances", "Documents", "Équipe", "Musique",
+        "Timeline", "Personnes", "Prestataires", "Tâches", "Documents", "Équipe", "Musique",
       ]);
       expect(getWeddingNavigation("avant", capabilities).primary.map(item => item.label)).toEqual([
-        "Cérémonie & réception", "Logistique", "Plan de table", "Messages",
+        "Cérémonie & réception", "Logistique", "Messages",
       ]);
     }
   });
@@ -48,7 +48,7 @@ describe("wedding navigation", () => {
   it("only puts period-specific tools in the horizontal navigation of each mode", () => {
     const owner = getWeddingCapabilities("owner");
     expect(getWeddingNavigation("pendant", owner).primary.map(item => item.id)).toEqual([
-      "day-of", "public-info", "seating", "contributions",
+      "day-of", "public-info", "contributions",
     ]);
     /* L'Après vit dans un projet séparé : sa navigation horizontale est vide. */
     expect(getWeddingNavigation("apres", owner).primary).toEqual([]);
@@ -72,9 +72,10 @@ describe("wedding navigation", () => {
     const owner = getWeddingCapabilities("owner");
     const rail = getWeddingRailItems("pendant", owner);
     const navigation = getWeddingNavigation("pendant", owner);
-    // Finances et Tâches n'apparaissent pas dans la rangée du Jour J mais restent ouvrables via la barre latérale.
+    // Budget fusionné dans Prestataires, Tâches reste via rail
     expect(navigation.primary.some(item => item.id === "finances")).toBe(false);
     expect(isWeddingPanelAvailable("budget", navigation, "chronological", rail)).toBe(true);
+    expect(isWeddingPanelAvailable("providers", navigation, "chronological", rail)).toBe(true);
     expect(isWeddingPanelAvailable("planning", navigation, "chronological", rail)).toBe(true);
   });
 
@@ -96,12 +97,12 @@ describe("wedding navigation", () => {
     const rail = getWeddingRailItems("avant", getWeddingCapabilities("owner"));
     const navigation = getWeddingNavigation("avant", getWeddingCapabilities("owner"));
 
-    const budget = getPanelContextGroup("budget", rail, navigation, "chronological");
-    expect(budget.id).toBe("rail");
-    expect(budget.label).toBe("Socle commun");
+    const providers = getPanelContextGroup("providers", rail, navigation, "chronological");
+    expect(providers.id).toBe("rail");
+    expect(providers.label).toBe("Socle commun");
     // Les voisins incluent les autres catégories communes, pas les outils du mode.
-    expect(budget.items.map(item => item.id)).toContain("documents");
-    expect(budget.items.map(item => item.id)).not.toContain("seating");
+    expect(providers.items.map(item => item.id)).toContain("documents");
+    expect(providers.items.map(item => item.id)).not.toContain("ceremony");
 
     const guests = getPanelContextGroup("guests", rail, navigation, "chronological");
     expect(guests.id).toBe("rail");
@@ -115,9 +116,8 @@ describe("wedding navigation", () => {
     const dayof = getPanelContextGroup("dayof", rail, navigation, "chronological");
     expect(dayof.id).toBe("phase");
     expect(dayof.label).toBe("Outils du mode");
-    expect(dayof.items.map(item => item.id)).toContain("seating");
+    expect(dayof.items.map(item => item.id)).toContain("contributions");
     expect(dayof.items.map(item => item.id)).not.toContain("finances");
-
   });
 
   it("keeps the World capsule strictly temporal", () => {

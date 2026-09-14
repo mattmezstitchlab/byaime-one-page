@@ -69,10 +69,10 @@ describe("coque privée traduite", () => {
     const ids = (locale: Locale) => getWeddingRailItems("avant", owner, locale).map(item => item.id);
     expect(ids("en")).toEqual(ids("fr"));
     expect(getWeddingRailItems("avant", owner, "en").map(item => item.label)).toEqual([
-      "Timeline", "People", "Vendors", "Tasks", "Finances", "Documents", "Team", "Music",
+      "Timeline", "People", "Vendors", "Tasks", "Documents", "Team", "Music",
     ]);
     expect(getWeddingNavigation("avant", owner, "en").primary.map(item => item.label)).toEqual([
-      "Ceremony & reception", "Logistics", "Seating chart", "Messages",
+      "Ceremony & reception", "Logistics", "Messages",
     ]);
   });
 
@@ -95,8 +95,10 @@ describe("coque privée traduite", () => {
   it("traduit les groupes de navigation contextuelle", () => {
     const rail = getWeddingRailItems("avant", owner, "en");
     const navigation = getWeddingNavigation("avant", owner, "en");
-    expect(getPanelContextGroup("budget", rail, navigation, "chronological", "en").label).toBe("Common ground");
-    expect(getPanelContextGroup("seating", rail, navigation, "chronological", "en").label).toBe("Tools for this mode");
+    // budget fusionné dans providers (rail), guests contient seating
+    expect(getPanelContextGroup("providers", rail, navigation, "chronological", "en").label).toBe("Common ground");
+    expect(getPanelContextGroup("guests", rail, navigation, "chronological", "en").label).toBe("Common ground");
+    expect(getPanelContextGroup("dayof", rail, navigation, "chronological", "en").label).toBe("Tools for this mode");
   });
 
   it("traduit le libellé de la position courante du Monde", () => {
