@@ -21,29 +21,13 @@ const ROLE_HINTS: Record<RoleVisibility, string> = {
 };
 
 /*
- * Une couleur par catégorie : les pastilles du graphe se lisent d'abord par
- * famille (personnes, argent, documents, musique…) avant même de lire les
- * étiquettes. Les Moments gardent le rouge de la marque — c'est la colonne
- * vertébrale du graphe. Les teintes vivent dans `index.css` (`--cat-*`) pour
- * rester lisibles en sombre comme en clair.
+ * La table des couleurs par catégorie vit dans `lib/category-colors.ts` : elle
+ * est partagée avec la Bande (`/monde`), qui est publique et ne monte aucun
+ * ClerkProvider. Le ré-export garde l'import historique
+ * `KIND_COLORS from "@/components/VisibilityGraph"` valable (test inclus).
  */
-export const KIND_COLORS: Record<VisibilityNode["kind"], string> = {
-  event: "hsl(var(--cat-event))",
-  guest: "hsl(var(--cat-guest))",
-  team: "hsl(var(--cat-team))",
-  provider: "hsl(var(--cat-provider))",
-  task: "hsl(var(--cat-task))",
-  table: "hsl(var(--cat-table))",
-  logistics: "hsl(var(--cat-logistics))",
-  payment: "hsl(var(--cat-payment))",
-  document: "hsl(var(--cat-document))",
-  music: "hsl(var(--cat-music))",
-  memory: "hsl(var(--cat-memory))",
-  message: "hsl(var(--cat-message))",
-};
-
-/** Les catégories dans l'ordre de la légende : Moments d'abord, puis les entités. */
-const LEGEND_ORDER = Object.keys(KIND_COLORS) as VisibilityNode["kind"][];
+export { KIND_COLORS } from "@/lib/category-colors";
+import { KIND_COLORS, LEGEND_ORDER } from "@/lib/category-colors";
 
 const NODE_R = 7;
 const EVENT_X = 60;

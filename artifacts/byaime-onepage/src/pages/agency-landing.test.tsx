@@ -46,6 +46,14 @@ describe("vitrine de l'agence", () => {
     expect(html).toContain('href="/admin"');
   });
 
+  it("mène à la Bande depuis le pied de page : en mode dégradé, la vitrine est la seule porte", () => {
+    const html = renderAgency();
+
+    expect(html).toContain('data-testid="agency-bande"');
+    expect(html).toContain('href="/monde"');
+    expect(html).toContain("La Bande");
+  });
+
   it("sert les visuels avec le jeton de version", () => {
     const html = renderAgency();
     expect(html).toContain("images/agency/agency-hero.jpg?v=");

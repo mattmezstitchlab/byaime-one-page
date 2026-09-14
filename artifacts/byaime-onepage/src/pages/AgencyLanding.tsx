@@ -289,6 +289,12 @@ export default function AgencyLanding() {
             </span>
             <span>{cities.join(" · ")}</span>
             <nav data-testid="agency-footer-links" aria-label="Pages du site" className="flex flex-wrap items-center justify-center gap-4">
+              {/* La Bande : le produit lui-même, en démonstration publique et
+                  sans session. En mode dégradé la vitrine est la seule porte
+                  d'entrée du site — la démo doit y être joignable aussi. */}
+              <a href={sitePath("/monde")} data-testid="agency-bande" className="hover:text-[var(--agency-ink)]">
+                La Bande
+              </a>
               <a href={sitePath("/mentions-legales")} className="hover:text-[var(--agency-ink)]">
                 Mentions légales
               </a>

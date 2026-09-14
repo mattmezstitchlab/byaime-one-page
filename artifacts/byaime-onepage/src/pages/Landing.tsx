@@ -65,6 +65,14 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* La vitrine de l'agence était joignable uniquement en cliquant sur
                 le mot « AIME » : elle a maintenant son lien, en toutes lettres. */}
+            {/* La Bande : le prototype public du produit, sans session. */}
+            <Link
+              href="/monde"
+              data-testid="landing-bande"
+              className="hidden h-8 items-center rounded-full px-3 text-xs text-[var(--agency-ink)]/75 transition hover:bg-[var(--agency-ink)]/10 hover:text-[var(--agency-ink)] sm:inline-flex"
+            >
+              {t("nav.bande")}
+            </Link>
             <Link
               href="/agence"
               data-testid="landing-agency"
@@ -247,6 +255,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
               <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[#8A8375]">{t("footer.col.product")}</p>
               <ul className="mt-4 space-y-2.5 text-xs text-[#4c463d]">
                 <li><Link href="/agence" data-testid="footer-agency" className="transition hover:text-[#171410]">{t("footer.agency")}</Link></li>
+                <li><Link href="/monde" data-testid="footer-bande" className="transition hover:text-[#171410]">{t("footer.bande")}</Link></li>
                 <li><a href="#landing-product" className="transition hover:text-[#171410]">{t("nav.howItWorks")}</a></li>
                 <li><a href="#landing-values" className="transition hover:text-[#171410]">{t("apple.values.eyebrow")}</a></li>
                 <li><Link href="/creation" className="transition hover:text-[#171410]">{t("nav.signUp")}</Link></li>

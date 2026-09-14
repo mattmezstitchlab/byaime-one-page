@@ -41,6 +41,11 @@ describe("resolveDegradedView — pages servies sans authentification", () => {
     expect(resolveDegradedView("/conditions?returnTo=%2Fadmin")).toEqual({ kind: "terms" });
   });
 
+  it("sert la Bande, qui ne monte ni Clerk, ni store, ni réseau", () => {
+    expect(resolveDegradedView("/monde")).toEqual({ kind: "bande" });
+    expect(DEGRADED_PUBLIC_PATHS).toContain("/monde");
+  });
+
   it("sert le portail d'un invité, qui ne consomme aucune API Clerk", () => {
     // Un invité répond la veille du Jour J : il ne dépend ni de compte, ni de
     // la configuration d'authentification du déploiement.

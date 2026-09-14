@@ -58,6 +58,7 @@ const AGENCY_PAGES = [
   "../pages/BilanPage.tsx",
   "../pages/AdminSommaire.tsx",
   "../pages/Mentions.tsx",
+  "../pages/Bande.tsx",
   "../components/CoupleReport.tsx",
 ] as const;
 

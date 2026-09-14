@@ -23,6 +23,8 @@ export type DegradedView =
   | { kind: "report"; projectId: string }
   /** Le portail d'un invité : aucun compte requis pour répondre à une RSVP. */
   | { kind: "rsvp"; token: string }
+  /** La Bande (`/monde`) : prototype public, calculé dans le navigateur. */
+  | { kind: "bande" }
   /** Tout le reste exige une session : on le dit, sans rien demander. */
   | { kind: "unavailable"; requestedPath: string };
 
@@ -42,6 +44,9 @@ export function resolveDegradedView(path: string): DegradedView {
      la vitrine) — le mode dégradé l'anticipe au lieu de la contredire. */
   if (clean === "/" || clean === AGENCY_LANDING_PATH) return { kind: "agency" };
   if (clean === "/mentions-legales") return { kind: "mentions" };
+  /* La Bande ne monte ni ClerkProvider, ni store, ni appel réseau : elle est
+     publique au même titre que la vitrine. */
+  if (clean === "/monde") return { kind: "bande" };
   if (clean === "/confidentialite") return { kind: "privacy" };
   if (clean === "/conditions") return { kind: "terms" };
 
@@ -73,4 +78,5 @@ export const DEGRADED_PUBLIC_PATHS: readonly string[] = [
   "/conditions",
   "/bilan/:projectId",
   "/rsvp/:token",
+  "/monde",
 ];

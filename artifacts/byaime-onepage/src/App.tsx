@@ -65,6 +65,7 @@ const LazyAgencyLanding = lazy(() => import('@/pages/AgencyLanding'));
 const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
 const LazyAdmin = lazy(() => import('@/pages/AdminSommaire').then(module => ({ default: module.AdminSommairePage })));
 const LazyMentions = lazy(() => import('@/pages/Mentions').then(module => ({ default: module.MentionsLegalesPage })));
+const LazyBande = lazy(() => import('@/pages/Bande').then(module => ({ default: module.BandePage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -364,6 +365,7 @@ function Routes() {
         légales, le livrable d'un couple et les textes légaux. */}
     <Route path="/agence">{() => <LazyAgencyLanding />}</Route>
     <Route path="/mentions-legales">{() => <LazyMentions />}</Route>
+    <Route path="/monde">{() => <LazyBande />}</Route>
     <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
@@ -457,6 +459,8 @@ function DegradedRoutes() {
       return <LazyBilan />;
     case 'rsvp':
       return <RsvpPage params={{ token: view.token }} />;
+    case 'bande':
+      return <LazyBande />;
     default:
       return <MissingAuthKey requestedPath={view.requestedPath} />;
   }

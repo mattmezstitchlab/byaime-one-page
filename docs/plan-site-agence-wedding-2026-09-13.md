@@ -358,6 +358,7 @@ vérifiable**, dans l'ordre qui évite les retours en arrière. Total : **~9,5 j
 | **S4 — SEO** | 1,5 j | Lot 2 : pré-rendu de la racine au build (2.1-2.3), JSON-LD `ProfessionalService` + `BreadcrumbList` (2.4), image de partage 1200 × 630 (2.5) | S3 (le pré-rendu porte sur la bonne racine) |
 | **S5 — Conversion** | 3 j | Lot 4 : OpenAPI d'abord → codegen (4.1), table `aime_agency_leads` (4.2), `POST /agency/leads` validé + honeypot + débit (4.3), Resend + accusé + journal des échecs (4.4), formulaire `/agence/contact` + `/agence/merci` (4.5), section « Demandes » dans `/admin` (4.7) | S1 (texte RGPD) |
 | **S6 — Mesure & mise en ligne** | 1,5 j | Lot 6 : analytics vitrine (6.1), E2E desktop + 390 px (6.2), tests unitaires étendus (6.3), `smoke.mjs` réécrit (6.4), Lighthouse ≥ 95 (6.5), déploiement + Search Console + fiche Google Business Profile (6.6) | S4, S5 |
+| **S8 — La Bande** 🧪 prototype livré le 14/09 (§8 bis) | 3 j faits, ~5 j restants | Un écran, trois échelles : le graphe projeté sur le temps. Prototype public `/monde`, sans session, sur les moteurs existants (`timeline-graph`, `day-run`, `parser`) | décision de le substituer au Monde privé actuel |
 | **S7 — Contenu** | 2 à 4 j | Lot 5 : réalisations, témoignages, formules (après D5), à propos, FAQ, zones & disponibilités, réseaux — **au fil des éléments fournis**, aucune section vide mise en ligne | photos réelles, droits à l'image, témoignages signés, identité légale, tarifs |
 
 ### Ce qui peut démarrer tout de suite, sans rien attendre
@@ -498,3 +499,88 @@ puis S3 (inversion des portes d'entrée, avec le découplage Clerk de `PublicPro
 périmètre). **Attendu de la fondatrice pour S2** : confirmation du nom d'enseigne affiché sur
 `byaime.fr`. **Attendu pour S1 déjà livré, mais bloquant la mise en ligne** : les 7 champs
 d'identité légale.
+
+---
+
+## 8 bis. Lot 8 — La Bande : prototype livré le 14 septembre 2026
+
+Demande de la fondatrice : « est-ce que le graphe peut à lui seul suffire pour organiser un mariage,
+et quelle serait la solution révolutionnaire pour tout résoudre en un écran ingénieux ? », puis
+« fais-moi ça sur une page accessible depuis l'accueil ».
+
+#### La réponse tenue par le code
+
+Le graphe suffit comme **modèle** et comme **moteur** — conflits, propagation, visibilité par rôle,
+régie du Jour J — mais pas comme **interface** : 42 identifiants d'écran (`AimeScreenId`) et
+9 projections du même fil exposaient en parallèle ce qui ne se regarde qu'à une échelle à la fois.
+La Bande projette donc le graphe sur sa colonne vertébrale temporelle, à la résolution que la date
+impose : **les mois** (la forme du mariage, chapitre par chapitre), **les engagements** (le dernier
+mois : ce qui doit être vrai avant samedi), **les minutes** (la régie du Jour J, retard qui cascade).
+Même objet, trois échelles, aucune navigation : les panneaux deviennent des tiroirs.
+
+Le second geste est **la phrase** : une intention écrite en langage naturel construit un Monde
+entier (`parser.ts`, déjà utilisé par l'onboarding) et affiche ce qu'elle a compris avec son niveau
+de confiance — confirmé, déduit, suggéré, à confirmer, manquant. Ce qui n'a pas été dit reste dit
+comme manquant, jamais inventé.
+
+#### Ce qui est livré
+
+- `/monde` — page publique, **sans session, sans store, sans appel réseau**. Servie en mode nominal
+  comme en mode dégradé (`public-shell.ts` : `{ kind: "bande" }`). Joignable depuis l'accueil
+  (en-tête `landing-bande` et pied de page `footer-bande`, clés i18n FR/EN) et depuis la vitrine
+  (`agency-bande`) — en mode dégradé la vitrine est la seule porte d'entrée du site.
+- `lib/bande.ts` — toutes les dérivations, pures : `resolutionFor`, `buildRegie`, `buildChapters`,
+  `buildDayBande`, `listEngagements`, `settleEngagement`, `previewShift`/`commitShift`,
+  `declareDayDelay`, `markMomentDone`, `understoodFacts`, `buildBandeState`, `demoWorld`.
+- La régie en cinq nombres dérivés : jours restants, argent engagé, à payer avant le Jour J,
+  invités confirmés, prestataires verrouillés — avec alerte écrite (« à traiter ») seulement quand
+  une action est réellement attendue.
+- Les engagements **dérivés**, jamais ressaisis : acomptes dus, prestataires non verrouillés,
+  réponses en attente, tâches ouvertes, informations manquantes. Régler une ligne change le nombre
+  en haut de l'écran, parce que c'est la même donnée.
+- Le geste de décalage en deux temps : l'aperçu liste les Moments qui suivraient et les conflits
+  créés (`planEventPropagation`), avec cases à cocher par dépendant ; rien n'est écrit avant
+  « Appliquer ». En régie, `+10/+20/+45 min` cascade sur la suite (`applyDayDelay`).
+- Le voyage dans le temps : aujourd'hui, le dernier mois, la veille, le Jour J à 16 h 30 et à 22 h —
+  les trois échelles se voient sans attendre dix mois, et l'échelle imposée par la date est nommée.
+- La projection par rôle : les mariés, l'agence, un proche, un invité (`roleCanSeeEvent`,
+  `roleCanSeeEntityKind`). Un Moment masqué reste visible comme masqué, avec sa raison — un proche
+  doit savoir qu'on lui cache quelque chose.
+
+#### Deux extractions, pour ne rien recopier
+
+- `lib/timeline-chapters.ts` — `getSubchapter` sort de `UniversalTimeline.tsx` : la même découpe en
+  chapitres sert le Monde privé et la Bande publique.
+- `lib/category-colors.ts` — `KIND_COLORS` sort de `VisibilityGraph.tsx`. Ce n'est pas cosmétique :
+  ce composant importe `useProject`, donc Clerk ; laisser la table des couleurs là aurait traîné
+  l'authentification dans une page qui promet de s'en passer. `VisibilityGraph` la ré-exporte,
+  l'import historique reste valable.
+- `lib/confidence.ts` — les libellés de confiance sortent de `FilTrack.tsx`, pour la même raison.
+
+#### Contrôles
+
+| Contrôle | Résultat |
+| --- | --- |
+| `pnpm run typecheck` (racine) | **OK** |
+| `pnpm --filter @workspace/byaime-onepage run test` | **56 fichiers / 358 tests OK** (avant ce lot : 54 / 308) — dont `lib/bande.test.ts` (35) et `pages/bande.test.tsx` (12) |
+| `pnpm exec vite build` | **OK**, toutes les classes `var(--agency-*)` générées, modificateurs d'opacité en `color-mix` avec repli |
+| `node preview/smoke.mjs` | **CONTRÔLE LOCAL OK** — `/monde` rendu en mode nominal (84 776 octets) et en mode dégradé (84 516 octets) |
+| `pages/Bande.tsx` dans `agency-theme.test.ts` | aucun hexadécimal recopié, jetons `--agency-*` et `.agency-serif` |
+| Rendu navigateur réel | **non vérifié** (Chromium Playwright indisponible ici) : à confirmer à l'œil sur l'aperçu, port 4173 |
+
+#### Ce qui n'est pas fait, volontairement
+
+- **Le plan de table** : contrainte en deux dimensions, pas une ligne de temps. Il garde son atelier.
+- **Le budget détaillé** et **les médias** : idem — la Bande porte le déroulé.
+- **La persistance** : rien n'est enregistré, tout vit dans le navigateur. La substitution au Monde
+  privé (store, API, synchronisation) est le vrai lot, ~5 jours une fois la décision prise.
+- **L'indexation** : `noindex, nofollow` tant que c'est un prototype. Le pré-rendu (lot 2) et
+  l'ouverture au référencement se feront ensemble.
+- **La virtualisation** : le germe fait ~60 Moments ; au-delà de ~300 il faudra virtualiser la liste.
+
+#### Décision attendue
+
+Faut-il substituer la Bande au Monde privé actuel (42 écrans → un écran + tiroirs) ? Si oui, le lot
+devient S3 bis et passe **avant** S5, parce qu'il change ce que la vitrine promet et ce que
+l'espace privé montre. Sinon elle reste une démonstration publique, et c'est déjà un argument
+commercial : `/monde` montre le produit sans demander de compte.

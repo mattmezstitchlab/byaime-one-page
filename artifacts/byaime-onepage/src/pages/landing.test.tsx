@@ -144,6 +144,15 @@ describe("Landing — la vitrine de l'agence est trouvable", () => {
     expect(markup.match(/href="\/agence"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
   });
 
+  it("mène aussi à la Bande, la démonstration publique du produit", () => {
+    const markup = render(<LandingPage />);
+
+    expect(markup).toContain('data-testid="landing-bande"');
+    expect(markup).toContain('data-testid="footer-bande"');
+    expect(markup).toContain("La Bande");
+    expect(markup.match(/href="\/monde"/g)?.length ?? 0).toBe(2);
+  });
+
   it("publie aussi les mentions légales depuis le pied de page", () => {
     const markup = render(<LandingPage />);
 

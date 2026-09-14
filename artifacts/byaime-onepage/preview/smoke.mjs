@@ -244,6 +244,18 @@ checkHtml(
   ["timeline", "panneau", "lacerisesurlegateau"],
 );
 checkHtml(
+  "La Bande (/monde) — démonstration publique, sans session",
+  await renderApp("/monde"),
+  [
+    'data-testid="bande-page"',
+    'data-testid="bande-regie-jours"',
+    'data-testid="bande-resolution-mois"',
+    'data-testid="bande-phrase"',
+    "Une phrase, et le mariage existe",
+  ],
+  ["Connexion momentanément indisponible", 'data-testid="private-layout"'],
+);
+checkHtml(
   "Mentions légales (/mentions-legales)",
   await renderApp("/mentions-legales"),
   [
@@ -347,6 +359,12 @@ checkHtml(
   "Dégradé : la racine mène à la vitrine",
   await renderDegradedApp("/"),
   ['data-testid="agency-landing"'],
+  [UNAVAILABLE],
+);
+checkHtml(
+  "Dégradé : la Bande reste servie",
+  await renderDegradedApp("/monde"),
+  ['data-testid="bande-page"', 'data-testid="bande-regie-invites"', 'data-testid="bande-role-viewer"'],
   [UNAVAILABLE],
 );
 checkHtml(
