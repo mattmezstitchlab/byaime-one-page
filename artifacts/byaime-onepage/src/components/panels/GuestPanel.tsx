@@ -36,6 +36,7 @@ export function GuestPanel() {
   const [query, setQuery] = useState("");
   const [busyGuestId, setBusyGuestId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [apiAvailable, setApiAvailable] = useState(true);
   const canInviteParticipants = currentRole === "owner" || currentRole === "planner";
   const projectId = project?.id;
   const confirmedCount = useMemo(
@@ -47,9 +48,15 @@ export function GuestPanel() {
     if (!projectId || !canInviteParticipants) return;
     let active = true;
     setNotice("");
-    void refreshParticipantLinks().catch(error => {
-      if (active) setNotice(error instanceof Error ? error.message : "Liens RSVP indisponibles");
-    });
+    void refreshParticipantLinks()
+      .then(() => {
+        if (active) setApiAvailable(true);
+      })
+      .catch(error => {
+        if (!active) return;
+        setApiAvailable(false);
+        setNotice("Mode hors-ligne: gestion locale uniquement — liens RSVP indisponibles sans backend. Les invités, tables et présences restent modifiables.");
+      });
     return () => {
       active = false;
     };
@@ -59,6 +66,10 @@ export function GuestPanel() {
   const guests = project.guests.filter(guest => `${guest.name} ${effectiveGuestDietary(guest, links[guest.id])}`.toLowerCase().includes(query.toLowerCase()));
 
   const createParticipantLink = async (guestId: string) => {
+    if (!apiAvailable) {
+      setNotice("Mode hors-ligne: lien RSVP indisponible sans backend.");
+      return;
+    }
     setBusyGuestId(guestId);
     setNotice("");
     try {
@@ -113,6 +124,11 @@ export function GuestPanel() {
             <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">
               Chaque personne reçoit son propre lien RSVP pour répondre à l’événement. Ce lien ne crée pas de compte et ne donne aucun accès au Monde.
             </p>
+            {!apiAvailable && (
+              <p className="mt-3 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs text-[var(--agency-eyebrow)]">
+                Mode one-page hors-ligne: pas de backend détecté. Vous pouvez gérer noms, régimes, tables et présences localement. Les liens RSVP seront disponibles avec api-server.
+              </p>
+            )}
           </div>
           {canInviteParticipants && (
             <button
@@ -250,10 +266,13 @@ export function GuestPanel() {
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--agency-hairline)] pt-4">
                 <span className="mr-auto inline-flex items-center gap-2 text-[10px] uppercase tracking-[.12em] text-[var(--agency-eyebrow)]">
                   <Link2 className="h-3 w-3" />
-                  {responseLabel}
-                  {link?.respondedAt ? ` · ${new Date(link.respondedAt).toLocaleDateString("fr-FR")}` : ""}
+                  {apiAvailable ? responseLabel : "Gestion locale uniquement"}
+                  {apiAvailable && link?.respondedAt ? ` · ${new Date(link.respondedAt).toLocaleDateString("fr-FR")}` : ""}
                 </span>
-                {canInviteParticipants && !activeLink && (
+                {!apiAvailable && (
+                  <span className="text-[10px] uppercase tracking-[.12em] text-[var(--agency-eyebrow)]">Hors-ligne</span>
+                )}
+                {apiAvailable && canInviteParticipants && !activeLink && (
                   <button
                     data-testid={`participant-invite-${guest.id}`}
                     disabled={busyGuestId === guest.id}
@@ -264,7 +283,7 @@ export function GuestPanel() {
                     {link?.revoked ? "Réémettre et copier le lien RSVP" : "Créer et copier le lien RSVP"}
                   </button>
                 )}
-                {canInviteParticipants && activeLink && (
+                {apiAvailable && canInviteParticipants && activeLink && (
                   <>
                     <button
                       data-testid={`participant-copy-${guest.id}`}

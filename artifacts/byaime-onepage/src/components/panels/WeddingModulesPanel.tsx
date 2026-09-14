@@ -2,13 +2,31 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useProject } from "@/store/project-store";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, AlertTriangle, Send, Upload, Download, ExternalLink, LoaderCircle, Search, ShieldCheck, Film, Image, Music2, FolderOpen, RefreshCcw, Link2, Copy, FolderSearch, X, ChevronLeft, ChevronRight, Heart } from "lucide-react";
-import type { MemoryItem, MusicSearchResult, MusicTrack, Payment } from "@/lib/types";
+import {
+  Plus,
+  Trash2,
+  Check,
+  AlertTriangle,
+  Send,
+  Upload,
+  Download,
+  ExternalLink,
+  LoaderCircle,
+  Search,
+  ShieldCheck,
+  Film,
+  Image as ImageIcon,
+  Music2,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+} from "lucide-react";
+import type { MemoryItem, MusicSearchResult, MusicTrack, Payment, Document } from "@/lib/types";
 import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import { MESSAGE_TO_EVENT, consumeMessageDraft } from "@/lib/person-spotlight-bus";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import type { WeddingModule } from "@/lib/wedding-navigation";
-import { LOCAL_IMPORT_POLICY, guessMimeType, localImportSupport, pickLocalFolder, planLocalImports, readableLocalPath } from "@/lib/local-files";
 import { formatCents, currencySymbol } from "@/lib/money";
 import { queueWorldFocus } from "@/lib/world-focus";
 
@@ -16,15 +34,33 @@ export type { WeddingModule } from "@/lib/wedding-navigation";
 
 const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 const newId = () => crypto.randomUUID();
-type StoredFile = { id: string; name: string; contentType: string; size: number; guestId?: string | null; createdAt?: string };
-type SentMessage = { id: string; projectId: string; kind: string; recipients: string[]; subject: string; status: string; providerError?: string | null; timelineEventId?: string | null; scheduledAt?: string | null; cancelledAt?: string | null; sentAt?: string | null; createdAt: string };
-type ParticipantMedia = StoredFile & {
+
+type SentMessage = {
+  id: string;
+  projectId: string;
+  kind: string;
+  recipients: string[];
+  subject: string;
+  status: string;
+  providerError?: string | null;
+  timelineEventId?: string | null;
+  scheduledAt?: string | null;
+  cancelledAt?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+};
+type ParticipantMedia = {
+  id: string;
+  name: string;
+  contentType: string;
+  size: number;
   guestId?: string | null;
   guestName?: string | null;
   caption?: string | null;
   moderationStatus: "pending" | "approved" | "rejected";
   visibility: "private" | "couple" | "guests";
   consent?: boolean;
+  createdAt?: string;
 };
 type SongRequest = {
   id: string;
@@ -37,74 +73,39 @@ type SongRequest = {
   status: "new" | "seen" | "accepted" | "played" | "rejected";
   createdAt: string;
 };
-type LocalBridgeStatus = {
-  connected: boolean;
-  bridgeId?: string | null;
-  bridgeVersion?: string | null;
-  lastSeenAt?: string | null;
-  expiresAt?: string | null;
-};
-type LocalScanSuggestion = {
-  localIdentifier: string;
-  score: number;
-  reason: string;
-  actions: Array<"link_project" | "add_timeline" | "import" | "ignore">;
-};
-type LocalScanFile = {
-  name: string;
-  extension: string;
-  fileType: string;
-  documentType?: string;
-  size: number;
-  modifiedAt: string;
-  relativePath: string;
-  sourceFolder: string;
-  localIdentifier: string;
-  fingerprint?: string;
-};
-type LocalScanJob = {
-  id: string;
-  projectId: string;
-  status: "queued" | "done" | "failed";
-  createdAt: string;
-  completedAt?: string;
-  folders: string[];
-  results: LocalScanFile[];
-  suggestions: LocalScanSuggestion[];
-  error?: string;
-};
-type LocalReference = {
-  id: string;
-  localIdentifier: string;
-  filename: string;
-  relativePath: string;
-  sourceFolder: string;
-  fileType: string;
-  state: "local" | "linked" | "imported" | "ignored";
-  importedFileId?: string | null;
-};
+
 const MUSIC_SOURCE = "Apple Music / iTunes";
+const MAX_DOC_BYTES = 8 * 1024 * 1024; // 8 Mo max en dataURL pour rester local-first
 
 async function searchAppleMusic(term: string, signal: AbortSignal): Promise<MusicSearchResult[]> {
   const params = new URLSearchParams({ term, country: "fr", media: "music", entity: "song", limit: "12" });
   const response = await fetch(`https://itunes.apple.com/search?${params.toString()}`, { signal });
   if (!response.ok) throw new Error("Le catalogue musical n’est pas disponible pour le moment.");
-  const body = await response.json() as { results?: Array<Record<string, unknown>> };
+  const body = (await response.json()) as { results?: Array<Record<string, unknown>> };
   return (body.results || [])
-    .filter(result => typeof result.trackId === "number" && typeof result.trackName === "string" && typeof result.artistName === "string")
-    .map(result => ({
+    .filter(
+      (result) =>
+        typeof result.trackId === "number" &&
+        typeof result.trackName === "string" &&
+        typeof result.artistName === "string",
+    )
+    .map((result) => ({
       provider: "apple_music" as const,
       externalId: String(result.trackId),
       title: String(result.trackName),
       artist: String(result.artistName),
       collectionName: typeof result.collectionName === "string" ? result.collectionName : undefined,
-      artworkUrl: typeof result.artworkUrl100 === "string" ? result.artworkUrl100.replace("100x100", "300x300") : undefined,
+      artworkUrl:
+        typeof result.artworkUrl100 === "string"
+          ? result.artworkUrl100.replace("100x100", "300x300")
+          : undefined,
       durationMs: typeof result.trackTimeMillis === "number" ? result.trackTimeMillis : undefined,
       previewUrl: typeof result.previewUrl === "string" ? result.previewUrl : undefined,
       trackUrl: typeof result.trackViewUrl === "string" ? result.trackViewUrl : undefined,
     }));
 }
 
+// Fallback API helper — garde compat si backend présent, mais ne bloque plus l'app
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
@@ -115,24 +116,26 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-const fileSize = (bytes: number) => bytes < 1_000_000 ? `${Math.max(1, Math.round(bytes / 1_000))} Ko` : `${(bytes / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
+const fileSize = (bytes: number) =>
+  bytes < 1_000_000
+    ? `${Math.max(1, Math.round(bytes / 1_000))} Ko`
+    : `${(bytes / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
 
-function putFile(uploadURL: string, file: File, onProgress: (progress: number) => void): Promise<void> {
+function readFileAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open("PUT", uploadURL);
-    request.setRequestHeader("Content-Type", file.type);
-    request.upload.addEventListener("progress", event => {
-      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
-    });
-    request.addEventListener("load", () => {
-      if (request.status >= 200 && request.status < 300) resolve();
-      else reject(new Error("Échec du transfert vers le stockage privé"));
-    });
-    request.addEventListener("error", () => reject(new Error("Le transfert a été interrompu par le réseau")));
-    request.addEventListener("abort", () => reject(new Error("Le transfert a été annulé")));
-    request.send(file);
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Lecture impossible"));
+    reader.readAsDataURL(file);
   });
+}
+
+function guessKind(name: string): Document["kind"] {
+  const lower = name.toLowerCase();
+  if (lower.includes("devis")) return "devis";
+  if (lower.includes("contrat")) return "contrat";
+  if (lower.includes("facture")) return "facture";
+  return "autre";
 }
 
 function AddBar({ label, onAdd }: { label: string; onAdd: () => void }) {
@@ -155,27 +158,44 @@ function Empty({ children }: { children: string }) {
   );
 }
 
-/* La liste des souvenirs à préparer (shot list, albums, rappels, mots) : la même sous la galerie et en repli. */
 function MemoryChecklist() {
   const { project, updateEntity, removeEntity } = useProject();
   if (!project || project.memories.length === 0) return <Empty>Les souvenirs à préparer apparaîtront ici.</Empty>;
   return (
     <>
-      {project.memories.map(item => (
-        <div key={item.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+      {project.memories.map((item) => (
+        <div
+          key={item.id}
+          className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"
+        >
           <button
             onClick={() => updateEntity("memories", item.id, { status: item.status === "termine" ? "a_faire" : "termine" })}
             className={cn(
               "grid h-6 w-6 place-items-center rounded-full border",
-              item.status === "termine" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)]",
+              item.status === "termine"
+                ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]"
+                : "border-[var(--agency-hairline)]",
             )}
           >
             {item.status === "termine" && <Check className="h-3 w-3" />}
           </button>
           <div className="grid flex-1 gap-2 sm:grid-cols-2">
-            <input value={item.title} onChange={e => updateEntity("memories", item.id, { title: e.target.value })} className="bg-transparent text-sm outline-none text-[var(--agency-ink)]" />
-            <input value={item.owner || ""} onChange={e => updateEntity("memories", item.id, { owner: e.target.value })} placeholder="Responsable" className="bg-transparent text-xs outline-none text-[var(--agency-body)] placeholder:text-[var(--agency-eyebrow)]" />
-            <select value={item.kind} onChange={e => updateEntity("memories", item.id, { kind: e.target.value as MemoryItem["kind"] })} className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none">
+            <input
+              value={item.title}
+              onChange={(e) => updateEntity("memories", item.id, { title: e.target.value })}
+              className="bg-transparent text-sm outline-none text-[var(--agency-ink)]"
+            />
+            <input
+              value={item.owner || ""}
+              onChange={(e) => updateEntity("memories", item.id, { owner: e.target.value })}
+              placeholder="Responsable"
+              className="bg-transparent text-xs outline-none text-[var(--agency-body)] placeholder:text-[var(--agency-eyebrow)]"
+            />
+            <select
+              value={item.kind}
+              onChange={(e) => updateEntity("memories", item.id, { kind: e.target.value as MemoryItem["kind"] })}
+              className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none"
+            >
               <option value="shot">Shot list</option>
               <option value="media">Média</option>
               <option value="message">Message</option>
@@ -193,22 +213,48 @@ function MemoryChecklist() {
 }
 
 export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
-  const { project, currentRole, syncStatus, syncError, participantLinks, refreshParticipantLinks, updateProject, updateEntity, addEntity, removeEntity } = useProject();
+  const {
+    project,
+    currentRole,
+    syncStatus,
+    syncError,
+    participantLinks,
+    refreshParticipantLinks,
+    updateProject,
+    updateEntity,
+    addEntity,
+    removeEntity,
+  } = useProject();
   const [query, setQuery] = useState("");
-  const [files, setFiles] = useState<StoredFile[]>([]);
   const [messages, setMessages] = useState<SentMessage[]>([]);
   const [remoteError, setRemoteError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [recipients, setRecipients] = useState("");
   const [freeOpen, setFreeOpen] = useState(false);
   const [freeRecipients, setFreeRecipients] = useState("");
   const [freeSubject, setFreeSubject] = useState("");
   const [freeBody, setFreeBody] = useState("");
+  const [rescheduleAt, setRescheduleAt] = useState<Record<string, string>>({});
+  const [musicQuery, setMusicQuery] = useState("");
+  const [musicResults, setMusicResults] = useState<MusicSearchResult[]>([]);
+  const [musicSearchBusy, setMusicSearchBusy] = useState(false);
+  const [musicSearchError, setMusicSearchError] = useState("");
+  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
+  const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
+  const [songRequests, setSongRequests] = useState<SongRequest[]>([]);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
+  const [localDocError, setLocalDocError] = useState("");
+  const [localDocProgress, setLocalDocProgress] = useState<{ done: number; total: number; current: string } | null>(null);
+  const musicSearchAbortRef = useRef<AbortController | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  // Brouillon déposé par la mini-carte personne : le composer libre s'ouvre
-  // pré-adressé dès que le module Messages est affiché.
+  const canManage = currentRole === "owner" || currentRole === "planner";
+  const canEdit = canManage || currentRole === "family";
+  const projectId = project?.id;
+
+  // Brouillon message depuis mini-carte personne
   useEffect(() => {
     if (module !== "messages") return;
     const applyDraft = () => {
@@ -223,639 +269,543 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     window.addEventListener(MESSAGE_TO_EVENT, applyDraft);
     return () => window.removeEventListener(MESSAGE_TO_EVENT, applyDraft);
   }, [module]);
-  const [rescheduleAt, setRescheduleAt] = useState<Record<string, string>>({});
-  const [musicQuery, setMusicQuery] = useState("");
-  const [musicResults, setMusicResults] = useState<MusicSearchResult[]>([]);
-  const [musicSearchBusy, setMusicSearchBusy] = useState(false);
-  const [musicSearchError, setMusicSearchError] = useState("");
-  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
-  const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
-  const [songRequests, setSongRequests] = useState<SongRequest[]>([]);
-  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
-  const [lightboxId, setLightboxId] = useState<string | null>(null);
-  const [localBridge, setLocalBridge] = useState<LocalBridgeStatus>({ connected: false });
-  const [pairingToken, setPairingToken] = useState<{ token: string; expiresAt: string } | null>(null);
-  const [authorizedFoldersText, setAuthorizedFoldersText] = useState("");
-  const [localScan, setLocalScan] = useState<LocalScanJob | null>(null);
-  const [localReferences, setLocalReferences] = useState<LocalReference[]>([]);
-  const [pendingImportJobs, setPendingImportJobs] = useState<Record<string, string>>({});
-  const musicSearchAbortRef = useRef<AbortController | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  /* Dossier local choisi via le navigateur (File System Access API ou <input webkitdirectory>). */
-  const folderRef = useRef<HTMLInputElement>(null);
-  const [localImport, setLocalImport] = useState<{
-    done: number;
-    total: number;
-    current: string;
-    note: string;
-    skipped: Array<{ name: string; reason: string }>;
-  } | null>(null);
-  const canManage = currentRole === "owner" || currentRole === "planner";
-  const canEdit = canManage || currentRole === "family";
-  const projectId = project?.id;
 
   useEffect(() => {
     if (module !== "seating" || !canManage || !projectId) return;
     void refreshParticipantLinks().catch(() => undefined);
   }, [canManage, module, projectId, refreshParticipantLinks]);
 
+  // Les modules API restent compatibles si backend présent, mais ne bloquent plus
   useEffect(() => {
-    if (!projectId || !canManage || !["documents", "film"].includes(module)) return;
+    if (!projectId || ![ "messages", "thanks" ].includes(module) || !canManage) return;
     setRemoteError("");
-    void api<StoredFile[]>(`/projects/${projectId}/files`).then(setFiles).catch(error => setRemoteError(error.message));
+    void api<SentMessage[]>(`/projects/${projectId}/messages`)
+      .then(setMessages)
+      .catch(() => {
+        // Mode hors-ligne: on garde messages locaux
+        setMessages([]);
+      });
   }, [canManage, module, projectId]);
 
   useEffect(() => {
-    if (!projectId || !["messages", "thanks"].includes(module) || !canManage) return;
-    setRemoteError("");
-    void api<SentMessage[]>(`/projects/${projectId}/messages`).then(setMessages).catch(error => setRemoteError(error.message));
+    if (!projectId || !canManage || ![ "contributions", "film", "memories", "thanks" ].includes(module)) return;
+    void api<ParticipantMedia[]>(`/projects/${projectId}/participant-media`)
+      .then(setParticipantMedia)
+      .catch(() => setParticipantMedia([]));
   }, [canManage, module, projectId]);
 
   useEffect(() => {
-    if (!projectId || !canManage || !["contributions", "film", "memories", "thanks"].includes(module)) return;
-    setRemoteError("");
-    void api<ParticipantMedia[]>(`/projects/${projectId}/participant-media`).then(setParticipantMedia).catch(error => setRemoteError(error.message));
+    if (!projectId || !canManage || ![ "music", "thanks" ].includes(module)) return;
+    void api<SongRequest[]>(`/projects/${projectId}/song-requests`)
+      .then(setSongRequests)
+      .catch(() => setSongRequests([]));
   }, [canManage, module, projectId]);
-
-  useEffect(() => {
-    if (!projectId || !canManage || !["music", "thanks"].includes(module)) return;
-    setRemoteError("");
-    void api<SongRequest[]>(`/projects/${projectId}/song-requests`).then(setSongRequests).catch(error => setRemoteError(error.message));
-  }, [canManage, module, projectId]);
-
-  useEffect(() => {
-    if (!projectId || module !== "documents") return;
-    void api<LocalBridgeStatus>("/aime-local/bridge/status").then(setLocalBridge).catch(() => setLocalBridge({ connected: false }));
-    void api<{ folders: string[] }>(`/projects/${projectId}/aime-local/folders`)
-      .then((payload) => setAuthorizedFoldersText(payload.folders.join("\n")))
-      .catch(() => undefined);
-    void api<{ job: LocalScanJob | null }>(`/projects/${projectId}/aime-local/scans/latest`)
-      .then((payload) => setLocalScan(payload.job))
-      .catch(() => undefined);
-    void api<LocalReference[]>(`/projects/${projectId}/aime-local/references`)
-      .then(setLocalReferences)
-      .catch(() => undefined);
-  }, [module, projectId]);
 
   if (!project) return null;
 
-  const addPayment = () => addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
-  /* Un fichier, du jeton d'upload jusqu'à sa trace dans ce Monde. */
-  const putStorageFile = async (file: File, onProgress?: (progress: number) => void) => {
-    const contentType = file.type || guessMimeType(file.name);
-    const request = await api<{ uploadURL: string; objectPath: string; finalizeToken: string }>("/storage/uploads/request-url", {
-      method: "POST",
-      body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType }),
-    });
-    await putFile(request.uploadURL, file, onProgress ?? (() => undefined));
-    await api("/storage/files", {
-      method: "POST",
-      body: JSON.stringify({ projectId: project.id, name: file.name, size: file.size, contentType, objectPath: request.objectPath, finalizeToken: request.finalizeToken }),
-    });
-  };
-  const refreshFiles = async () => setFiles(await api<StoredFile[]>(`/projects/${project.id}/files`));
+  const addPayment = () =>
+    addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
 
-  const uploadFile = async (file: File) => {
-    setBusy(true);
-    setUploadProgress(0);
-    setRemoteError("");
-    try {
-      await putStorageFile(file, setUploadProgress);
-      await refreshFiles();
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Ajout impossible");
-    } finally {
-      setBusy(false);
-      setUploadProgress(null);
-      if (fileRef.current) fileRef.current.value = "";
+  // --- Documents local-first : FileReader -> dataURL -> project.documents ---
+  const importLocalDocuments = async (files: File[]) => {
+    if (!files.length) return;
+    setLocalDocError("");
+    const oversize = files.filter((f) => f.size > MAX_DOC_BYTES);
+    if (oversize.length) {
+      setLocalDocError(
+        `${oversize.length} fichier(s) dépassent ${Math.round(MAX_DOC_BYTES / 1024 / 1024)} Mo et ont été ignorés. Utilisez une image plus légère.`,
+      );
     }
-  };
-
-  /*
-   * Import d'un dossier entier, sans rien installer : le navigateur lit les
-   * fichiers choisis (Mac comme PC) et les transfère un par un dans l'espace
-   * privé du Monde. Les fichiers ignorés le sont avec une raison lisible.
-   */
-  const importLocalPicks = async (picks: Array<{ path: string; file: File }>) => {
-    const plan = planLocalImports(
-      picks.map(pick => ({ name: pick.file.name, path: pick.path, size: pick.file.size, type: pick.file.type })),
-      LOCAL_IMPORT_POLICY,
-    );
-    const byPath = new Map(picks.map(pick => [pick.path, pick]));
-    const chosen = plan.accepted
-      .map(candidate => byPath.get(candidate.path))
-      .filter((pick): pick is { path: string; file: File } => Boolean(pick));
-    const skipped = plan.skipped.map(entry => ({ name: entry.item.name, reason: entry.reason }));
-    if (!chosen.length) {
-      setLocalImport({ done: 0, total: 0, current: "", skipped, note: "Aucun fichier importable dans ce dossier." });
-      return;
-    }
+    const valid = files.filter((f) => f.size <= MAX_DOC_BYTES);
+    if (!valid.length) return;
     setBusy(true);
-    setRemoteError("");
-    const failures = [...skipped];
-    for (let index = 0; index < chosen.length; index += 1) {
-      const pick = chosen[index];
-      setLocalImport({
-        done: index,
-        total: chosen.length,
-        current: readableLocalPath(pick.path),
-        skipped: failures,
-        note: "Transfert vers l'espace privé de ce Monde.",
-      });
+    setLocalDocProgress({ done: 0, total: valid.length, current: valid[0]?.name || "" });
+    for (let i = 0; i < valid.length; i++) {
+      const file = valid[i]!;
+      setLocalDocProgress({ done: i, total: valid.length, current: file.name });
       try {
-        await putStorageFile(pick.file);
-      } catch (error) {
-        failures.push({ name: pick.file.name, reason: error instanceof Error ? error.message : "transfert impossible" });
+        const dataUrl = await readFileAsDataURL(file);
+        addEntity("documents", {
+          title: file.name,
+          kind: guessKind(file.name),
+          at: Date.now(),
+          url: dataUrl,
+        } as unknown as Document);
+      } catch (err) {
+        setLocalDocError((prev) => (prev ? `${prev} ` : "") + `${file.name}: lecture impossible.`);
       }
     }
-    try {
-      await refreshFiles();
-    } catch {
-      // La liste se complétera au prochain rafraîchissement ; les fichiers sont partis.
-    }
-    setLocalImport({
-      done: chosen.length,
-      total: chosen.length,
-      current: "",
-      skipped: failures,
-      note: failures.length
-        ? `${chosen.length} fichier(s) importé(s), ${failures.length} écarté(s).`
-        : `${chosen.length} fichier(s) importé(s) dans ce Monde.`,
-    });
+    setLocalDocProgress(null);
     setBusy(false);
-    if (folderRef.current) folderRef.current.value = "";
+    if (fileRef.current) fileRef.current.value = "";
   };
 
-  const chooseLocalFolder = async () => {
-    const support = localImportSupport();
-    if (support.picker) {
-      try {
-        const picks = await pickLocalFolder(LOCAL_IMPORT_POLICY);
-        if (picks?.length) await importLocalPicks(picks);
-      } catch (error) {
-        setRemoteError(error instanceof Error ? error.message : "Dossier illisible depuis le navigateur.");
-      }
-      return;
-    }
-    folderRef.current?.click();
-  };
-
-  const copyBridgeCommand = async (command: string) => {
-    try {
-      await navigator.clipboard.writeText(command);
-      setRemoteError("");
-      setLocalImport({ done: 0, total: 0, current: "", skipped: [], note: "Commande copiée dans le presse-papiers." });
-    } catch {
-      setRemoteError("Le presse-papiers est refusé par ce navigateur : sélectionnez la ligne vous-même.");
-    }
-  };
-  const deleteFile = async (file: StoredFile) => {
-    if (!window.confirm(`Supprimer définitivement « ${file.name} » ?`)) return;
-    setBusy(true);
-    setRemoteError("");
-    try {
-      await api(`/storage/files/${file.id}`, { method: "DELETE" });
-      setFiles(value => value.filter(item => item.id !== file.id));
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Suppression impossible");
-    } finally {
-      setBusy(false);
-    }
-  };
-  // Pied de message obligatoire pour les envois groupés : mécanisme de
-  // désabonnement clair (CAN-SPAM) et identification de l'expéditeur (RGPD).
-  // Le désabonnement par réponse fonctionne sans bout de chaîne supplémentaire.
+  // --- Messages local-first (simulation) ---
   const withLegalFooter = (body: string) => {
     const footer = [
       "",
       "—",
       "Vous recevez cet e-mail de la part des organisateurs de ce mariage, via AIME. Pour ne plus recevoir ces messages, répondez en indiquant « Désabonnement ».",
-      "You are receiving this email from the wedding organizers via AIME. Reply with “STOP” to opt out of future messages.",
+      "You are receiving this email from the wedding organizers via AIME. Reply with “STOP” to opt out.",
     ].join("\n");
     return /Désabonnement|opt out/i.test(body) ? body : `${body.trimEnd()}${footer}`;
   };
 
-  // Unique point d'entrée de composition d'e-mail : les modèles et le message libre
-  // passent tous par ce journal (voir dédup « Messages = seul endroit de composition »).
-  const deliverMessage = async (recipientList: string[], subject: string, body: string) => {
+  const deliverMessageLocal = async (recipientList: string[], subject: string, body: string) => {
     if (!recipientList.length || !subject.trim() || !body.trim()) return;
     setBusy(true);
     setRemoteError("");
+    // Tentative backend si dispo, sinon simulation locale
     try {
-      const delivery = await api<SentMessage>(`/projects/${project.id}/messages`, {
-        method: "POST",
-        body: JSON.stringify({ kind: "practical_info", recipients: recipientList, subject: subject.trim(), body: withLegalFooter(body), confirmed: true }),
-      });
-      if (delivery.status !== "sent") throw new Error(delivery.providerError || "La livraison de l’e-mail n’a pas été confirmée");
-      try {
-        setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
-      } catch {
-        setRemoteError("Le message a été traité, mais le journal n’a pas pu être actualisé. Rouvrez ce module pour vérifier son statut.");
+      if (projectId) {
+        const delivery = await api<SentMessage>(`/projects/${projectId}/messages`, {
+          method: "POST",
+          body: JSON.stringify({
+            kind: "practical_info",
+            recipients: recipientList,
+            subject: subject.trim(),
+            body: withLegalFooter(body),
+            confirmed: true,
+          }),
+        });
+        setMessages((cur) => [delivery, ...cur]);
+        if (delivery.status !== "sent") setRemoteError(delivery.providerError || "Envoi non confirmé");
+      } else {
+        throw new Error("no project");
       }
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Envoi impossible");
-      try {
-        setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
-      } catch {
-        // The delivery error above remains the source of truth if history is unavailable too.
-      }
+    } catch {
+      // Mode hors-ligne: on log en local dans messageLogs
+      const id = newId();
+      addEntity("messageLogs", {
+        recipient: recipientList.join(", "),
+        sentAt: Date.now(),
+        status: "simule",
+        note: `${subject} — ${body.slice(0, 120)}`,
+      } as never);
+      setMessages((cur) => [
+        {
+          id,
+          projectId: project.id,
+          kind: "practical_info",
+          recipients: recipientList,
+          subject,
+          status: "simule",
+          createdAt: new Date().toISOString(),
+        },
+        ...cur,
+      ]);
+      setRemoteError("Mode hors-ligne: message conservé localement (simulation). L'envoi réel nécessite le backend.");
     } finally {
       setBusy(false);
     }
   };
-  const sendTemplate = async (template: typeof project.messageTemplates[number]) => {
-    const recipientList = recipients.split(",").map(value => value.trim()).filter(Boolean);
+
+  const sendTemplate = async (template: (typeof project.messageTemplates)[number]) => {
+    const recipientList = recipients
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
     if (!recipientList.length || !template.title.trim() || !template.body.trim()) return;
-    await deliverMessage(recipientList, template.title, template.body);
+    await deliverMessageLocal(recipientList, template.title, template.body);
     setRecipients("");
     setSelectedTemplateId(null);
   };
+
   const sendFreeMessage = async () => {
-    const recipientList = freeRecipients.split(",").map(value => value.trim()).filter(Boolean);
-    await deliverMessage(recipientList, freeSubject, freeBody);
+    const recipientList = freeRecipients
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    await deliverMessageLocal(recipientList, freeSubject, freeBody);
     setFreeRecipients("");
     setFreeSubject("");
     setFreeBody("");
     setFreeOpen(false);
   };
+
   const cancelScheduledMessage = async (messageId: string) => {
     setBusy(true);
-    setRemoteError("");
     try {
-      await api<SentMessage>(`/projects/${project.id}/messages/${messageId}`, { method: "POST" });
-      setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Annulation impossible");
+      if (projectId) await api<SentMessage>(`/projects/${projectId}/messages/${messageId}`, { method: "POST" });
+      setMessages((cur) => cur.filter((m) => m.id !== messageId));
+    } catch {
+      setMessages((cur) => cur.filter((m) => m.id !== messageId));
     } finally {
       setBusy(false);
     }
   };
+
   const rescheduleMessage = async (messageId: string) => {
     const value = rescheduleAt[messageId];
     if (!value) return;
     setBusy(true);
-    setRemoteError("");
     try {
-      await api<SentMessage>(`/projects/${project.id}/messages/${messageId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ scheduledAt: new Date(value).toISOString() }),
-      });
-      setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Reprogrammation impossible");
+      if (projectId)
+        await api<SentMessage>(`/projects/${projectId}/messages/${messageId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ scheduledAt: new Date(value).toISOString() }),
+        });
+      setMessages((cur) =>
+        cur.map((m) => (m.id === messageId ? { ...m, scheduledAt: new Date(value).toISOString() } : m)),
+      );
+    } catch {
+      setRemoteError("Reprogrammation indisponible hors-ligne");
     } finally {
       setBusy(false);
     }
   };
-  const moderateMedia = async (mediaId: string, moderationStatus: ParticipantMedia["moderationStatus"]) => {
+
+  const moderateMedia = async (mediaId: string, status: ParticipantMedia["moderationStatus"]) => {
     setBusy(true);
-    setRemoteError("");
     try {
-      const updated = await api<ParticipantMedia>(`/projects/${project.id}/participant-media/${mediaId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: moderationStatus }),
-      });
-      setParticipantMedia(current => current.map(item => item.id === updated.id ? updated : item));
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Modération impossible");
+      if (projectId) {
+        const updated = await api<ParticipantMedia>(`/projects/${projectId}/participant-media/${mediaId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status }),
+        });
+        setParticipantMedia((cur) => cur.map((item) => (item.id === updated.id ? updated : item)));
+      } else {
+        setParticipantMedia((cur) => cur.map((item) => (item.id === mediaId ? { ...item, moderationStatus: status } : item)));
+      }
+    } catch {
+      setParticipantMedia((cur) => cur.map((item) => (item.id === mediaId ? { ...item, moderationStatus: status } : item)));
     } finally {
       setBusy(false);
     }
   };
+
   const updateSongRequest = async (requestId: string, status: SongRequest["status"]) => {
     setBusy(true);
-    setRemoteError("");
     try {
-      const updated = await api<SongRequest>(`/projects/${project.id}/song-requests/${requestId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      });
-      setSongRequests(current => current.map(item => item.id === updated.id ? updated : item));
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Mise à jour impossible");
-    } finally {
-      setBusy(false);
-    }
-  };
-  const sendThankYou = async (recipient: string, name: string) => {
-    setBusy(true);
-    setRemoteError("");
-    try {
-      const delivery = await api<SentMessage>(`/projects/${project.id}/messages`, {
-        method: "POST",
-        body: JSON.stringify({
-          kind: "thank_you",
-          recipients: [recipient],
-          subject: `Merci d’avoir partagé ${project.title}`,
-          body: `Bonjour ${name},\n\nMerci d’avoir été à nos côtés et d’avoir partagé ce Moment avec nous.\n\nAvec toute notre affection.`,
-          confirmed: true,
-        }),
-      });
-      setMessages(current => [delivery, ...current]);
-      if (delivery.status !== "sent") setRemoteError(delivery.providerError || "L’envoi n’a pas été confirmé");
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Remerciement impossible à envoyer");
-      try {
-        setMessages(await api<SentMessage[]>(`/projects/${project.id}/messages`));
-      } catch {
-        // The delivery error remains visible if the journal cannot be refreshed.
+      if (projectId) {
+        const updated = await api<SongRequest>(`/projects/${projectId}/song-requests/${requestId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status }),
+        });
+        setSongRequests((cur) => cur.map((item) => (item.id === updated.id ? updated : item)));
+      } else {
+        setSongRequests((cur) => cur.map((item) => (item.id === requestId ? { ...item, status } : item)));
       }
+    } catch {
+      setSongRequests((cur) => cur.map((item) => (item.id === requestId ? { ...item, status } : item)));
     } finally {
       setBusy(false);
     }
   };
-  const refreshAimeLocal = async () => {
-    if (!projectId) return;
-    const [bridge, scan, refs] = await Promise.all([
-      api<LocalBridgeStatus>("/aime-local/bridge/status").catch(() => ({ connected: false })),
-      api<{ job: LocalScanJob | null }>(`/projects/${projectId}/aime-local/scans/latest`).catch(() => ({ job: null })),
-      api<LocalReference[]>(`/projects/${projectId}/aime-local/references`).catch(() => []),
-    ]);
-    setLocalBridge(bridge);
-    setLocalScan(scan.job);
-    setLocalReferences(refs);
+
+  const sendThankYou = async (recipient: string, name: string) => {
+    await deliverMessageLocal(
+      [recipient],
+      `Merci d’avoir partagé ${project.title}`,
+      `Bonjour ${name},\n\nMerci d’avoir été à nos côtés et d’avoir partagé ce Moment avec nous.\n\nAvec toute notre affection.`,
+    );
   };
-  const createPairingToken = async () => {
-    setBusy(true);
-    setRemoteError("");
-    try {
-      const paired = await api<{ token: string; expiresAt: string }>("/aime-local/pairing-token", { method: "POST", body: JSON.stringify({}) });
-      setPairingToken(paired);
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Connexion locale impossible");
-    } finally {
-      setBusy(false);
-    }
-  };
-  const saveAuthorizedFolders = async () => {
-    if (!projectId) return;
-    setBusy(true);
-    setRemoteError("");
-    try {
-      const folders = authorizedFoldersText.split("\n").map((value) => value.trim()).filter(Boolean);
-      await api(`/projects/${projectId}/aime-local/folders`, { method: "PUT", body: JSON.stringify({ folders }) });
-      await refreshAimeLocal();
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Enregistrement impossible");
-    } finally {
-      setBusy(false);
-    }
-  };
-  const launchLocalScan = async () => {
-    if (!projectId) return;
-    setBusy(true);
-    setRemoteError("");
-    try {
-      await api(`/projects/${projectId}/aime-local/scan`, { method: "POST", body: JSON.stringify({}) });
-      window.setTimeout(() => void refreshAimeLocal(), 3000);
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Scan impossible");
-    } finally {
-      setBusy(false);
-    }
-  };
-  const linkLocalFile = async (file: LocalScanFile, suggestion?: LocalScanSuggestion) => {
-    if (!projectId) return;
-    setBusy(true);
-    setRemoteError("");
-    try {
-      const linkedEntityKind = suggestion?.actions.includes("add_timeline") ? "timeline" : "project";
-      await api(`/projects/${projectId}/aime-local/references`, {
-        method: "POST",
-        body: JSON.stringify({
-          localIdentifier: file.localIdentifier,
-          fingerprint: file.fingerprint,
-          filename: file.name,
-          relativePath: file.relativePath,
-          sourceFolder: file.sourceFolder,
-          extension: file.extension,
-          fileType: file.fileType,
-          size: file.size,
-          modifiedAt: file.modifiedAt,
-          metadata: {},
-          linkedEntityKind,
-        }),
-      });
-      await refreshAimeLocal();
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Liaison impossible");
-    } finally {
-      setBusy(false);
-    }
-  };
-  const requestImport = async (reference: LocalReference) => {
-    if (!projectId) return;
-    setBusy(true);
-    setRemoteError("");
-    try {
-      const result = await api<{ jobId: string }>(`/projects/${projectId}/aime-local/references/${reference.id}/import`, { method: "POST" });
-      setPendingImportJobs((state) => ({ ...state, [reference.id]: result.jobId }));
-    } catch (error) {
-      setRemoteError(error instanceof Error ? error.message : "Import impossible");
-    } finally {
-      setBusy(false);
-    }
-  };
-  useEffect(() => {
-    if (!projectId || module !== "documents") return;
-    const timer = window.setInterval(() => {
-      void refreshAimeLocal();
-      void Promise.all(Object.entries(pendingImportJobs).map(async ([referenceId, jobId]) => {
-        const job = await api<{ status: string }>(`/projects/${projectId}/aime-local/import-jobs/${jobId}`).catch(() => null);
-        if (job?.status === "done" || job?.status === "failed") {
-          setPendingImportJobs((current) => {
-            const next = { ...current };
-            delete next[referenceId];
-            return next;
-          });
-        }
-      }));
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [module, projectId, pendingImportJobs]);
 
   if (module === "seating") {
-    const unassigned = project.guests.filter(g => effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline" && !g.tableId);
-    return <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between"><div><p className="text-sm text-foreground/50">{unassigned.length} invité{unassigned.length > 1 ? "s" : ""} sans table</p></div><AddBar label="Ajouter une table" onAdd={() => addEntity("tables", { name: `Table ${project.tables.length + 1}`, capacity: 8 })} /></div>
-      {unassigned.length > 0 && <div className="rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-widest text-brand-accent"><AlertTriangle className="w-3.5 h-3.5" /> À placer</div><div className="mt-3 grid gap-2 sm:grid-cols-2">{unassigned.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div>}
-      <div className="grid gap-3 md:grid-cols-2">{project.tables.map(table => { const guests = project.guests.filter(g => g.tableId === table.id && effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline"); return <div key={table.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{table.name}</h4><p className={cn("text-xs mt-1", guests.length > table.capacity ? "text-brand-accent" : "text-foreground/40")}>{guests.length} / {table.capacity} places</p></div><button onClick={() => { guests.forEach(g => updateEntity("guests", g.id, { tableId: undefined })); removeEntity("tables", table.id); }} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-4 h-4" /></button></div><div className="mt-4 space-y-2">{guests.length === 0 ? <p className="text-xs text-foreground/30">Aucun invité assigné</p> : guests.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div> })}</div>
-    </div>;
+    const unassigned = project.guests.filter((g) => effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline" && !g.tableId);
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-foreground/50">
+              {unassigned.length} invité{unassigned.length > 1 ? "s" : ""} sans table
+            </p>
+          </div>
+          <AddBar label="Ajouter une table" onAdd={() => addEntity("tables", { name: `Table ${project.tables.length + 1}`, capacity: 8 })} />
+        </div>
+        {unassigned.length > 0 && (
+          <div className="rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-brand-accent">
+              <AlertTriangle className="w-3.5 h-3.5" /> À placer
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {unassigned.map((g) => (
+                <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={(tableId) => updateEntity("guests", g.id, { tableId: tableId || undefined })} />
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="grid gap-3 md:grid-cols-2">
+          {project.tables.map((table) => {
+            const guests = project.guests.filter((g) => g.tableId === table.id && effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline");
+            return (
+              <div key={table.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium">{table.name}</h4>
+                    <p className={cn("text-xs mt-1", guests.length > table.capacity ? "text-brand-accent" : "text-foreground/40")}>
+                      {guests.length} / {table.capacity} places
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      guests.forEach((g) => updateEntity("guests", g.id, { tableId: undefined }));
+                      removeEntity("tables", table.id);
+                    }}
+                    className="text-foreground/30 hover:text-brand-accent"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {guests.length === 0 ? (
+                    <p className="text-xs text-foreground/30">Aucun invité assigné</p>
+                  ) : (
+                    guests.map((g) => (
+                      <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={(tableId) => updateEntity("guests", g.id, { tableId: tableId || undefined })} />
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   if (module === "budget") {
     const estimated = project.providers.reduce((sum, p) => sum + (p.amountCents || 0), 0);
-    const committed = project.providers.filter(p => ["devis", "reserve"].includes(p.status)).reduce((sum, p) => sum + (p.amountCents || 0), 0);
-    const paid = project.payments.filter(p => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
+    const committed = project.providers
+      .filter((p) => ["devis", "reserve"].includes(p.status))
+      .reduce((sum, p) => sum + (p.amountCents || 0), 0);
+    const paid = project.payments.filter((p) => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
     const remaining = Math.max(0, (project.budget.value || estimated / 100) * 100 - paid);
-    return <div className="max-w-4xl mx-auto space-y-6">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{[["Estimé", estimated], ["Engagé", committed], ["Payé", paid], ["Restant", remaining]].map(([label, value]) => <div key={label as string} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p><p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p></div>)}</div>
-      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p><div className="mt-4 space-y-3">{Array.from(new Set(project.providers.map(p => p.category))).map(category => { const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0); const pct = estimated ? Math.min(100, Math.round(amount / estimated * 100)) : 0; return <div key={category}><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-foreground/65">{category}</span><span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span></div><div className="h-1 rounded-full bg-foreground/10"><div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} /></div></div> })}</div></div>
-      <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Échéancier</h4><p className="text-xs text-foreground/40 mt-1">Chaque modification est enregistrée dans ce Monde.</p></div><AddBar label="Ajouter un paiement" onAdd={addPayment} /></div>
-      {project.payments.length === 0 ? <Empty>Aucun paiement à suivre.</Empty> : <div className="space-y-2">{project.payments.map(p => <PaymentRow key={p.id} payment={p} currency={project.currency} onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })} onDelete={() => removeEntity("payments", p.id)} onEdit={updates => updateEntity("payments", p.id, updates)} />)}</div>}
-    </div>;
-  }
-
-  if (module === "documents") return <div className="max-w-3xl mx-auto space-y-5">
-    <PersistenceState status={syncStatus} error={syncError} />
-    <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-foreground/60">AIME LOCAL</p>
-          <p className="mt-1 text-sm text-foreground/80">AIME peut analyser des fichiers restés sur votre ordinateur, Mac ou PC, sans les importer : c&apos;est le pont AIME LOCAL.</p>
-          <p className="mt-1 text-xs text-foreground/45">Sans installation, préférez « Choisir un dossier » plus bas : le navigateur lit les fichiers que vous désignez et les transfère dans ce Monde.</p>
-          <p className="mt-1 text-xs text-foreground/45">
-            État bridge : {localBridge.connected ? `connecté (${localBridge.bridgeVersion || "bridge"})` : "non connecté"}
-          </p>
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {[
+            ["Estimé", estimated],
+            ["Engagé", committed],
+            ["Payé", paid],
+            ["Restant", remaining],
+          ].map(([label, value]) => (
+            <div key={label as string} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p>
+              <p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p>
+            </div>
+          ))}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button disabled={busy} onClick={() => void createPairingToken()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">
-            {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
-            Connecter mon ordinateur
-          </button>
-          <button disabled={busy} onClick={() => void refreshAimeLocal()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">
-            <RefreshCcw className="h-3.5 w-3.5" /> Actualiser
-          </button>
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p>
+          <div className="mt-4 space-y-3">
+            {Array.from(new Set(project.providers.map((p) => p.category))).map((category) => {
+              const amount = project.providers
+                .filter((p) => p.category === category)
+                .reduce((sum, p) => sum + (p.amountCents || 0), 0);
+              const pct = estimated ? Math.min(100, Math.round((amount / estimated) * 100)) : 0;
+              return (
+                <div key={category}>
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span className="capitalize text-foreground/65">{category}</span>
+                    <span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-foreground/10">
+                    <div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
-      {pairingToken && (
-        <div className="mt-3 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3 text-xs">
-          <p className="text-foreground/75">Terminal (une seule fois):</p>
-          <code className="mt-1 block overflow-auto rounded bg-[var(--agency-paper)]/60 p-2 text-[11px] text-foreground/85">
-            pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base {window.location.origin}/api --pairing-token {pairingToken.token}
-          </code>
-          <p className="mt-1 text-foreground/45">Commande identique sur macOS, Linux et Windows (PowerShell). Node.js 20+ et pnpm installés dans le dépôt sont requis ; ce pont parle à l&apos;API auto-hébergée, pas au site public. Code valide jusqu&apos;au {new Date(pairingToken.expiresAt).toLocaleTimeString("fr-FR")}.</p>
-          <button
-            type="button"
-            data-testid="copy-bridge-command"
-            onClick={() => void copyBridgeCommand(`pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base ${window.location.origin}/api --pairing-token ${pairingToken.token}`)}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-foreground/65 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Copy className="h-3 w-3" /> Copier la commande
-          </button>
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-medium">Échéancier</h4>
+            <p className="text-xs text-foreground/40 mt-1">Chaque modification est enregistrée dans ce Monde.</p>
+          </div>
+          <AddBar label="Ajouter un paiement" onAdd={addPayment} />
         </div>
-      )}
-      <div className="mt-3 space-y-2">
-        <label className="block text-[10px] uppercase tracking-[.2em] text-foreground/45">Dossiers autorisés (un par ligne)</label>
-        <textarea
-          value={authorizedFoldersText}
-          onChange={(event) => setAuthorizedFoldersText(event.target.value)}
-          rows={3}
-          className="w-full rounded-xl border border-[var(--agency-hairline)] bg-background/30 px-3 py-2 text-xs outline-none focus:border-foreground/30"
-          placeholder="/Users/prenom/Documents/Mariage  ·  C:\\Users\\prenom\\Documents\\Mariage"
-        />
-        <div className="flex flex-wrap gap-2">
-          <button disabled={busy} onClick={() => void saveAuthorizedFolders()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">
-            <FolderOpen className="h-3.5 w-3.5" /> Enregistrer les dossiers
-          </button>
-          <button disabled={busy || !localBridge.connected} title={localBridge.connected ? "Le pont analyse les dossiers autorisés." : "Pont AIME LOCAL non connecté : lancez la commande ci-dessus, ou choisissez un dossier plus bas."} onClick={() => void launchLocalScan()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">
-            <Search className="h-3.5 w-3.5" /> Lancer un scan manuel
-          </button>
-        </div>
-      </div>
-    </div>
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <p className="text-sm text-foreground/70">Documents & médias privés</p>
-        <p className="mt-1 text-xs text-foreground/40">Stockés dans l’espace sécurisé de ce Monde.</p>
-      </div>
-      {canManage && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            data-testid="pick-local-folder"
-            disabled={busy}
-            onClick={() => void chooseLocalFolder()}
-            title="Le navigateur ouvre le sélecteur de dossier de votre Mac ou de votre PC ; rien n'est envoyé ailleurs que dans ce Monde."
-            className="inline-flex items-center gap-2 rounded-full border border-foreground/25 bg-[var(--agency-paper)] px-3 py-2 text-xs text-foreground transition hover:bg-foreground/[.12] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <FolderSearch className="h-3.5 w-3.5" />}
-            Choisir un dossier de cet ordinateur
-          </button>
-          <button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter des fichiers</button>
-          <input ref={fileRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.mp4,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => {
-            const picked = Array.from(event.target.files ?? []);
-            if (picked.length > 1) void importLocalPicks(picked.map(file => ({ path: file.name, file })));
-            else if (picked[0]) void uploadFile(picked[0]);
-          }} />
-          {/* Repli pour les navigateurs sans File System Access API (Firefox, Safari). */}
-          <input
-            ref={folderRef}
-            type="file"
-            className="hidden"
-            accept=".pdf,.jpg,.jpeg,.png,.webp,.mp4,.csv,.txt"
-            onChange={event => {
-              const picked = Array.from(event.target.files ?? []);
-              if (picked.length) {
-                void importLocalPicks(picked.map(file => ({
-                  path: (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name,
-                  file,
-                })));
-              }
-            }}
-            {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
-          />
-        </div>
-      )}
-    </div>
-    {localImport && (
-      <div data-testid="local-import-status" role="status" aria-live="polite" className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3 text-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-foreground/75">{localImport.current ? `Import en cours · ${localImport.done + 1}/${localImport.total} · ${localImport.current}` : localImport.note}</p>
-          {localImport.total > 0 && <p className="font-mono text-foreground/45">{localImport.done}/{localImport.total}</p>}
-        </div>
-        {localImport.total > 0 && (
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10">
-            <div className="h-full rounded-full bg-foreground/70 transition-[width]" style={{ width: `${Math.round((localImport.done / localImport.total) * 100)}%` }} />
+        {project.payments.length === 0 ? (
+          <Empty>Aucun paiement à suivre.</Empty>
+        ) : (
+          <div className="space-y-2">
+            {project.payments.map((p) => (
+              <PaymentRow
+                key={p.id}
+                payment={p}
+                currency={project.currency}
+                onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })}
+                onDelete={() => removeEntity("payments", p.id)}
+                onEdit={(updates) => updateEntity("payments", p.id, updates)}
+              />
+            ))}
           </div>
         )}
-        {localImport.skipped.length > 0 && (
-          <ul className="mt-2 space-y-1 text-foreground/45">
-            {localImport.skipped.slice(0, 8).map(entry => <li key={`${entry.name}-${entry.reason}`} className="truncate">Écarté · {entry.name} — {entry.reason}</li>)}
-            {localImport.skipped.length > 8 && <li>{localImport.skipped.length - 8} autre(s) fichier(s) écarté(s).</li>}
-          </ul>
-        )}
       </div>
-    )}
-    {remoteError && <p className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
-    {uploadProgress !== null && <div role="status" aria-live="polite" className="rounded-xl border border-brand-accent/25 bg-brand-accent/5 p-3"><div className="flex justify-between text-xs text-foreground/80"><span>Transfert vers l’espace privé</span><span>{uploadProgress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10"><div className="h-full rounded-full bg-brand-accent transition-[width]" style={{ width: `${uploadProgress}%` }} /></div></div>}
-    {localScan && (
-      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs uppercase tracking-widest text-foreground/45">Résultats AIME LOCAL</p>
-          <span className="text-xs text-foreground/45">{localScan.results.length} fichier(s)</span>
-        </div>
-        {localScan.suggestions.length === 0 ? <p className="mt-2 text-xs text-foreground/45">Aucune suggestion contextuelle pour le moment.</p> : <div className="mt-3 space-y-2">{localScan.suggestions.slice(0, 12).map((suggestion) => {
-          const file = localScan.results.find((item) => item.localIdentifier === suggestion.localIdentifier);
-          if (!file) return null;
-          const linked = localReferences.find((reference) => reference.localIdentifier === suggestion.localIdentifier);
-          return <div key={suggestion.localIdentifier} className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
-            <p className="truncate text-sm">{file.name}</p>
-            <p className="mt-1 text-xs text-foreground/50">{suggestion.reason}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button disabled={busy} onClick={() => void linkLocalFile(file, suggestion)} className="rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">Lier au projet</button>
-              <button disabled={busy || !linked || !canManage} onClick={() => linked && void requestImport(linked)} className="inline-flex items-center gap-1 rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40"><Upload className="h-3 w-3" />Importer dans AIME</button>
-              <button disabled={busy || !linked} onClick={() => linked && void api(`/projects/${project.id}/aime-local/references/${linked.id}/state`, { method: "PATCH", body: JSON.stringify({ state: "ignored" }) }).then(() => refreshAimeLocal())} className="rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[11px] text-foreground/55 hover:bg-foreground/10 disabled:opacity-40">Ignorer</button>
+    );
+  }
+
+  // --- Documents : local-first, AIME LOCAL supprimé ---
+  if (module === "documents")
+    return (
+      <div className="max-w-3xl mx-auto space-y-5">
+        <PersistenceState status={syncStatus} error={syncError} />
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Documents & médias privés</p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">
+                Stockés localement dans ce Monde (dataURL, {Math.round(MAX_DOC_BYTES / 1024 / 1024)} Mo max par fichier). Pas de serveur, pas de pont AIME LOCAL — tout reste sur cet appareil et suit la sauvegarde du Monde.
+              </p>
+              <p className="mt-2 text-xs text-[var(--agency-eyebrow)]">{project.documents.length} document(s) · Galerie locale</p>
             </div>
-          </div>;
-        })}</div>}
+            {canManage && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  disabled={busy}
+                  onClick={() => fileRef.current?.click()}
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs text-[var(--agency-ink)] transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40"
+                >
+                  {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  Ajouter des fichiers
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.mp4,.csv,.txt,image/jpeg,image/png,image/webp,video/mp4,application/pdf"
+                  className="hidden"
+                  onChange={(event) => {
+                    const picked = Array.from(event.target.files ?? []);
+                    if (picked.length) void importLocalDocuments(picked);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {localDocProgress && (
+          <div role="status" aria-live="polite" className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3 text-xs">
+            <div className="flex justify-between">
+              <span>Import {localDocProgress.done + 1}/{localDocProgress.total} · {localDocProgress.current}</span>
+              <span className="font-mono text-[var(--agency-eyebrow)]">
+                {localDocProgress.done}/{localDocProgress.total}
+              </span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--agency-ink)]/10">
+              <div
+                className="h-full rounded-full bg-[var(--agency-ink)] transition-[width]"
+                style={{ width: `${Math.round((localDocProgress.done / localDocProgress.total) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {localDocError && <p className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#B42318]">{localDocError}</p>}
+        {remoteError && <p className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#B42318]">{remoteError}</p>}
+
+        {project.documents.length === 0 ? (
+          <Empty>Aucun document stocké localement. Ajoutez PDF, images, vidéos.</Empty>
+        ) : (
+          <div className="space-y-2">
+            {project.documents.map((doc) => {
+              const isImage = doc.url?.startsWith("data:image") || doc.title.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+              const isVideo = doc.url?.startsWith("data:video") || doc.title.match(/\.(mp4|webm|mov)$/i);
+              return (
+                <div key={doc.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
+                    {isImage ? <ImageIcon className="h-4 w-4" /> : isVideo ? <Film className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">{doc.title}</p>
+                    <p className="mt-1 text-xs text-[var(--agency-eyebrow)]">
+                      {doc.kind} · {new Date(doc.at).toLocaleDateString("fr-FR")} · {doc.url ? "local" : "sans fichier"}
+                    </p>
+                  </div>
+                  {doc.url && (
+                    <>
+                      <a aria-label={`Aperçu de ${doc.title}`} target="_blank" rel="noreferrer" href={doc.url} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                      <a aria-label={`Télécharger ${doc.title}`} href={doc.url} download={doc.title} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]">
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </>
+                  )}
+                  {canManage && (
+                    <button aria-label={`Supprimer ${doc.title}`} onClick={() => removeEntity("documents", doc.id)} className="p-2 text-[var(--agency-eyebrow)] hover:text-[#B42318]">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {!canManage && <p className="text-xs text-[var(--agency-eyebrow)]">Seuls les responsables peuvent ajouter des documents.</p>}
       </div>
-    )}
-    {files.length === 0 ? <Empty>Aucun document stocké.</Empty> : <div className="space-y-2">{files.map(file => <div key={file.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><div className="min-w-0 flex-1"><p className="truncate text-sm">{file.name}</p><p className="mt-1 text-xs text-foreground/35">{fileSize(file.size)} · {file.contentType || "fichier"}</p></div><a aria-label={`Aperçu de ${file.name}`} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="p-2 text-foreground/45 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a><a aria-label={`Télécharger ${file.name}`} href={`/api/storage/files/${file.id}?download=1`} className="p-2 text-foreground/45 hover:text-foreground"><Download className="h-4 w-4" /></a>{canManage && <button disabled={busy} aria-label={`Supprimer ${file.name}`} onClick={() => void deleteFile(file)} className="p-2 text-foreground/30 hover:text-brand-accent disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>}
-    {!canManage && <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent consulter ou modifier ces documents privés.</p>}
-  </div>;
+    );
 
   if (module === "ceremony") {
     const c = project.ceremony;
-    return <div className="max-w-3xl mx-auto space-y-5"><EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={notes => updateProject({ ceremony: { ...c, notes } })} /><div className="grid gap-3 sm:grid-cols-2"><EditableArea label="Menu" value={c.menu} onChange={menu => updateProject({ ceremony: { ...c, menu } })} /><EditableArea label="Boissons" value={c.drinks} onChange={drinks => updateProject({ ceremony: { ...c, drinks } })} /><EditableArea label="Gâteau" value={c.cake} onChange={cake => updateProject({ ceremony: { ...c, cake } })} /><EditableArea label="Première danse" value={c.firstDance} onChange={firstDance => updateProject({ ceremony: { ...c, firstDance } })} /></div><div className="rounded-3xl border border-[var(--agency-hairline)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Structure</p>{c.structure.map((item, i) => <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm"><span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>{item}</div>)}</div><div className="rounded-3xl border border-[var(--agency-hairline)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Lectures et vœux</p>{c.readings.map(r => <div key={r.id} className="mb-3"><p className="text-sm">{r.title} <span className="text-foreground/40">· {r.reader}</span></p><p className="text-xs text-foreground/45 mt-1">{r.text}</p></div>)}{c.vows.map(v => <EditableArea key={v.id} label={`Vœux de ${v.person}`} value={v.text} onChange={text => updateProject({ ceremony: { ...c, vows: c.vows.map(x => x.id === v.id ? { ...x, text } : x) } })} />)}</div></div>;
+    return (
+      <div className="max-w-3xl mx-auto space-y-5">
+        <EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={(notes) => updateProject({ ceremony: { ...c, notes } })} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <EditableArea label="Menu" value={c.menu} onChange={(menu) => updateProject({ ceremony: { ...c, menu } })} />
+          <EditableArea label="Boissons" value={c.drinks} onChange={(drinks) => updateProject({ ceremony: { ...c, drinks } })} />
+          <EditableArea label="Gâteau" value={c.cake} onChange={(cake) => updateProject({ ceremony: { ...c, cake } })} />
+          <EditableArea label="Première danse" value={c.firstDance} onChange={(firstDance) => updateProject({ ceremony: { ...c, firstDance } })} />
+        </div>
+        <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Structure</p>
+          {c.structure.map((item, i) => (
+            <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm">
+              <span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>
+              {item}
+            </div>
+          ))}
+        </div>
+        <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Lectures et vœux</p>
+          {c.readings.map((r) => (
+            <div key={r.id} className="mb-3">
+              <p className="text-sm">
+                {r.title} <span className="text-foreground/40">· {r.reader}</span>
+              </p>
+              <p className="text-xs text-foreground/45 mt-1">{r.text}</p>
+            </div>
+          ))}
+          {c.vows.map((v) => (
+            <EditableArea
+              key={v.id}
+              label={`Vœux de ${v.person}`}
+              value={v.text}
+              onChange={(text) => updateProject({ ceremony: { ...c, vows: c.vows.map((x) => (x.id === v.id ? { ...x, text } : x)) } })}
+            />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (module === "music") {
     const timelineMusicEvents = [...project.timeline].sort((a, b) => a.time - b.time);
-    const selectedTrack = project.music.find(track => track.id === selectedMusicId) || project.music[0];
-    if (!canEdit) return <div className="mx-auto max-w-4xl space-y-5">
-      <div><h4 className="text-sm font-medium">Musique reliée aux Moments</h4><p className="mt-1 text-xs text-foreground/45">Consultation seule : les responsables et la famille autorisée peuvent modifier cette sélection.</p></div>
-      {project.music.length === 0 ? <Empty>Aucun morceau n’est encore relié à un Moment.</Empty> : project.music.map(track => <div key={track.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><TrackArtwork track={track} size="sm" /><div className="min-w-0 flex-1"><p className="truncate text-sm">{track.title}</p><p className="mt-1 truncate text-xs text-foreground/45">{track.artist || "Artiste à préciser"} · {track.moment}</p></div><span className="text-[10px] uppercase tracking-wider text-foreground/35">{track.status === "valide" ? "Validé" : "À choisir"}</span></div>)}
-    </div>;
+    const selectedTrack = project.music.find((track) => track.id === selectedMusicId) || project.music[0];
+    if (!canEdit)
+      return (
+        <div className="mx-auto max-w-4xl space-y-5">
+          <div>
+            <h4 className="text-sm font-medium">Musique reliée aux Moments</h4>
+            <p className="mt-1 text-xs text-foreground/45">Consultation seule.</p>
+          </div>
+          {project.music.length === 0 ? (
+            <Empty>Aucun morceau n’est encore relié à un Moment.</Empty>
+          ) : (
+            project.music.map((track) => (
+              <div key={track.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                <TrackArtwork track={track} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">{track.title}</p>
+                  <p className="mt-1 truncate text-xs text-foreground/45">{track.artist || "Artiste à préciser"} · {track.moment}</p>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-foreground/35">{track.status === "valide" ? "Validé" : "À choisir"}</span>
+              </div>
+            ))
+          )}
+        </div>
+      );
     const runMusicSearch = async () => {
       const term = musicQuery.trim();
       if (term.length < 2) {
@@ -880,227 +830,755 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     const selectMusicResult = (result: MusicSearchResult) => {
       if (!selectedTrack) return;
       const currentEventIds = musicEventIdsForTrack(project, selectedTrack.id);
-      const nextProject = linkMusicTrackToEvents({
-        ...project,
-        music: project.music.map(track => track.id === selectedTrack.id ? {
-          ...track,
-          title: result.title,
-          artist: result.artist,
-          status: "valide" as const,
-          provenance: "integration" as const,
-          metadataStatus: "verified" as const,
-          external: {
-            provider: result.provider,
-            externalId: result.externalId,
-            verifiedAt: Date.now(),
-            artworkUrl: result.artworkUrl,
-            durationMs: result.durationMs,
-            previewUrl: result.previewUrl,
-            trackUrl: result.trackUrl,
-            collectionName: result.collectionName,
-          },
-        } : track),
-      }, selectedTrack.id, currentEventIds);
+      const nextProject = linkMusicTrackToEvents(
+        {
+          ...project,
+          music: project.music.map((track) =>
+            track.id === selectedTrack.id
+              ? {
+                  ...track,
+                  title: result.title,
+                  artist: result.artist,
+                  status: "valide" as const,
+                  provenance: "integration" as const,
+                  metadataStatus: "verified" as const,
+                  external: {
+                    provider: result.provider,
+                    externalId: result.externalId,
+                    verifiedAt: Date.now(),
+                    artworkUrl: result.artworkUrl,
+                    durationMs: result.durationMs,
+                    previewUrl: result.previewUrl,
+                    trackUrl: result.trackUrl,
+                    collectionName: result.collectionName,
+                  },
+                }
+              : track,
+          ),
+        },
+        selectedTrack.id,
+        currentEventIds,
+      );
       updateProject(nextProject);
     };
     const toggleTrackEvent = (track: MusicTrack, eventId: string) => {
       const current = musicEventIdsForTrack(project, track.id);
-      const next = current.includes(eventId) ? current.filter(id => id !== eventId) : [...current, eventId];
+      const next = current.includes(eventId) ? current.filter((id) => id !== eventId) : [...current, eventId];
       updateProject(linkMusicTrackToEvents(project, track.id, next));
     };
-    return <div className="max-w-4xl mx-auto space-y-5">
-      {canManage && <section className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-        <div className="flex items-start gap-3">
-          <Music2 className="mt-0.5 h-4 w-4 shrink-0 text-foreground/50" />
-          <div><h4 className="text-sm font-medium">Demandes reçues sans interrompre le DJ</h4><p className="mt-1 text-xs leading-relaxed text-foreground/50">Les demandes restent une file de souhaits. Elles ne lancent jamais un morceau et ne promettent pas sa diffusion.</p></div>
+    return (
+      <div className="max-w-4xl mx-auto space-y-5">
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <ShieldCheck className="h-4 w-4 text-brand-accent" />
+            <span className="font-medium text-foreground/90">Source autorisée connectée</span>
+            <span className="text-foreground/40">· {MUSIC_SOURCE}</span>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-foreground/55">Métadonnées Apple. Aperçu audio seulement si Apple fournit un extrait légal.</p>
         </div>
-        {songRequests.length === 0 ? <p className="mt-4 text-xs text-foreground/35">Aucune demande musicale reçue.</p> : <div className="mt-4 space-y-2">{songRequests.map(request => {
-          const labels: Record<SongRequest["status"], string> = { new: "Nouvelle", seen: "Vue", accepted: "Acceptée", played: "Jouée", rejected: "Refusée" };
-          return <div key={request.id} className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
-            <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm">{request.title}</p><p className="mt-1 text-xs text-foreground/45">{request.artist || "Artiste non précisé"} · {request.guestName || "Invité"}</p>{request.message && <p className="mt-2 text-xs text-foreground/55">« {request.message} »</p>}</div><span className="rounded-full border border-[var(--agency-hairline)] px-2 py-1 text-[10px] uppercase tracking-wider text-foreground/55">{labels[request.status]}</span></div>
-            <div className="mt-3 flex flex-wrap gap-1.5">{(["seen", "accepted", "played", "rejected"] as const).map(status => <button key={status} disabled={busy || request.status === status} onClick={() => void updateSongRequest(request.id, status)} className="rounded-full border border-[var(--agency-hairline)] px-2.5 py-1.5 text-[10px] text-foreground/55 transition hover:border-foreground/30 hover:text-foreground disabled:opacity-30">{labels[status]}</button>)}</div>
-          </div>;
-        })}</div>}
-      </section>}
-      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <ShieldCheck className="h-4 w-4 text-brand-accent" />
-          <span className="font-medium text-foreground/90">Source autorisée connectée</span>
-          <span className="text-foreground/40">· {MUSIC_SOURCE}</span>
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="min-w-[220px] flex-1">
+              <span className="mb-2 block text-[10px] uppercase tracking-widest text-foreground/40">Rechercher dans {MUSIC_SOURCE}</span>
+              <input
+                value={musicQuery}
+                onChange={(event) => setMusicQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void runMusicSearch();
+                }}
+                placeholder="Titre ou artiste"
+                className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-sm outline-none focus:border-foreground/30"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={musicSearchBusy}
+              onClick={() => void runMusicSearch()}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-4 py-2 text-xs font-medium text-[var(--agency-paper)] disabled:opacity-40"
+            >
+              {musicSearchBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              Rechercher
+            </button>
+          </div>
+          {musicSearchError && (
+            <p role="alert" className="mt-3 text-xs text-brand-accent">
+              {musicSearchError}
+            </p>
+          )}
+          {musicResults.length > 0 && (
+            <div className="mt-4 space-y-2 border-t border-[var(--agency-hairline)] pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40">Résultats réels</p>
+                {selectedTrack && (
+                  <label className="flex items-center gap-2 text-xs text-foreground/55">
+                    Relier à
+                    <select
+                      value={selectedTrack.id}
+                      onChange={(event) => setSelectedMusicId(event.target.value)}
+                      className="rounded-lg bg-foreground/10 px-2 py-1 text-xs text-foreground outline-none"
+                    >
+                      {project.music.map((track) => (
+                        <option key={track.id} value={track.id}>
+                          {track.moment}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+              {musicResults.map((result) => (
+                <MusicSearchResultRow key={`${result.provider}:${result.externalId}`} result={result} disabled={!selectedTrack} onSelect={() => selectMusicResult(result)} />
+              ))}
+            </div>
+          )}
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-foreground/55">Les métadonnées et les pochettes viennent du catalogue Apple. Un aperçu audio est affiché uniquement quand Apple fournit un extrait légal pour ce morceau.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-medium">Morceaux reliés aux Moments</h4>
+            <p className="mt-1 text-xs text-foreground/40">Chaque morceau peut être relié à un ou plusieurs événements.</p>
+          </div>
+          <AddBar
+            label="Saisie manuelle"
+            onAdd={() =>
+              addEntity("music", {
+                moment: "Nouveau Moment",
+                title: "À choisir",
+                artist: "",
+                status: "a_choisir",
+                metadataStatus: "manual",
+                provenance: "real",
+                timelineEventIds: [],
+              })
+            }
+          />
+        </div>
+        {project.music.length === 0 ? (
+          <Empty>Aucun morceau n’est encore relié à un Moment.</Empty>
+        ) : (
+          project.music.map((track) => (
+            <MusicTrackRow
+              key={track.id}
+              track={track}
+              timelineEvents={timelineMusicEvents}
+              linkedEventIds={musicEventIdsForTrack(project, track.id)}
+              onToggleEvent={(eventId) => toggleTrackEvent(track, eventId)}
+              onUpdate={(updates) => updateEntity("music", track.id, updates)}
+              onDelete={() => removeEntity("music", track.id)}
+            />
+          ))
+        )}
       </div>
-      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="min-w-[220px] flex-1"><span className="mb-2 block text-[10px] uppercase tracking-widest text-foreground/40">Rechercher dans {MUSIC_SOURCE}</span><input value={musicQuery} onChange={event => setMusicQuery(event.target.value)} onKeyDown={event => { if (event.key === "Enter") void runMusicSearch(); }} placeholder="Titre ou artiste" className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-sm outline-none focus:border-foreground/30" /></label>
-          <button type="button" disabled={musicSearchBusy} onClick={() => void runMusicSearch()} className="inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-4 py-2 text-xs font-medium text-[var(--agency-paper)] disabled:opacity-40">{musicSearchBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}Rechercher</button>
-        </div>
-        {musicSearchError && <p role="alert" className="mt-3 text-xs text-brand-accent">{musicSearchError}</p>}
-        {musicResults.length > 0 && <div className="mt-4 space-y-2 border-t border-[var(--agency-hairline)] pt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Résultats réels</p>{selectedTrack && <label className="flex items-center gap-2 text-xs text-foreground/55">Relier à<select value={selectedTrack.id} onChange={event => setSelectedMusicId(event.target.value)} className="rounded-lg bg-foreground/10 px-2 py-1 text-xs text-foreground outline-none">{project.music.map(track => <option key={track.id} value={track.id}>{track.moment}</option>)}</select></label>}</div>{musicResults.map(result => <MusicSearchResultRow key={`${result.provider}:${result.externalId}`} result={result} disabled={!selectedTrack} onSelect={() => selectMusicResult(result)} />)}</div>}
-      </div>
-      <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Morceaux reliés aux Moments</h4><p className="mt-1 text-xs text-foreground/40">Chaque morceau peut être relié à un ou plusieurs événements de la Timeline.</p></div><AddBar label="Saisie manuelle" onAdd={() => addEntity("music", { moment: "Nouveau Moment", title: "À choisir", artist: "", status: "a_choisir", metadataStatus: "manual", provenance: "real", timelineEventIds: [] })} /></div>
-      {project.music.length === 0 ? <Empty>Aucun morceau n’est encore relié à un Moment.</Empty> : project.music.map(track => <MusicTrackRow key={track.id} track={track} timelineEvents={timelineMusicEvents} linkedEventIds={musicEventIdsForTrack(project, track.id)} onToggleEvent={eventId => toggleTrackEvent(track, eventId)} onUpdate={updates => updateEntity("music", track.id, updates)} onDelete={() => removeEntity("music", track.id)} />)}
-    </div>;
+    );
   }
 
   if (module === "logistics") {
     const l = project.logistics;
-    return <div className="max-w-4xl mx-auto space-y-4"><EditableArea label="Parking" value={l.parking} onChange={parking => updateProject({ logistics: { ...l, parking } })} /><EditableArea label="Accessibilité" value={l.accessibility} onChange={accessibility => updateProject({ logistics: { ...l, accessibility } })} /><EditableArea label="Plan météo de repli" value={l.weatherFallback} onChange={weatherFallback => updateProject({ logistics: { ...l, weatherFallback } })} /><div className="rounded-3xl border border-[var(--agency-hairline)] p-4"><div className="flex justify-between items-center mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">À emporter</p><AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, packing: [...l.packing, { id: newId(), label: "Nouvel élément", done: false }] } })} /></div>{l.packing.length === 0 ? <Empty>La liste est vide.</Empty> : l.packing.map(item => <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0"><button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.map(x => x.id === item.id ? { ...x, done: !x.done } : x) } })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3" />}</button><input value={item.label} onChange={e => updateProject({ logistics: { ...l, packing: l.packing.map(x => x.id === item.id ? { ...x, label: e.target.value } : x) } })} className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")} /><button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.filter(x => x.id !== item.id) } })} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div><div className="rounded-3xl border border-[var(--agency-hairline)] p-4"><div className="flex items-center justify-between mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Contacts d'urgence</p><AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, emergencyContacts: [...l.emergencyContacts, { id: newId(), name: "Nouveau contact", phone: "", role: "À préciser" }] } })} /></div>{l.emergencyContacts.map(contact => <div key={contact.id} className="grid grid-cols-3 gap-2 border-b border-foreground/5 py-2 last:border-0"><input value={contact.name} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, name: e.target.value } : x) } })} className="bg-transparent text-sm outline-none" /><input value={contact.phone} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, phone: e.target.value } : x) } })} placeholder="Téléphone" className="bg-transparent text-xs outline-none" /><input value={contact.role} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, role: e.target.value } : x) } })} className="bg-transparent text-xs text-foreground/50 outline-none" /></div>)}</div><div className="grid gap-3 md:grid-cols-2">{l.accommodations.map(a => <div key={a.id} className="rounded-3xl border border-[var(--agency-hairline)] p-4"><p className="text-sm">{a.name}</p><p className="text-xs text-foreground/45 mt-1">{a.booked} réservées · {a.address}</p></div>)}{l.shuttles.map(s => <div key={s.id} className="rounded-3xl border border-[var(--agency-hairline)] p-4"><p className="text-sm">{s.route}</p><p className="text-xs text-foreground/45 mt-1">Départ {s.departure} · {s.capacity} places</p></div>)}</div></div>;
+    return (
+      <div className="max-w-4xl mx-auto space-y-4">
+        <EditableArea label="Parking" value={l.parking} onChange={(parking) => updateProject({ logistics: { ...l, parking } })} />
+        <EditableArea label="Accessibilité" value={l.accessibility} onChange={(accessibility) => updateProject({ logistics: { ...l, accessibility } })} />
+        <EditableArea label="Plan météo de repli" value={l.weatherFallback} onChange={(weatherFallback) => updateProject({ logistics: { ...l, weatherFallback } })} />
+        <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-[10px] uppercase tracking-widest text-foreground/40">À emporter</p>
+            <AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, packing: [...l.packing, { id: newId(), label: "Nouvel élément", done: false }] } })} />
+          </div>
+          {l.packing.length === 0 ? (
+            <Empty>La liste est vide.</Empty>
+          ) : (
+            l.packing.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0">
+                <button
+                  onClick={() => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, done: !x.done } : x)) } })}
+                  className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}
+                >
+                  {item.done && <Check className="w-3 h-3" />}
+                </button>
+                <input
+                  value={item.label}
+                  onChange={(e) => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, label: e.target.value } : x)) } })}
+                  className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")}
+                />
+                <button
+                  onClick={() => updateProject({ logistics: { ...l, packing: l.packing.filter((x) => x.id !== item.id) } })}
+                  className="text-foreground/30 hover:text-brand-accent"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] uppercase tracking-widest text-foreground/40">Contacts d'urgence</p>
+            <AddBar
+              label="Ajouter"
+              onAdd={() =>
+                updateProject({
+                  logistics: {
+                    ...l,
+                    emergencyContacts: [...l.emergencyContacts, { id: newId(), name: "Nouveau contact", phone: "", role: "À préciser" }],
+                  },
+                })
+              }
+            />
+          </div>
+          {l.emergencyContacts.map((contact) => (
+            <div key={contact.id} className="grid grid-cols-3 gap-2 border-b border-foreground/5 py-2 last:border-0">
+              <input
+                value={contact.name}
+                onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, name: e.target.value } : x)) } })}
+                className="bg-transparent text-sm outline-none"
+              />
+              <input
+                value={contact.phone}
+                onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, phone: e.target.value } : x)) } })}
+                placeholder="Téléphone"
+                className="bg-transparent text-xs outline-none"
+              />
+              <input
+                value={contact.role}
+                onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, role: e.target.value } : x)) } })}
+                className="bg-transparent text-xs text-foreground/50 outline-none"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (module === "messages") {
-    const templates = project.messageTemplates.filter(t => t.title.toLowerCase().includes(query.toLowerCase()));
-    return <div className="max-w-4xl mx-auto space-y-5">
-      <PersistenceState status={syncStatus} error={syncError} />
-      {remoteError && <p className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
-      <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Message libre" onAdd={() => setFreeOpen(value => !value)} />}{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
-      {canManage && freeOpen && <div className="space-y-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4" data-testid="messages-free-composer">
-        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</span><input value={freeRecipients} onChange={event => setFreeRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
-        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Objet</span><input value={freeSubject} onChange={event => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
-        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Message</span><textarea value={freeBody} onChange={event => setFreeBody(event.target.value)} rows={4} placeholder="Écrire le message…" className="mt-1 w-full resize-none rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs leading-relaxed outline-none focus:border-foreground/30" /></label>
-        <div className="flex gap-2">
-          <button disabled={busy} onClick={() => setFreeOpen(false)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">Annuler</button>
-          <button disabled={busy || !freeRecipients.trim() || !freeSubject.trim() || !freeBody.trim()} onClick={() => void sendFreeMessage()} className="inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-3 py-2 text-xs font-medium text-[var(--agency-paper)] disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}<Send className="h-3.5 w-3.5" />Confirmer et envoyer</button>
+    const templates = project.messageTemplates.filter((t) => t.title.toLowerCase().includes(query.toLowerCase()));
+    return (
+      <div className="max-w-4xl mx-auto space-y-5">
+        <PersistenceState status={syncStatus} error={syncError} />
+        {remoteError && <p className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#B42318]">{remoteError}</p>}
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">
+          Mode local-first: les messages sont conservés localement. L'envoi réel via Resend nécessite le backend api-server. Utilisez "Copier" pour coller dans votre client mail.
         </div>
-      </div>}
-      <div className="grid gap-3 md:grid-cols-2">{templates.map(template => <div key={template.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><div className="flex justify-between gap-2"><input disabled={!canManage} value={template.title} onChange={event => updateEntity("messageTemplates", template.id, { title: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-foreground/60" />{canManage && <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="h-3.5 w-3.5" /></button>}</div><textarea disabled={!canManage} value={template.body} onChange={event => updateEntity("messageTemplates", template.id, { body: event.target.value })} placeholder="Écrire le message…" rows={3} className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none" />
-        {canManage && selectedTemplateId !== template.id && <button disabled={!template.title.trim() || !template.body.trim()} onClick={() => setSelectedTemplateId(template.id)} className="mt-3 inline-flex items-center gap-2 text-xs text-foreground/70 hover:text-foreground disabled:opacity-30"><Send className="h-3.5 w-3.5" />Préparer l’envoi</button>}
-        {selectedTemplateId === template.id && <div className="mt-4 space-y-3 border-t border-[var(--agency-hairline)] pt-4"><label className="block text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</label><input autoFocus value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" /><p className="text-xs text-foreground/40">L’objet sera « {template.title} ». L’envoi ne partira qu’après votre confirmation.</p><div className="flex gap-2"><button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">Annuler</button><button disabled={busy || !recipients.trim()} onClick={() => void sendTemplate(template)} className="inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-3 py-2 text-xs font-medium text-[var(--agency-paper)] disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}Confirmer et envoyer</button></div></div>}
-      </div>)}</div>
-       <div><p className="mb-3 text-[10px] uppercase tracking-widest text-foreground/40">Journal des envois et rappels</p>{!canManage ? <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent envoyer des messages et consulter leur journal.</p> : messages.length === 0 ? <Empty>Aucun message envoyé ou programmé.</Empty> : messages.map(message => {
-         const linkedEvent = message.timelineEventId ? project.timeline.find(event => event.id === message.timelineEventId) : undefined;
-         const statusLabel = message.status === "sent" ? "envoyé" : message.status === "failed" ? "échec Resend" : message.status === "scheduled" ? "programmé" : message.status === "cancelled" ? "annulé" : "en cours";
-         return <div key={message.id} className="border-b border-foreground/5 py-3 text-sm">
-           <div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><p className="truncate">{message.subject}</p>{linkedEvent && <p className="mt-1 text-xs text-foreground/55">Lié à « {linkedEvent.title} »</p>}<p className="mt-1 truncate text-xs text-foreground/35">{message.recipients.join(", ")}</p>{message.providerError && <p className="mt-1 text-xs text-brand-accent">Resend : {message.providerError}</p>}</div><span className={cn("text-xs", message.status === "sent" ? "text-foreground/60" : message.status === "failed" ? "text-brand-accent" : message.status === "cancelled" ? "text-foreground/35" : "text-brand-accent")}>{new Date(message.scheduledAt || message.sentAt || message.createdAt).toLocaleString("fr-FR")} · {statusLabel}</span></div>
-           {message.status === "scheduled" && <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3"><label className="flex-1 text-[10px] uppercase tracking-widest text-foreground/40">Nouvelle date<input type="datetime-local" value={rescheduleAt[message.id] || (message.scheduledAt ? new Date(message.scheduledAt).toISOString().slice(0, 16) : "")} min={new Date().toISOString().slice(0, 16)} onChange={event => setRescheduleAt(current => ({ ...current, [message.id]: event.target.value }))} className="mt-1 block w-full rounded-lg border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-2 py-1.5 text-xs normal-case tracking-normal outline-none" /></label><button disabled={busy || !rescheduleAt[message.id]} onClick={() => void rescheduleMessage(message.id)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs disabled:opacity-30">Replanifier</button><button disabled={busy} onClick={() => void cancelScheduledMessage(message.id)} className="rounded-full border border-brand-accent/40/20 px-3 py-2 text-xs text-brand-accent disabled:opacity-30">Annuler le rappel</button></div>}
-         </div>;
-       })}</div>
-    </div>;
+        <div className="flex items-center gap-2">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un modèle…"
+            className="flex-1 rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30"
+          />
+          {canManage && <AddBar label="Message libre" onAdd={() => setFreeOpen((v) => !v)} />}
+          {canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}
+        </div>
+        {canManage && freeOpen && (
+          <div className="space-y-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4" data-testid="messages-free-composer">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</span>
+              <input
+                value={freeRecipients}
+                onChange={(event) => setFreeRecipients(event.target.value)}
+                placeholder="adresses séparées par des virgules"
+                className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-widest text-foreground/40">Objet</span>
+              <input value={freeSubject} onChange={(event) => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-widest text-foreground/40">Message</span>
+              <textarea
+                value={freeBody}
+                onChange={(event) => setFreeBody(event.target.value)}
+                rows={4}
+                placeholder="Écrire le message…"
+                className="mt-1 w-full resize-none rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs leading-relaxed outline-none focus:border-foreground/30"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button disabled={busy} onClick={() => setFreeOpen(false)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">
+                Annuler
+              </button>
+              <button
+                disabled={busy || !freeRecipients.trim() || !freeSubject.trim() || !freeBody.trim()}
+                onClick={() => void sendFreeMessage()}
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-3 py-2 text-xs font-medium text-[var(--agency-paper)] disabled:opacity-30"
+              >
+                {busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
+                <Send className="h-3.5 w-3.5" />
+                Conserver localement
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="grid gap-3 md:grid-cols-2">
+          {templates.map((template) => (
+            <div key={template.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+              <div className="flex justify-between gap-2">
+                <input
+                  disabled={!canManage}
+                  value={template.title}
+                  onChange={(event) => updateEntity("messageTemplates", template.id, { title: event.target.value })}
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-foreground/60"
+                />
+                {canManage && (
+                  <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-foreground/30 hover:text-brand-accent">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <textarea
+                disabled={!canManage}
+                value={template.body}
+                onChange={(event) => updateEntity("messageTemplates", template.id, { body: event.target.value })}
+                placeholder="Écrire le message…"
+                rows={3}
+                className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none"
+              />
+              {canManage && selectedTemplateId !== template.id && (
+                <button
+                  disabled={!template.title.trim() || !template.body.trim()}
+                  onClick={() => setSelectedTemplateId(template.id)}
+                  className="mt-3 inline-flex items-center gap-2 text-xs text-foreground/70 hover:text-foreground disabled:opacity-30"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Préparer
+                </button>
+              )}
+              {selectedTemplateId === template.id && (
+                <div className="mt-4 space-y-3 border-t border-[var(--agency-hairline)] pt-4">
+                  <label className="block text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</label>
+                  <input
+                    autoFocus
+                    value={recipients}
+                    onChange={(event) => setRecipients(event.target.value)}
+                    placeholder="adresses séparées par des virgules"
+                    className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30"
+                  />
+                  <div className="flex gap-2">
+                    <button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">
+                      Annuler
+                    </button>
+                    <button
+                      disabled={busy || !recipients.trim()}
+                      onClick={() => void sendTemplate(template)}
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-3 py-2 text-xs font-medium text-[var(--agency-paper)] disabled:opacity-30"
+                    >
+                      {busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
+                      Conserver
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div>
+          <p className="mb-3 text-[10px] uppercase tracking-widest text-foreground/40">Journal local</p>
+          {messages.length === 0 && project.messageLogs.length === 0 ? (
+            <Empty>Aucun message conservé.</Empty>
+          ) : (
+            <>
+              {messages.map((message) => (
+                <div key={message.id} className="border-b border-foreground/5 py-3 text-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate">{message.subject}</p>
+                      <p className="mt-1 truncate text-xs text-foreground/35">{message.recipients.join(", ")}</p>
+                    </div>
+                    <span className="text-xs text-foreground/60">{new Date(message.createdAt).toLocaleString("fr-FR")} · {message.status}</span>
+                  </div>
+                </div>
+              ))}
+              {project.messageLogs.map((log) => (
+                <div key={log.id} className="border-b border-foreground/5 py-3 text-sm">
+                  <p className="truncate">{log.recipient}</p>
+                  <p className="mt-1 text-xs text-foreground/40">{new Date(log.sentAt).toLocaleString("fr-FR")} · {log.status} · {log.note?.slice(0, 80)}</p>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    );
   }
 
   if (module === "contributions") {
-    return <div className="mx-auto max-w-4xl space-y-5">
-      <div><h4 className="text-sm font-medium">Photos et vidéos reçues</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Chaque contribution reste privée jusqu’à votre décision. Le consentement et la provenance restent attachés au fichier.</p></div>
-      {remoteError && <p role="alert" className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
-      {participantMedia.length === 0 ? <Empty>Aucune contribution invitée reçue.</Empty> : <div className="grid gap-3 sm:grid-cols-2">{participantMedia.map(media => <article key={media.id} className="overflow-hidden rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
-        <a href={`/api/storage/files/${media.id}`} target="_blank" rel="noreferrer" className="flex aspect-video items-center justify-center bg-foreground/5 text-foreground/30" aria-label={`Ouvrir ${media.name}`}>
-          {media.contentType.startsWith("image/") ? <Image className="h-8 w-8" /> : <Film className="h-8 w-8" />}
-        </a>
-        <div className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-sm">{media.caption || media.name}</p><p className="mt-1 text-xs text-foreground/40">{media.guestName || "Invité"} · {fileSize(media.size)}</p></div><span className={cn("rounded-full border px-2 py-1 text-[9px] uppercase tracking-wider", media.moderationStatus === "approved" ? "border-foreground/25 text-foreground/60" : media.moderationStatus === "rejected" ? "border-brand-accent/40/20 text-brand-accent" : "border-brand-accent/40 text-brand-accent")}>{media.moderationStatus === "approved" ? "Partagé" : media.moderationStatus === "rejected" ? "Refusé" : "À vérifier"}</span></div>
-          <p className="mt-2 text-[10px] text-foreground/35">{media.visibility === "guests" ? "Partage avec les invités demandé" : "Couple uniquement"} · consentement {media.consent ? "confirmé" : "absent"}</p>
-          {canManage && <div className="mt-3 flex gap-2"><button disabled={busy || media.moderationStatus === "approved" || !media.consent} onClick={() => void moderateMedia(media.id, "approved")} className="rounded-full bg-foreground px-3 py-1.5 text-xs text-background disabled:opacity-30">Valider</button><button disabled={busy || media.moderationStatus === "rejected"} onClick={() => void moderateMedia(media.id, "rejected")} className="rounded-full border border-brand-accent/40/20 px-3 py-1.5 text-xs text-brand-accent disabled:opacity-30">Refuser</button></div>}
+    return (
+      <div className="mx-auto max-w-4xl space-y-5">
+        <div>
+          <h4 className="text-sm font-medium">Photos et vidéos reçues</h4>
+          <p className="mt-1 text-xs leading-relaxed text-foreground/45">
+            Mode local-first: les contributions invités nécessitent le backend. En one-page, utilisez la Galerie Documents locale. Ci-dessous, aperçu des médias approuvés si backend présent.
+          </p>
         </div>
-      </article>)}</div>}
-    </div>;
+        {participantMedia.length === 0 ? (
+          <Empty>Aucune contribution — mode hors-ligne. Ajoutez vos photos dans Documents.</Empty>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {participantMedia.map((media) => (
+              <article key={media.id} className="overflow-hidden rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
+                <div className="flex aspect-video items-center justify-center bg-foreground/5 text-foreground/30">
+                  {media.contentType.startsWith("image/") ? <ImageIcon className="h-8 w-8" /> : <Film className="h-8 w-8" />}
+                </div>
+                <div className="p-4">
+                  <p className="truncate text-sm">{media.caption || media.name}</p>
+                  <p className="mt-1 text-xs text-foreground/40">{media.guestName || "Invité"} · {fileSize(media.size)}</p>
+                  {canManage && (
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        disabled={busy || media.moderationStatus === "approved"}
+                        onClick={() => void moderateMedia(media.id, "approved")}
+                        className="rounded-full bg-foreground px-3 py-1.5 text-xs text-background disabled:opacity-30"
+                      >
+                        Valider
+                      </button>
+                      <button
+                        disabled={busy || media.moderationStatus === "rejected"}
+                        onClick={() => void moderateMedia(media.id, "rejected")}
+                        className="rounded-full border border-brand-accent/20 px-3 py-1.5 text-xs text-brand-accent disabled:opacity-30"
+                      >
+                        Refuser
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (module === "thanks") {
-    const thankYouMessages = messages.filter(message => message.kind === "thank_you");
-    const dedications = songRequests.filter(request => request.message?.trim());
-    const guestWords = participantMedia.filter(media => media.caption?.trim() && media.moderationStatus !== "rejected");
-    const notedWords = project.memories.filter(item => item.kind === "message");
-    return <div className="mx-auto max-w-4xl space-y-8">
-      <section>
-        <div><h4 className="flex items-center gap-2 text-sm font-medium"><Heart className="h-4 w-4 text-brand-accent" />Les mots doux reçus</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Dédicaces musicales, légendes des photos reçues et mots notés par vos soins : tout ce que vos invités vous ont écrit, réuni avant d’y répondre.</p></div>
-        {dedications.length + guestWords.length + notedWords.length === 0 ? <div className="mt-4"><Empty>Aucun mot doux reçu pour l’instant. Les dédicaces et légendes des invités apparaîtront ici.</Empty></div> : <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {dedications.map(dedication => <figure key={dedication.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><blockquote className="text-sm font-light leading-relaxed">« {dedication.message} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{dedication.guestName || "Invité"} · dédicace pour « {dedication.title} »{dedication.artist ? ` — ${dedication.artist}` : ""}</figcaption></figure>)}
-          {guestWords.map(media => <figure key={media.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><blockquote className="text-sm font-light leading-relaxed">« {media.caption} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{media.guestName || "Invité"} · légende d’une photo reçue</figcaption></figure>)}
-          {notedWords.map(word => <figure key={word.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><blockquote className="text-sm font-light leading-relaxed">« {word.title} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{word.owner || "Noté par vous"}{word.notes ? ` · ${word.notes}` : ""}</figcaption></figure>)}
-        </div>}
-      </section>
-      <section className="space-y-5">
-      <div><h4 className="text-sm font-medium">Remercier chaque personne réellement</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Le statut vient du journal d’envoi. Un clic seul ne transforme jamais un remerciement en message envoyé.</p></div>
-      {remoteError && <p role="alert" className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
-      <div className="space-y-2">{project.guests.map(guest => {
-        const deliveries = guest.contact ? thankYouMessages.filter(message => message.recipients.includes(guest.contact!)) : [];
-        const latest = [...deliveries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-        const label = !guest.contact ? "Sans adresse" : latest?.status === "sent" ? "Envoyé" : latest?.status === "failed" ? "Erreur" : latest ? "En cours" : "À préparer";
-        return <div key={guest.id} className="flex flex-wrap items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><div className="min-w-0 flex-1"><p className="text-sm">{guest.name}</p><p className="mt-1 truncate text-xs text-foreground/40">{guest.contact || "Ajoutez une adresse dans Personnes"} · {label}</p>{latest?.providerError && <p className="mt-1 text-xs text-brand-accent">{latest.providerError}</p>}</div>{canManage && guest.contact && latest?.status !== "sent" && <button disabled={busy} onClick={() => void sendThankYou(guest.contact!, guest.name)} className="rounded-full bg-foreground px-3 py-2 text-xs font-medium text-background disabled:opacity-30">{latest?.status === "failed" ? "Réessayer" : "Confirmer et envoyer"}</button>}</div>;
-      })}</div>
-      </section>
-    </div>;
+    const dedications = songRequests.filter((r) => r.message?.trim());
+    const notedWords = project.memories.filter((item) => item.kind === "message");
+    return (
+      <div className="mx-auto max-w-4xl space-y-8">
+        <section>
+          <div>
+            <h4 className="flex items-center gap-2 text-sm font-medium">
+              <Heart className="h-4 w-4 text-brand-accent" />
+              Les mots doux reçus
+            </h4>
+            <p className="mt-1 text-xs leading-relaxed text-foreground/45">Dédicaces et mots notés localement.</p>
+          </div>
+          {dedications.length + notedWords.length === 0 ? (
+            <div className="mt-4">
+              <Empty>Aucun mot doux reçu pour l’instant.</Empty>
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {dedications.map((d) => (
+                <figure key={d.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                  <blockquote className="text-sm font-light leading-relaxed">« {d.message} »</blockquote>
+                  <figcaption className="mt-2 text-xs text-foreground/45">{d.guestName || "Invité"} · {d.title}</figcaption>
+                </figure>
+              ))}
+              {notedWords.map((w) => (
+                <figure key={w.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                  <blockquote className="text-sm font-light leading-relaxed">« {w.title} »</blockquote>
+                  <figcaption className="mt-2 text-xs text-foreground/45">{w.owner || "Noté"}</figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+        </section>
+        <section className="space-y-5">
+          <div>
+            <h4 className="text-sm font-medium">Remercier</h4>
+            <p className="mt-1 text-xs leading-relaxed text-foreground/45">Mode hors-ligne: copie locale.</p>
+          </div>
+          <div className="space-y-2">
+            {project.guests.map((guest) => (
+              <div key={guest.id} className="flex flex-wrap items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm">{guest.name}</p>
+                  <p className="mt-1 truncate text-xs text-foreground/40">{guest.contact || "Sans contact"}</p>
+                </div>
+                {canManage && guest.contact && (
+                  <button disabled={busy} onClick={() => void sendThankYou(guest.contact!, guest.name)} className="rounded-full bg-foreground px-3 py-2 text-xs font-medium text-background disabled:opacity-30">
+                    Conserver remerciement
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
   }
 
   if (module === "film") {
-    const videos = files.filter(file => file.contentType.startsWith("video/") && !file.guestId);
-    const approvedGuestVideos = participantMedia.filter(file => file.contentType.startsWith("video/") && file.moderationStatus === "approved");
-    const playlist: Array<{ id: string; name: string; size: number; origin: string }> = [
-      ...videos.map(file => ({ id: file.id, name: file.name, size: file.size, origin: "Documents" })),
-      ...approvedGuestVideos.map(file => ({ id: file.id, name: file.caption || file.name, size: file.size, origin: file.guestName ? `Invités · ${file.guestName}` : "Invités" })),
-    ];
-    const selected = playlist.find(video => video.id === selectedVideoId) ?? playlist[0];
-    return <div className="mx-auto max-w-4xl space-y-5">
-      <div><h4 className="text-sm font-medium">Film du Jour J</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">AIME ne simule aucun montage. Seules les vidéos réellement déposées dans l’espace privé ou validées depuis les invités apparaissent ici, lisibles sans quitter la section.</p></div>
-      {remoteError && <p role="alert" className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
-      {playlist.length === 0 || !selected ? <Empty>Aucun film réel n’a encore été livré ou validé.</Empty> : <>
-        <figure className="overflow-hidden rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
-          <video key={selected.id} controls preload="metadata" src={`/api/storage/files/${selected.id}`} className="aspect-video w-full" aria-label={selected.name} />
-          <figcaption className="flex flex-wrap items-center gap-2 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-            <span className="min-w-0 flex-1 truncate text-sm">{selected.name}</span>
-            <span className="text-xs text-foreground/35">{selected.origin} · {fileSize(selected.size)}</span>
-            <a href={`/api/storage/files/${selected.id}`} download={selected.name} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/60 transition hover:text-foreground"><Download className="h-3.5 w-3.5" />Télécharger</a>
-          </figcaption>
-        </figure>
-        {playlist.length > 1 && <div><p className="mb-2 text-[10px] uppercase tracking-widest text-foreground/40">Toutes les vidéos ({playlist.length})</p><div className="space-y-2">{playlist.map(video => <button key={video.id} onClick={() => setSelectedVideoId(video.id)} aria-current={video.id === selected.id} className={cn("flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition", video.id === selected.id ? "border-foreground/30 bg-[var(--agency-paper)]" : "border-[var(--agency-hairline)] bg-[var(--agency-paper)] hover:border-[var(--agency-hairline)]")}><Film className="h-5 w-5 shrink-0 text-foreground/50" /><span className="min-w-0 flex-1 truncate text-sm">{video.name}</span><span className="shrink-0 text-xs text-foreground/35">{video.origin}</span></button>)}</div></div>}
-      </>}
-      <div className="rounded-xl border border-[var(--agency-hairline)] p-3 text-xs text-foreground/40">Pour livrer le film final, ajoutez la vidéo depuis Documents. Le fichier reste privé tant que vous ne choisissez pas de le partager.{canManage && <div className="mt-2"><button onClick={() => queueWorldFocus({ panel: "documents" })} className="rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">Ouvrir Documents</button></div>}</div>
-    </div>;
+    // Local-first: utilise documents locaux qui sont vidéos
+    const localVideos = project.documents.filter(
+      (d) => d.url && (d.url.startsWith("data:video") || d.title.match(/\.(mp4|webm|mov)$/i)),
+    );
+    const selected = localVideos.find((v) => v.id === selectedVideoId) ?? localVideos[0];
+    return (
+      <div className="mx-auto max-w-4xl space-y-5">
+        <div>
+          <h4 className="text-sm font-medium">Film du Jour J</h4>
+          <p className="mt-1 text-xs leading-relaxed text-foreground/45">Vidéos locales de la galerie Documents.</p>
+        </div>
+        {localVideos.length === 0 || !selected ? (
+          <Empty>Aucune vidéo locale. Ajoutez-en dans Documents.</Empty>
+        ) : (
+          <>
+            <figure className="overflow-hidden rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
+              <video key={selected.id} controls preload="metadata" src={selected.url} className="aspect-video w-full" aria-label={selected.title} />
+              <figcaption className="flex flex-wrap items-center gap-2 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                <span className="min-w-0 flex-1 truncate text-sm">{selected.title}</span>
+                <a href={selected.url} download={selected.title} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/60 transition hover:text-foreground">
+                  <Download className="h-3.5 w-3.5" />
+                  Télécharger
+                </a>
+              </figcaption>
+            </figure>
+            {localVideos.length > 1 && (
+              <div>
+                <p className="mb-2 text-[10px] uppercase tracking-widest text-foreground/40">Toutes les vidéos ({localVideos.length})</p>
+                <div className="space-y-2">
+                  {localVideos.map((video) => (
+                    <button
+                      key={video.id}
+                      onClick={() => setSelectedVideoId(video.id)}
+                      aria-current={video.id === selected.id}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition",
+                        video.id === selected.id
+                          ? "border-foreground/30 bg-[var(--agency-paper)]"
+                          : "border-[var(--agency-hairline)] bg-[var(--agency-paper)] hover:border-[var(--agency-hairline)]",
+                      )}
+                    >
+                      <Film className="h-5 w-5 shrink-0 text-foreground/50" />
+                      <span className="min-w-0 flex-1 truncate text-sm">{video.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        <div className="rounded-xl border border-[var(--agency-hairline)] p-3 text-xs text-foreground/40">
+          Ajoutez la vidéo depuis Documents. Reste locale.
+          {canManage && (
+            <div className="mt-2">
+              <button onClick={() => queueWorldFocus({ panel: "documents" })} className="rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">
+                Ouvrir Documents
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   if (module === "honeymoon") {
-    const posts = project.timeline.filter(event => event.phase === "apres" && event.visibility === "audience").sort((a, b) => b.time - a.time);
-    return <div className="mx-auto max-w-4xl space-y-5">
-      <div><h4 className="text-sm font-medium">Actualités du voyage de noces</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Rien n’est publié par défaut. Chaque actualité devient un Moment Après destiné à l’audience, sans suivi continu de votre position.</p></div>
-      {canManage && <button onClick={() => addEntity("timeline", { time: Date.now(), durationMinutes: 0, kind: "souvenir", title: "Nouvelle du voyage", detail: "À compléter avant de partager.", status: "a_valider", confidence: "confirme", phase: "apres", universe: project.universe, provenance: "real", visibility: "prive", relations: [], dependencyIds: [], resources: [] })} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/70"><Plus className="h-3.5 w-3.5" />Préparer une actualité privée</button>}
-      {posts.length === 0 ? <Empty>Aucune actualité n’est partagée avec les invités.</Empty> : <div className="space-y-3">{posts.map(post => <article key={post.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/35">{new Date(post.time).toLocaleDateString("fr-FR")}{post.location ? ` · ${post.location}` : ""}</p><h5 className="mt-2 text-sm font-medium">{post.title}</h5>{post.detail && <p className="mt-2 text-xs leading-relaxed text-foreground/55">{post.detail}</p>}</article>)}</div>}
-      <p className="text-xs text-foreground/35">Pour publier une actualité préparée, ouvrez son Moment dans la Timeline et choisissez la visibilité Audience après validation.</p>
-    </div>;
+    const posts = project.timeline
+      .filter((event) => event.phase === "apres" && event.visibility === "audience")
+      .sort((a, b) => b.time - a.time);
+    return (
+      <div className="mx-auto max-w-4xl space-y-5">
+        <div>
+          <h4 className="text-sm font-medium">Actualités du voyage de noces</h4>
+          <p className="mt-1 text-xs leading-relaxed text-foreground/45">Chaque actualité devient un Moment Après destiné à l'audience.</p>
+        </div>
+        {canManage && (
+          <button
+            onClick={() =>
+              addEntity("timeline", {
+                time: Date.now(),
+                durationMinutes: 0,
+                kind: "souvenir",
+                title: "Nouvelle du voyage",
+                detail: "À compléter avant de partager.",
+                status: "a_valider",
+                confidence: "confirme",
+                phase: "apres",
+                universe: project.universe,
+                provenance: "real",
+                visibility: "prive",
+                relations: [],
+                dependencyIds: [],
+                resources: [],
+              })
+            }
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/70"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Préparer une actualité privée
+          </button>
+        )}
+        {posts.length === 0 ? (
+          <Empty>Aucune actualité n’est partagée avec les invités.</Empty>
+        ) : (
+          <div className="space-y-3">
+            {posts.map((post) => (
+              <article key={post.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+                <p className="text-[10px] uppercase tracking-widest text-foreground/35">
+                  {new Date(post.time).toLocaleDateString("fr-FR")}
+                  {post.location ? ` · ${post.location}` : ""}
+                </p>
+                <h5 className="mt-2 text-sm font-medium">{post.title}</h5>
+                {post.detail && <p className="mt-2 text-xs leading-relaxed text-foreground/55">{post.detail}</p>}
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    );
   }
 
-  if (module === "team") return <CollectionPanel title="Répartition des responsabilités" addLabel="Ajouter un rôle" onAdd={() => addEntity("team", { name: "Nouvelle personne", role: "Responsable", contact: "", responsibilities: [] })}>{project.team.length === 0 ? <Empty>Aucun rôle assigné.</Empty> : project.team.map(role => <div key={role.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 flex items-start gap-4"><div className="grid flex-1 gap-2 sm:grid-cols-3"><input value={role.name} onChange={e => updateEntity("team", role.id, { name: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={role.role} onChange={e => updateEntity("team", role.id, { role: e.target.value })} className="bg-transparent text-xs text-foreground/55 outline-none" /><input value={role.contact || ""} onChange={e => updateEntity("team", role.id, { contact: e.target.value })} placeholder="Contact" className="bg-transparent text-xs text-foreground/55 outline-none" /><input value={role.responsibilities.join(", ")} onChange={e => updateEntity("team", role.id, { responsibilities: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} placeholder="Responsabilités séparées par des virgules" className="sm:col-span-3 bg-transparent text-xs text-foreground/65 outline-none placeholder:text-foreground/25" /></div><button onClick={() => removeEntity("team", role.id)} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-4 h-4" /></button></div>)}</CollectionPanel>;
+  if (module === "team")
+    return (
+      <CollectionPanel title="Répartition des responsabilités" addLabel="Ajouter un rôle" onAdd={() => addEntity("team", { name: "Nouvelle personne", role: "Responsable", contact: "", responsibilities: [] })}>
+        {project.team.length === 0 ? (
+          <Empty>Aucun rôle assigné.</Empty>
+        ) : (
+          project.team.map((role) => (
+            <div key={role.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 flex items-start gap-4">
+              <div className="grid flex-1 gap-2 sm:grid-cols-3">
+                <input value={role.name} onChange={(e) => updateEntity("team", role.id, { name: e.target.value })} className="bg-transparent text-sm outline-none" />
+                <input value={role.role} onChange={(e) => updateEntity("team", role.id, { role: e.target.value })} className="bg-transparent text-xs text-foreground/55 outline-none" />
+                <input
+                  value={role.contact || ""}
+                  onChange={(e) => updateEntity("team", role.id, { contact: e.target.value })}
+                  placeholder="Contact"
+                  className="bg-transparent text-xs text-foreground/55 outline-none"
+                />
+                <input
+                  value={role.responsibilities.join(", ")}
+                  onChange={(e) => updateEntity("team", role.id, { responsibilities: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })}
+                  placeholder="Responsabilités séparées par des virgules"
+                  className="sm:col-span-3 bg-transparent text-xs text-foreground/65 outline-none placeholder:text-foreground/25"
+                />
+              </div>
+              <button onClick={() => removeEntity("team", role.id)} className="text-foreground/30 hover:text-brand-accent">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))
+        )}
+      </CollectionPanel>
+    );
 
   if (module === "memories") {
-    const approvedPhotos = participantMedia.filter(media => media.contentType.startsWith("image/") && media.moderationStatus === "approved");
-    const lightboxIndex = approvedPhotos.findIndex(media => media.id === lightboxId);
-    const lightbox = lightboxIndex >= 0 ? approvedPhotos[lightboxIndex] : undefined;
+    const localImages = project.documents.filter((d) => d.url && d.url.startsWith("data:image"));
+    const lightboxIndex = localImages.findIndex((media) => media.id === lightboxId);
+    const lightbox = lightboxIndex >= 0 ? localImages[lightboxIndex] : undefined;
     const goLightbox = (direction: 1 | -1) => {
-      if (approvedPhotos.length === 0) return;
+      if (localImages.length === 0) return;
       const from = lightboxIndex < 0 ? 0 : lightboxIndex;
-      const next = (from + direction + approvedPhotos.length) % approvedPhotos.length;
-      setLightboxId(approvedPhotos[next]!.id);
+      const next = (from + direction + localImages.length) % localImages.length;
+      setLightboxId(localImages[next]!.id);
     };
-    return <div className="mx-auto max-w-4xl space-y-8">
-      <section>
-        <div><h4 className="flex items-center gap-2 text-sm font-medium"><Image className="h-4 w-4 text-foreground/50" />Galerie des invités</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Une vraie galerie : seules les photos réellement reçues et validées. Cliquez sur une photo pour l’agrandir.</p></div>
-        {remoteError && <p role="alert" className="mt-4 rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
-        {approvedPhotos.length === 0 ? <>
-          <div className="mt-4"><Empty>Aucune photo validée pour l’instant. Validez les contributions reçues pour remplir la galerie.</Empty></div>
-          {canManage && <div className="mt-3"><button onClick={() => queueWorldFocus({ panel: "contributions" })} className="rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">Modérer les contributions</button></div>}
-        </> : <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {approvedPhotos.map(media => <button key={media.id} onClick={() => setLightboxId(media.id)} aria-label={`Agrandir ${media.caption || media.name}`} className="group relative aspect-square overflow-hidden rounded-3xl border border-[var(--agency-hairline)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
-            <img src={`/api/storage/files/${media.id}`} alt={media.caption || media.name} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-105" />
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--agency-paper)]/70 to-transparent p-2 pt-6"><span className="block truncate text-[11px] text-[var(--agency-ink)]">{media.caption || media.name}</span><span className="block text-[10px] text-[var(--agency-ink)]/60">{media.guestName || "Invité"}</span></span>
-          </button>)}
-        </div>}
-        {lightbox && <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--agency-paper)]/90 p-4" onClick={() => setLightboxId(null)} role="dialog" aria-modal="true" aria-label={lightbox.caption || lightbox.name}>
-          <button aria-label="Fermer" onClick={() => setLightboxId(null)} className="absolute right-4 top-4 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20"><X className="h-5 w-5" /></button>
-          {approvedPhotos.length > 1 && <button aria-label="Photo précédente" onClick={event => { event.stopPropagation(); goLightbox(-1); }} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20 sm:left-4"><ChevronLeft className="h-5 w-5" /></button>}
-          <figure className="max-w-4xl" onClick={event => event.stopPropagation()}>
-            <img src={`/api/storage/files/${lightbox.id}`} alt={lightbox.caption || lightbox.name} className="max-h-[76vh] w-auto rounded-2xl object-contain" />
-            <figcaption className="mt-3 text-center text-sm text-[var(--agency-ink)]/80">{lightbox.caption || lightbox.name} <span className="text-[var(--agency-ink)]/50">· {lightbox.guestName || "Invité"}{approvedPhotos.length > 1 ? ` · ${lightboxIndex + 1}/${approvedPhotos.length}` : ""}</span></figcaption>
-          </figure>
-          {approvedPhotos.length > 1 && <button aria-label="Photo suivante" onClick={event => { event.stopPropagation(); goLightbox(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20 sm:right-4"><ChevronRight className="h-5 w-5" /></button>}
-        </div>}
-      </section>
-      <CollectionPanel title="Souvenirs à préparer" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}><MemoryChecklist /></CollectionPanel>
-    </div>;
+    return (
+      <div className="mx-auto max-w-4xl space-y-8">
+        <section>
+          <div>
+            <h4 className="flex items-center gap-2 text-sm font-medium">
+              <ImageIcon className="h-4 w-4 text-foreground/50" />
+              Galerie locale
+            </h4>
+            <p className="mt-1 text-xs leading-relaxed text-foreground/45">Photos locales de Documents. Cliquez pour agrandir.</p>
+          </div>
+          {localImages.length === 0 ? (
+            <div className="mt-4">
+              <Empty>Aucune photo locale. Ajoutez-en dans Documents.</Empty>
+            </div>
+          ) : (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {localImages.map((media) => (
+                <button
+                  key={media.id}
+                  onClick={() => setLightboxId(media.id)}
+                  aria-label={`Agrandir ${media.title}`}
+                  className="group relative aspect-square overflow-hidden rounded-3xl border border-[var(--agency-hairline)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+                >
+                  <img src={media.url} alt={media.title} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-105" />
+                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--agency-paper)]/70 to-transparent p-2 pt-6">
+                    <span className="block truncate text-[11px] text-[var(--agency-ink)]">{media.title}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {lightbox && (
+            <div
+              className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--agency-paper)]/90 p-4"
+              onClick={() => setLightboxId(null)}
+              role="dialog"
+              aria-modal="true"
+              aria-label={lightbox.title}
+            >
+              <button aria-label="Fermer" onClick={() => setLightboxId(null)} className="absolute right-4 top-4 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20">
+                <X className="h-5 w-5" />
+              </button>
+              {localImages.length > 1 && (
+                <button
+                  aria-label="Photo précédente"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    goLightbox(-1);
+                  }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20 sm:left-4"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              )}
+              <figure className="max-w-4xl" onClick={(event) => event.stopPropagation()}>
+                <img src={lightbox.url} alt={lightbox.title} className="max-h-[76vh] w-auto rounded-2xl object-contain" />
+                <figcaption className="mt-3 text-center text-sm text-[var(--agency-ink)]/80">
+                  {lightbox.title}{" "}
+                  <span className="text-[var(--agency-ink)]/50">{localImages.length > 1 ? ` · ${lightboxIndex + 1}/${localImages.length}` : ""}</span>
+                </figcaption>
+              </figure>
+              {localImages.length > 1 && (
+                <button
+                  aria-label="Photo suivante"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    goLightbox(1);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)]/20 sm:right-4"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+        <CollectionPanel title="Souvenirs à préparer" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}>
+          <MemoryChecklist />
+        </CollectionPanel>
+      </div>
+    );
   }
 
-  return <CollectionPanel title="Souvenirs et après" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}><MemoryChecklist /></CollectionPanel>;
+  return (
+    <CollectionPanel title="Souvenirs et après" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}>
+      <MemoryChecklist />
+    </CollectionPanel>
+  );
 }
 
 function GuestSeat({ guest, tables, onChange }: { guest: { name: string; tableId?: string; dietary?: string }; tables: { id: string; name: string }[]; onChange: (value: string) => void }) {
-  return <div className="flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4 py-2"><span className="flex-1 truncate text-sm text-[var(--agency-ink)]">{guest.name}{guest.dietary && <span className="ml-2 text-[10px] text-[var(--agency-body)]">{guest.dietary}</span>}</span><select value={guest.tableId || ""} onChange={e => onChange(e.target.value)} className="max-w-[130px] rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none"><option value="">Sans table</option>{tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>;
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4 py-2">
+      <span className="flex-1 truncate text-sm text-[var(--agency-ink)]">
+        {guest.name}
+        {guest.dietary && <span className="ml-2 text-[10px] text-[var(--agency-body)]">{guest.dietary}</span>}
+      </span>
+      <select value={guest.tableId || ""} onChange={(e) => onChange(e.target.value)} className="max-w-[130px] rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none">
+        <option value="">Sans table</option>
+        {tables.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 function formatTrackDuration(durationMs?: number) {
@@ -1112,23 +1590,54 @@ function formatTrackDuration(durationMs?: number) {
 function TrackArtwork({ track, size = "md" }: { track: Pick<MusicTrack, "external">; size?: "sm" | "md" }) {
   const artwork = track.external?.artworkUrl;
   const className = size === "sm" ? "h-12 w-12 rounded-lg" : "h-16 w-16 rounded-xl";
-  return artwork
-    ? <img src={artwork} alt="" className={`${className} shrink-0 object-cover`} />
-    : <div className={`${className} flex shrink-0 items-center justify-center border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-1 text-center text-[9px] uppercase leading-tight tracking-wider text-foreground/35`}>Cover indisponible</div>;
+  return artwork ? (
+    <img src={artwork} alt="" className={`${className} shrink-0 object-cover`} />
+  ) : (
+    <div
+      className={`${className} flex shrink-0 items-center justify-center border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-1 text-center text-[9px] uppercase leading-tight tracking-wider text-foreground/35`}
+    >
+      Cover indisponible
+    </div>
+  );
 }
 
 function MusicSearchResultRow({ result, disabled, onSelect }: { result: MusicSearchResult; disabled: boolean; onSelect: () => void }) {
-  return <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
-    {result.artworkUrl ? <img src={result.artworkUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[var(--agency-hairline)] text-[9px] uppercase leading-tight tracking-wider text-foreground/35">Cover indisponible</div>}
-    <div className="min-w-[160px] flex-1">
-      <p className="truncate text-sm">{result.title}</p>
-      <p className="mt-1 truncate text-xs text-foreground/50">{result.artist}{result.collectionName ? ` · ${result.collectionName}` : ""}</p>
-      <p className="mt-1 text-[10px] text-foreground/55">Métadonnées vérifiées · {formatTrackDuration(result.durationMs) || "durée indisponible"}{result.previewUrl ? " · aperçu disponible" : " · aperçu indisponible"}</p>
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
+      {result.artworkUrl ? (
+        <img src={result.artworkUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+      ) : (
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[var(--agency-hairline)] text-[9px] uppercase leading-tight tracking-wider text-foreground/35">
+          Cover indisponible
+        </div>
+      )}
+      <div className="min-w-[160px] flex-1">
+        <p className="truncate text-sm">{result.title}</p>
+        <p className="mt-1 truncate text-xs text-foreground/50">
+          {result.artist}
+          {result.collectionName ? ` · ${result.collectionName}` : ""}
+        </p>
+        <p className="mt-1 text-[10px] text-foreground/55">
+          Métadonnées vérifiées · {formatTrackDuration(result.durationMs) || "durée indisponible"}
+          {result.previewUrl ? " · aperçu disponible" : " · aperçu indisponible"}
+        </p>
+      </div>
+      {result.previewUrl && <audio controls preload="none" src={result.previewUrl} className="h-8 max-w-[190px]" aria-label={`Écouter un aperçu de ${result.title}`} />}
+      {result.trackUrl && (
+        <a href={result.trackUrl} target="_blank" rel="noreferrer" aria-label={`Ouvrir ${result.title} dans ${MUSIC_SOURCE}`} className="p-2 text-foreground/40 hover:text-foreground">
+          <ExternalLink className="h-4 w-4" />
+        </a>
+      )}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onSelect}
+        className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/70 transition hover:border-foreground/40 hover:text-foreground disabled:opacity-35"
+      >
+        Relier
+      </button>
     </div>
-    {result.previewUrl && <audio controls preload="none" src={result.previewUrl} className="h-8 max-w-[190px]" aria-label={`Écouter un aperçu de ${result.title}`} />}
-    {result.trackUrl && <a href={result.trackUrl} target="_blank" rel="noreferrer" aria-label={`Ouvrir ${result.title} dans ${MUSIC_SOURCE}`} className="p-2 text-foreground/40 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a>}
-    <button type="button" disabled={disabled} onClick={onSelect} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/70 transition hover:border-foreground/40 hover:text-foreground disabled:opacity-35">Relier</button>
-  </div>;
+  );
 }
 
 function MusicTrackRow({
@@ -1148,44 +1657,113 @@ function MusicTrackRow({
 }) {
   const verified = Boolean(track.external);
   const duration = formatTrackDuration(track.external?.durationMs);
-  return <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-    <div className="flex items-start gap-3">
-      <TrackArtwork track={track} />
-      <button type="button" onClick={() => onUpdate({ status: track.status === "valide" ? "a_choisir" : "valide" })} aria-label={track.status === "valide" ? `Marquer ${track.title} à choisir` : `Valider ${track.title}`} className={cn("mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border", track.status === "valide" ? "border-brand-accent text-brand-accent" : "border-[var(--agency-hairline)] text-foreground/30")}>{track.status === "valide" && <Check className="h-3.5 w-3.5" />}</button>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn("rounded-full border px-2 py-1 text-[10px]", verified ? "border-foreground/25 text-foreground/60" : "border-brand-accent/40 text-brand-accent")}>{verified ? `Métadonnées vérifiées · ${MUSIC_SOURCE}` : "Saisie manuelle · non vérifiée"}</span>
-          {track.provenance === "demo" && <span className="text-[10px] text-foreground/35">Exemple initial</span>}
+  return (
+    <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+      <div className="flex items-start gap-3">
+        <TrackArtwork track={track} />
+        <button
+          type="button"
+          onClick={() => onUpdate({ status: track.status === "valide" ? "a_choisir" : "valide" })}
+          aria-label={track.status === "valide" ? `Marquer ${track.title} à choisir` : `Valider ${track.title}`}
+          className={cn(
+            "mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border",
+            track.status === "valide" ? "border-brand-accent text-brand-accent" : "border-[var(--agency-hairline)] text-foreground/30",
+          )}
+        >
+          {track.status === "valide" && <Check className="h-3.5 w-3.5" />}
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={cn("rounded-full border px-2 py-1 text-[10px]", verified ? "border-foreground/25 text-foreground/60" : "border-brand-accent/40 text-brand-accent")}>
+              {verified ? `Métadonnées vérifiées · ${MUSIC_SOURCE}` : "Saisie manuelle · non vérifiée"}
+            </span>
+            {track.provenance === "demo" && <span className="text-[10px] text-foreground/35">Exemple initial</span>}
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <input value={track.moment} onChange={(event) => onUpdate({ moment: event.target.value })} placeholder="Moment" className="bg-transparent text-xs text-foreground/55 outline-none" />
+            <input value={track.title} disabled={verified} onChange={(event) => onUpdate({ title: event.target.value })} className="bg-transparent text-sm outline-none disabled:text-foreground/80" />
+            <input
+              value={track.artist}
+              disabled={verified}
+              onChange={(event) => onUpdate({ artist: event.target.value })}
+              placeholder="Artiste"
+              className="bg-transparent text-sm text-foreground/60 outline-none placeholder:text-foreground/25 disabled:text-foreground/60"
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
+            {duration && <span>{duration}</span>}
+            {verified && track.external?.previewUrl ? (
+              <audio controls preload="none" src={track.external.previewUrl} className="h-8 max-w-[220px]" aria-label={`Écouter un aperçu de ${track.title}`} />
+            ) : (
+              <span className={cn(verified ? "text-foreground/55" : "text-foreground/35")}>
+                {verified ? "Lecture indisponible pour ce titre" : "Aucun aperçu : morceau saisi manuellement"}
+              </span>
+            )}
+            {verified && track.external?.trackUrl && (
+              <a href={track.external.trackUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-foreground">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Ouvrir dans Apple Music
+              </a>
+            )}
+          </div>
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <input value={track.moment} onChange={event => onUpdate({ moment: event.target.value })} placeholder="Moment" className="bg-transparent text-xs text-foreground/55 outline-none" />
-          <input value={track.title} disabled={verified} onChange={event => onUpdate({ title: event.target.value })} className="bg-transparent text-sm outline-none disabled:text-foreground/80" />
-          <input value={track.artist} disabled={verified} onChange={event => onUpdate({ artist: event.target.value })} placeholder="Artiste" className="bg-transparent text-sm text-foreground/60 outline-none placeholder:text-foreground/25 disabled:text-foreground/60" />
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
-          {duration && <span>{duration}</span>}
-          {verified && track.external?.previewUrl
-            ? <audio controls preload="none" src={track.external.previewUrl} className="h-8 max-w-[220px]" aria-label={`Écouter un aperçu de ${track.title}`} />
-            : <span className={cn(verified ? "text-foreground/55" : "text-foreground/35")}>{verified ? "Lecture indisponible pour ce titre" : "Aucun aperçu : morceau saisi manuellement"}</span>}
-          {verified && track.external?.trackUrl && <a href={track.external.trackUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-foreground"><ExternalLink className="h-3.5 w-3.5" />Ouvrir dans Apple Music</a>}
-        </div>
+        <button type="button" onClick={onDelete} aria-label={`Supprimer ${track.title}`} className="text-foreground/30 hover:text-brand-accent">
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
-      <button type="button" onClick={onDelete} aria-label={`Supprimer ${track.title}`} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="h-4 w-4" /></button>
-    </div>
-    <div className="mt-4 border-t border-[var(--agency-hairline)] pt-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] uppercase tracking-widest text-foreground/40">Moments de la Timeline</p>
-        <span className="text-[10px] text-foreground/35">{linkedEventIds.length} lié{linkedEventIds.length > 1 ? "s" : ""}</span>
+      <div className="mt-4 border-t border-[var(--agency-hairline)] pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40">Moments de la Timeline</p>
+          <span className="text-[10px] text-foreground/35">
+            {linkedEventIds.length} lié{linkedEventIds.length > 1 ? "s" : ""}
+          </span>
+        </div>
+        {timelineEvents.length === 0 ? (
+          <p className="mt-2 text-xs text-foreground/35">Aucun événement disponible.</p>
+        ) : (
+          <div className="mt-2 grid max-h-44 gap-1 overflow-y-auto pr-1 sm:grid-cols-2">
+            {timelineEvents.map((event) => (
+              <label key={event.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-foreground/60 hover:bg-foreground/5">
+                <input type="checkbox" checked={linkedEventIds.includes(event.id)} onChange={() => onToggleEvent(event.id)} className="accent-white" />
+                <span className="truncate">{event.title}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </div>
-      {timelineEvents.length === 0
-        ? <p className="mt-2 text-xs text-foreground/35">Aucun événement disponible.</p>
-        : <div className="mt-2 grid max-h-44 gap-1 overflow-y-auto pr-1 sm:grid-cols-2">{timelineEvents.map(event => <label key={event.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-foreground/60 hover:bg-foreground/5"><input type="checkbox" checked={linkedEventIds.includes(event.id)} onChange={() => onToggleEvent(event.id)} className="accent-white" /><span className="truncate">{event.title}</span></label>)}</div>}
     </div>
-  </div>;
+  );
 }
 
 function PaymentRow({ payment, currency, onToggle, onDelete, onEdit }: { payment: Payment; currency?: string; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {
-  return <div className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5"><button onClick={onToggle} className={cn("grid h-6 w-6 place-items-center rounded-full border", payment.state === "paye" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)]")}>{payment.state === "paye" && <Check className="h-3.5 w-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="w-full bg-transparent text-sm outline-none text-[var(--agency-ink)]" /><p className="mt-1 text-xs text-[var(--agency-body)]">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><div className="flex items-center gap-1"><input aria-label="Montant du paiement" type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-right font-mono text-sm outline-none" /><span className="w-8 text-xs text-[var(--agency-body)]" aria-hidden>{currencySymbol(currency)}</span></div><button onClick={onDelete} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]"><Trash2 className="h-4 w-4" /></button></div>;
+  return (
+    <div className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5">
+      <button onClick={onToggle} className={cn("grid h-6 w-6 place-items-center rounded-full border", payment.state === "paye" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)]")}>
+        {payment.state === "paye" && <Check className="h-3.5 w-3.5" />}
+      </button>
+      <div className="flex-1">
+        <input value={payment.label} onChange={(e) => onEdit({ label: e.target.value })} className="w-full bg-transparent text-sm outline-none text-[var(--agency-ink)]" />
+        <p className="mt-1 text-xs text-[var(--agency-body)]">
+          {new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}
+        </p>
+      </div>
+      <div className="flex items-center gap-1">
+        <input
+          aria-label="Montant du paiement"
+          type="number"
+          value={payment.amountCents / 100}
+          onChange={(e) => onEdit({ amountCents: Number(e.target.value) * 100 })}
+          className="w-24 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-right font-mono text-sm outline-none"
+        />
+        <span className="w-8 text-xs text-[var(--agency-body)]" aria-hidden>
+          {currencySymbol(currency)}
+        </span>
+      </div>
+      <button onClick={onDelete} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
 }
 
 function EditableArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -1194,7 +1772,7 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
       <span className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">{label}</span>
       <textarea
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         rows={3}
         className="mt-3 w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-[var(--agency-eyebrow)] text-[var(--agency-ink)]"
         placeholder="À compléter…"
@@ -1206,11 +1784,6 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
 function CollectionPanel({ title, addLabel, onAdd, children }: { title: string; addLabel: string; onAdd: () => void; children: ReactNode }) {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      {title === "Morceaux reliés aux Moments" && (
-        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">
-          Cet outil relie des morceaux aux Moments. La destination majeure « Musique » reste la projection sonore de la Timeline, pas une simple playlist.
-        </div>
-      )}
       <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-6">
         <div className="flex items-center justify-between gap-4">
           <div>

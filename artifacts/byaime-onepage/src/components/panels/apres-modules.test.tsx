@@ -47,15 +47,14 @@ describe("Sections Après", () => {
     const markup = renderToStaticMarkup(<WeddingModulesPanel module="thanks" />);
     expect(markup).toContain("Les mots doux reçus");
     expect(markup).toContain("Merci pour cette journée magique");
-    expect(markup).toContain("Remercier chaque personne réellement");
+    expect(markup).toContain("Remercier");
     expect(markup).toContain("Camille");
   });
 
   it("ouvre la galerie des invités sur la liste des souvenirs à préparer", () => {
     const markup = renderToStaticMarkup(<WeddingModulesPanel module="memories" />);
-    expect(markup).toContain("Galerie des invités");
-    expect(markup).toContain("Aucune photo validée pour l’instant");
-    expect(markup).toContain("Modérer les contributions");
+    expect(markup).toContain("Galerie locale");
+    expect(markup).toContain("Aucune photo locale");
     expect(markup).toContain("Souvenirs à préparer");
     expect(markup).toContain("Photo de groupe");
   });
@@ -63,7 +62,7 @@ describe("Sections Après", () => {
   it("prépare le lecteur du film et le pont vers Documents", () => {
     const markup = renderToStaticMarkup(<WeddingModulesPanel module="film" />);
     expect(markup).toContain("Film du Jour J");
-    expect(markup).toContain("Aucun film réel n’a encore été livré ou validé");
+    expect(markup).toContain("Aucune vidéo locale");
     expect(markup).toContain("Ouvrir Documents");
   });
 });
