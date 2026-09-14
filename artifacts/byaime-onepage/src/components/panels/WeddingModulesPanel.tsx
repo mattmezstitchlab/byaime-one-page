@@ -136,18 +136,60 @@ function putFile(uploadURL: string, file: File, onProgress: (progress: number) =
 }
 
 function AddBar({ label, onAdd }: { label: string; onAdd: () => void }) {
-  return <button onClick={onAdd} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 hover:bg-foreground hover:text-background transition-colors"><Plus className="w-3.5 h-3.5" />{label}</button>;
+  return (
+    <button
+      onClick={onAdd}
+      className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4 py-2 text-xs font-medium text-[var(--agency-ink)] transition hover:border-[var(--agency-ink)] hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)]"
+    >
+      <Plus className="w-3.5 h-3.5" />
+      {label}
+    </button>
+  );
 }
 
 function Empty({ children }: { children: string }) {
-  return <div className="rounded-2xl border border-dashed border-foreground/10 px-5 py-10 text-center text-sm text-foreground/40">{children}</div>;
+  return (
+    <div className="rounded-3xl border border-dashed border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-12 text-center text-sm text-[var(--agency-body)]">
+      {children}
+    </div>
+  );
 }
 
 /* La liste des souvenirs à préparer (shot list, albums, rappels, mots) : la même sous la galerie et en repli. */
 function MemoryChecklist() {
   const { project, updateEntity, removeEntity } = useProject();
   if (!project || project.memories.length === 0) return <Empty>Les souvenirs à préparer apparaîtront ici.</Empty>;
-  return <>{project.memories.map(item => <div key={item.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4 flex items-center gap-3"><button onClick={() => updateEntity("memories", item.id, { status: item.status === "termine" ? "a_faire" : "termine" })} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", item.status === "termine" ? "bg-[#171410] text-[#FFFFFF]" : "border-foreground/20")}>{item.status === "termine" && <Check className="w-3 h-3" />}</button><div className="grid flex-1 gap-2 sm:grid-cols-2"><input value={item.title} onChange={e => updateEntity("memories", item.id, { title: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={item.owner || ""} onChange={e => updateEntity("memories", item.id, { owner: e.target.value })} placeholder="Responsable" className="bg-transparent text-xs text-foreground/55 outline-none" /><select value={item.kind} onChange={e => updateEntity("memories", item.id, { kind: e.target.value as MemoryItem["kind"] })} className="rounded-lg bg-foreground/10 px-2 py-1 text-xs outline-none"><option value="shot">Shot list</option><option value="media">Média</option><option value="message">Message</option><option value="album">Album</option><option value="rappel">Rappel</option></select></div><button onClick={() => removeEntity("memories", item.id)} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-4 h-4" /></button></div>)}</>;
+  return (
+    <>
+      {project.memories.map(item => (
+        <div key={item.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
+          <button
+            onClick={() => updateEntity("memories", item.id, { status: item.status === "termine" ? "a_faire" : "termine" })}
+            className={cn(
+              "grid h-6 w-6 place-items-center rounded-full border",
+              item.status === "termine" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)]",
+            )}
+          >
+            {item.status === "termine" && <Check className="h-3 w-3" />}
+          </button>
+          <div className="grid flex-1 gap-2 sm:grid-cols-2">
+            <input value={item.title} onChange={e => updateEntity("memories", item.id, { title: e.target.value })} className="bg-transparent text-sm outline-none text-[var(--agency-ink)]" />
+            <input value={item.owner || ""} onChange={e => updateEntity("memories", item.id, { owner: e.target.value })} placeholder="Responsable" className="bg-transparent text-xs outline-none text-[var(--agency-body)] placeholder:text-[var(--agency-eyebrow)]" />
+            <select value={item.kind} onChange={e => updateEntity("memories", item.id, { kind: e.target.value as MemoryItem["kind"] })} className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none">
+              <option value="shot">Shot list</option>
+              <option value="media">Média</option>
+              <option value="message">Message</option>
+              <option value="album">Album</option>
+              <option value="rappel">Rappel</option>
+            </select>
+          </div>
+          <button onClick={() => removeEntity("memories", item.id)} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ))}
+    </>
+  );
 }
 
 export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
@@ -637,7 +679,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     return <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between"><div><p className="text-sm text-foreground/50">{unassigned.length} invité{unassigned.length > 1 ? "s" : ""} sans table</p></div><AddBar label="Ajouter une table" onAdd={() => addEntity("tables", { name: `Table ${project.tables.length + 1}`, capacity: 8 })} /></div>
       {unassigned.length > 0 && <div className="rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-widest text-brand-accent"><AlertTriangle className="w-3.5 h-3.5" /> À placer</div><div className="mt-3 grid gap-2 sm:grid-cols-2">{unassigned.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div>}
-      <div className="grid gap-3 md:grid-cols-2">{project.tables.map(table => { const guests = project.guests.filter(g => g.tableId === table.id && effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline"); return <div key={table.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{table.name}</h4><p className={cn("text-xs mt-1", guests.length > table.capacity ? "text-brand-accent" : "text-foreground/40")}>{guests.length} / {table.capacity} places</p></div><button onClick={() => { guests.forEach(g => updateEntity("guests", g.id, { tableId: undefined })); removeEntity("tables", table.id); }} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-4 h-4" /></button></div><div className="mt-4 space-y-2">{guests.length === 0 ? <p className="text-xs text-foreground/30">Aucun invité assigné</p> : guests.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div> })}</div>
+      <div className="grid gap-3 md:grid-cols-2">{project.tables.map(table => { const guests = project.guests.filter(g => g.tableId === table.id && effectiveGuestRsvp(g, participantLinks[g.id]) !== "decline"); return <div key={table.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{table.name}</h4><p className={cn("text-xs mt-1", guests.length > table.capacity ? "text-brand-accent" : "text-foreground/40")}>{guests.length} / {table.capacity} places</p></div><button onClick={() => { guests.forEach(g => updateEntity("guests", g.id, { tableId: undefined })); removeEntity("tables", table.id); }} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-4 h-4" /></button></div><div className="mt-4 space-y-2">{guests.length === 0 ? <p className="text-xs text-foreground/30">Aucun invité assigné</p> : guests.map(g => <GuestSeat key={g.id} guest={g} tables={project.tables} onChange={tableId => updateEntity("guests", g.id, { tableId: tableId || undefined })} />)}</div></div> })}</div>
     </div>;
   }
 
@@ -647,8 +689,8 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     const paid = project.payments.filter(p => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
     const remaining = Math.max(0, (project.budget.value || estimated / 100) * 100 - paid);
     return <div className="max-w-4xl mx-auto space-y-6">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{[["Estimé", estimated], ["Engagé", committed], ["Payé", paid], ["Restant", remaining]].map(([label, value]) => <div key={label as string} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p><p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p></div>)}</div>
-      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.025] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p><div className="mt-4 space-y-3">{Array.from(new Set(project.providers.map(p => p.category))).map(category => { const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0); const pct = estimated ? Math.min(100, Math.round(amount / estimated * 100)) : 0; return <div key={category}><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-foreground/65">{category}</span><span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span></div><div className="h-1 rounded-full bg-foreground/10"><div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} /></div></div> })}</div></div>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{[["Estimé", estimated], ["Engagé", committed], ["Payé", paid], ["Restant", remaining]].map(([label, value]) => <div key={label as string} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</p><p className="mt-2 font-mono text-lg">{euro(value as number, project.currency)}</p></div>)}</div>
+      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Répartition par catégorie</p><div className="mt-4 space-y-3">{Array.from(new Set(project.providers.map(p => p.category))).map(category => { const amount = project.providers.filter(p => p.category === category).reduce((sum, p) => sum + (p.amountCents || 0), 0); const pct = estimated ? Math.min(100, Math.round(amount / estimated * 100)) : 0; return <div key={category}><div className="mb-1 flex justify-between text-xs"><span className="capitalize text-foreground/65">{category}</span><span className="font-mono text-foreground/45">{euro(amount, project.currency)}</span></div><div className="h-1 rounded-full bg-foreground/10"><div className="h-1 rounded-full bg-foreground/60" style={{ width: `${pct}%` }} /></div></div> })}</div></div>
       <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Échéancier</h4><p className="text-xs text-foreground/40 mt-1">Chaque modification est enregistrée dans ce Monde.</p></div><AddBar label="Ajouter un paiement" onAdd={addPayment} /></div>
       {project.payments.length === 0 ? <Empty>Aucun paiement à suivre.</Empty> : <div className="space-y-2">{project.payments.map(p => <PaymentRow key={p.id} payment={p} currency={project.currency} onToggle={() => updateEntity("payments", p.id, { state: p.state === "paye" ? "du" : "paye" })} onDelete={() => removeEntity("payments", p.id)} onEdit={updates => updateEntity("payments", p.id, updates)} />)}</div>}
     </div>;
@@ -656,7 +698,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "documents") return <div className="max-w-3xl mx-auto space-y-5">
     <PersistenceState status={syncStatus} error={syncError} />
-    <div className="rounded-2xl border border-foreground/15 bg-foreground/[.04] p-4">
+    <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-widest text-foreground/60">AIME LOCAL</p>
@@ -667,17 +709,17 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button disabled={busy} onClick={() => void createPairingToken()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">
+          <button disabled={busy} onClick={() => void createPairingToken()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">
             {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
             Connecter mon ordinateur
           </button>
-          <button disabled={busy} onClick={() => void refreshAimeLocal()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">
+          <button disabled={busy} onClick={() => void refreshAimeLocal()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">
             <RefreshCcw className="h-3.5 w-3.5" /> Actualiser
           </button>
         </div>
       </div>
       {pairingToken && (
-        <div className="mt-3 rounded-xl border border-foreground/10 bg-background/20 p-3 text-xs">
+        <div className="mt-3 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3 text-xs">
           <p className="text-foreground/75">Terminal (une seule fois):</p>
           <code className="mt-1 block overflow-auto rounded bg-[#FFFFFF]/60 p-2 text-[11px] text-foreground/85">
             pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base {window.location.origin}/api --pairing-token {pairingToken.token}
@@ -687,7 +729,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
             type="button"
             data-testid="copy-bridge-command"
             onClick={() => void copyBridgeCommand(`pnpm --filter @workspace/scripts run aime-local-bridge -- --api-base ${window.location.origin}/api --pairing-token ${pairingToken.token}`)}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-foreground/65 transition hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[10px] uppercase tracking-[.14em] text-foreground/65 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Copy className="h-3 w-3" /> Copier la commande
           </button>
@@ -699,14 +741,14 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           value={authorizedFoldersText}
           onChange={(event) => setAuthorizedFoldersText(event.target.value)}
           rows={3}
-          className="w-full rounded-xl border border-foreground/10 bg-background/30 px-3 py-2 text-xs outline-none focus:border-foreground/30"
+          className="w-full rounded-xl border border-[var(--agency-hairline)] bg-background/30 px-3 py-2 text-xs outline-none focus:border-foreground/30"
           placeholder="/Users/prenom/Documents/Mariage  ·  C:\\Users\\prenom\\Documents\\Mariage"
         />
         <div className="flex flex-wrap gap-2">
-          <button disabled={busy} onClick={() => void saveAuthorizedFolders()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">
+          <button disabled={busy} onClick={() => void saveAuthorizedFolders()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">
             <FolderOpen className="h-3.5 w-3.5" /> Enregistrer les dossiers
           </button>
-          <button disabled={busy || !localBridge.connected} title={localBridge.connected ? "Le pont analyse les dossiers autorisés." : "Pont AIME LOCAL non connecté : lancez la commande ci-dessus, ou choisissez un dossier plus bas."} onClick={() => void launchLocalScan()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">
+          <button disabled={busy || !localBridge.connected} title={localBridge.connected ? "Le pont analyse les dossiers autorisés." : "Pont AIME LOCAL non connecté : lancez la commande ci-dessus, ou choisissez un dossier plus bas."} onClick={() => void launchLocalScan()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">
             <Search className="h-3.5 w-3.5" /> Lancer un scan manuel
           </button>
         </div>
@@ -724,12 +766,12 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
             disabled={busy}
             onClick={() => void chooseLocalFolder()}
             title="Le navigateur ouvre le sélecteur de dossier de votre Mac ou de votre PC ; rien n'est envoyé ailleurs que dans ce Monde."
-            className="inline-flex items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[.06] px-3 py-2 text-xs text-foreground transition hover:bg-foreground/[.12] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center gap-2 rounded-full border border-foreground/25 bg-[var(--agency-paper)] px-3 py-2 text-xs text-foreground transition hover:bg-foreground/[.12] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <FolderSearch className="h-3.5 w-3.5" />}
             Choisir un dossier de cet ordinateur
           </button>
-          <button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/75 transition hover:bg-foreground hover:text-background disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter des fichiers</button>
+          <button disabled={busy} onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/75 transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">{busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Ajouter des fichiers</button>
           <input ref={fileRef} type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.mp4,image/jpeg,image/png,image/webp,video/mp4" className="hidden" onChange={event => {
             const picked = Array.from(event.target.files ?? []);
             if (picked.length > 1) void importLocalPicks(picked.map(file => ({ path: file.name, file })));
@@ -756,7 +798,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       )}
     </div>
     {localImport && (
-      <div data-testid="local-import-status" role="status" aria-live="polite" className="rounded-xl border border-foreground/10 bg-foreground/[.03] p-3 text-xs">
+      <div data-testid="local-import-status" role="status" aria-live="polite" className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3 text-xs">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-foreground/75">{localImport.current ? `Import en cours · ${localImport.done + 1}/${localImport.total} · ${localImport.current}` : localImport.note}</p>
           {localImport.total > 0 && <p className="font-mono text-foreground/45">{localImport.done}/{localImport.total}</p>}
@@ -777,7 +819,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     {remoteError && <p className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
     {uploadProgress !== null && <div role="status" aria-live="polite" className="rounded-xl border border-brand-accent/25 bg-brand-accent/5 p-3"><div className="flex justify-between text-xs text-foreground/80"><span>Transfert vers l’espace privé</span><span>{uploadProgress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10"><div className="h-full rounded-full bg-brand-accent transition-[width]" style={{ width: `${uploadProgress}%` }} /></div></div>}
     {localScan && (
-      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.03] p-4">
+      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
         <div className="flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-foreground/45">Résultats AIME LOCAL</p>
           <span className="text-xs text-foreground/45">{localScan.results.length} fichier(s)</span>
@@ -786,25 +828,25 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           const file = localScan.results.find((item) => item.localIdentifier === suggestion.localIdentifier);
           if (!file) return null;
           const linked = localReferences.find((reference) => reference.localIdentifier === suggestion.localIdentifier);
-          return <div key={suggestion.localIdentifier} className="rounded-xl border border-foreground/10 bg-background/20 p-3">
+          return <div key={suggestion.localIdentifier} className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
             <p className="truncate text-sm">{file.name}</p>
             <p className="mt-1 text-xs text-foreground/50">{suggestion.reason}</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              <button disabled={busy} onClick={() => void linkLocalFile(file, suggestion)} className="rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-foreground hover:text-background disabled:opacity-40">Lier au projet</button>
-              <button disabled={busy || !linked || !canManage} onClick={() => linked && void requestImport(linked)} className="inline-flex items-center gap-1 rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-foreground hover:text-background disabled:opacity-40"><Upload className="h-3 w-3" />Importer dans AIME</button>
-              <button disabled={busy || !linked} onClick={() => linked && void api(`/projects/${project.id}/aime-local/references/${linked.id}/state`, { method: "PATCH", body: JSON.stringify({ state: "ignored" }) }).then(() => refreshAimeLocal())} className="rounded-full border border-foreground/15 px-2.5 py-1 text-[11px] text-foreground/55 hover:bg-foreground/10 disabled:opacity-40">Ignorer</button>
+              <button disabled={busy} onClick={() => void linkLocalFile(file, suggestion)} className="rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40">Lier au projet</button>
+              <button disabled={busy || !linked || !canManage} onClick={() => linked && void requestImport(linked)} className="inline-flex items-center gap-1 rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[11px] text-foreground/80 hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40"><Upload className="h-3 w-3" />Importer dans AIME</button>
+              <button disabled={busy || !linked} onClick={() => linked && void api(`/projects/${project.id}/aime-local/references/${linked.id}/state`, { method: "PATCH", body: JSON.stringify({ state: "ignored" }) }).then(() => refreshAimeLocal())} className="rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[11px] text-foreground/55 hover:bg-foreground/10 disabled:opacity-40">Ignorer</button>
             </div>
           </div>;
         })}</div>}
       </div>
     )}
-    {files.length === 0 ? <Empty>Aucun document stocké.</Empty> : <div className="space-y-2">{files.map(file => <div key={file.id} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="min-w-0 flex-1"><p className="truncate text-sm">{file.name}</p><p className="mt-1 text-xs text-foreground/35">{fileSize(file.size)} · {file.contentType || "fichier"}</p></div><a aria-label={`Aperçu de ${file.name}`} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="p-2 text-foreground/45 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a><a aria-label={`Télécharger ${file.name}`} href={`/api/storage/files/${file.id}?download=1`} className="p-2 text-foreground/45 hover:text-foreground"><Download className="h-4 w-4" /></a>{canManage && <button disabled={busy} aria-label={`Supprimer ${file.name}`} onClick={() => void deleteFile(file)} className="p-2 text-foreground/30 hover:text-brand-accent disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>}
+    {files.length === 0 ? <Empty>Aucun document stocké.</Empty> : <div className="space-y-2">{files.map(file => <div key={file.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><div className="min-w-0 flex-1"><p className="truncate text-sm">{file.name}</p><p className="mt-1 text-xs text-foreground/35">{fileSize(file.size)} · {file.contentType || "fichier"}</p></div><a aria-label={`Aperçu de ${file.name}`} target="_blank" rel="noreferrer" href={`/api/storage/files/${file.id}`} className="p-2 text-foreground/45 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a><a aria-label={`Télécharger ${file.name}`} href={`/api/storage/files/${file.id}?download=1`} className="p-2 text-foreground/45 hover:text-foreground"><Download className="h-4 w-4" /></a>{canManage && <button disabled={busy} aria-label={`Supprimer ${file.name}`} onClick={() => void deleteFile(file)} className="p-2 text-foreground/30 hover:text-brand-accent disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>}</div>)}</div>}
     {!canManage && <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent consulter ou modifier ces documents privés.</p>}
   </div>;
 
   if (module === "ceremony") {
     const c = project.ceremony;
-    return <div className="max-w-3xl mx-auto space-y-5"><EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={notes => updateProject({ ceremony: { ...c, notes } })} /><div className="grid gap-3 sm:grid-cols-2"><EditableArea label="Menu" value={c.menu} onChange={menu => updateProject({ ceremony: { ...c, menu } })} /><EditableArea label="Boissons" value={c.drinks} onChange={drinks => updateProject({ ceremony: { ...c, drinks } })} /><EditableArea label="Gâteau" value={c.cake} onChange={cake => updateProject({ ceremony: { ...c, cake } })} /><EditableArea label="Première danse" value={c.firstDance} onChange={firstDance => updateProject({ ceremony: { ...c, firstDance } })} /></div><div className="rounded-2xl border border-foreground/10 p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Structure</p>{c.structure.map((item, i) => <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm"><span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>{item}</div>)}</div><div className="rounded-2xl border border-foreground/10 p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Lectures et vœux</p>{c.readings.map(r => <div key={r.id} className="mb-3"><p className="text-sm">{r.title} <span className="text-foreground/40">· {r.reader}</span></p><p className="text-xs text-foreground/45 mt-1">{r.text}</p></div>)}{c.vows.map(v => <EditableArea key={v.id} label={`Vœux de ${v.person}`} value={v.text} onChange={text => updateProject({ ceremony: { ...c, vows: c.vows.map(x => x.id === v.id ? { ...x, text } : x) } })} />)}</div></div>;
+    return <div className="max-w-3xl mx-auto space-y-5"><EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={notes => updateProject({ ceremony: { ...c, notes } })} /><div className="grid gap-3 sm:grid-cols-2"><EditableArea label="Menu" value={c.menu} onChange={menu => updateProject({ ceremony: { ...c, menu } })} /><EditableArea label="Boissons" value={c.drinks} onChange={drinks => updateProject({ ceremony: { ...c, drinks } })} /><EditableArea label="Gâteau" value={c.cake} onChange={cake => updateProject({ ceremony: { ...c, cake } })} /><EditableArea label="Première danse" value={c.firstDance} onChange={firstDance => updateProject({ ceremony: { ...c, firstDance } })} /></div><div className="rounded-3xl border border-[var(--agency-hairline)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Structure</p>{c.structure.map((item, i) => <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm"><span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>{item}</div>)}</div><div className="rounded-3xl border border-[var(--agency-hairline)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Lectures et vœux</p>{c.readings.map(r => <div key={r.id} className="mb-3"><p className="text-sm">{r.title} <span className="text-foreground/40">· {r.reader}</span></p><p className="text-xs text-foreground/45 mt-1">{r.text}</p></div>)}{c.vows.map(v => <EditableArea key={v.id} label={`Vœux de ${v.person}`} value={v.text} onChange={text => updateProject({ ceremony: { ...c, vows: c.vows.map(x => x.id === v.id ? { ...x, text } : x) } })} />)}</div></div>;
   }
 
   if (module === "music") {
@@ -812,7 +854,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     const selectedTrack = project.music.find(track => track.id === selectedMusicId) || project.music[0];
     if (!canEdit) return <div className="mx-auto max-w-4xl space-y-5">
       <div><h4 className="text-sm font-medium">Musique reliée aux Moments</h4><p className="mt-1 text-xs text-foreground/45">Consultation seule : les responsables et la famille autorisée peuvent modifier cette sélection.</p></div>
-      {project.music.length === 0 ? <Empty>Aucun morceau n’est encore relié à un Moment.</Empty> : project.music.map(track => <div key={track.id} className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><TrackArtwork track={track} size="sm" /><div className="min-w-0 flex-1"><p className="truncate text-sm">{track.title}</p><p className="mt-1 truncate text-xs text-foreground/45">{track.artist || "Artiste à préciser"} · {track.moment}</p></div><span className="text-[10px] uppercase tracking-wider text-foreground/35">{track.status === "valide" ? "Validé" : "À choisir"}</span></div>)}
+      {project.music.length === 0 ? <Empty>Aucun morceau n’est encore relié à un Moment.</Empty> : project.music.map(track => <div key={track.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><TrackArtwork track={track} size="sm" /><div className="min-w-0 flex-1"><p className="truncate text-sm">{track.title}</p><p className="mt-1 truncate text-xs text-foreground/45">{track.artist || "Artiste à préciser"} · {track.moment}</p></div><span className="text-[10px] uppercase tracking-wider text-foreground/35">{track.status === "valide" ? "Validé" : "À choisir"}</span></div>)}
     </div>;
     const runMusicSearch = async () => {
       const term = musicQuery.trim();
@@ -867,20 +909,20 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       updateProject(linkMusicTrackToEvents(project, track.id, next));
     };
     return <div className="max-w-4xl mx-auto space-y-5">
-      {canManage && <section className="rounded-2xl border border-foreground/15 bg-foreground/[.04] p-4">
+      {canManage && <section className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
         <div className="flex items-start gap-3">
           <Music2 className="mt-0.5 h-4 w-4 shrink-0 text-foreground/50" />
           <div><h4 className="text-sm font-medium">Demandes reçues sans interrompre le DJ</h4><p className="mt-1 text-xs leading-relaxed text-foreground/50">Les demandes restent une file de souhaits. Elles ne lancent jamais un morceau et ne promettent pas sa diffusion.</p></div>
         </div>
         {songRequests.length === 0 ? <p className="mt-4 text-xs text-foreground/35">Aucune demande musicale reçue.</p> : <div className="mt-4 space-y-2">{songRequests.map(request => {
           const labels: Record<SongRequest["status"], string> = { new: "Nouvelle", seen: "Vue", accepted: "Acceptée", played: "Jouée", rejected: "Refusée" };
-          return <div key={request.id} className="rounded-xl border border-foreground/10 bg-background/20 p-3">
-            <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm">{request.title}</p><p className="mt-1 text-xs text-foreground/45">{request.artist || "Artiste non précisé"} · {request.guestName || "Invité"}</p>{request.message && <p className="mt-2 text-xs text-foreground/55">« {request.message} »</p>}</div><span className="rounded-full border border-foreground/10 px-2 py-1 text-[10px] uppercase tracking-wider text-foreground/55">{labels[request.status]}</span></div>
-            <div className="mt-3 flex flex-wrap gap-1.5">{(["seen", "accepted", "played", "rejected"] as const).map(status => <button key={status} disabled={busy || request.status === status} onClick={() => void updateSongRequest(request.id, status)} className="rounded-full border border-foreground/10 px-2.5 py-1.5 text-[10px] text-foreground/55 transition hover:border-foreground/30 hover:text-foreground disabled:opacity-30">{labels[status]}</button>)}</div>
+          return <div key={request.id} className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm">{request.title}</p><p className="mt-1 text-xs text-foreground/45">{request.artist || "Artiste non précisé"} · {request.guestName || "Invité"}</p>{request.message && <p className="mt-2 text-xs text-foreground/55">« {request.message} »</p>}</div><span className="rounded-full border border-[var(--agency-hairline)] px-2 py-1 text-[10px] uppercase tracking-wider text-foreground/55">{labels[request.status]}</span></div>
+            <div className="mt-3 flex flex-wrap gap-1.5">{(["seen", "accepted", "played", "rejected"] as const).map(status => <button key={status} disabled={busy || request.status === status} onClick={() => void updateSongRequest(request.id, status)} className="rounded-full border border-[var(--agency-hairline)] px-2.5 py-1.5 text-[10px] text-foreground/55 transition hover:border-foreground/30 hover:text-foreground disabled:opacity-30">{labels[status]}</button>)}</div>
           </div>;
         })}</div>}
       </section>}
-      <div className="rounded-2xl border border-foreground/15 bg-foreground/[.04] p-4">
+      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <ShieldCheck className="h-4 w-4 text-brand-accent" />
           <span className="font-medium text-foreground/90">Source autorisée connectée</span>
@@ -888,13 +930,13 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
         </div>
         <p className="mt-2 text-xs leading-relaxed text-foreground/55">Les métadonnées et les pochettes viennent du catalogue Apple. Un aperçu audio est affiché uniquement quand Apple fournit un extrait légal pour ce morceau.</p>
       </div>
-      <div className="rounded-2xl border border-foreground/10 bg-foreground/[.025] p-4">
+      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
         <div className="flex flex-wrap items-end gap-3">
-          <label className="min-w-[220px] flex-1"><span className="mb-2 block text-[10px] uppercase tracking-widest text-foreground/40">Rechercher dans {MUSIC_SOURCE}</span><input value={musicQuery} onChange={event => setMusicQuery(event.target.value)} onKeyDown={event => { if (event.key === "Enter") void runMusicSearch(); }} placeholder="Titre ou artiste" className="w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-sm outline-none focus:border-foreground/30" /></label>
+          <label className="min-w-[220px] flex-1"><span className="mb-2 block text-[10px] uppercase tracking-widest text-foreground/40">Rechercher dans {MUSIC_SOURCE}</span><input value={musicQuery} onChange={event => setMusicQuery(event.target.value)} onKeyDown={event => { if (event.key === "Enter") void runMusicSearch(); }} placeholder="Titre ou artiste" className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-sm outline-none focus:border-foreground/30" /></label>
           <button type="button" disabled={musicSearchBusy} onClick={() => void runMusicSearch()} className="inline-flex items-center gap-2 rounded-full bg-[#171410] px-4 py-2 text-xs font-medium text-[#FFFFFF] disabled:opacity-40">{musicSearchBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}Rechercher</button>
         </div>
         {musicSearchError && <p role="alert" className="mt-3 text-xs text-brand-accent">{musicSearchError}</p>}
-        {musicResults.length > 0 && <div className="mt-4 space-y-2 border-t border-foreground/10 pt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Résultats réels</p>{selectedTrack && <label className="flex items-center gap-2 text-xs text-foreground/55">Relier à<select value={selectedTrack.id} onChange={event => setSelectedMusicId(event.target.value)} className="rounded-lg bg-foreground/10 px-2 py-1 text-xs text-foreground outline-none">{project.music.map(track => <option key={track.id} value={track.id}>{track.moment}</option>)}</select></label>}</div>{musicResults.map(result => <MusicSearchResultRow key={`${result.provider}:${result.externalId}`} result={result} disabled={!selectedTrack} onSelect={() => selectMusicResult(result)} />)}</div>}
+        {musicResults.length > 0 && <div className="mt-4 space-y-2 border-t border-[var(--agency-hairline)] pt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Résultats réels</p>{selectedTrack && <label className="flex items-center gap-2 text-xs text-foreground/55">Relier à<select value={selectedTrack.id} onChange={event => setSelectedMusicId(event.target.value)} className="rounded-lg bg-foreground/10 px-2 py-1 text-xs text-foreground outline-none">{project.music.map(track => <option key={track.id} value={track.id}>{track.moment}</option>)}</select></label>}</div>{musicResults.map(result => <MusicSearchResultRow key={`${result.provider}:${result.externalId}`} result={result} disabled={!selectedTrack} onSelect={() => selectMusicResult(result)} />)}</div>}
       </div>
       <div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">Morceaux reliés aux Moments</h4><p className="mt-1 text-xs text-foreground/40">Chaque morceau peut être relié à un ou plusieurs événements de la Timeline.</p></div><AddBar label="Saisie manuelle" onAdd={() => addEntity("music", { moment: "Nouveau Moment", title: "À choisir", artist: "", status: "a_choisir", metadataStatus: "manual", provenance: "real", timelineEventIds: [] })} /></div>
       {project.music.length === 0 ? <Empty>Aucun morceau n’est encore relié à un Moment.</Empty> : project.music.map(track => <MusicTrackRow key={track.id} track={track} timelineEvents={timelineMusicEvents} linkedEventIds={musicEventIdsForTrack(project, track.id)} onToggleEvent={eventId => toggleTrackEvent(track, eventId)} onUpdate={updates => updateEntity("music", track.id, updates)} onDelete={() => removeEntity("music", track.id)} />)}
@@ -903,7 +945,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 
   if (module === "logistics") {
     const l = project.logistics;
-    return <div className="max-w-4xl mx-auto space-y-4"><EditableArea label="Parking" value={l.parking} onChange={parking => updateProject({ logistics: { ...l, parking } })} /><EditableArea label="Accessibilité" value={l.accessibility} onChange={accessibility => updateProject({ logistics: { ...l, accessibility } })} /><EditableArea label="Plan météo de repli" value={l.weatherFallback} onChange={weatherFallback => updateProject({ logistics: { ...l, weatherFallback } })} /><div className="rounded-2xl border border-foreground/10 p-4"><div className="flex justify-between items-center mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">À emporter</p><AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, packing: [...l.packing, { id: newId(), label: "Nouvel élément", done: false }] } })} /></div>{l.packing.length === 0 ? <Empty>La liste est vide.</Empty> : l.packing.map(item => <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0"><button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.map(x => x.id === item.id ? { ...x, done: !x.done } : x) } })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[#171410] text-[#FFFFFF]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3" />}</button><input value={item.label} onChange={e => updateProject({ logistics: { ...l, packing: l.packing.map(x => x.id === item.id ? { ...x, label: e.target.value } : x) } })} className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")} /><button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.filter(x => x.id !== item.id) } })} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div><div className="rounded-2xl border border-foreground/10 p-4"><div className="flex items-center justify-between mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Contacts d'urgence</p><AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, emergencyContacts: [...l.emergencyContacts, { id: newId(), name: "Nouveau contact", phone: "", role: "À préciser" }] } })} /></div>{l.emergencyContacts.map(contact => <div key={contact.id} className="grid grid-cols-3 gap-2 border-b border-foreground/5 py-2 last:border-0"><input value={contact.name} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, name: e.target.value } : x) } })} className="bg-transparent text-sm outline-none" /><input value={contact.phone} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, phone: e.target.value } : x) } })} placeholder="Téléphone" className="bg-transparent text-xs outline-none" /><input value={contact.role} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, role: e.target.value } : x) } })} className="bg-transparent text-xs text-foreground/50 outline-none" /></div>)}</div><div className="grid gap-3 md:grid-cols-2">{l.accommodations.map(a => <div key={a.id} className="rounded-2xl border border-foreground/10 p-4"><p className="text-sm">{a.name}</p><p className="text-xs text-foreground/45 mt-1">{a.booked} réservées · {a.address}</p></div>)}{l.shuttles.map(s => <div key={s.id} className="rounded-2xl border border-foreground/10 p-4"><p className="text-sm">{s.route}</p><p className="text-xs text-foreground/45 mt-1">Départ {s.departure} · {s.capacity} places</p></div>)}</div></div>;
+    return <div className="max-w-4xl mx-auto space-y-4"><EditableArea label="Parking" value={l.parking} onChange={parking => updateProject({ logistics: { ...l, parking } })} /><EditableArea label="Accessibilité" value={l.accessibility} onChange={accessibility => updateProject({ logistics: { ...l, accessibility } })} /><EditableArea label="Plan météo de repli" value={l.weatherFallback} onChange={weatherFallback => updateProject({ logistics: { ...l, weatherFallback } })} /><div className="rounded-3xl border border-[var(--agency-hairline)] p-4"><div className="flex justify-between items-center mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">À emporter</p><AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, packing: [...l.packing, { id: newId(), label: "Nouvel élément", done: false }] } })} /></div>{l.packing.length === 0 ? <Empty>La liste est vide.</Empty> : l.packing.map(item => <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0"><button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.map(x => x.id === item.id ? { ...x, done: !x.done } : x) } })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3" />}</button><input value={item.label} onChange={e => updateProject({ logistics: { ...l, packing: l.packing.map(x => x.id === item.id ? { ...x, label: e.target.value } : x) } })} className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")} /><button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.filter(x => x.id !== item.id) } })} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div><div className="rounded-3xl border border-[var(--agency-hairline)] p-4"><div className="flex items-center justify-between mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Contacts d'urgence</p><AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, emergencyContacts: [...l.emergencyContacts, { id: newId(), name: "Nouveau contact", phone: "", role: "À préciser" }] } })} /></div>{l.emergencyContacts.map(contact => <div key={contact.id} className="grid grid-cols-3 gap-2 border-b border-foreground/5 py-2 last:border-0"><input value={contact.name} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, name: e.target.value } : x) } })} className="bg-transparent text-sm outline-none" /><input value={contact.phone} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, phone: e.target.value } : x) } })} placeholder="Téléphone" className="bg-transparent text-xs outline-none" /><input value={contact.role} onChange={e => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map(x => x.id === contact.id ? { ...x, role: e.target.value } : x) } })} className="bg-transparent text-xs text-foreground/50 outline-none" /></div>)}</div><div className="grid gap-3 md:grid-cols-2">{l.accommodations.map(a => <div key={a.id} className="rounded-3xl border border-[var(--agency-hairline)] p-4"><p className="text-sm">{a.name}</p><p className="text-xs text-foreground/45 mt-1">{a.booked} réservées · {a.address}</p></div>)}{l.shuttles.map(s => <div key={s.id} className="rounded-3xl border border-[var(--agency-hairline)] p-4"><p className="text-sm">{s.route}</p><p className="text-xs text-foreground/45 mt-1">Départ {s.departure} · {s.capacity} places</p></div>)}</div></div>;
   }
 
   if (module === "messages") {
@@ -911,26 +953,26 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     return <div className="max-w-4xl mx-auto space-y-5">
       <PersistenceState status={syncStatus} error={syncError} />
       {remoteError && <p className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
-      <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Message libre" onAdd={() => setFreeOpen(value => !value)} />}{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
-      {canManage && freeOpen && <div className="space-y-3 rounded-2xl border border-foreground/15 bg-foreground/[.05] p-4" data-testid="messages-free-composer">
-        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</span><input value={freeRecipients} onChange={event => setFreeRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="mt-1 w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
-        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Objet</span><input value={freeSubject} onChange={event => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
-        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Message</span><textarea value={freeBody} onChange={event => setFreeBody(event.target.value)} rows={4} placeholder="Écrire le message…" className="mt-1 w-full resize-none rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs leading-relaxed outline-none focus:border-foreground/30" /></label>
+      <div className="flex items-center gap-2"><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Rechercher un modèle…" className="flex-1 rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30" />{canManage && <AddBar label="Message libre" onAdd={() => setFreeOpen(value => !value)} />}{canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}</div>
+      {canManage && freeOpen && <div className="space-y-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4" data-testid="messages-free-composer">
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</span><input value={freeRecipients} onChange={event => setFreeRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Objet</span><input value={freeSubject} onChange={event => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" /></label>
+        <label className="block"><span className="text-[10px] uppercase tracking-widest text-foreground/40">Message</span><textarea value={freeBody} onChange={event => setFreeBody(event.target.value)} rows={4} placeholder="Écrire le message…" className="mt-1 w-full resize-none rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs leading-relaxed outline-none focus:border-foreground/30" /></label>
         <div className="flex gap-2">
-          <button disabled={busy} onClick={() => setFreeOpen(false)} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Annuler</button>
+          <button disabled={busy} onClick={() => setFreeOpen(false)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">Annuler</button>
           <button disabled={busy || !freeRecipients.trim() || !freeSubject.trim() || !freeBody.trim()} onClick={() => void sendFreeMessage()} className="inline-flex items-center gap-2 rounded-full bg-[#171410] px-3 py-2 text-xs font-medium text-[#FFFFFF] disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}<Send className="h-3.5 w-3.5" />Confirmer et envoyer</button>
         </div>
       </div>}
-      <div className="grid gap-3 md:grid-cols-2">{templates.map(template => <div key={template.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="flex justify-between gap-2"><input disabled={!canManage} value={template.title} onChange={event => updateEntity("messageTemplates", template.id, { title: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-foreground/60" />{canManage && <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="h-3.5 w-3.5" /></button>}</div><textarea disabled={!canManage} value={template.body} onChange={event => updateEntity("messageTemplates", template.id, { body: event.target.value })} placeholder="Écrire le message…" rows={3} className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none" />
+      <div className="grid gap-3 md:grid-cols-2">{templates.map(template => <div key={template.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><div className="flex justify-between gap-2"><input disabled={!canManage} value={template.title} onChange={event => updateEntity("messageTemplates", template.id, { title: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-foreground/60" />{canManage && <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="h-3.5 w-3.5" /></button>}</div><textarea disabled={!canManage} value={template.body} onChange={event => updateEntity("messageTemplates", template.id, { body: event.target.value })} placeholder="Écrire le message…" rows={3} className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none" />
         {canManage && selectedTemplateId !== template.id && <button disabled={!template.title.trim() || !template.body.trim()} onClick={() => setSelectedTemplateId(template.id)} className="mt-3 inline-flex items-center gap-2 text-xs text-foreground/70 hover:text-foreground disabled:opacity-30"><Send className="h-3.5 w-3.5" />Préparer l’envoi</button>}
-        {selectedTemplateId === template.id && <div className="mt-4 space-y-3 border-t border-foreground/10 pt-4"><label className="block text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</label><input autoFocus value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="w-full rounded-xl border border-foreground/10 bg-background/20 px-3 py-2 text-xs outline-none focus:border-foreground/30" /><p className="text-xs text-foreground/40">L’objet sera « {template.title} ». L’envoi ne partira qu’après votre confirmation.</p><div className="flex gap-2"><button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Annuler</button><button disabled={busy || !recipients.trim()} onClick={() => void sendTemplate(template)} className="inline-flex items-center gap-2 rounded-full bg-[#171410] px-3 py-2 text-xs font-medium text-[#FFFFFF] disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}Confirmer et envoyer</button></div></div>}
+        {selectedTemplateId === template.id && <div className="mt-4 space-y-3 border-t border-[var(--agency-hairline)] pt-4"><label className="block text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</label><input autoFocus value={recipients} onChange={event => setRecipients(event.target.value)} placeholder="adresses séparées par des virgules" className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" /><p className="text-xs text-foreground/40">L’objet sera « {template.title} ». L’envoi ne partira qu’après votre confirmation.</p><div className="flex gap-2"><button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">Annuler</button><button disabled={busy || !recipients.trim()} onClick={() => void sendTemplate(template)} className="inline-flex items-center gap-2 rounded-full bg-[#171410] px-3 py-2 text-xs font-medium text-[#FFFFFF] disabled:opacity-30">{busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}Confirmer et envoyer</button></div></div>}
       </div>)}</div>
        <div><p className="mb-3 text-[10px] uppercase tracking-widest text-foreground/40">Journal des envois et rappels</p>{!canManage ? <p className="text-xs text-foreground/35">Seuls les responsables du Monde peuvent envoyer des messages et consulter leur journal.</p> : messages.length === 0 ? <Empty>Aucun message envoyé ou programmé.</Empty> : messages.map(message => {
          const linkedEvent = message.timelineEventId ? project.timeline.find(event => event.id === message.timelineEventId) : undefined;
          const statusLabel = message.status === "sent" ? "envoyé" : message.status === "failed" ? "échec Resend" : message.status === "scheduled" ? "programmé" : message.status === "cancelled" ? "annulé" : "en cours";
          return <div key={message.id} className="border-b border-foreground/5 py-3 text-sm">
            <div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><p className="truncate">{message.subject}</p>{linkedEvent && <p className="mt-1 text-xs text-foreground/55">Lié à « {linkedEvent.title} »</p>}<p className="mt-1 truncate text-xs text-foreground/35">{message.recipients.join(", ")}</p>{message.providerError && <p className="mt-1 text-xs text-brand-accent">Resend : {message.providerError}</p>}</div><span className={cn("text-xs", message.status === "sent" ? "text-foreground/60" : message.status === "failed" ? "text-brand-accent" : message.status === "cancelled" ? "text-foreground/35" : "text-brand-accent")}>{new Date(message.scheduledAt || message.sentAt || message.createdAt).toLocaleString("fr-FR")} · {statusLabel}</span></div>
-           {message.status === "scheduled" && <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-foreground/10 bg-foreground/[.03] p-3"><label className="flex-1 text-[10px] uppercase tracking-widest text-foreground/40">Nouvelle date<input type="datetime-local" value={rescheduleAt[message.id] || (message.scheduledAt ? new Date(message.scheduledAt).toISOString().slice(0, 16) : "")} min={new Date().toISOString().slice(0, 16)} onChange={event => setRescheduleAt(current => ({ ...current, [message.id]: event.target.value }))} className="mt-1 block w-full rounded-lg border border-foreground/10 bg-background/20 px-2 py-1.5 text-xs normal-case tracking-normal outline-none" /></label><button disabled={busy || !rescheduleAt[message.id]} onClick={() => void rescheduleMessage(message.id)} className="rounded-full border border-foreground/15 px-3 py-2 text-xs disabled:opacity-30">Replanifier</button><button disabled={busy} onClick={() => void cancelScheduledMessage(message.id)} className="rounded-full border border-brand-accent/40/20 px-3 py-2 text-xs text-brand-accent disabled:opacity-30">Annuler le rappel</button></div>}
+           {message.status === "scheduled" && <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3"><label className="flex-1 text-[10px] uppercase tracking-widest text-foreground/40">Nouvelle date<input type="datetime-local" value={rescheduleAt[message.id] || (message.scheduledAt ? new Date(message.scheduledAt).toISOString().slice(0, 16) : "")} min={new Date().toISOString().slice(0, 16)} onChange={event => setRescheduleAt(current => ({ ...current, [message.id]: event.target.value }))} className="mt-1 block w-full rounded-lg border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-2 py-1.5 text-xs normal-case tracking-normal outline-none" /></label><button disabled={busy || !rescheduleAt[message.id]} onClick={() => void rescheduleMessage(message.id)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs disabled:opacity-30">Replanifier</button><button disabled={busy} onClick={() => void cancelScheduledMessage(message.id)} className="rounded-full border border-brand-accent/40/20 px-3 py-2 text-xs text-brand-accent disabled:opacity-30">Annuler le rappel</button></div>}
          </div>;
        })}</div>
     </div>;
@@ -940,7 +982,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     return <div className="mx-auto max-w-4xl space-y-5">
       <div><h4 className="text-sm font-medium">Photos et vidéos reçues</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Chaque contribution reste privée jusqu’à votre décision. Le consentement et la provenance restent attachés au fichier.</p></div>
       {remoteError && <p role="alert" className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
-      {participantMedia.length === 0 ? <Empty>Aucune contribution invitée reçue.</Empty> : <div className="grid gap-3 sm:grid-cols-2">{participantMedia.map(media => <article key={media.id} className="overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[.035]">
+      {participantMedia.length === 0 ? <Empty>Aucune contribution invitée reçue.</Empty> : <div className="grid gap-3 sm:grid-cols-2">{participantMedia.map(media => <article key={media.id} className="overflow-hidden rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
         <a href={`/api/storage/files/${media.id}`} target="_blank" rel="noreferrer" className="flex aspect-video items-center justify-center bg-foreground/5 text-foreground/30" aria-label={`Ouvrir ${media.name}`}>
           {media.contentType.startsWith("image/") ? <Image className="h-8 w-8" /> : <Film className="h-8 w-8" />}
         </a>
@@ -961,9 +1003,9 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       <section>
         <div><h4 className="flex items-center gap-2 text-sm font-medium"><Heart className="h-4 w-4 text-brand-accent" />Les mots doux reçus</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Dédicaces musicales, légendes des photos reçues et mots notés par vos soins : tout ce que vos invités vous ont écrit, réuni avant d’y répondre.</p></div>
         {dedications.length + guestWords.length + notedWords.length === 0 ? <div className="mt-4"><Empty>Aucun mot doux reçu pour l’instant. Les dédicaces et légendes des invités apparaîtront ici.</Empty></div> : <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {dedications.map(dedication => <figure key={dedication.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><blockquote className="text-sm font-light leading-relaxed">« {dedication.message} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{dedication.guestName || "Invité"} · dédicace pour « {dedication.title} »{dedication.artist ? ` — ${dedication.artist}` : ""}</figcaption></figure>)}
-          {guestWords.map(media => <figure key={media.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><blockquote className="text-sm font-light leading-relaxed">« {media.caption} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{media.guestName || "Invité"} · légende d’une photo reçue</figcaption></figure>)}
-          {notedWords.map(word => <figure key={word.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><blockquote className="text-sm font-light leading-relaxed">« {word.title} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{word.owner || "Noté par vous"}{word.notes ? ` · ${word.notes}` : ""}</figcaption></figure>)}
+          {dedications.map(dedication => <figure key={dedication.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><blockquote className="text-sm font-light leading-relaxed">« {dedication.message} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{dedication.guestName || "Invité"} · dédicace pour « {dedication.title} »{dedication.artist ? ` — ${dedication.artist}` : ""}</figcaption></figure>)}
+          {guestWords.map(media => <figure key={media.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><blockquote className="text-sm font-light leading-relaxed">« {media.caption} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{media.guestName || "Invité"} · légende d’une photo reçue</figcaption></figure>)}
+          {notedWords.map(word => <figure key={word.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><blockquote className="text-sm font-light leading-relaxed">« {word.title} »</blockquote><figcaption className="mt-2 text-xs text-foreground/45">{word.owner || "Noté par vous"}{word.notes ? ` · ${word.notes}` : ""}</figcaption></figure>)}
         </div>}
       </section>
       <section className="space-y-5">
@@ -973,7 +1015,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
         const deliveries = guest.contact ? thankYouMessages.filter(message => message.recipients.includes(guest.contact!)) : [];
         const latest = [...deliveries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
         const label = !guest.contact ? "Sans adresse" : latest?.status === "sent" ? "Envoyé" : latest?.status === "failed" ? "Erreur" : latest ? "En cours" : "À préparer";
-        return <div key={guest.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><div className="min-w-0 flex-1"><p className="text-sm">{guest.name}</p><p className="mt-1 truncate text-xs text-foreground/40">{guest.contact || "Ajoutez une adresse dans Personnes"} · {label}</p>{latest?.providerError && <p className="mt-1 text-xs text-brand-accent">{latest.providerError}</p>}</div>{canManage && guest.contact && latest?.status !== "sent" && <button disabled={busy} onClick={() => void sendThankYou(guest.contact!, guest.name)} className="rounded-full bg-foreground px-3 py-2 text-xs font-medium text-background disabled:opacity-30">{latest?.status === "failed" ? "Réessayer" : "Confirmer et envoyer"}</button>}</div>;
+        return <div key={guest.id} className="flex flex-wrap items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><div className="min-w-0 flex-1"><p className="text-sm">{guest.name}</p><p className="mt-1 truncate text-xs text-foreground/40">{guest.contact || "Ajoutez une adresse dans Personnes"} · {label}</p>{latest?.providerError && <p className="mt-1 text-xs text-brand-accent">{latest.providerError}</p>}</div>{canManage && guest.contact && latest?.status !== "sent" && <button disabled={busy} onClick={() => void sendThankYou(guest.contact!, guest.name)} className="rounded-full bg-foreground px-3 py-2 text-xs font-medium text-background disabled:opacity-30">{latest?.status === "failed" ? "Réessayer" : "Confirmer et envoyer"}</button>}</div>;
       })}</div>
       </section>
     </div>;
@@ -991,17 +1033,17 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       <div><h4 className="text-sm font-medium">Film du Jour J</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">AIME ne simule aucun montage. Seules les vidéos réellement déposées dans l’espace privé ou validées depuis les invités apparaissent ici, lisibles sans quitter la section.</p></div>
       {remoteError && <p role="alert" className="rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
       {playlist.length === 0 || !selected ? <Empty>Aucun film réel n’a encore été livré ou validé.</Empty> : <>
-        <figure className="overflow-hidden rounded-3xl border border-foreground/10 bg-[#FFFFFF]">
+        <figure className="overflow-hidden rounded-3xl border border-[var(--agency-hairline)] bg-[#FFFFFF]">
           <video key={selected.id} controls preload="metadata" src={`/api/storage/files/${selected.id}`} className="aspect-video w-full" aria-label={selected.name} />
-          <figcaption className="flex flex-wrap items-center gap-2 border-t border-foreground/10 bg-foreground/[.035] p-4">
+          <figcaption className="flex flex-wrap items-center gap-2 border-t border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
             <span className="min-w-0 flex-1 truncate text-sm">{selected.name}</span>
             <span className="text-xs text-foreground/35">{selected.origin} · {fileSize(selected.size)}</span>
-            <a href={`/api/storage/files/${selected.id}`} download={selected.name} className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 px-3 py-1.5 text-xs text-foreground/60 transition hover:text-foreground"><Download className="h-3.5 w-3.5" />Télécharger</a>
+            <a href={`/api/storage/files/${selected.id}`} download={selected.name} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/60 transition hover:text-foreground"><Download className="h-3.5 w-3.5" />Télécharger</a>
           </figcaption>
         </figure>
-        {playlist.length > 1 && <div><p className="mb-2 text-[10px] uppercase tracking-widest text-foreground/40">Toutes les vidéos ({playlist.length})</p><div className="space-y-2">{playlist.map(video => <button key={video.id} onClick={() => setSelectedVideoId(video.id)} aria-current={video.id === selected.id} className={cn("flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition", video.id === selected.id ? "border-foreground/30 bg-foreground/[.06]" : "border-foreground/10 bg-foreground/[.035] hover:border-foreground/20")}><Film className="h-5 w-5 shrink-0 text-foreground/50" /><span className="min-w-0 flex-1 truncate text-sm">{video.name}</span><span className="shrink-0 text-xs text-foreground/35">{video.origin}</span></button>)}</div></div>}
+        {playlist.length > 1 && <div><p className="mb-2 text-[10px] uppercase tracking-widest text-foreground/40">Toutes les vidéos ({playlist.length})</p><div className="space-y-2">{playlist.map(video => <button key={video.id} onClick={() => setSelectedVideoId(video.id)} aria-current={video.id === selected.id} className={cn("flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition", video.id === selected.id ? "border-foreground/30 bg-[var(--agency-paper)]" : "border-[var(--agency-hairline)] bg-[var(--agency-paper)] hover:border-[var(--agency-hairline)]")}><Film className="h-5 w-5 shrink-0 text-foreground/50" /><span className="min-w-0 flex-1 truncate text-sm">{video.name}</span><span className="shrink-0 text-xs text-foreground/35">{video.origin}</span></button>)}</div></div>}
       </>}
-      <div className="rounded-xl border border-foreground/10 p-3 text-xs text-foreground/40">Pour livrer le film final, ajoutez la vidéo depuis Documents. Le fichier reste privé tant que vous ne choisissez pas de le partager.{canManage && <div className="mt-2"><button onClick={() => queueWorldFocus({ panel: "documents" })} className="rounded-full border border-foreground/15 px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">Ouvrir Documents</button></div>}</div>
+      <div className="rounded-xl border border-[var(--agency-hairline)] p-3 text-xs text-foreground/40">Pour livrer le film final, ajoutez la vidéo depuis Documents. Le fichier reste privé tant que vous ne choisissez pas de le partager.{canManage && <div className="mt-2"><button onClick={() => queueWorldFocus({ panel: "documents" })} className="rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">Ouvrir Documents</button></div>}</div>
     </div>;
   }
 
@@ -1009,13 +1051,13 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     const posts = project.timeline.filter(event => event.phase === "apres" && event.visibility === "audience").sort((a, b) => b.time - a.time);
     return <div className="mx-auto max-w-4xl space-y-5">
       <div><h4 className="text-sm font-medium">Actualités du voyage de noces</h4><p className="mt-1 text-xs leading-relaxed text-foreground/45">Rien n’est publié par défaut. Chaque actualité devient un Moment Après destiné à l’audience, sans suivi continu de votre position.</p></div>
-      {canManage && <button onClick={() => addEntity("timeline", { time: Date.now(), durationMinutes: 0, kind: "souvenir", title: "Nouvelle du voyage", detail: "À compléter avant de partager.", status: "a_valider", confidence: "confirme", phase: "apres", universe: project.universe, provenance: "real", visibility: "prive", relations: [], dependencyIds: [], resources: [] })} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/70"><Plus className="h-3.5 w-3.5" />Préparer une actualité privée</button>}
-      {posts.length === 0 ? <Empty>Aucune actualité n’est partagée avec les invités.</Empty> : <div className="space-y-3">{posts.map(post => <article key={post.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/35">{new Date(post.time).toLocaleDateString("fr-FR")}{post.location ? ` · ${post.location}` : ""}</p><h5 className="mt-2 text-sm font-medium">{post.title}</h5>{post.detail && <p className="mt-2 text-xs leading-relaxed text-foreground/55">{post.detail}</p>}</article>)}</div>}
+      {canManage && <button onClick={() => addEntity("timeline", { time: Date.now(), durationMinutes: 0, kind: "souvenir", title: "Nouvelle du voyage", detail: "À compléter avant de partager.", status: "a_valider", confidence: "confirme", phase: "apres", universe: project.universe, provenance: "real", visibility: "prive", relations: [], dependencyIds: [], resources: [] })} className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/70"><Plus className="h-3.5 w-3.5" />Préparer une actualité privée</button>}
+      {posts.length === 0 ? <Empty>Aucune actualité n’est partagée avec les invités.</Empty> : <div className="space-y-3">{posts.map(post => <article key={post.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"><p className="text-[10px] uppercase tracking-widest text-foreground/35">{new Date(post.time).toLocaleDateString("fr-FR")}{post.location ? ` · ${post.location}` : ""}</p><h5 className="mt-2 text-sm font-medium">{post.title}</h5>{post.detail && <p className="mt-2 text-xs leading-relaxed text-foreground/55">{post.detail}</p>}</article>)}</div>}
       <p className="text-xs text-foreground/35">Pour publier une actualité préparée, ouvrez son Moment dans la Timeline et choisissez la visibilité Audience après validation.</p>
     </div>;
   }
 
-  if (module === "team") return <CollectionPanel title="Répartition des responsabilités" addLabel="Ajouter un rôle" onAdd={() => addEntity("team", { name: "Nouvelle personne", role: "Responsable", contact: "", responsibilities: [] })}>{project.team.length === 0 ? <Empty>Aucun rôle assigné.</Empty> : project.team.map(role => <div key={role.id} className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4 flex items-start gap-4"><div className="grid flex-1 gap-2 sm:grid-cols-3"><input value={role.name} onChange={e => updateEntity("team", role.id, { name: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={role.role} onChange={e => updateEntity("team", role.id, { role: e.target.value })} className="bg-transparent text-xs text-foreground/55 outline-none" /><input value={role.contact || ""} onChange={e => updateEntity("team", role.id, { contact: e.target.value })} placeholder="Contact" className="bg-transparent text-xs text-foreground/55 outline-none" /><input value={role.responsibilities.join(", ")} onChange={e => updateEntity("team", role.id, { responsibilities: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} placeholder="Responsabilités séparées par des virgules" className="sm:col-span-3 bg-transparent text-xs text-foreground/65 outline-none placeholder:text-foreground/25" /></div><button onClick={() => removeEntity("team", role.id)} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-4 h-4" /></button></div>)}</CollectionPanel>;
+  if (module === "team") return <CollectionPanel title="Répartition des responsabilités" addLabel="Ajouter un rôle" onAdd={() => addEntity("team", { name: "Nouvelle personne", role: "Responsable", contact: "", responsibilities: [] })}>{project.team.length === 0 ? <Empty>Aucun rôle assigné.</Empty> : project.team.map(role => <div key={role.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 flex items-start gap-4"><div className="grid flex-1 gap-2 sm:grid-cols-3"><input value={role.name} onChange={e => updateEntity("team", role.id, { name: e.target.value })} className="bg-transparent text-sm outline-none" /><input value={role.role} onChange={e => updateEntity("team", role.id, { role: e.target.value })} className="bg-transparent text-xs text-foreground/55 outline-none" /><input value={role.contact || ""} onChange={e => updateEntity("team", role.id, { contact: e.target.value })} placeholder="Contact" className="bg-transparent text-xs text-foreground/55 outline-none" /><input value={role.responsibilities.join(", ")} onChange={e => updateEntity("team", role.id, { responsibilities: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} placeholder="Responsabilités séparées par des virgules" className="sm:col-span-3 bg-transparent text-xs text-foreground/65 outline-none placeholder:text-foreground/25" /></div><button onClick={() => removeEntity("team", role.id)} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-4 h-4" /></button></div>)}</CollectionPanel>;
 
   if (module === "memories") {
     const approvedPhotos = participantMedia.filter(media => media.contentType.startsWith("image/") && media.moderationStatus === "approved");
@@ -1033,21 +1075,21 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
         {remoteError && <p role="alert" className="mt-4 rounded-xl border border-brand-accent/40/20 bg-brand-accent/5 p-3 text-xs text-brand-accent">{remoteError}</p>}
         {approvedPhotos.length === 0 ? <>
           <div className="mt-4"><Empty>Aucune photo validée pour l’instant. Validez les contributions reçues pour remplir la galerie.</Empty></div>
-          {canManage && <div className="mt-3"><button onClick={() => queueWorldFocus({ panel: "contributions" })} className="rounded-full border border-foreground/15 px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">Modérer les contributions</button></div>}
+          {canManage && <div className="mt-3"><button onClick={() => queueWorldFocus({ panel: "contributions" })} className="rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-foreground/65 transition hover:text-foreground">Modérer les contributions</button></div>}
         </> : <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {approvedPhotos.map(media => <button key={media.id} onClick={() => setLightboxId(media.id)} aria-label={`Agrandir ${media.caption || media.name}`} className="group relative aspect-square overflow-hidden rounded-2xl border border-foreground/10 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+          {approvedPhotos.map(media => <button key={media.id} onClick={() => setLightboxId(media.id)} aria-label={`Agrandir ${media.caption || media.name}`} className="group relative aspect-square overflow-hidden rounded-3xl border border-[var(--agency-hairline)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
             <img src={`/api/storage/files/${media.id}`} alt={media.caption || media.name} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-105" />
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#FFFFFF]/70 to-transparent p-2 pt-6"><span className="block truncate text-[11px] text-[#171410]">{media.caption || media.name}</span><span className="block text-[10px] text-[#171410]/60">{media.guestName || "Invité"}</span></span>
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#FFFFFF]/70 to-transparent p-2 pt-6"><span className="block truncate text-[11px] text-[var(--agency-ink)]">{media.caption || media.name}</span><span className="block text-[10px] text-[var(--agency-ink)]/60">{media.guestName || "Invité"}</span></span>
           </button>)}
         </div>}
         {lightbox && <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#FFFFFF]/90 p-4" onClick={() => setLightboxId(null)} role="dialog" aria-modal="true" aria-label={lightbox.caption || lightbox.name}>
-          <button aria-label="Fermer" onClick={() => setLightboxId(null)} className="absolute right-4 top-4 rounded-full bg-[#171410]/10 p-2 text-[#171410] hover:bg-[#171410]/20"><X className="h-5 w-5" /></button>
-          {approvedPhotos.length > 1 && <button aria-label="Photo précédente" onClick={event => { event.stopPropagation(); goLightbox(-1); }} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-[#171410]/10 p-2 text-[#171410] hover:bg-[#171410]/20 sm:left-4"><ChevronLeft className="h-5 w-5" /></button>}
+          <button aria-label="Fermer" onClick={() => setLightboxId(null)} className="absolute right-4 top-4 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[#171410]/20"><X className="h-5 w-5" /></button>
+          {approvedPhotos.length > 1 && <button aria-label="Photo précédente" onClick={event => { event.stopPropagation(); goLightbox(-1); }} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[#171410]/20 sm:left-4"><ChevronLeft className="h-5 w-5" /></button>}
           <figure className="max-w-4xl" onClick={event => event.stopPropagation()}>
             <img src={`/api/storage/files/${lightbox.id}`} alt={lightbox.caption || lightbox.name} className="max-h-[76vh] w-auto rounded-2xl object-contain" />
-            <figcaption className="mt-3 text-center text-sm text-[#171410]/80">{lightbox.caption || lightbox.name} <span className="text-[#171410]/50">· {lightbox.guestName || "Invité"}{approvedPhotos.length > 1 ? ` · ${lightboxIndex + 1}/${approvedPhotos.length}` : ""}</span></figcaption>
+            <figcaption className="mt-3 text-center text-sm text-[var(--agency-ink)]/80">{lightbox.caption || lightbox.name} <span className="text-[var(--agency-ink)]/50">· {lightbox.guestName || "Invité"}{approvedPhotos.length > 1 ? ` · ${lightboxIndex + 1}/${approvedPhotos.length}` : ""}</span></figcaption>
           </figure>
-          {approvedPhotos.length > 1 && <button aria-label="Photo suivante" onClick={event => { event.stopPropagation(); goLightbox(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[#171410]/10 p-2 text-[#171410] hover:bg-[#171410]/20 sm:right-4"><ChevronRight className="h-5 w-5" /></button>}
+          {approvedPhotos.length > 1 && <button aria-label="Photo suivante" onClick={event => { event.stopPropagation(); goLightbox(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[var(--agency-ink)]/5 p-2 text-[var(--agency-ink)] hover:bg-[#171410]/20 sm:right-4"><ChevronRight className="h-5 w-5" /></button>}
         </div>}
       </section>
       <CollectionPanel title="Souvenirs à préparer" addLabel="Ajouter un élément" onAdd={() => addEntity("memories", { kind: "shot", title: "Nouvelle idée", status: "a_faire" })}><MemoryChecklist /></CollectionPanel>
@@ -1058,7 +1100,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
 }
 
 function GuestSeat({ guest, tables, onChange }: { guest: { name: string; tableId?: string; dietary?: string }; tables: { id: string; name: string }[]; onChange: (value: string) => void }) {
-  return <div className="flex items-center gap-2 rounded-xl bg-background/20 px-3 py-2"><span className="text-sm flex-1 truncate">{guest.name}{guest.dietary && <span className="text-[10px] text-foreground/55 ml-2">{guest.dietary}</span>}</span><select value={guest.tableId || ""} onChange={e => onChange(e.target.value)} className="max-w-[130px] rounded-lg bg-foreground/10 px-2 py-1.5 text-xs outline-none"><option value="">Sans table</option>{tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>;
+  return <div className="flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4 py-2"><span className="flex-1 truncate text-sm text-[var(--agency-ink)]">{guest.name}{guest.dietary && <span className="ml-2 text-[10px] text-[var(--agency-body)]">{guest.dietary}</span>}</span><select value={guest.tableId || ""} onChange={e => onChange(e.target.value)} className="max-w-[130px] rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none"><option value="">Sans table</option>{tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>;
 }
 
 function formatTrackDuration(durationMs?: number) {
@@ -1072,12 +1114,12 @@ function TrackArtwork({ track, size = "md" }: { track: Pick<MusicTrack, "externa
   const className = size === "sm" ? "h-12 w-12 rounded-lg" : "h-16 w-16 rounded-xl";
   return artwork
     ? <img src={artwork} alt="" className={`${className} shrink-0 object-cover`} />
-    : <div className={`${className} flex shrink-0 items-center justify-center border border-foreground/10 bg-foreground/[.06] px-1 text-center text-[9px] uppercase leading-tight tracking-wider text-foreground/35`}>Cover indisponible</div>;
+    : <div className={`${className} flex shrink-0 items-center justify-center border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-1 text-center text-[9px] uppercase leading-tight tracking-wider text-foreground/35`}>Cover indisponible</div>;
 }
 
 function MusicSearchResultRow({ result, disabled, onSelect }: { result: MusicSearchResult; disabled: boolean; onSelect: () => void }) {
-  return <div className="flex flex-wrap items-center gap-3 rounded-xl border border-foreground/10 bg-foreground/[.025] p-3">
-    {result.artworkUrl ? <img src={result.artworkUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-foreground/10 text-[9px] uppercase leading-tight tracking-wider text-foreground/35">Cover indisponible</div>}
+  return <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
+    {result.artworkUrl ? <img src={result.artworkUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[var(--agency-hairline)] text-[9px] uppercase leading-tight tracking-wider text-foreground/35">Cover indisponible</div>}
     <div className="min-w-[160px] flex-1">
       <p className="truncate text-sm">{result.title}</p>
       <p className="mt-1 truncate text-xs text-foreground/50">{result.artist}{result.collectionName ? ` · ${result.collectionName}` : ""}</p>
@@ -1085,7 +1127,7 @@ function MusicSearchResultRow({ result, disabled, onSelect }: { result: MusicSea
     </div>
     {result.previewUrl && <audio controls preload="none" src={result.previewUrl} className="h-8 max-w-[190px]" aria-label={`Écouter un aperçu de ${result.title}`} />}
     {result.trackUrl && <a href={result.trackUrl} target="_blank" rel="noreferrer" aria-label={`Ouvrir ${result.title} dans ${MUSIC_SOURCE}`} className="p-2 text-foreground/40 hover:text-foreground"><ExternalLink className="h-4 w-4" /></a>}
-    <button type="button" disabled={disabled} onClick={onSelect} className="rounded-full border border-foreground/15 px-3 py-2 text-xs text-foreground/70 transition hover:border-foreground/40 hover:text-foreground disabled:opacity-35">Relier</button>
+    <button type="button" disabled={disabled} onClick={onSelect} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/70 transition hover:border-foreground/40 hover:text-foreground disabled:opacity-35">Relier</button>
   </div>;
 }
 
@@ -1106,10 +1148,10 @@ function MusicTrackRow({
 }) {
   const verified = Boolean(track.external);
   const duration = formatTrackDuration(track.external?.durationMs);
-  return <div className="rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4">
+  return <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
     <div className="flex items-start gap-3">
       <TrackArtwork track={track} />
-      <button type="button" onClick={() => onUpdate({ status: track.status === "valide" ? "a_choisir" : "valide" })} aria-label={track.status === "valide" ? `Marquer ${track.title} à choisir` : `Valider ${track.title}`} className={cn("mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border", track.status === "valide" ? "border-brand-accent text-brand-accent" : "border-foreground/20 text-foreground/30")}>{track.status === "valide" && <Check className="h-3.5 w-3.5" />}</button>
+      <button type="button" onClick={() => onUpdate({ status: track.status === "valide" ? "a_choisir" : "valide" })} aria-label={track.status === "valide" ? `Marquer ${track.title} à choisir` : `Valider ${track.title}`} className={cn("mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border", track.status === "valide" ? "border-brand-accent text-brand-accent" : "border-[var(--agency-hairline)] text-foreground/30")}>{track.status === "valide" && <Check className="h-3.5 w-3.5" />}</button>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn("rounded-full border px-2 py-1 text-[10px]", verified ? "border-foreground/25 text-foreground/60" : "border-brand-accent/40 text-brand-accent")}>{verified ? `Métadonnées vérifiées · ${MUSIC_SOURCE}` : "Saisie manuelle · non vérifiée"}</span>
@@ -1130,7 +1172,7 @@ function MusicTrackRow({
       </div>
       <button type="button" onClick={onDelete} aria-label={`Supprimer ${track.title}`} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="h-4 w-4" /></button>
     </div>
-    <div className="mt-4 border-t border-foreground/10 pt-3">
+    <div className="mt-4 border-t border-[var(--agency-hairline)] pt-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] uppercase tracking-widest text-foreground/40">Moments de la Timeline</p>
         <span className="text-[10px] text-foreground/35">{linkedEventIds.length} lié{linkedEventIds.length > 1 ? "s" : ""}</span>
@@ -1143,26 +1185,60 @@ function MusicTrackRow({
 }
 
 function PaymentRow({ payment, currency, onToggle, onDelete, onEdit }: { payment: Payment; currency?: string; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {
-  return <div className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><button onClick={onToggle} className={cn("w-6 h-6 rounded-full border flex items-center justify-center", payment.state === "paye" ? "bg-brand-accent text-[#171410] border-brand-accent" : "border-foreground/20")}>{payment.state === "paye" && <Check className="w-3.5 h-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="bg-transparent text-sm outline-none w-full" /><p className="text-xs text-foreground/40 mt-1">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><div className="flex items-center gap-1"><input aria-label="Montant du paiement" type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-lg bg-foreground/5 px-2 py-1.5 text-right font-mono text-sm outline-none" /><span className="w-8 text-xs text-foreground/45" aria-hidden>{currencySymbol(currency)}</span></div><button onClick={onDelete} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-4 h-4" /></button></div>;
+  return <div className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5"><button onClick={onToggle} className={cn("grid h-6 w-6 place-items-center rounded-full border", payment.state === "paye" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)]")}>{payment.state === "paye" && <Check className="h-3.5 w-3.5" />}</button><div className="flex-1"><input value={payment.label} onChange={e => onEdit({ label: e.target.value })} className="w-full bg-transparent text-sm outline-none text-[var(--agency-ink)]" /><p className="mt-1 text-xs text-[var(--agency-body)]">{new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}</p></div><div className="flex items-center gap-1"><input aria-label="Montant du paiement" type="number" value={payment.amountCents / 100} onChange={e => onEdit({ amountCents: Number(e.target.value) * 100 })} className="w-24 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-right font-mono text-sm outline-none" /><span className="w-8 text-xs text-[var(--agency-body)]" aria-hidden>{currencySymbol(currency)}</span></div><button onClick={onDelete} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]"><Trash2 className="h-4 w-4" /></button></div>;
 }
 
 function EditableArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return <label className="block rounded-2xl border border-foreground/10 bg-foreground/[.035] p-4"><span className="text-[10px] uppercase tracking-widest text-foreground/40">{label}</span><textarea value={value} onChange={e => onChange(e.target.value)} rows={3} className="mt-2 w-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-foreground/20" placeholder="À compléter…" /></label>;
+  return (
+    <label className="block rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5">
+      <span className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">{label}</span>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        rows={3}
+        className="mt-3 w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-[var(--agency-eyebrow)] text-[var(--agency-ink)]"
+        placeholder="À compléter…"
+      />
+    </label>
+  );
 }
 
 function CollectionPanel({ title, addLabel, onAdd, children }: { title: string; addLabel: string; onAdd: () => void; children: ReactNode }) {
-  return <div className="max-w-3xl mx-auto space-y-5">{title === "Morceaux reliés aux Moments" && <div className="rounded-xl border border-foreground/10 bg-foreground/[.03] p-3 text-xs text-foreground/60">Cet outil relie des morceaux aux Moments. La destination majeure « Musique » reste la projection sonore de la Timeline, pas une simple playlist.</div>}<div className="flex items-center justify-between"><div><h4 className="text-sm font-medium">{title}</h4><p className="text-xs text-foreground/40 mt-1">Un espace simple, pensé pour avancer.</p></div><AddBar label={addLabel} onAdd={onAdd} /></div><div className="space-y-3">{children}</div></div>;
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      {title === "Morceaux reliés aux Moments" && (
+        <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">
+          Cet outil relie des morceaux aux Moments. La destination majeure « Musique » reste la projection sonore de la Timeline, pas une simple playlist.
+        </div>
+      )}
+      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">{title}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">Un espace simple, pensé pour avancer — même dessin que l’écran démo.</p>
+          </div>
+          <AddBar label={addLabel} onAdd={onAdd} />
+        </div>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
 }
 
 function PersistenceState({ status, error }: { status: "local" | "loading" | "saving" | "saved" | "error" | "conflict"; error?: string }) {
-  const state = status === "saving" || status === "loading"
-    ? { label: "Enregistrement en cours…", tone: "text-foreground/60 border-foreground/15 bg-foreground/5" }
-    : status === "saved"
-      ? { label: "Modifications enregistrées dans le Monde", tone: "text-success border-success/25 bg-success/10" }
-      : status === "conflict"
-        ? { label: "Une autre version doit être vérifiée avant d’enregistrer", tone: "text-brand-accent border-brand-accent/40/20 bg-brand-accent/5" }
-        : status === "error"
-          ? { label: error || "Modifications non enregistrées en ligne", tone: "text-brand-accent border-brand-accent/40/20 bg-brand-accent/5" }
-          : { label: "Conservé sur cet appareil", tone: "text-foreground/50 border-foreground/10 bg-foreground/[.03]" };
-  return <p role="status" aria-live="polite" className={cn("rounded-xl border px-3 py-2 text-xs", state.tone)}>{state.label}</p>;
+  const state =
+    status === "saving" || status === "loading"
+      ? { label: "Enregistrement en cours…", tone: "border-[var(--agency-hairline)] bg-[var(--agency-paper)] text-[var(--agency-body)]" }
+      : status === "saved"
+        ? { label: "Modifications enregistrées dans le Monde", tone: "border-[#A9E5C3] bg-[#ECFDF5] text-[#065F46]" }
+        : status === "conflict"
+          ? { label: "Une autre version doit être vérifiée avant d’enregistrer", tone: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]" }
+          : status === "error"
+            ? { label: error || "Modifications non enregistrées en ligne", tone: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]" }
+            : { label: "Conservé sur cet appareil", tone: "border-[var(--agency-hairline)] bg-[var(--agency-paper)] text-[var(--agency-eyebrow)]" };
+  return (
+    <p role="status" aria-live="polite" className={cn("rounded-full border px-4 py-2 text-xs", state.tone)}>
+      {state.label}
+    </p>
+  );
 }

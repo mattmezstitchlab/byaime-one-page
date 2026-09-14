@@ -2,13 +2,18 @@ import { PortalBackdrop } from "@/components/PortalBackdrop";
 import { LandingComposer } from "@/components/LandingComposer";
 import { useProject } from "@/store/project-store";
 import { useI18n } from "@/lib/i18n";
+import { EYEBROW, TITLE, LEAD, PILL_SMALL_GHOST } from "@/lib/site-design";
+import { cn } from "@/lib/utils";
 
 /**
- * L'onboarding dans l'espace privé : exactement le même parcours que l'accueil
- * (cinq questions, un seul composant), sur le fond Mesh lagon du portail. Il
- * remplace l'ancienne zone de texte libre : il ne peut plus y avoir deux
- * façons de créer un Monde. Un lien permet toujours d'explorer un mariage de
- * démonstration.
+ * L'onboarding dans l'espace privé — le portail Couple / Wedding est conservé,
+ * mais il reprend désormais le dessin de l'écran démo (design/index.html + Bande)
+ * pour tenir la route avec tous les panneaux.
+ *
+ * - Fenêtre produit avec barre à pastilles (rouge/jaune/vert) comme sur l'écran démo,
+ * - Eyebrow + grand titre + amorce en jetons agency (EYEBROW, TITLE, LEAD),
+ * - Le même compositeur sombre que l'accueil (LandingComposer) pour le choix Couple / Wedding,
+ * - Tous les panneaux ensuite parlent le même langage (CenteredBlock + BottomDock).
  */
 export function PortalOnboarding() {
   const { createWeddingDemo } = useProject();
@@ -17,30 +22,55 @@ export function PortalOnboarding() {
   return (
     <section
       data-testid="project-composer"
-      className="aime-cinematic-surface relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 md:px-10"
+      className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#fcfbfa] px-4 py-10 md:px-10 md:py-16"
     >
       <PortalBackdrop />
-      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center pb-24 pt-28 text-center md:pb-28">
-        <p className="aime-landing-copy text-[10px] uppercase tracking-[.35em] text-[#171410]/55">
-          {t("private.onboarding.eyebrow")}
-        </p>
-        <h1 className="aime-landing-copy mt-6 font-display text-3xl font-semibold leading-[1.05] tracking-tight text-[#171410] md:text-5xl">
-          {t("private.onboarding.title")}
-        </h1>
-        <p className="aime-landing-copy mt-5 max-w-xl text-sm font-light leading-relaxed text-[#171410]/70 md:text-base">
-          {t("private.onboarding.subtitle")}
-        </p>
-        <div className="mt-10 w-full">
-          <LandingComposer signedIn />
+
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col">
+        {/* Fenêtre démo — même objet que BottomDock et CenteredBlock */}
+        <div className="overflow-hidden rounded-[22px] border border-[var(--agency-hairline)] bg-[var(--agency-paper)] shadow-[0_32px_80px_-16px_rgba(23,20,16,0.24),0_0_0_1px_rgba(23,20,16,0.04)_inset]">
+          {/* Barre fenêtre */}
+          <div className="flex h-[46px] items-center gap-2.5 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-5">
+            <span className="flex items-center gap-1.5">
+              <span className="h-[11px] w-[11px] rounded-full bg-[#ff5f57]" />
+              <span className="h-[11px] w-[11px] rounded-full bg-[#febc2e]" />
+              <span className="h-[11px] w-[11px] rounded-full bg-[#28c840]" />
+            </span>
+            <span className="ml-3 text-[12px] font-medium tracking-[.02em] text-[var(--agency-eyebrow)]">AIME — Nouveau Monde</span>
+          </div>
+
+          <div className="px-6 py-8 sm:px-10 sm:py-10">
+            <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+              <p className={cn(EYEBROW, "text-center")}>{t("private.onboarding.eyebrow")}</p>
+              <h1 className={cn(TITLE, "mt-4 text-center text-3xl leading-[1.05] md:text-5xl")}>{t("private.onboarding.title")}</h1>
+              <p className={cn(LEAD, "mt-5 max-w-xl text-center text-sm md:text-base")}>{t("private.onboarding.subtitle")}</p>
+            </div>
+
+            {/* Le choix Couple / Wedding vit dans LandingComposer — conservé */}
+            <div className="mt-10 w-full">
+              <LandingComposer signedIn />
+            </div>
+
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <button
+                data-testid="demo-project"
+                type="button"
+                onClick={createWeddingDemo}
+                className={cn(PILL_SMALL_GHOST, "text-[11px]")}
+              >
+                {t("private.onboarding.demo")}
+              </button>
+              <p className="text-center text-[11px] leading-relaxed text-[var(--agency-eyebrow)]">
+                Deux choix au départ — Couple ou Wedding planner — puis cinq questions. Le même parcours que l’accueil, dans le même dessin que la démo.
+              </p>
+            </div>
+          </div>
         </div>
-        <button
-          data-testid="demo-project"
-          type="button"
-          onClick={createWeddingDemo}
-          className="aime-landing-copy mt-6 text-[11px] uppercase tracking-[.18em] text-[#171410]/50 underline decoration-[#171410]/25 underline-offset-8 transition-colors hover:text-[#171410]/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171410]/60"
-        >
-          {t("private.onboarding.demo")}
-        </button>
+
+        {/* Note sous la fenêtre — comme le caption de la fenêtre produit sur design/index.html */}
+        <p className="mt-4 text-center text-[12px] text-[var(--agency-eyebrow)]">
+          Aperçu du Monde Mariage — ce que vos invités, votre budget et vos prestataires voient, dans le même écran.
+        </p>
       </div>
     </section>
   );

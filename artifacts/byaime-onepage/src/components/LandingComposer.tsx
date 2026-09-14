@@ -266,26 +266,37 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
           data-testid="landing-persona"
           role="group"
           aria-label={t("persona.label")}
-          className="rounded-3xl border border-white/15 bg-[#171410] p-5 text-white backdrop-blur-xl sm:p-6"
+          className="overflow-hidden rounded-[22px] border border-white/15 bg-[#0b0b0d] text-white shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)_inset]"
         >
-          <p className="text-center text-[13px] font-medium">{t("persona.label")}</p>
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-            <PersonaCard
-              testId="landing-persona-couple"
-              active={persona === "couple"}
-              icon={<Heart className="h-4 w-4" aria-hidden />}
-              label={t("persona.couple")}
-              sub={t("persona.couple.sub")}
-              onClick={() => choose("couple")}
-            />
-            <PersonaCard
-              testId="landing-persona-pro"
-              active={persona === "pro"}
-              icon={<Briefcase className="h-4 w-4" aria-hidden />}
-              label={t("persona.pro")}
-              sub={t("persona.pro.sub")}
-              onClick={() => choose("pro")}
-            />
+          <div className="flex h-[46px] items-center gap-2.5 border-b border-white/10 bg-[#0b0b0d] px-5">
+            <span className="flex items-center gap-1.5">
+              <span className="h-[11px] w-[11px] rounded-full bg-[#ff5f57]" />
+              <span className="h-[11px] w-[11px] rounded-full bg-[#febc2e]" />
+              <span className="h-[11px] w-[11px] rounded-full bg-[#28c840]" />
+            </span>
+            <span className="ml-3 text-[12px] font-medium tracking-[.02em] text-white/60">AIME — Nouveau Monde</span>
+          </div>
+          <div className="p-5 sm:p-6">
+            <p className="text-center text-[11px] font-medium uppercase tracking-[0.24em] text-white/60">{t("persona.label")}</p>
+            <p className="mx-auto mt-2 max-w-md text-center text-[13px] leading-relaxed text-white/50">Choisissez votre entrée — le même écran démo s’applique ensuite à tous les panneaux.</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <PersonaCard
+                testId="landing-persona-couple"
+                active={persona === "couple"}
+                icon={<Heart className="h-4 w-4" aria-hidden />}
+                label={t("persona.couple")}
+                sub={t("persona.couple.sub")}
+                onClick={() => choose("couple")}
+              />
+              <PersonaCard
+                testId="landing-persona-pro"
+                active={persona === "pro"}
+                icon={<Briefcase className="h-4 w-4" aria-hidden />}
+                label={t("persona.pro")}
+                sub={t("persona.pro.sub")}
+                onClick={() => choose("pro")}
+              />
+            </div>
           </div>
         </div>
       ) : done ? (
@@ -458,18 +469,26 @@ function PersonaCard({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+        "group flex w-full items-center gap-3 rounded-[16px] border px-4 py-3.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+        active
+          ? "border-white bg-white text-black shadow-[0_8px_24px_-8px_rgba(255,255,255,0.5)]"
+          : "border-white/15 bg-white/[0.06] text-white hover:border-white/30 hover:bg-white/[0.10]",
       )}
     >
-      <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 bg-black/[0.05]">
+      <span
+        aria-hidden
+        className={cn(
+          "grid h-9 w-9 shrink-0 place-items-center rounded-full border transition",
+          active ? "border-black/10 bg-black/[0.06] text-black" : "border-white/15 bg-white/[0.08] text-white group-hover:border-white/25",
+        )}
+      >
         {icon}
       </span>
-      <span>
+      <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-semibold leading-tight">{label}</span>
-        <span className="mt-0.5 block text-[11px] font-light leading-snug text-black/60">
-          {sub}
-        </span>
+        <span className={cn("mt-0.5 block text-[11px] font-light leading-snug", active ? "text-black/60" : "text-white/60")}>{sub}</span>
       </span>
+      <span className={cn("ml-auto grid h-6 w-6 place-items-center rounded-full border text-[10px] transition", active ? "border-black/10 bg-black text-white" : "border-white/15 text-white/40 group-hover:text-white/70")}>→</span>
     </button>
   );
 }
