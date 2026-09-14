@@ -60,7 +60,6 @@ export function OrbButton() {
 
 export function PrivateLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const { locale } = useI18n();
   const [openMeSignal, setOpenMeSignal] = useState(0);
 
   const activeDestination = getPrivateDestinationId(location);

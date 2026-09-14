@@ -1,29 +1,145 @@
 import { WorldProject, fact } from './types';
 import { normalizeProject } from './project-migration';
 import { generateWeddingTimeline } from './seed-data';
+import { DEFAULT_HERO_VISUAL } from './world-visuals';
+
+/*
+ * Lecture de la date dans une intention libre.
+ *
+ * Constat du 14/09 : l'ancien code ne lisait que l'année et le mois écrits en
+ * toutes lettres. Le jour n'était JAMAIS pris en compte — il restait celui du
+ * jour courant — et une date numérique (« 14/08/2027 ») ne donnait même pas le
+ * mois. Résultat : la question « Quand a lieu le mariage ? » de l'onboarding
+ * semblait ignorée.
+ *
+ * Cette dérivation est pure et testée (`parser.test.ts`) : elle rend le jour,
+ * le mois et l'année réellement trouvés, et dit ce qui manque.
+ */
+
+const FR_MONTHS = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
+const EN_MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+const ACCENTS: Record<string, string> = { "à": "a", "â": "a", "ä": "a", "ç": "c", "é": "e", "è": "e", "ê": "e", "ë": "e", "î": "i", "ï": "i", "ô": "o", "ö": "o", "ù": "u", "û": "u", "ü": "u", "ÿ": "y" };
+
+function deaccent(value: string): string {
+  return value.toLowerCase().split("").map(char => ACCENTS[char] ?? char).join("");
+}
+
+/** Index du mois (0-11) dans un mot français ou anglais, -1 sinon. */
+export function monthIndex(word: string): number {
+  const clean = deaccent(word);
+  const fr = FR_MONTHS.indexOf(clean);
+  if (fr >= 0) return fr;
+  return EN_MONTHS.indexOf(clean);
+}
+
+export type ParsedDate = {
+  value: number;
+  confidence: "deduit" | "confirme";
+  /** Ce qui a réellement été lu dans le texte : ce qui manque vient de « maintenant ». */
+  found: { day: boolean; month: boolean; year: boolean };
+};
+
+const MONTH_WORD = "(?:janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|january|february|march|april|may|june|july|august|september|october|november|december)";
+
+export function parseDateFromText(
+  raw: string,
+  options: { now?: Date; locale?: "fr" | "en" } = {},
+): ParsedDate {
+  const now = options.now ?? new Date();
+  const locale = options.locale ?? "fr";
+  const text = deaccent(raw.replace(/[\u00a0\s]+/g, " "));
+
+  let day: number | undefined;
+  let month: number | undefined;
+  let year: number | undefined;
+
+  /* 1. ISO : 2027-08-14. */
+  const iso = text.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+  if (iso) {
+    year = Number(iso[1]);
+    month = Number(iso[2]) - 1;
+    day = Number(iso[3]);
+  }
+
+  /* 2. Numérique court : 14/08/2027, 14.08.27, 08-14-2027. Ambiguïté jour/mois
+        levée par la valeur (> 12), sinon par la langue du parcours. */
+  if (month === undefined) {
+    const short = text.match(/\b(\d{1,2})\s*[/.-]\s*(\d{1,2})\s*[/.-]\s*(\d{2,4})\b/);
+    if (short) {
+      const first = Number(short[1]);
+      const second = Number(short[2]);
+      let fullYear = Number(short[3]);
+      if (fullYear < 100) fullYear += fullYear > 50 ? 1900 : 2000;
+      const dayFirst = locale === "fr" ? second <= 12 : first > 12;
+      if (first > 12 || dayFirst) {
+        day = first;
+        month = second - 1;
+      } else {
+        month = first - 1;
+        day = second;
+      }
+      year = fullYear;
+    }
+  }
+
+  /* 3. Écrit en toutes lettres : « le 14 août 2027 » ou « August 14, 2027 ». */
+  if (month === undefined) {
+    const dayFirst = text.match(new RegExp(`\\b(\\d{1,2})(?:er)?\\s+(${MONTH_WORD})\\b`));
+    if (dayFirst) {
+      day = Number(dayFirst[1]);
+      month = monthIndex(dayFirst[2]);
+    } else {
+      const monthFirst = text.match(new RegExp(`\\b(${MONTH_WORD})\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`));
+      if (monthFirst) {
+        month = monthIndex(monthFirst[1]);
+        day = Number(monthFirst[2]);
+      }
+    }
+  }
+
+  /* 4. Mois seul : « en août », « next August ». */
+  if (month === undefined) {
+    const monthOnly = text.match(new RegExp(`\\b(${MONTH_WORD})\\b`));
+    if (monthOnly) month = monthIndex(monthOnly[1]);
+  }
+
+  /* 5. Année : n'importe quel format ci-dessus, ou « 2027 » isolé. */
+  if (year === undefined) {
+    const yearOnly = text.match(/\b(20\d{2})\b/);
+    if (yearOnly) year = Number(yearOnly[1]);
+  }
+
+  const found = {
+    day: day !== undefined,
+    month: month !== undefined,
+    year: year !== undefined,
+  };
+
+  /* Rien de lu : on garde le comportement historique (même jour, l'an prochain). */
+  if (!found.day && !found.month && !found.year) {
+    const fallback = new Date(now);
+    fallback.setFullYear(fallback.getFullYear() + 1);
+    return { value: fallback.getTime(), confidence: "deduit", found };
+  }
+
+  /*
+   * Construction explicite, jamais par `setMonth` successif : poser un mois à
+   * 30 jours quand le jour courant vaut 31 faisait basculer sur le mois suivant.
+   * Un mois annoncé sans jour s'ancre au 1er, pas au quantième d'aujourd'hui.
+   */
+  const resolvedYear = year ?? now.getFullYear();
+  const resolvedMonth = month ?? now.getMonth();
+  const resolvedDay = day ?? (found.month ? 1 : now.getDate());
+  const value = new Date(resolvedYear, resolvedMonth, resolvedDay, 12, 0, 0, 0).getTime();
+
+  return { value, confidence: "confirme", found };
+}
 
 export function parseIntention(text: string): Partial<WorldProject> {
-  const lower = text.toLowerCase();
+  const parsedDate = parseDateFromText(text);
 
-  let pivotDate = new Date();
-  pivotDate.setFullYear(pivotDate.getFullYear() + 1);
-  let pivotConfidence: "deduit" | "confirme" | "manquant" = "deduit";
-
-  const yearMatch = text.match(/\b(202\d|203\d)\b/);
-  if (yearMatch) {
-    pivotDate.setFullYear(parseInt(yearMatch[1]));
-    pivotConfidence = "confirme";
-  }
-  const monthMatch = text.match(/\b(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre|january|february|march|april|may|june|july|august|september|october|november|december)\b/i);
-  if (monthMatch) {
-    const months = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
-    const monthsEn = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-    const normalizedMonth = monthMatch[1].toLowerCase().replace('é', 'e').replace('û', 'u');
-    const mIdx = months.indexOf(normalizedMonth);
-    if (mIdx >= 0) pivotDate.setMonth(mIdx);
-    else pivotDate.setMonth(monthsEn.indexOf(normalizedMonth));
-    pivotConfidence = "confirme";
-  }
+  const pivotDate = new Date(parsedDate.value);
+  const pivotConfidence: "deduit" | "confirme" | "manquant" = parsedDate.confidence;
 
   let guests = null;
   let guestsConf: "deduit" | "confirme" | "manquant" = "manquant";
@@ -119,6 +235,14 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
     universe: draft.universe || "Général",
     persona,
     currency,
+    /*
+     * Le Monde s'ouvre toujours sur un grand visuel. Un nouveau projet n'a
+     * aucune photo : sans valeur par défaut, le hero tombait sur un fond blanc
+     * et l'éditeur de visuel restait caché dans le panneau de l'orbe. On pose
+     * donc le visuel de réception du manifeste (remplaçable en un clic depuis
+     * le hero lui-même).
+     */
+    heroVisual: draft.heroVisual ?? DEFAULT_HERO_VISUAL,
     pivot: draft.pivot || fact(pivotTime, "deduit"),
     city: draft.city || fact(null, "manquant"),
     venue: draft.venue || fact(null, "manquant"),
@@ -226,6 +350,13 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
       { id: "tm1", name: "Élise & Paul", role: "Couple", contact: "", responsibilities: ["Décisions finales", "Vœux", "Invités"] },
       { id: "tm2", name: "Claire Martin", role: "Coordination jour J", contact: "06 42 18 73 20", responsibilities: ["Run sheet", "Prestataires", "Urgences"] },
       { id: "tm3", name: "Sophie Martin", role: "Témoin", contact: "", responsibilities: ["Lecture", "Livre d'or", "Kit urgence"] }
+    ] : [],
+    memoryChecklist: isWedding ? [
+      { id: "mc1", label: "La première rencontre des familles", done: false },
+      { id: "mc2", label: "Les vœux", done: false },
+      { id: "mc3", label: "La photo de groupe complète", done: false },
+      { id: "mc4", label: "La première danse", done: false },
+      { id: "mc5", label: "Le lancer de bouquet", done: false }
     ] : [],
     memories: isWedding ? [
       { id: "mm1", kind: "shot", title: "Portraits des grands-parents", owner: "Photographe", status: "a_faire" },

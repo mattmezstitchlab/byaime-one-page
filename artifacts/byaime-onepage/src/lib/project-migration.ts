@@ -44,7 +44,15 @@ export function normalizeProject(value: WorldProject): WorldProject {
     media: Array.isArray(value.media) ? value.media : [], messages: Array.isArray(value.messages) ? value.messages : [],
     ceremony: { ...emptyCeremony, ...(value.ceremony || {}) },
     music: (Array.isArray(value.music) ? value.music : []).map(track => ({ ...track, provenance: track.provenance ?? "demo", timelineEventIds: track.timelineEventIds || [] })),
-    team: Array.isArray(value.team) ? value.team : [], memories: Array.isArray(value.memories) ? value.memories : [],
+    team: (Array.isArray(value.team) ? value.team : []).map(member => ({ ...member, responsibilities: Array.isArray(member.responsibilities) ? member.responsibilities : [], tasks: Array.isArray(member.tasks) ? member.tasks : [] })),
+    /*
+     * 14/09 : la checklist des souvenirs était lue par le panneau Documents
+     * sans jamais exister dans le type ni dans les données — `undefined`,
+     * donc `.filter` plantait. Un projet enregistré avant ce réglage la
+     * reçoit vide plutôt que de faire tomber le panneau.
+     */
+    memoryChecklist: Array.isArray(value.memoryChecklist) ? value.memoryChecklist : [],
+    memories: Array.isArray(value.memories) ? value.memories : [],
     messageTemplates: Array.isArray(value.messageTemplates) ? value.messageTemplates : [], messageLogs: Array.isArray(value.messageLogs) ? value.messageLogs : [],
     guestsCount: value.guestsCount ?? { value: null, confidence: "manquant" }, budget: value.budget ?? { value: null, confidence: "manquant" },
     persona: value.persona === "pro" ? "pro" : "couple",

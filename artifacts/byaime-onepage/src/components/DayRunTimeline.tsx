@@ -113,7 +113,7 @@ export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; on
   return (
     <div data-testid="day-run" className="mx-auto w-full max-w-4xl px-4 pb-16 sm:px-6">
       {/* ——— Bandeau du direct : le compte à rebours armé ——— */}
-      <section data-testid="day-countdown" aria-live="off" className="rounded-3xl border border-foreground/10 bg-card p-5 shadow-xl sm:p-7">
+      <section data-testid="day-countdown" aria-live="off" className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 shadow-[0_16px_40px_-16px_rgba(23,20,16,0.18)] sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3">
             <AimeOrb size={40} />
@@ -194,8 +194,10 @@ export function DayRunTimeline({ events, onOpen }: { events: TimelineEvent[]; on
                 data-testid="day-moment"
                 data-state={state}
                 className={cn(
-                  "relative flex gap-4 rounded-3xl border bg-card p-5 transition sm:gap-5 sm:p-6",
-                  state === "live" ? "border-brand-accent/40/40 shadow-[0_0_40px_rgba(251,113,133,.12)]" : "border-foreground/10",
+                  "relative flex gap-4 rounded-3xl border bg-[var(--agency-paper)] p-5 transition sm:gap-5 sm:p-6",
+                  state === "live"
+                    ? "border-[var(--agency-ink)]/45 shadow-[0_16px_40px_-16px_rgba(23,20,16,0.22)]"
+                    : "border-[var(--agency-hairline)]",
                   state === "done" && "opacity-70",
                 )}
               >

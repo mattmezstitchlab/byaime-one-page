@@ -1,17 +1,48 @@
-import { useState } from "react";
-import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Clock3, PlayCircle, Plus, RotateCcw, Trash2, TriangleAlert } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import type { TimelineEvent } from "@/lib/types";
 import { analyzeEventImpact } from "@/lib/timeline-graph";
 import { focusWorld } from "@/lib/world-focus";
+import { useI18n } from "@/lib/i18n";
+import {
+  annotateDayRun,
+  applyDayDelay,
+  formatClock,
+  formatCountdown,
+  formatRelativeDayDelay,
+} from "@/lib/day-run";
 import { DayOfGuestEntry } from "./DayOfGuestEntry";
 import { CARD, EYEBROW, PILL_SMALL, TITLE, LEAD } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
 
 export function DayOfPanel() {
   const { project, updateProject, updateEntity, addEntity, removeEntity, canEdit, currentRole } = useProject();
+  const { t } = useI18n();
   const [pending, setPending] = useState<{ id: string; patch: Partial<TimelineEvent> }>();
   const [notice, setNotice] = useState("");
+  /* Horloge de la régie : le compte à rebours doit bouger tout seul. */
+  const [now, setNow] = useState(() => Date.now());
+  /* Décalage de retard appliqué, gardé pour pouvoir l'annuler. */
+  const [lastDelay, setLastDelay] = useState<{ snapshot: TimelineEvent[]; minutes: number }>();
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  /*
+   * L'orchestration du Jour J. Le moteur (`lib/day-run.ts`) existait déjà —
+   * Moment en cours, suivant, en retard, compte à rebours, propagation d'un
+   * retard — mais aucun panneau ne l'affichait : la Régie ne montrait qu'une
+   * liste de champs. Le voici rendu, et recalculé chaque seconde.
+   */
+  const dayEvents = useMemo(
+    () => (project?.timeline ?? []).filter(event => event.phase === "pendant"),
+    [project?.timeline],
+  );
+  const snapshot = useMemo(() => annotateDayRun(dayEvents, now), [dayEvents, now]);
+
   if (!project) return null;
   const events = project.timeline.filter(event => event.phase === "pendant").sort((a, b) => a.time - b.time);
   const impact = pending ? analyzeEventImpact(project, pending.id, pending.patch) : undefined;
@@ -23,6 +54,30 @@ export function DayOfPanel() {
   const practicalReady = Boolean(
     project.venue.value?.trim() || logistics?.parking?.trim() || logistics?.accessibility?.trim() || logistics?.weatherFallback?.trim(),
   );
+
+  /* Décale un Moment et toute la suite : le comportement de régie. */
+  const pushDelay = (eventId: string, minutes: number) => {
+    const before = project.timeline;
+    const { project: next, affectedIds } = applyDayDelay(project, eventId, minutes);
+    if (!affectedIds.length) return;
+    setLastDelay({ snapshot: before, minutes });
+    updateProject(next);
+    setNotice(t("world.dayrun.delayDone", { count: affectedIds.length }));
+  };
+
+  const undoDelay = () => {
+    if (!lastDelay) return;
+    updateProject({ timeline: lastDelay.snapshot });
+    setLastDelay(undefined);
+    setNotice("");
+  };
+
+  const reference = snapshot.live ?? snapshot.firstLate ?? snapshot.next;
+  const countdownLabel = snapshot.live
+    ? t("world.dayrun.live")
+    : snapshot.next
+      ? `${t("world.dayrun.startsIn")} ${formatCountdown(snapshot.next.time - now)}`
+      : t("world.dayrun.noLive");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-10">
@@ -60,6 +115,121 @@ export function DayOfPanel() {
           )}
         </div>
       </div>
+
+      {/* ————— La régie : ce qui se passe maintenant ————— */}
+      <section
+        data-testid="dayof-run"
+        aria-label={t("world.dayrun.eyebrow")}
+        className={cn(CARD, "p-6")}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className={EYEBROW}>{t("world.dayrun.eyebrow")}</p>
+            <p data-testid="dayof-countdown" className="mt-2 font-display text-3xl tabular-nums text-[var(--agency-ink)]">
+              {countdownLabel}
+            </p>
+          </div>
+          <p className="rounded-full border border-[var(--agency-hairline)] px-4 py-1.5 text-xs tabular-nums text-[var(--agency-body)]">
+            {t("world.dayrun.done")} · {snapshot.doneCount}/{snapshot.total}
+          </p>
+        </div>
+
+        {reference ? (
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {[
+              { key: "live", event: snapshot.live, Icon: PlayCircle },
+              { key: "next", event: snapshot.next, Icon: Clock3 },
+              { key: "late", event: snapshot.firstLate, Icon: TriangleAlert },
+            ].map(({ key, event, Icon }) => (
+              <div
+                key={key}
+                data-testid={`dayof-slot-${key}`}
+                className={cn(
+                  "rounded-2xl border p-4",
+                  key === "late" && event
+                    ? "border-[#B42318]/30 bg-[#B42318]/[0.04]"
+                    : "border-[var(--agency-hairline)] bg-[var(--agency-paper)]",
+                )}
+              >
+                <p className={cn(EYEBROW, "flex items-center gap-1.5")}>
+                  <Icon className="h-3 w-3" />
+                  {t(`world.dayrun.${key}` as never)}
+                </p>
+                {event ? (
+                  <>
+                    <p className="mt-2 truncate text-sm font-medium text-[var(--agency-ink)]">{event.title}</p>
+                    <p className="mt-1 text-xs tabular-nums text-[var(--agency-body)]">
+                      {formatClock(event.time)}
+                      {event.delayMinutes ? ` · ${formatRelativeDayDelay(-event.delayMinutes * 60_000)}` : ""}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-xs text-[var(--agency-eyebrow)]">—</p>
+                )}
+                {canEdit && event && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {[15, 30, 60].map(minutes => (
+                      <button
+                        key={minutes}
+                        type="button"
+                        onClick={() => pushDelay(event.id, minutes)}
+                        title={t("world.dayrun.delayHint")}
+                        className="rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[11px] tabular-nums text-[var(--agency-body)] transition hover:border-[var(--agency-ink)] hover:text-[var(--agency-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/30"
+                      >
+                        +{minutes} min
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-dashed border-[var(--agency-hairline)] p-6 text-center">
+            <p className="text-sm font-medium text-[var(--agency-ink)]">{t("world.dayrun.empty.title")}</p>
+            <p className={cn(LEAD, "mx-auto mt-2 max-w-md text-xs")}>{t("world.dayrun.empty.desc")}</p>
+            {canEdit && (
+              <button
+                type="button"
+                data-testid="dayof-create-first"
+                onClick={() =>
+                  addEntity("timeline", {
+                    time: project.pivot.value,
+                    durationMinutes: 60,
+                    kind: "evenement",
+                    title: "Nouveau temps fort",
+                    status: "prepare",
+                    confidence: "confirme",
+                    phase: "pendant",
+                    universe: project.universe,
+                    provenance: "real",
+                    visibility: "equipe",
+                    relations: [],
+                    dependencyIds: [],
+                    resources: [],
+                  })
+                }
+                className={cn(PILL_SMALL, "mt-4 bg-[var(--agency-ink)] text-[var(--agency-paper)] hover:opacity-85")}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t("world.dayrun.empty.cta")}
+              </button>
+            )}
+          </div>
+        )}
+
+        {lastDelay && (
+          <button
+            type="button"
+            data-testid="dayof-undo-delay"
+            onClick={undoDelay}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] px-3 py-1.5 text-xs text-[var(--agency-body)] transition hover:border-[var(--agency-ink)] hover:text-[var(--agency-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/30"
+          >
+            <RotateCcw className="h-3 w-3" />
+            {t("world.dayrun.undo")}
+          </button>
+        )}
+      </section>
 
       <DayOfGuestEntry
         published={published}

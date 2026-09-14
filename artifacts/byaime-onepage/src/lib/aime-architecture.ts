@@ -40,6 +40,7 @@ export type AimeScreenId =
   | "view:logistics"
   | "view:collaborative"
   | "view:memories"
+  | "panel:pilotage"
   | "panel:planning"
   | "panel:guests"
   | "panel:providers"
@@ -65,7 +66,7 @@ export type AimeScreenAction = {
   focus?: WorldFocusRequest;
   /** Lien simple vers une route publique ou privée. */
   href?: string;
-  /** Événement de l'app qui ouvre un panneau du portail (`aime:open-me`, …). */
+  /** Événement de l'app qui ouvre un panneau du portail (`aime:open-world-settings`, …). */
   emit?: string;
 };
 
@@ -87,11 +88,6 @@ export type AimeScreen = {
   keywords: string[];
 };
 
-const goToPanel = (panel: string, extra: Partial<WorldFocusRequest> = {}): AimeScreenAction => ({
-  label: "Ouvrir ce panneau",
-  detail: "AIME vous y emmène, dans la phase en cours.",
-  focus: { panel, ...extra },
-});
 
 export const AIME_MODEL: { title: string; body: string }[] = [
   {
@@ -274,7 +270,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
       "Publier le profil avec les coordonnées personnelles : vérifiez la visibilité avant.",
     ],
     actions: [
-      { label: "Gérer mon compte", detail: "Ouvre l'écran de profil.", href: "/profile" },
+      { label: "Gérer mon compte", detail: "Ouvre le panneau ME.", href: "/user-portal" },
       { label: "Voir comme un invité", detail: "Ce que la page publique laisse voir.", focus: { view: "public-info" } },
     ],
     related: ["public-profile", "portal"],
@@ -540,6 +536,30 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     actions: [{ label: "Ouvrir Photos & vidéos", detail: "Ce qui est arrivé, ce qui manque.", focus: { panel: "memories" } }],
     related: ["panel:memories", "phase:apres"],
     keywords: ["souvenirs", "photos", "vidéos", "média", "album"],
+  },
+  /*
+   * P3 (14/09) : Personnes, Prestataires et Tâches ne sont plus trois fenêtres
+   * mais un seul panneau à trois onglets. Les identifiants historiques restent
+   * décrits ci-dessous — ils pointent toujours vers le bon endroit.
+   */
+  "panel:pilotage": {
+    id: "panel:pilotage",
+    label: "Pilotage",
+    where: "La fenêtre unique du quotidien : invités, prestataires et tâches.",
+    purpose: "Piloter la préparation sans changer de fenêtre : qui vient, qui est engagé, ce qu'il reste à faire.",
+    does: [
+      "Trois onglets : Personnes (invités et plan de table), Prestataires (statuts, montants, échéancier), Tâches (fenêtres, statuts, priorités).",
+      "Chaque onglet est la même collection que la Timeline : rien n'est dupliqué.",
+      "Un deep-link historique (/panel=guests, /panel=budget, /panel=planning) ouvre directement le bon onglet.",
+    ],
+    mistakes: ["Chercher un panneau « Budget » séparé : l'argent vit dans l'onglet Prestataires."],
+    actions: [
+      { label: "Ouvrir les invités", detail: "Réponses, besoins, plan de table.", focus: { panel: "guests" } },
+      { label: "Ouvrir les prestataires", detail: "Statuts, montants, paiements.", focus: { panel: "providers" } },
+      { label: "Ouvrir les tâches", detail: "Ce qu'il reste à préparer.", focus: { panel: "planning" } },
+    ],
+    related: ["panel:guests", "panel:providers", "panel:planning", "view:chronological"],
+    keywords: ["pilotage", "invités", "prestataires", "tâches", "budget", "plan de table", "control room"],
   },
   "panel:planning": {
     id: "panel:planning",

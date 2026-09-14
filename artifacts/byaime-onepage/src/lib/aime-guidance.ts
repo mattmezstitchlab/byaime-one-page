@@ -8,12 +8,11 @@ import {
   searchAimeScreens,
   type AimeScreen,
   type AimeScreenAction,
-  type AimeScreenId,
-} from "./aime-architecture";
+  type AimeScreenId } from "./aime-architecture";
 import { focusWorld } from "./world-focus";
 import { findTimelineConflicts } from "./timeline-graph";
 import type { WorldProject } from "./types";
-import type { WeddingCapabilities, WeddingPanelId, WorldPhase } from "./wedding-navigation";
+import type { WeddingPanelId, WorldPhase } from "./wedding-navigation";
 import { getWeddingCapabilities } from "./wedding-navigation";
 import { MIN_INTENTION_LENGTH } from "./intention-draft";
 
@@ -128,8 +127,7 @@ export function nextBestActions(
       title: "Poser la première phrase du mariage",
       why: "AIME a besoin d'une date, d'un lieu ou d'un nombre d'invités pour ouvrir un Monde. Une information à la fois suffit.",
       weight: "blocant",
-      action: { label: "Ouvrir l'accueil", detail: "Le champ de saisie est tout en haut.", href: "/" },
-    }];
+      action: { label: "Ouvrir l'accueil", detail: "Le champ de saisie est tout en haut.", href: "/" } }];
   }
 
   const steps: AimeNextStep[] = [];
@@ -153,8 +151,7 @@ export function nextBestActions(
         ? "La date est connue mais pas confirmée : tout le compte à rebours, les phases et les échéances en dépendent."
         : "Sans date, AIME ne peut classer ni les tâches, ni les Moments, ni les échéances de paiement.",
       weight: "blocant",
-      action: { label: "Ouvrir les réglages du Monde", detail: "Date, ville, lieu, enveloppe.", emit: "aime:open-world-settings" },
-    });
+      action: { label: "Ouvrir les réglages du Monde", detail: "Date, ville, lieu, enveloppe.", emit: "aime:open-world-settings" } });
   }
   if (!confirmed(project.city) && !confirmed(project.venue)) {
     steps.push({
@@ -162,8 +159,7 @@ export function nextBestActions(
       title: "Dire où se déroule la journée",
       why: "Le lieu conditionne la logistique, les hébergements et les informations publiques que verront les invités.",
       weight: "blocant",
-      action: { label: "Ouvrir les réglages du Monde", detail: "Ville et lieu.", emit: "aime:open-world-settings" },
-    });
+      action: { label: "Ouvrir les réglages du Monde", detail: "Ville et lieu.", emit: "aime:open-world-settings" } });
   }
   if (!guestsCount) {
     steps.push({
@@ -171,24 +167,21 @@ export function nextBestActions(
       title: "Ouvrir la liste des invités",
       why: "Les réponses, les couverts, le plan de table et le menu se calculent à partir de cette liste : sans elle, tout le reste reste théorique.",
       weight: "blocant",
-      action: { label: "Ouvrir la liste des invités", detail: "Une ligne par personne, le foyer porte les couverts.", focus: { panel: "guests" } },
-    });
+      action: { label: "Ouvrir la liste des invités", detail: "Une ligne par personne, le foyer porte les couverts.", focus: { panel: "guests" } } });
   } else if (invited === 0) {
     steps.push({
       id: "invite",
       title: "Envoyer les liens d'invitation",
       why: `${guestsCount} personne(s) dans la liste, aucun lien envoyé : les réponses ne peuvent pas encore remonter.`,
       weight: "utile",
-      action: { label: "Ouvrir la liste des invités", detail: "Chaque lien est personnel et révocable.", focus: { panel: "guests" } },
-    });
+      action: { label: "Ouvrir la liste des invités", detail: "Chaque lien est personnel et révocable.", focus: { panel: "guests" } } });
   } else if (pending > 0) {
     steps.push({
       id: "rsvp",
       title: `Relancer les ${pending} réponse(s) en attente`,
       why: `${answered} réponse(s) confirmée(s) sur ${guestsCount} : les tables et le traiteur se prépareraient sur une hypothèse.`,
       weight: "utile",
-      action: { label: "Préparer la relance", detail: "Un modèle, une liste de destinataires.", focus: { panel: "messages" } },
-    });
+      action: { label: "Préparer la relance", detail: "Un modèle, une liste de destinataires.", focus: { panel: "messages" } } });
   }
   if (guestsCount && !project.tables.length) {
     steps.push({
@@ -196,8 +189,7 @@ export function nextBestActions(
       title: "Ouvrir le plan de table",
       why: "Les tables et leurs capacités conditionnent le placement ; les besoins alimentaires des invités y sont repris.",
       weight: "utile",
-      action: { label: "Ouvrir le plan de table", detail: "Tables, capacités, placements.", focus: { panel: "seating" } },
-    });
+      action: { label: "Ouvrir le plan de table", detail: "Tables, capacités, placements.", focus: { panel: "seating" } } });
   }
   if (providersPending > 0) {
     steps.push({
@@ -205,8 +197,7 @@ export function nextBestActions(
       title: `Décider ${providersPending} prestataire(s) encore en cours`,
       why: `Seuls ${providersReserved} sont réservés : un statut « devis reçu » sans prochaine action finit toujours par être oublié.`,
       weight: "utile",
-      action: { label: "Ouvrir les prestataires", detail: "Statuts, montants, prochaine action.", focus: { panel: "providers" } },
-    });
+      action: { label: "Ouvrir les prestataires", detail: "Statuts, montants, prochaine action.", focus: { panel: "providers" } } });
   }
   if (!confirmed(project.budget) && engaged > 0) {
     steps.push({
@@ -214,8 +205,7 @@ export function nextBestActions(
       title: "Annoncer l'enveloppe",
       why: "Des engagements existent déjà ; sans enveloppe, AIME ne peut dire ni ce qui reste, ni ce qui dépasse.",
       weight: "utile",
-      action: { label: "Ouvrir les finances", detail: "Enveloppe, engagé, payé, à venir.", focus: { panel: "budget" } },
-    });
+      action: { label: "Ouvrir les finances", detail: "Enveloppe, engagé, payé, à venir.", focus: { panel: "budget" } } });
   }
   if (unpaid.length) {
     steps.push({
@@ -223,8 +213,7 @@ export function nextBestActions(
       title: `${unpaid.length} paiement(s) à venir`,
       why: "Les échéances restent la source la plus fréquente de tension la dernière semaine.",
       weight: "utile",
-      action: { label: "Ouvrir les finances", detail: "Ce qui est dû, et pour quand.", focus: { panel: "budget" } },
-    });
+      action: { label: "Ouvrir les finances", detail: "Ce qui est dû, et pour quand.", focus: { panel: "budget" } } });
   }
   if (providersReserved > 0 && contracts === 0) {
     steps.push({
@@ -232,8 +221,7 @@ export function nextBestActions(
       title: "Archiver les contrats signés",
       why: "Un prestataire réservé sans contrat déposé se retrouve sans trace le jour où l'horaire change.",
       weight: "utile",
-      action: { label: "Ouvrir les documents", detail: "Devis, contrats, factures.", focus: { panel: "documents" } },
-    });
+      action: { label: "Ouvrir les documents", detail: "Devis, contrats, factures.", focus: { panel: "documents" } } });
   }
   if (conflicts > 0) {
     steps.push({
@@ -241,8 +229,7 @@ export function nextBestActions(
       title: `Régler ${conflicts} conflit(s) d'horaire`,
       why: "Deux Moments qui se chevauchent se règlent mieux maintenant qu'à 18 h le jour même.",
       weight: "blocant",
-      action: { label: "Ouvrir la synthèse du Monde", detail: "Alertes, dépendances, avance.", focus: { overview: true } },
-    });
+      action: { label: "Ouvrir la synthèse du Monde", detail: "Alertes, dépendances, avance.", focus: { overview: true } } });
   }
 
   if (phase === "avant") {
@@ -252,8 +239,7 @@ export function nextBestActions(
         title: "Écrire les premiers Moments",
         why: "La Timeline est la source : invités, prestataires, musique et documents se relient à un Moment, jamais entre eux.",
         weight: "blocant",
-        action: { label: "Ouvrir la Timeline", detail: "Tous les Moments du mariage.", focus: { view: "chronological" } },
-      });
+        action: { label: "Ouvrir la Timeline", detail: "Tous les Moments du mariage.", focus: { view: "chronological" } } });
     }
     if (musicToChoose) {
       steps.push({
@@ -261,8 +247,7 @@ export function nextBestActions(
         title: `Choisir ${musicToChoose} morceau(x) en attente`,
         why: "Un morceau validé et relié à son Moment peut être transmis au DJ sans relecture.",
         weight: "saison",
-        action: { label: "Ouvrir la musique", detail: "Morceaux, statuts, Moments reliés.", focus: { panel: "music" } },
-      });
+        action: { label: "Ouvrir la musique", detail: "Morceaux, statuts, Moments reliés.", focus: { panel: "music" } } });
     }
   }
   if (phase === "pendant") {
@@ -272,8 +257,7 @@ export function nextBestActions(
         title: "Vous suivez le Jour J en lecture",
         why: "Votre rôle ne permet pas de déplacer les Moments : passez par un propriétaire pour toute modification du programme.",
         weight: "saison",
-        action: { label: "Voir qui fait quoi", detail: "Rôles et responsabilités.", focus: { panel: "team" } },
-      });
+        action: { label: "Voir qui fait quoi", detail: "Rôles et responsabilités.", focus: { panel: "team" } } });
     }
     if (!project.logistics.emergencyContacts.length) {
       steps.push({
@@ -281,16 +265,14 @@ export function nextBestActions(
         title: "Compléter les contacts d'urgence",
         why: "À 20 h, c'est dans la logistique qu'on cherche un numéro, pas dans les notes d'un téléphone personnel.",
         weight: "blocant",
-        action: { label: "Ouvrir la logistique", detail: "Accès, navettes, urgences, plan B.", focus: { panel: "logistics" } },
-      });
+        action: { label: "Ouvrir la logistique", detail: "Accès, navettes, urgences, plan B.", focus: { panel: "logistics" } } });
     }
     steps.push({
       id: "regie",
       title: "Garder la régie ouverte",
       why: "Un Moment déplacé depuis la régie calcule les dépendances touchées et prépare le message aux personnes concernées.",
       weight: "utile",
-      action: { label: "Ouvrir la régie du Jour J", detail: "Le fil du jour, l'événement en cours.", focus: { panel: "dayof" } },
-    });
+      action: { label: "Ouvrir la régie du Jour J", detail: "Le fil du jour, l'événement en cours.", focus: { panel: "dayof" } } });
   }
   if (phase === "apres") {
     if (!project.media.length && !project.memories.length) {
@@ -299,16 +281,14 @@ export function nextBestActions(
         title: "Ouvrir la collecte des images",
         why: "Les liens de dépôt ont une date de vie : collecter maintenant évite de perdre les téléphones des invités.",
         weight: "utile",
-        action: { label: "Ouvrir Photos & vidéos", detail: "Dépôts, albums, état.", focus: { panel: "memories" } },
-      });
+        action: { label: "Ouvrir Photos & vidéos", detail: "Dépôts, albums, état.", focus: { panel: "memories" } } });
     }
     steps.push({
       id: "thanks",
       title: "Écrire les remerciements",
       why: "La liste des personnes à remercier suit les réponses reçues ; elle se tient dans ce panneau.",
       weight: "saison",
-      action: { label: "Ouvrir les remerciements", detail: "À écrire, à envoyer, envoyés.", focus: { panel: "thanks" } },
-    });
+      action: { label: "Ouvrir les remerciements", detail: "À écrire, à envoyer, envoyés.", focus: { panel: "thanks" } } });
   }
   const rank: Record<AimeNextStep["weight"], number> = { blocant: 0, utile: 1, saison: 2 };
   return steps
@@ -362,8 +342,7 @@ export function answerAime(
       paragraphs: [screen.where, screen.purpose],
       steps: screen.does,
       actions: screen.actions,
-      matches: [],
-    };
+      matches: [] };
   }
   if (intent === "model") {
     return {
@@ -372,8 +351,7 @@ export function answerAime(
       paragraphs: AIME_MODEL.slice(0, 3).map(entry => `${entry.title} — ${entry.body}`),
       steps: AIME_MODEL.slice(3).map(entry => `${entry.title} — ${entry.body}`),
       actions: [{ label: "Ouvrir la synthèse du Monde", detail: "La salle de contrôle : budget, progression, alertes.", focus: { overview: true } }],
-      matches: [],
-    };
+      matches: [] };
   }
   if (intent === "roles") {
     const capabilities = getWeddingCapabilities(options.role ?? "owner");
@@ -393,8 +371,7 @@ export function answerAime(
         { label: "Ouvrir le graphe de visibilité", detail: "Contrôler les frontières avant de partager.", focus: { graph: true } },
         { label: "Inviter en choisissant un rôle", detail: "Accès partiel, lien nominatif.", emit: "aime:open-collaboration-invite" },
       ],
-      matches: [],
-    };
+      matches: [] };
   }
   if (intent === "next") {
     const steps = nextBestActions(options.project, { phase: options.phase, role: options.role });
@@ -404,8 +381,7 @@ export function answerAime(
       paragraphs: steps.length ? [] : ["Rien ne bloque : le Monde est cohérent, gardez la Timeline à l'œil pendant le Jour J."],
       steps: steps.map(step => `${step.title} — ${step.why}`),
       actions: steps.map(step => step.action),
-      matches: [],
-    };
+      matches: [] };
   }
 
   if (!matches.length) {
@@ -417,8 +393,7 @@ export function answerAime(
       ],
       steps: [],
       actions: [{ label: "Rechercher dans le Monde", detail: "Retrouver un Moment, une personne, un document.", focus: { search: true } }],
-      matches: [],
-    };
+      matches: [] };
   }
 
   const [best] = matches;
@@ -428,8 +403,7 @@ export function answerAime(
     paragraphs: [best.screen.where, best.screen.purpose],
     steps: best.screen.does,
     actions: best.screen.actions,
-    matches: matches.slice(1),
-  };
+    matches: matches.slice(1) };
 }
 
 /** Résumé injectable (docs, future passerelle vers un modèle). */

@@ -32,7 +32,7 @@ export function DayOfGuestEntry({
     <section
       data-testid="dayof-guest-entry"
       aria-label="Entrée Invité"
-      className="rounded-3xl border border-border bg-card p-5"
+      className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">

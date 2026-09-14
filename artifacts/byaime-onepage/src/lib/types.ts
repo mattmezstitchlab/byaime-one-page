@@ -177,6 +177,20 @@ export type TeamRole = {
   role: string;
   contact?: string;
   responsibilities: string[];
+  /**
+   * 14/09 : le panneau Logistique lit et écrit ces deux champs depuis la
+   * fusion, mais le type ne les déclarait pas — `tsc` les signalait et le
+   * code tournait sur `undefined`. Déclarés, donc typés et amorcés.
+   */
+  person?: string;
+  tasks?: string[];
+};
+
+/** Une ligne de la checklist des souvenirs à ne pas manquer. */
+export type MemoryChecklistItem = {
+  id: string;
+  label: string;
+  done: boolean;
 };
 
 export type MemoryItem = {
@@ -343,6 +357,13 @@ export type WorldProject = {
   ceremony: CeremonyContent;
   music: MusicTrack[];
   team: TeamRole[];
+  /**
+   * Checklist des souvenirs du Jour J. Absente du type jusqu'au 14/09 alors
+   * que le panneau Documents la lit : `project.memoryChecklist` valait
+   * `undefined` et le panneau tombait sur `.filter`. Obligatoire, donc
+   * toujours amorcée — y compris pour les projets déjà enregistrés.
+   */
+  memoryChecklist: MemoryChecklistItem[];
   memories: MemoryItem[];
   messageTemplates: MessageTemplate[];
   messageLogs: MessageLog[];

@@ -22,7 +22,8 @@ const REACHABLE_VIEWS: TimelineView[] = [
 const KNOWN_ROUTES = [
   "/", "/creation", "/connexion", "/sign-in", "/sign-up", "/user-portal", "/profile", "/assistant", "/dossiers", "/conditions", "/confidentialite",
 ];
-const KNOWN_EVENTS = ["aime:open-ai", "aime:open-me", "aime:open-world-settings", "aime:open-collaboration-invite"];
+/* Uniquement des événements qui ont encore un émetteur ET un écouteur. */
+const KNOWN_EVENTS = ["aime:open-ai", "aime:open-world-settings", "aime:open-collaboration-invite"];
 
 const isKnownRoute = (href: string) => KNOWN_ROUTES.some(route => href === route || href.startsWith(`${route}/`));
 

@@ -5,7 +5,6 @@ import { DispooBanner } from "@/components/DispooBanner";
 import { CARD, EYEBROW, PILL_SMALL } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
 import { formatCents, currencySymbol } from "@/lib/money";
-import type { Payment } from "@/lib/types";
 
 const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 

@@ -8,7 +8,7 @@ import { Router } from "wouter";
 
 describe("private shell controls", () => {
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <Router hook={() => ["/profile", () => {}]}>{children}</Router>
+    <Router hook={() => ["/user-portal", () => {}]}>{children}</Router>
   );
 
   it("shows a single orb button that opens the unified panel", () => {

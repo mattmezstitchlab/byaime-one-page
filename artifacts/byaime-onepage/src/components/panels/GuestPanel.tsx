@@ -3,14 +3,13 @@ import { AlertTriangle, Copy, ExternalLink, Link2, Plus, Search, Trash2, UserRou
 import { useProject } from "@/store/project-store";
 import type { ParticipantLink } from "@/lib/types";
 import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
-import { CARD, EYEBROW, FIELD, PILL_SMALL, PILL_SMALL_GHOST, PILL_SMALL_INK } from "@/lib/site-design";
+import { CARD, EYEBROW, PILL_SMALL, PILL_SMALL_GHOST, PILL_SMALL_INK } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
-    headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers },
-  });
+    headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers } });
   const body = response.status === 204 ? null : await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body?.error || `Erreur ${response.status}`);
   return body as T;
@@ -31,8 +30,7 @@ export function GuestPanel() {
     addEntity,
     removeEntity,
     canEdit,
-    currentRole,
-  } = useProject();
+    currentRole } = useProject();
   const [query, setQuery] = useState("");
   const [busyGuestId, setBusyGuestId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -52,7 +50,7 @@ export function GuestPanel() {
       .then(() => {
         if (active) setApiAvailable(true);
       })
-      .catch(error => {
+      .catch(() => {
         if (!active) return;
         setApiAvailable(false);
         setNotice("Mode hors-ligne: gestion locale uniquement — liens RSVP indisponibles sans backend. Les invités, tables et présences restent modifiables.");
@@ -178,8 +176,7 @@ export function GuestPanel() {
                 name: "Nouvel invité",
                 role: "invite",
                 rsvp: "en_attente",
-                attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false },
-              })
+                attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false } })
             }
             className={cn(PILL_SMALL, "bg-[var(--agency-ink)] text-[var(--agency-paper)] hover:opacity-85")}
           >

@@ -7,19 +7,13 @@ import {
   Clock3,
   FolderClosed,
   ListChecks,
-  LoaderCircle,
   Lock,
   Music,
   Plus,
   Settings,
-  UserCog,
-  Users,
-  Wallet,
-} from "lucide-react";
+  Users } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useProject } from "@/store/project-store";
-import { executeCommand, parseFrenchCommand, proposeCommand, type CommandProposal } from "@/lib/command-agent";
-import { askAssistant, type AssistantReply } from "@/lib/assistant";
 import { CenteredBlock } from "@/components/CenteredBlock";
 import { AimeOrb } from "@/components/AimeOrb";
 import { DocumentShare } from "@/components/DocumentShare";
@@ -29,25 +23,27 @@ import {
   getWeddingCapabilities,
   getWeddingRailItems,
   isWeddingDestinationActive,
-  type WeddingRailIcon,
-} from "@/lib/wedding-navigation";
+  type WeddingRailIcon } from "@/lib/wedding-navigation";
 import { focusWorldDestination, getWorldNavState, subscribeWorldNav, type WorldNavState } from "@/lib/world-nav-state";
 import { getPrivateNavigation, type PrivateDestinationId } from "@/lib/private-navigation";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
+/*
+ * Le panneau de l'orbe ne commande plus rien.
+ *
+ * 14/09 : le champ « agent » (composer une commande en langage naturel, puis
+ * « Prévenir les personnes concernées » avec son champ « Programmer » jour /
+ * heure / minute) était de la démonstration : l'envoi passait par
+ * `/api/projects/:id/messages`, absent du parcours local, et les commandes
+ * proposées n'avaient rien à voir avec ce qu'un couple fait vraiment dans son
+ * Monde. Supprimé, comme demandé. Ce panneau reste le carrefour réel :
+ * dossiers, dépôt de fichier, création, ME, navigation du Monde, réglages.
+ */
 const contextCopy: Record<PrivateDestinationId, { label: string; description: string }> = {
-  profile: {
-    label: "Profil",
-    description: "AIME comprend votre Profil comme une projection du Monde actif. Commandez, demandez, ouvrez un dossier, déposez un fichier — ou naviguez : tout l'espace privé tient dans ce panneau.",
-  },
   world: {
     label: "Monde",
-    description: "AIME comprend le Monde actif, vérifie votre demande et demande votre accord avant tout changement. Commandez, demandez, ouvrez un dossier, déposez un fichier — ou naviguez : tout l'espace privé tient dans ce panneau.",
-  },
-};
-
-const EXAMPLES = ["Voir les tâches restantes", "Repérer les horaires qui se chevauchent", "Vérifier les besoins alimentaires", "Préparer le programme des professionnels", "Ajouter 2 invités", "Où en est le budget ?"];
+    description: "Ouvrez un dossier, déposez un fichier, créez une personne ou un Moment, naviguez dans le Monde — tout l'espace privé tient dans ce panneau." } };
 
 const WORLD_ICONS: Record<WeddingRailIcon, ComponentType<{ className?: string }>> = {
   timeline: Clock3,
@@ -56,8 +52,7 @@ const WORLD_ICONS: Record<WeddingRailIcon, ComponentType<{ className?: string }>
   tasks: ListChecks,
   documents: FolderClosed,
   logistics: Settings,
-  music: Music,
-};
+  music: Music };
 
 /*
  * Le panneau unique, ouvert par l'orbe (« + », Cmd/Ctrl + K, événement
@@ -68,17 +63,7 @@ const WORLD_ICONS: Record<WeddingRailIcon, ComponentType<{ className?: string }>
  */
 export function CommandBar({ context = "world", onOpenMe }: { context?: PrivateDestinationId; onOpenMe?: () => void }) {
   const [open, setOpen] = useState(false);
-  const [input, setInput] = useState("");
-  const [proposal, setProposal] = useState<CommandProposal>();
-  const [error, setError] = useState("");
-  const [result, setResult] = useState("");
-  const [reply, setReply] = useState<AssistantReply>();
-  const [replyPending, setReplyPending] = useState(false);
-  const [notification, setNotification] = useState<NonNullable<CommandProposal["communication"]>>();
-  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
-  const [scheduleAt, setScheduleAt] = useState("");
-  const [notificationBusy, setNotificationBusy] = useState(false);
-  const { project, updateProject, canEdit, currentRole } = useProject();
+  const { project, currentRole } = useProject();
   const { t, locale, setLocale } = useI18n();
   const [worldNav, setWorldNav] = useState<WorldNavState>(() => getWorldNavState());
   useEffect(() => {
@@ -92,77 +77,6 @@ export function CommandBar({ context = "world", onOpenMe }: { context?: PrivateD
     };
   }, []);
   useEffect(() => subscribeWorldNav(setWorldNav), []);
-  const inspect = async () => {
-    const message = input.trim();
-    if (!message || replyPending) return;
-    setError(""); setResult(""); setProposal(undefined); setReply(undefined);
-    const command = parseFrenchCommand(message);
-    if (!command) {
-      // Pas une commande comprise : c'est une question, AIME répond sur place.
-      setReplyPending(true);
-      try {
-        setReply(await askAssistant({ project, message, locale, role: currentRole }));
-      } catch {
-        setError("AIME n’a pas pu répondre pour le moment. Rien n’a été modifié.");
-      } finally {
-        setReplyPending(false);
-      }
-      return;
-    }
-    if (!project) {
-      setError("Pour commander une action, commencez par créer un Monde avec le bouton orbe. Les questions, elles, sont les bienvenues dès maintenant.");
-      return;
-    }
-    try { setProposal(proposeCommand(project, command)); } catch (reason) { setError(reason instanceof Error ? reason.message : "AIME ne peut pas vérifier cette demande pour le moment."); }
-  };
-  const execute = () => {
-    if (!project || !proposal || (proposal.mutation && !canEdit)) return;
-    try {
-      const output = executeCommand(project, proposal, true);
-      updateProject(output.project);
-      setResult(output.message);
-      if (proposal.communication) {
-        setNotification(proposal.communication);
-        setSelectedRecipients(proposal.communication.audiences.flatMap(audience => audience.email ? [audience.email] : []));
-      }
-      setProposal(undefined);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Cette action n’a pas pu être réalisée."); }
-  };
-  const sendNotification = async () => {
-    if (!notification || !project || !selectedRecipients.length || !notification.subject.trim() || !notification.body.trim()) return;
-    setNotificationBusy(true);
-    setError("");
-    try {
-      const response = await fetch(`/api/projects/${project.id}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "event_change",
-          timelineEventId: notification.eventId,
-          recipients: selectedRecipients,
-          subject: notification.subject.trim(),
-          body: notification.body.trim(),
-          ...(scheduleAt ? { scheduledAt: new Date(scheduleAt).toISOString() } : {}),
-          confirmed: true,
-        }),
-      });
-      const delivery = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setError(delivery?.providerError || delivery?.error || "Le message n’a pas pu être enregistré.");
-        return;
-      }
-      setResult(delivery.status === "scheduled"
-        ? `Rappel programmé pour ${new Date(delivery.scheduledAt).toLocaleString("fr-FR")}. Vous pourrez l’annuler ou le replanifier dans Messages.`
-        : `Message confirmé et envoyé à ${selectedRecipients.length} destinataire${selectedRecipients.length > 1 ? "s" : ""}.`);
-      setNotification(undefined);
-      setSelectedRecipients([]);
-      setScheduleAt("");
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Le message n’a pas pu être envoyé.");
-    } finally {
-      setNotificationBusy(false);
-    }
-  };
   if (!open) return null;
   const currentContext = contextCopy[context];
   const close = () => setOpen(false);
@@ -172,65 +86,12 @@ export function CommandBar({ context = "world", onOpenMe }: { context?: PrivateD
     ? getWeddingRailItems(worldNav.phase, getWeddingCapabilities(worldNav.role || currentRole), locale)
     : [];
   return <>
-    <CenteredBlock eyebrow={`AI · ${currentContext.label}`} title="Que souhaitez-vous faire ?" description={currentContext.description} onClose={close} size="lg" testId="orb-panel" leading={<AimeOrb size={52} />}>
-      <p className="text-right">
-        <Link
-          href="/assistant"
-          data-testid="command-open-assistant"
-          onClick={close}
-          className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium uppercase tracking-[.14em] text-foreground/55 transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50"
-        >
-          {t("assistant.full.open")}
-          <ArrowRight aria-hidden className="h-3.5 w-3.5" />
-        </Link>
+    <CenteredBlock eyebrow={`AIME · ${currentContext.label}`} title="Que souhaitez-vous faire ?" description={currentContext.description} onClose={close} size="lg" testId="orb-panel" leading={<AimeOrb size={52} />}>
+      <p data-testid="orb-intro" className="text-sm font-light leading-relaxed text-foreground/60">
+        {project
+          ? "Votre Monde est ouvert. Choisissez où aller, ou déposez un document — tout part de ce panneau."
+          : "Créez votre premier Monde depuis l'accueil : ce panneau s'ouvrira ensuite sur vos dossiers, vos documents et la navigation du Monde."}
       </p>
-      <form onSubmit={event => { event.preventDefault(); void inspect(); }} className="mt-3 flex gap-2">
-        <input
-          autoFocus
-          value={input}
-          onChange={event => setInput(event.target.value)}
-          placeholder="Décaler la cérémonie de 15 minutes… ou : où en est le budget ?"
-          aria-label="Commander une action ou poser une question"
-          className="min-w-0 flex-1 rounded-2xl border border-border bg-foreground/5 px-4 py-3 text-sm outline-none focus:border-foreground/30 focus:ring-1 focus:ring-foreground/30"
-        />
-        <button disabled={replyPending || !input.trim()} className="inline-flex items-center gap-2 rounded-2xl bg-foreground px-4 text-sm text-background disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50">
-          {replyPending && <LoaderCircle className="h-4 w-4 animate-spin" />}
-          Envoyer
-        </button>
-      </form>
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">{EXAMPLES.map(example => <button key={example} onClick={() => setInput(example)} className="text-[10px] uppercase tracking-[.12em] text-foreground/40 transition hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50 rounded px-1">{example}</button>)}</div>
-      {!project && <p className="mt-5 rounded-2xl border border-foreground/10 bg-foreground/[.035] p-5 text-sm font-light leading-relaxed text-foreground/60">Utilisez le bouton orbe pour commencer votre premier Monde. En attendant, les questions restent ouvertes — seuls les changements attendent leur Monde. Rien ne sera créé ni modifié sans une action explicite de votre part.</p>}
-      {error && <p className="mt-4 border-l border-destructive/50 py-1 pl-3 text-sm text-destructive/90">{error}</p>}
-      {result && <p className="mt-4 border-l border-foreground/30 py-1 pl-3 text-sm text-foreground/80">{result}</p>}
-      {reply && <div className="mt-4 rounded-2xl border border-border bg-foreground/5 p-5">
-        <p className="flex items-center gap-2 text-[10px] uppercase tracking-[.14em] text-foreground/45"><AimeOrb size={20} /> AIME · {reply.mode === "ai" ? "réponse connectée" : "réponse locale, ancrée sur votre Monde"}</p>
-        <p className="mt-3 whitespace-pre-wrap text-sm font-light leading-relaxed text-foreground/85">{reply.answer}</p>
-        {reply.sources.length > 0 && <p className="mt-3 text-xs text-foreground/45">Sources : {reply.sources.slice(0, 3).map(source => source.label).join(" · ")}</p>}
-        <p className="mt-3"><Link href="/assistant" onClick={close} className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 transition hover:text-foreground">Continuer dans l’assistant <ArrowRight aria-hidden className="h-3.5 w-3.5" /></Link></p>
-      </div>}
-      {proposal && <div className="mt-4 rounded-xl border border-border bg-foreground/5 p-4"><p className="font-medium text-foreground">{proposal.title}</p><ul className="mt-3 space-y-1 text-xs text-foreground/60">{proposal.impact.length ? proposal.impact.map((line, index) => <li key={index}>• {line}</li>) : <li>Aucun élément concerné.</li>}</ul>
-        {proposal.mutation ? <div className="mt-4"><p className="mb-2 text-xs text-foreground/50">Rien ne changera sans votre accord.</p><button disabled={!canEdit} onClick={execute} className="rounded-full bg-foreground px-4 py-2 text-xs text-background disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50">{canEdit ? "Oui, faire ce changement" : "Vous pouvez consulter, mais pas modifier"}</button></div> : <p className="mt-4 text-xs text-foreground/40">Aucune information n’a été modifiée.</p>}
-      </div>}
-      {notification && <div className="mt-4 rounded-xl border border-success/25 bg-success/10 p-4">
-        <p className="font-medium text-foreground">Prévenir les personnes concernées</p>
-        <p className="mt-1 text-xs leading-relaxed text-foreground/55">Le changement est enregistré. Vérifiez maintenant le contenu et les destinataires : aucun message ne partira sans cette seconde confirmation.</p>
-        <div className="mt-4 space-y-2">
-          {notification.audiences.map(audience => audience.email
-            ? <label key={`${audience.kind}:${audience.id}:${audience.email}`} className="flex items-start gap-2 rounded-lg border border-foreground/10 px-3 py-2 text-xs">
-                <input type="checkbox" checked={selectedRecipients.includes(audience.email)} onChange={() => setSelectedRecipients(current => current.includes(audience.email!) ? current.filter(email => email !== audience.email) : [...current, audience.email!])} className="mt-0.5 accent-white" />
-                <span><span className="block text-foreground/80">{audience.label}</span><span className="block text-foreground/45">{audience.email} · {audience.reason}</span></span>
-              </label>
-            : <div key={`${audience.kind}:${audience.id}`} className="rounded-lg border border-brand-accent/25 px-3 py-2 text-xs text-brand-accent">{audience.label} · aucune adresse e-mail vérifiable ({audience.reason})</div>)}
-          {!notification.audiences.length && <p className="text-xs text-foreground/45">Aucune personne reliée avec un contact vérifiable. Le changement reste enregistré, mais aucun envoi n’est proposé.</p>}
-        </div>
-        <label className="mt-4 block text-[10px] uppercase tracking-[.12em] text-foreground/45">Objet<input value={notification.subject} onChange={event => setNotification(current => current ? { ...current, subject: event.target.value } : current)} className="mt-2 w-full rounded-lg border border-foreground/10 bg-background/20 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-foreground/30" /></label>
-        <label className="mt-3 block text-[10px] uppercase tracking-[.12em] text-foreground/45">Message<textarea value={notification.body} onChange={event => setNotification(current => current ? { ...current, body: event.target.value } : current)} rows={5} className="mt-2 w-full resize-y rounded-lg border border-foreground/10 bg-background/20 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-foreground/30" /></label>
-        <label className="mt-3 block text-[10px] uppercase tracking-[.12em] text-foreground/45">Programmer (facultatif)<input type="datetime-local" value={scheduleAt} onChange={event => setScheduleAt(event.target.value)} min={new Date().toISOString().slice(0, 16)} className="mt-2 rounded-lg border border-foreground/10 bg-background/20 px-3 py-2 text-sm normal-case tracking-normal outline-none focus:border-foreground/30" /></label>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button type="button" disabled={notificationBusy} onClick={() => { setNotification(undefined); setSelectedRecipients([]); setScheduleAt(""); }} className="rounded-full border border-foreground/10 px-3 py-2 text-xs text-foreground/55">Pas maintenant</button>
-          <button type="button" disabled={notificationBusy || !selectedRecipients.length || !notification.subject.trim() || !notification.body.trim()} onClick={() => void sendNotification()} className="rounded-full bg-foreground px-4 py-2 text-xs text-background disabled:opacity-35">{notificationBusy ? "Enregistrement…" : scheduleAt ? "Confirmer et programmer" : "Confirmer et envoyer"}</button>
-        </div>
-      </div>}
 
       {/* ——— Les sept dossiers universels, sans passer par l'assistant ——— */}
       <OrbSection title="Dossiers" testId="orb-folders">

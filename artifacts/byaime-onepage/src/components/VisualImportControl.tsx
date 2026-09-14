@@ -2,19 +2,24 @@ import { useRef, useState } from "react";
 import { Film, ImagePlus, Link2, Trash2, Upload, X } from "lucide-react";
 import type { WorldVisual } from "@/lib/types";
 import { DEFAULT_VISUAL_OVERLAY, visualOverlayStrength } from "@/lib/types";
+import { getAssetUrl } from "@/lib/assets";
 import { cn } from "@/lib/utils";
 
 /*
  * Import d'un visuel pour le hero du Monde ou pour un Moment :
  *  - image : fichier de l'ordinateur ou URL distante ;
  *  - vidéo : URL (mp4, etc.) ;
- *  - réglage du filtre noir (overlay 0–100) pour garder le texte lisible.
+ *  - réglage du filtre noir (overlay 0–100) pour garder le texte lisible ;
+ *  - choix direct parmi les visuels du Monde (prop `choices`), pour ne jamais
+ *    dépendre d'un fichier à importer afin d'avoir un fond.
  * Les fichiers image sont lus comme données intégrées : le visuel suit la
  * sauvegarde du Monde sans dépendre d'un espace de stockage tiers.
  * Design blanc agency-paper / hairline / ink, comme le reste de l'app.
  */
 
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+
+export type VisualChoice = { zone: string; asset: string };
 
 function looksLikeVideoUrl(url: string) {
   return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
@@ -25,11 +30,16 @@ export function VisualImportControl({
   onChange,
   disabled = false,
   label = "Visuel",
+  choices = [],
+  choicesLabel = "Choisir un visuel du Monde",
 }: {
   value: WorldVisual | null | undefined;
   onChange: (visual: WorldVisual | null) => void;
   disabled?: boolean;
   label?: string;
+  /** Vignettes du manifeste : un clic pose le visuel, sans rien importer. */
+  choices?: ReadonlyArray<VisualChoice>;
+  choicesLabel?: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [urlDraft, setUrlDraft] = useState("");
@@ -107,8 +117,37 @@ export function VisualImportControl({
         </div>
       ) : (
         <p className="mt-2 text-xs font-light leading-relaxed text-[var(--agency-body)]">
-          Aucun visuel personnalisé — le fond blanc reste affiché.
+          Aucun visuel importé — AIME affiche le visuel qu’il propose pour cette zone.
         </p>
+      )}
+
+      {!disabled && choices.length > 0 && (
+        <div className="mt-4">
+          <p className="text-[10px] uppercase tracking-[.22em] text-[var(--agency-eyebrow)]">{choicesLabel}</p>
+          <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {choices.map(choice => {
+              const selected = value?.url === getAssetUrl(choice.asset);
+              return (
+                <button
+                  key={choice.asset}
+                  type="button"
+                  data-testid={`visual-choice-${choice.zone}`}
+                  aria-pressed={selected}
+                  onClick={() => onChange({ kind: "image", url: getAssetUrl(choice.asset), name: choice.zone, overlay: value?.overlay ?? DEFAULT_VISUAL_OVERLAY })}
+                  className={cn(
+                    "group relative aspect-video overflow-hidden rounded-[10px] border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/30",
+                    selected ? "border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] hover:border-[var(--agency-index)]",
+                  )}
+                >
+                  <img src={getAssetUrl(choice.asset)} alt="" className="h-full w-full object-cover" />
+                  <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1 py-0.5 text-[8px] uppercase tracking-[.1em] text-white/85">
+                    {choice.zone}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {!disabled && (

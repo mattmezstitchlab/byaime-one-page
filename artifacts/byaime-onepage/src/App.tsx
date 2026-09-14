@@ -12,9 +12,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { LegalPage } from '@/pages/Legal';
 import { LandingPage } from '@/pages/Landing';
-import { PortalOnboarding } from '@/components/PortalOnboarding';
 import { PortalBackdrop } from '@/components/PortalBackdrop';
-import { ProjectProvider, useProject } from '@/store/project-store';
+import { ProjectProvider } from '@/store/project-store';
 import { useI18n } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 import { resolveDegradedView } from '@/lib/public-shell';
@@ -142,25 +141,6 @@ function PrivateRoute({ children }: { children: ReactNode }) {
         <Redirect to="/" />
       </Show>
     </>
-  );
-}
-
-function ProfilePageWrapper() {
-  const { hasProject, isHydrated } = useProject();
-  const { t } = useI18n();
-
-  if (!isHydrated) {
-    return (
-      <main className="grid min-h-full place-items-center bg-background text-foreground" role="status">
-        <p className="text-[10px] uppercase tracking-[.28em] text-foreground/40">{t('private.loading.profile')}</p>
-      </main>
-    );
-  }
-
-  if (!hasProject) return <PortalOnboarding />;
-
-  return (
-    <LazyPublicProfile privatePreview />
   );
 }
 
@@ -383,7 +363,6 @@ function Routes() {
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>
     <Route path="/user-portal">{() => <PrivateRoute><LazyHome /></PrivateRoute>}</Route>
-    <Route path="/profile">{() => <PrivateRoute><ProfilePageWrapper /></PrivateRoute>}</Route>
     <Route path="/assistant">{() => <PrivateRoute><LazyAssistant /></PrivateRoute>}</Route>
     <Route path="/dossiers">{() => <PrivateRoute><LazyFolders /></PrivateRoute>}</Route>
     <Route path="/connexion/*?">{() => <AuthPage />}</Route>

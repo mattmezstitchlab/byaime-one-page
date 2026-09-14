@@ -101,6 +101,13 @@ export const AIME_VISUALS = {
     wedding.patrimoine,
     wedding.attire,
   ] as const,
+  /*
+   * Les deux visuels que le mapping par zone de la Timeline (`moment-visuals.ts`)
+   * atteint directement, sans passer par une catégorie de prestataire : les
+   * tenues et le transport.
+   */
+  attire: wedding.attire,
+  transport: wedding.transport,
   providersByCategory: {
     lieu: wedding.ceremony,
     traiteur: wedding.table,

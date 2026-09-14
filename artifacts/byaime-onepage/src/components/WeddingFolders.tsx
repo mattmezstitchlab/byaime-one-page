@@ -72,7 +72,6 @@ export function WeddingFolders({ compact = false }: { compact?: boolean }) {
 function FolderCard({
   folder,
   index,
-  count,
   locked,
   openLabel,
   lockedLabel,

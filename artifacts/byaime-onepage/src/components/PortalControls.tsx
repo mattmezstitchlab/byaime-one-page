@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import {
-  ArrowRight,
-  CloudAlert,
-  CloudCheck,
-  CloudOff,
   Download,
-  LoaderCircle,
   PenLine,
   Upload,
   LogOut,
@@ -14,7 +9,6 @@ import {
 } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { useI18n } from "@/lib/i18n";
-import { focusWorld } from "@/lib/world-focus";
 import { trackEvent } from "@/lib/analytics";
 import { Link } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
@@ -22,8 +16,6 @@ import { VisualImportControl } from "./VisualImportControl";
 import { WorldSwitcher } from "./WorldSwitcher";
 import { cn } from "@/lib/utils";
 import {
-  auditTimelineConnections,
-  buildTimelineIndex,
 } from "@/lib/timeline-graph";
 import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import {
@@ -32,14 +24,7 @@ import {
 } from "@/lib/collaboration-roles";
 import { pendingSaveOutcomeNotice } from "@/lib/pending-save-notice";
 
-const labels = {
-  local: "Local",
-  loading: "Chargement…",
-  saving: "Enregistrement…",
-  saved: "Enregistré",
-  error: "Hors connexion",
-  conflict: "À vérifier",
-};
+
 
 function putFile(uploadURL: string, file: File, onProgress: (progress: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -57,72 +42,6 @@ function putFile(uploadURL: string, file: File, onProgress: (progress: number) =
     request.addEventListener("abort", () => reject(new Error("Le transfert a été annulé")));
     request.send(file);
   });
-}
-
-function ReviewCard({
-  label,
-  value,
-  detail,
-  alert,
-}: {
-  label: string;
-  value: number;
-  detail: string;
-  alert?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-2xl border bg-card p-4 transition-colors ${alert ? "border-destructive/30 bg-destructive/5" : "border-border"}`}
-    >
-      <div className="flex items-start justify-between">
-        <span
-          className={`text-xs uppercase tracking-widest ${alert ? "text-destructive/80" : "text-foreground/50"}`}
-        >
-          {label}
-        </span>
-        <span
-          className={`text-xl font-medium ${alert ? "text-destructive" : "text-foreground"}`}
-        >
-          {value}
-        </span>
-      </div>
-      <p
-        className={`mt-2 text-xs ${alert ? "text-destructive/70" : "text-foreground/45"}`}
-      >
-        {detail}
-      </p>
-    </div>
-  );
-}
-
-function ReviewLine({
-  label,
-  meta,
-  action,
-}: {
-  label: string;
-  meta: string;
-  action?: { label: string; onClick: () => void };
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-foreground/5">
-      <div className="min-w-0 flex-1">
-        <span className="truncate text-foreground/80">{label}</span>
-        <span className="mt-1 block text-xs text-foreground/40">{meta}</span>
-      </div>
-      <div className="flex shrink-0 flex-wrap gap-2">
-        {action && (
-          <button
-            type="button"
-            onClick={action.onClick}
-            className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-[10px] font-medium text-background"
-          >
-            {action.label} <ArrowRight className="h-3 w-3" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function Field({
@@ -186,8 +105,13 @@ export function PortalControls({
     | null
   >(null);
   const [notice, setNotice] = useState("");
+  /*
+   * Deux sources, un seul type : le serveur renvoie `contentType`, le repli
+   * local-first (Galerie unifiée) renvoie `createdAt`. Les deux champs sont
+   * optionnels pour que `setFiles` accepte l'une ou l'autre liste.
+   */
   const [files, setFiles] = useState<
-    { id: string; name: string; contentType: string; size: number }[]
+    { id: string; name: string; size: number; contentType?: string; createdAt?: string }[]
   >([]);
   const [selectedFile, setSelectedFile] = useState<{
     id: string;
@@ -202,27 +126,36 @@ export function PortalControls({
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [meSection, setMeSection] = useState<MeSection>("overview");
   const fileRef = useRef<HTMLInputElement>(null);
+  /*
+   * Le backend est optionnel : l'app est local-first. Ce drapeau démarre
+   * optimiste et bascule dès qu'un appel échoue, pour que l'interface serve
+   * les documents locaux, note les invitations sur place et libellé
+   * « Ouvrir local » au lieu d'« Aperçu ».
+   *
+   * 14/09 : l'état avait disparu alors que 19 endroits le lisaient encore —
+   * `tsc` le signalait et chaque appel aurait levé `ReferenceError`.
+   */
+  const [apiAvailable, setApiAvailable] = useState(true);
   const pendingSaveSeenRef = useRef(false);
   const pendingSaveSuccessNoticeRef = useRef<string | null>(null);
   const canManage = currentRole === "owner" || currentRole === "planner";
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
   useEffect(() => {
-    const openMe = () => {
-      setMeSection("overview");
-      setPanel("me");
-    };
     const openWorldSettings = () => setPanel("world-settings");
     const openCollaborationInvite = () => setPanel("invite");
-    window.addEventListener("aime:open-me", openMe);
     window.addEventListener("aime:open-world-settings", openWorldSettings);
     window.addEventListener("aime:open-collaboration-invite", openCollaborationInvite);
     return () => {
-      window.removeEventListener("aime:open-me", openMe);
       window.removeEventListener("aime:open-world-settings", openWorldSettings);
       window.removeEventListener("aime:open-collaboration-invite", openCollaborationInvite);
     };
   }, []);
+  /*
+   * L'espace ME s'ouvre par la prop `openMeSignal` (orb → « Mon espace ME »,
+   * `PrivateLayout` incrémente). L'ancien événement `aime:open-me` n'avait plus
+   * aucun émetteur : deux mécanismes pour la même chose, l'un mort. Supprimé.
+   */
   useEffect(() => {
     if (openMeSignal > 0) {
       setMeSection("overview");
@@ -282,9 +215,9 @@ export function PortalControls({
     if (panel !== "world-settings" || !project) return;
     void api(`/projects/${project.id}/files`)
       .then(setFiles)
-      .catch((error) => {
+      .catch(() => {
         setApiAvailable(false);
-        const local = (project.documents || []).map((d: any) => ({ id: d.id, name: d.title, size: 0, createdAt: new Date(d.at || Date.now()).toISOString() }));
+        const local = (project.documents || []).map((d) => ({ id: d.id, name: d.title, size: 0, createdAt: new Date(d.at || Date.now()).toISOString() }));
         setFiles(local);
         setNotice("Mode local-first : documents depuis Galerie unifiée (pas de serveur).");
       });
@@ -405,28 +338,8 @@ export function PortalControls({
       if (fileRef.current) fileRef.current.value = "";
     }
   };
-  const SyncIcon =
-    syncStatus === "conflict"
-      ? CloudAlert
-      : syncStatus === "error"
-        ? CloudOff
-        : syncStatus === "loading" || syncStatus === "saving"
-          ? LoaderCircle
-          : CloudCheck;
 
 
-  const timelineIndex = project ? buildTimelineIndex(project) : { events: new Map() };
-  const currentPath = typeof window === "undefined" ? "/profile" : window.location.pathname;
-  const isProfileRoute = currentPath.endsWith("/profile");
-  const openWorldContext = (request: Parameters<typeof focusWorld>[0]) => {
-    setPanel(null);
-    focusWorld({ route: "/user-portal", ...request });
-    if (typeof window !== "undefined" && !currentPath.startsWith("/user-portal")) {
-      const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-      window.history.pushState({}, "", `${basePath}/user-portal`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    }
-  };
 
   return (
     <>
@@ -438,14 +351,10 @@ export function PortalControls({
           {canEdit && (
             <button
               data-testid="settings-open"
-              onClick={() =>
-                isProfileRoute
-                  ? window.dispatchEvent(new Event("aime:toggle-profile-editor"))
-                  : setPanel("editor")
-              }
+              onClick={() => setPanel("editor")}
               className="flex h-8 items-center gap-2 rounded-full border border-border bg-background px-2.5 text-[10px] font-medium text-foreground shadow-sm transition hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3"
-              aria-label={isProfileRoute ? "Éditer le Profil" : "Éditer le Monde"}
-              title={isProfileRoute ? "Éditer le Profil" : "Éditer le Monde"}
+              aria-label="Éditer le Monde"
+              title="Éditer le Monde"
             >
               <PenLine className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Éditer</span>
@@ -954,7 +863,7 @@ export function PortalControls({
                     }),
                   })
                     .then(() => setNotice("Préférence enregistrée"))
-                    .catch((err) => {
+                    .catch(() => {
                       setApiAvailable(false);
                       setNotice(`Mode local : rétention ${days}j (pas de serveur)`);
                     });

@@ -1,11 +1,16 @@
 import { translate, type Locale } from "./i18n-dictionary";
 
 /*
- * Les deux destinations globales de l'espace privé. Comme la navigation du
- * Monde, elles sont un modèle de données traduit à la source : la locale est
- * facultative et vaut FR, pour que les appels non traduits restent valides.
+ * La destination globale de l'espace privé. Comme la navigation du Monde, c'est
+ * un modèle de données traduit à la source : la locale est facultative et vaut
+ * FR, pour que les appels non traduits restent valides.
+ *
+ * 14/09 : la page Profil (le mini-site vu par les invités, monté en aperçu
+ * privé) est retirée de l'espace privé — elle doublonnait le Monde sans rien
+ * apporter de plus. Le livrable public `/profil/:projectId` reste en ligne :
+ * c'est ce que les invités ouvrent, et il ne dépend d'aucune session.
  */
-export const PRIVATE_DESTINATION_IDS = ["profile", "world"] as const;
+export const PRIVATE_DESTINATION_IDS = ["world"] as const;
 
 export type PrivateDestinationId = (typeof PRIVATE_DESTINATION_IDS)[number];
 
@@ -17,7 +22,6 @@ export type PrivateDestination = {
 };
 
 const HREFS: Record<PrivateDestinationId, string> = {
-  profile: "/profile",
   world: "/user-portal",
 };
 
@@ -33,7 +37,6 @@ export function getPrivateNavigation(locale: Locale = "fr"): PrivateDestination[
 /** La navigation en français : conservée pour les appels non traduits. */
 export const PRIVATE_PRIMARY_NAVIGATION: ReadonlyArray<PrivateDestination> = getPrivateNavigation("fr");
 
-export function getPrivateDestinationId(pathname: string): PrivateDestinationId {
-  if (pathname.startsWith("/user-portal")) return "world";
-  return "profile";
+export function getPrivateDestinationId(_pathname: string): PrivateDestinationId {
+  return "world";
 }

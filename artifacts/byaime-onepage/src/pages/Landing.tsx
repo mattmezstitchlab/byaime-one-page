@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Gift, Lock, Accessibility, Wifi } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
@@ -161,7 +160,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
             <h2 className="aime-apple-title mt-5 text-4xl md:text-6xl">{t("apple.values.title")}</h2>
           </Reveal>
           <div className="mt-14 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            {VALUES.map((value, index) => {
+            {VALUES.map((value) => {
               const Icon = value.icon;
               return (
                 <Reveal key={value.title} className="text-left">

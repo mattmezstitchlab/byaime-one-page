@@ -5,23 +5,21 @@ import {
 } from "./private-navigation";
 
 describe("private navigation", () => {
-  it("keeps the global destinations distinct", () => {
-    expect(PRIVATE_PRIMARY_NAVIGATION.map(item => item.label)).toEqual([
-      "Profil",
-      "Monde",
-    ]);
-    expect(new Set(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).size).toBe(2);
+  /* 14/09 : la page Profil est retirée de l'espace privé. Le Monde est la
+     seule destination globale. */
+  it("keeps the World as the only global destination", () => {
+    expect(PRIVATE_PRIMARY_NAVIGATION.map(item => item.label)).toEqual(["Monde"]);
+    expect(new Set(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).size).toBe(1);
   });
 
-  it("uses the Profile as the safe private home", () => {
-    expect(getPrivateDestinationId("/profile")).toBe("profile");
+  it("resolves every private path to the World", () => {
     expect(getPrivateDestinationId("/user-portal")).toBe("world");
-    expect(getPrivateDestinationId("/")).toBe("profile");
+    expect(getPrivateDestinationId("/profile")).toBe("world");
+    expect(getPrivateDestinationId("/")).toBe("world");
   });
 
   it("exposes only the declared private routes from the orb panel", () => {
     expect(PRIVATE_PRIMARY_NAVIGATION.map(item => item.href)).toEqual([
-      "/profile",
       "/user-portal",
     ]);
     expect(PRIVATE_PRIMARY_NAVIGATION.some(item => item.href === "/budget")).toBe(
