@@ -76,13 +76,13 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain('data-testid="landing-locale-en"');
   });
 
-  it("garde une seule hiérarchie de titre et le nom AIME cliquable vers l'accueil", () => {
+  it("garde une seule hiérarchie de titre et le nom AIME cliquable vers la Bande", () => {
     const markup = render(<LandingPage />);
 
     expect(markup.match(/<h1/g)).toHaveLength(1);
     expect(markup).toContain("un seul espace privé");
-    expect(markup).toContain('aria-label="AIME — la vitrine de l’agence"');
-    expect(markup).toContain('href="/agence"');
+    expect(markup).toContain('aria-label="AIME — La Bande, la page unique"');
+    expect(markup).toContain('href="/monde"');
     expect(markup).toContain('data-testid="landing-admin"');
     expect(markup).toContain('returnTo=%2Fadmin');
   });
@@ -133,29 +133,27 @@ describe("Landing (accueil)", () => {
 });
 
 /*
- * Constat §2.1 du plan : la vitrine de l'agence était introuvable — le seul
- * lien était le mot « AIME » de l'en-tête, et le pied de page n'en parlait pas.
- * En attendant l'inversion des portes d'entrée (lot 1 bis, D1 : `/` devient la
- * vitrine), l'accueil mène à l'agence en toutes lettres, dans les deux langues.
+ * Constat §2.1 du plan, puis fusion du 14/09 : la vitrine était introuvable,
+ * puis elle a été fusionnée dans la Bande (`/monde`), devenue la page unique du
+ * site public. L'accueil mène donc à la Bande en toutes lettres, en en-tête
+ * comme en pied de page, et ne pointe plus vers `/agence`.
  */
-describe("Landing — la vitrine de l'agence est trouvable", () => {
+describe("Landing — la Bande, page unique, est trouvable", () => {
   it("propose un lien explicite en en-tête et en pied de page", () => {
-    const markup = render(<LandingPage />);
-
-    expect(markup).toContain('data-testid="landing-agency"');
-    expect(markup).toContain('data-testid="footer-agency"');
-    expect(markup).toContain("L’agence");
-    expect(markup).toContain("La vitrine de l’agence");
-    expect(markup.match(/href="\/agence"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
-  });
-
-  it("mène aussi à la Bande, la démonstration publique du produit", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).toContain('data-testid="landing-bande"');
     expect(markup).toContain('data-testid="footer-bande"');
     expect(markup).toContain("La Bande");
-    expect(markup.match(/href="\/monde"/g)?.length ?? 0).toBe(2);
+    expect(markup.match(/href="\/monde"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+  });
+
+  it("ne pointe plus vers l'ancienne vitrine : tout est fusionné dans la Bande", () => {
+    const markup = render(<LandingPage />);
+
+    expect(markup).not.toContain('data-testid="landing-agency"');
+    expect(markup).not.toContain('data-testid="footer-agency"');
+    expect(markup).not.toContain('href="/agence"');
   });
 
   it("publie aussi les mentions légales depuis le pied de page", () => {

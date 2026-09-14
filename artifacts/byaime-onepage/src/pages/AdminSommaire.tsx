@@ -83,9 +83,9 @@ export function AdminSommairePage() {
               </Link>
             </li>
             <li className="border-t border-[var(--agency-hairline)]">
-              <Link href="/agence" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[var(--agency-paper)]">
+              <Link href="/monde" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[var(--agency-paper)]">
                 <span className="text-[16px]">Vitrine de l&rsquo;agence</span>
-                <span className="ml-auto text-[12px] text-[var(--agency-eyebrow)]">Ce que voient vos futurs mariés.</span>
+                <span className="ml-auto text-[12px] text-[var(--agency-eyebrow)]">La Bande, la page unique de vos futurs mariés.</span>
               </Link>
             </li>
           </ul>

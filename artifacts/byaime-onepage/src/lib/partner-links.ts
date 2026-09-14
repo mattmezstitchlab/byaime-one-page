@@ -17,7 +17,9 @@ export type DispooPlacement =
   | "assistant"
   | "folders"
   | "footer"
-  | "composer";
+  | "composer"
+  | "vitrine"
+  | "bande";
 
 export function dispooUrl(
   path: string,

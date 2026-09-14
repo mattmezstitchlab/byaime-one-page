@@ -9,6 +9,9 @@ import { MIN_INTENTION_LENGTH } from "@/lib/intention-draft";
 import { useRouteMeta } from "@/lib/page-meta";
 import { Reveal } from "@/components/Reveal";
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
+import { VitrineSections } from "@/components/VitrineSections";
+import { AGENCY_VISUALS, getAssetUrl } from "@/lib/assets";
+import { AGENCY_IDENTITY } from "@/lib/agency-identity";
 import { CARD, EYEBROW, PANEL, PANEL_SPACING } from "@/lib/site-design";
 import type { PropagationPlan, RoleVisibility } from "@/lib/timeline-graph";
 import {
@@ -199,32 +202,51 @@ export function BandePage() {
       <SiteHeader
         current="/monde"
         actions={
-          <span className="inline-flex h-8 items-center rounded-full bg-[var(--agency-ink)] px-4 text-xs font-semibold text-[var(--agency-paper)]">
-            La Bande
-          </span>
+          <a
+            href={`mailto:${AGENCY_IDENTITY.contactEmail}`}
+            data-testid="bande-contact"
+            className="inline-flex h-8 items-center rounded-full bg-[var(--agency-ink)] px-4 text-xs font-semibold text-[var(--agency-paper)] motion-safe:transition hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40"
+          >
+            Prendre rendez-vous
+          </a>
         }
       />
 
       <main id="bande-contenu" data-testid="bande-page">
-        {/* ——— Hero : la promesse, et la phrase pour la tenir ——— */}
+        {/* ——— Hero : la promesse, en blanc sur la photographie ——— */}
         <section
           data-testid="bande-hero"
-          className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden px-6 pb-20 pt-28 md:pb-24 md:pt-32"
+          className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden"
         >
-          <div className="mx-auto w-full max-w-5xl text-center">
+          <img
+            src={getAssetUrl(AGENCY_VISUALS.reception)}
+            alt="Longue table de réception dressée sous une lumière chaude"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {/* Voile d'encre à 60 % : le titre blanc se lit même sur les zones
+              claires de la photographie (au-dessus des 3:1 exigés pour du
+              grand texte). */}
+          <div aria-hidden="true" className="absolute inset-0 bg-[var(--agency-ink)]/60" />
+
+          <div className="relative z-10 mx-auto w-full max-w-5xl px-6 pb-20 pt-28 text-center md:pb-24 md:pt-32">
             <Reveal className="flex flex-col items-center">
-              <p className={EYEBROW}>Prototype · lot 8 du plan</p>
-              <h1 className="aime-apple-title mt-6 max-w-3xl text-5xl text-[var(--agency-ink)] md:text-7xl">
-                La Bande
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-paper)]/85">
+                {AGENCY_IDENTITY.brand} · {AGENCY_IDENTITY.role}
+              </p>
+              <h1 className="aime-apple-title mt-6 max-w-3xl text-5xl text-[var(--agency-paper)] md:text-7xl">
+                Votre mariage, tout simplement.
               </h1>
-              <p className="aime-apple-lead mx-auto mt-6 max-w-2xl text-lg text-[var(--agency-body)] md:text-xl">
-                Tout le mariage sur un seul écran. Il change d'échelle tout seul : les mois quand le mariage est loin,
-                les engagements le dernier mois, les minutes le Jour J.
+              <p className="aime-apple-lead mx-auto mt-6 max-w-2xl text-lg text-[var(--agency-paper)]/85 md:text-xl">
+                Une date, un lieu, une équipe. Décrivez votre mariage en une
+                phrase : la Bande le transforme en un plan qui change d'échelle
+                tout seul — les mois, les engagements, les minutes.
               </p>
             </Reveal>
 
-            {/* Le compositeur : la carte sombre de l'accueil, même objet. */}
-            <Reveal className="mt-12">
+            {/* Le compositeur : la carte sombre de l'accueil, même objet.
+                Toujours visible, jamais derrière une animation : c'est le seul
+                champ de la page, il doit répondre au premier clic. */}
+            <div className="mt-12">
               <div
                 data-testid="bande-composer"
                 className="mx-auto max-w-2xl rounded-[2rem] border border-[var(--agency-paper)]/15 bg-[var(--agency-ink)] p-6 text-left text-[var(--agency-paper)] shadow-[0_24px_60px_-40px_rgba(23,20,16,0.9)] sm:p-8"
@@ -268,15 +290,17 @@ export function BandePage() {
                   ))}
                 </div>
               </div>
-            </Reveal>
+            </div>
 
             <Reveal>
-              <p className={cn(EYEBROW, "mt-8")}>Rien n'est envoyé · rien n'est enregistré · aucune connexion demandée</p>
+              <p className="mt-8 text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-paper)]/80">
+                Rien n'est envoyé · rien n'est enregistré · aucune connexion demandée
+              </p>
               <button
                 type="button"
                 data-testid="bande-reset"
                 onClick={restart}
-                className="mt-5 text-xs text-[var(--agency-eyebrow)] underline decoration-[var(--agency-hairline)] underline-offset-4 motion-safe:transition hover:text-[var(--agency-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40"
+                className="mt-5 text-xs text-[var(--agency-paper)]/80 underline decoration-[var(--agency-paper)]/40 underline-offset-4 motion-safe:transition hover:text-[var(--agency-paper)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-paper)]/70"
               >
                 Revenir au Monde de démonstration
               </button>
@@ -437,7 +461,7 @@ export function BandePage() {
         </section>
 
         {/* ——— La Bande ——— */}
-        <section className={cn(PANEL, PANEL_SPACING)}>
+        <section id="bande" className={cn(PANEL, PANEL_SPACING, "scroll-mt-16")}>
           <div className="mx-auto max-w-5xl px-6">
             <Reveal className="text-center">
               <p className={EYEBROW}>La Bande</p>
@@ -769,6 +793,9 @@ export function BandePage() {
           </div>
         </section>
       </main>
+
+      {/* La vitrine, réduite à l'essentiel : une preuve, trois lignes, un contact. */}
+      <VitrineSections />
 
       {/* Identité de l'agence, pages du site et textes légaux : le pied partagé. */}
       <SiteFooter />

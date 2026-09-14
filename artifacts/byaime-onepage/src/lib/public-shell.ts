@@ -13,8 +13,6 @@
  */
 
 export type DegradedView =
-  /** La vitrine de l'agence : la page qui ne dépend de rien. */
-  | { kind: "agency" }
   /** Mentions légales (LCEN) : obligation de publication, donc toujours accessible. */
   | { kind: "mentions" }
   | { kind: "privacy" }
@@ -23,13 +21,10 @@ export type DegradedView =
   | { kind: "report"; projectId: string }
   /** Le portail d'un invité : aucun compte requis pour répondre à une RSVP. */
   | { kind: "rsvp"; token: string }
-  /** La Bande (`/monde`) : prototype public, calculé dans le navigateur. */
+  /** La Bande (`/monde`) : la page unique du site public, calculée dans le navigateur. */
   | { kind: "bande" }
   /** Tout le reste exige une session : on le dit, sans rien demander. */
   | { kind: "unavailable"; requestedPath: string };
-
-/** Chemin de la vitrine. Devient `/` au lot 1 bis (D1 : l'agence est la racine). */
-export const AGENCY_LANDING_PATH = "/agence";
 
 /**
  * Résout un chemin interne (déjà débarassé de son `BASE_PATH`) vers la vue à
@@ -38,15 +33,12 @@ export const AGENCY_LANDING_PATH = "/agence";
 export function resolveDegradedView(path: string): DegradedView {
   const clean = path.split("?")[0].split("#")[0] || "/";
 
-  /* La racine sert la vitrine directement, sans redirection : un `<Redirect>`
-     ne rend rien côté serveur, donc la page la plus exposée du site serait
-     blanche au pré-rendu. C'est aussi la cible du lot 1 bis (D1 : `/` devient
-     la vitrine) — le mode dégradé l'anticipe au lieu de la contredire. */
-  if (clean === "/" || clean === AGENCY_LANDING_PATH) return { kind: "agency" };
+  /* La racine, l'ancienne vitrine `/agence` et `/monde` servent toutes la Bande,
+     la page unique du site public — directement, sans redirection : un
+     `<Redirect>` ne rend rien côté serveur, donc la page la plus exposée du
+     site serait blanche au pré-rendu. */
+  if (clean === "/" || clean === "/agence" || clean === "/monde") return { kind: "bande" };
   if (clean === "/mentions-legales") return { kind: "mentions" };
-  /* La Bande ne monte ni ClerkProvider, ni store, ni appel réseau : elle est
-     publique au même titre que la vitrine. */
-  if (clean === "/monde") return { kind: "bande" };
   if (clean === "/confidentialite") return { kind: "privacy" };
   if (clean === "/conditions") return { kind: "terms" };
 
@@ -72,11 +64,11 @@ export function resolveDegradedView(path: string): DegradedView {
 /** Les chemins servis sans authentification, pour les contrôles de déploiement. */
 export const DEGRADED_PUBLIC_PATHS: readonly string[] = [
   "/",
-  AGENCY_LANDING_PATH,
+  "/agence",
+  "/monde",
   "/mentions-legales",
   "/confidentialite",
   "/conditions",
   "/bilan/:projectId",
   "/rsvp/:token",
-  "/monde",
 ];

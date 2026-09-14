@@ -68,10 +68,9 @@ describe("la barre et le pied de page publics", () => {
   it("nomment les pages publiques, sans dépendre d'une session", () => {
     const markup = renderToStaticMarkup(<SiteHeader current="/monde" />);
     expect(markup).toContain('data-testid="site-wordmark"');
-    expect(markup).toContain('href="/agence"');
     expect(markup).toContain('href="/monde"');
     expect(markup).toContain('aria-current="page"');
-    expect(SITE_NAV.map(item => item.path)).toEqual(["/agence", "/monde"]);
+    expect(SITE_NAV.map(item => item.path)).toEqual(["/monde"]);
 
     /*
      * Une page publique doit rester entière quand l'authentification n'est pas
@@ -168,7 +167,7 @@ describe("les blocs de page", () => {
 
 describe("les pages publiques consomment l'ossature", () => {
   const pages: Array<[string, string]> = [
-    ["la vitrine", "../pages/AgencyLanding.tsx"],
+    ["les sections de la vitrine", "../components/VitrineSections.tsx"],
     ["les mentions légales", "../pages/Mentions.tsx"],
     ["la confidentialité et les conditions", "../pages/Legal.tsx"],
     ["le bilan partagé", "../pages/BilanPage.tsx"],

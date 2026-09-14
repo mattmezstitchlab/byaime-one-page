@@ -25,9 +25,9 @@ import { Reveal } from "@/components/Reveal";
  *
  * Deux choix assumés :
  *  - **des liens `<a>` et non le routeur** : les pages publiques sont rendues
- *    dans les tests hors de tout `Router` (`mentions.test.tsx`,
- *    `agency-landing.test.tsx`), et le pré-rendu du lot 2 les servira comme des
- *    documents. `sitePath()` pose le bon préfixe ;
+ *    dans les tests hors de tout `Router` (`mentions.test.tsx`), et le
+ *    pré-rendu du lot 2 les servira comme des documents. `sitePath()` pose le
+ *    bon préfixe ;
  *  - **la barre ne dépend d'aucune session** : elle n'affiche ni compte, ni
  *    langue, ni état de connexion. Une page publique doit rester lisible quand
  *    l'authentification n'est pas configurée (`lib/public-shell.ts`).
@@ -35,9 +35,8 @@ import { Reveal } from "@/components/Reveal";
 
 const { brand, role, cities, contactEmail } = AGENCY_IDENTITY;
 
-/** Les pages que la barre sait nommer, dans l'ordre de lecture. */
+/** Les pages que la barre sait nommer : la Bande, la page unique du site. */
 export const SITE_NAV: ReadonlyArray<{ path: string; label: string }> = [
-  { path: "/agence", label: "L'agence" },
   { path: "/monde", label: "La Bande" },
 ];
 
