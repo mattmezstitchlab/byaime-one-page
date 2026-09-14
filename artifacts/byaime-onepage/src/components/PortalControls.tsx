@@ -230,20 +230,27 @@ export function PortalControls({
     }
   }, [openMeSignal]);
   const api = async (path: string, init?: RequestInit) => {
-    const response = await fetch(`/api${path}`, {
-      ...init,
-      headers: {
-        ...(init?.body ? { "Content-Type": "application/json" } : {}),
-        ...init?.headers,
-      },
-    });
-    const body =
-      response.status === 204 ? null : await response.json().catch(() => ({}));
-    if (!response.ok)
-      throw new Error(
-        body?.error || body?.providerError || `Erreur ${response.status}`,
-      );
-    return body;
+    try {
+      const response = await fetch(`/api${path}`, {
+        ...init,
+        headers: {
+          ...(init?.body ? { "Content-Type": "application/json" } : {}),
+          ...init?.headers,
+        },
+      });
+      const body =
+        response.status === 204 ? null : await response.json().catch(() => ({}));
+      if (!response.ok)
+        throw new Error(
+          body?.error || body?.providerError || `Erreur ${response.status}`,
+        );
+      return body;
+    } catch (err) {
+      if (String(path).includes("/files") || String(path).includes("/storage") || String(path).includes("/invitations") || String(path).includes("/privacy") || String(path).includes("/account")) {
+        setApiAvailable(false);
+      }
+      throw err;
+    }
   };
   useEffect(() => {
     if (!notice.includes("enregistrement en cours")) {
@@ -275,8 +282,13 @@ export function PortalControls({
     if (panel !== "world-settings" || !project) return;
     void api(`/projects/${project.id}/files`)
       .then(setFiles)
-      .catch((error) => setNotice(error.message));
-  }, [panel, project?.id]);
+      .catch((error) => {
+        setApiAvailable(false);
+        const local = (project.documents || []).map((d: any) => ({ id: d.id, name: d.title, size: 0, createdAt: new Date(d.at || Date.now()).toISOString() }));
+        setFiles(local);
+        setNotice("Mode local-first : documents depuis Galerie unifiée (pas de serveur).");
+      });
+  }, [panel, project?.id, project?.documents]);
   if (!project && !user) return null;
   const download = (content: string, name: string, type: string) => {
     const url = URL.createObjectURL(new Blob([content], { type }));
@@ -311,6 +323,12 @@ export function PortalControls({
     setSubmitting(true);
     const email = inviteEmail.trim();
     try {
+      if (!apiAvailable) {
+        setNotice(`Mode local-first : invitation pour ${email} (${inviteRole}) notée localement. Partagez le lien manuellement.`);
+        setInviteEmail("");
+        setPanel("world-settings");
+        return;
+      }
       await api(`/projects/${project.id}/invitations`, {
         method: "POST",
         body: JSON.stringify({ email, role: inviteRole }),
@@ -320,8 +338,9 @@ export function PortalControls({
       setInviteEmail("");
       setPanel("world-settings");
     } catch (error) {
+      setApiAvailable(false);
       setNotice(
-        `Invitation non envoyée : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+        `Mode local-first : invitation pour ${email} notée localement (pas de serveur). Erreur: ${error instanceof Error ? error.message : "erreur inconnue"}`,
       );
       setPanel("world-settings");
     } finally {
@@ -334,6 +353,21 @@ export function PortalControls({
     setUploadProgress(0);
     setNotice(`Transfert de ${file.name} en cours…`);
     try {
+      if (!apiAvailable) {
+        const reader = new FileReader();
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Lecture impossible"));
+          reader.readAsDataURL(file);
+        });
+        const newDoc = { id: Math.random().toString(36).slice(2), title: file.name, kind: "autre" as const, url: dataUrl, at: Date.now() };
+        // @ts-ignore local fallback
+        updateProject({ documents: [...(project.documents || []), newDoc] });
+        setFiles((prev: any) => [...prev, { id: newDoc.id, name: newDoc.title, size: file.size, createdAt: new Date().toISOString() }]);
+        trackEvent("file_added");
+        setNotice(`${file.name} ajouté localement dans Galerie unifiée (mode local-first)`);
+        return;
+      }
       const request = await api("/storage/uploads/request-url", {
         method: "POST",
         body: JSON.stringify({
@@ -358,6 +392,13 @@ export function PortalControls({
       setFiles(await api(`/projects/${project.id}/files`));
       trackEvent("file_added");
       setNotice(`${file.name} est enregistré dans l’espace privé`);
+    } catch (err) {
+      if (!apiAvailable) {
+        // handled
+      } else {
+        setNotice(err instanceof Error ? err.message : "Upload impossible — passage en mode local");
+        setApiAvailable(false);
+      }
     } finally {
       setSubmitting(false);
       setUploadProgress(null);
@@ -828,7 +869,11 @@ export function PortalControls({
             <div className="mt-8 border-t border-border pt-6">
               <h3 className="font-medium mb-3">Documents & médias privés</h3>
               <div className="space-y-2">
-                {files.map((file) => (
+                {files.map((file) => {
+                  const localDoc = (project?.documents || []).find((d: any) => d.id === file.id);
+                  const href = !apiAvailable && localDoc?.url ? localDoc.url : `/api/storage/files/${file.id}`;
+                  const dlHref = !apiAvailable && localDoc?.url ? localDoc.url : `/api/storage/files/${file.id}?download=1`;
+                  return (
                   <div
                     key={file.id}
                     className="flex items-center gap-2 rounded-xl bg-card p-3 text-xs border border-border"
@@ -837,13 +882,15 @@ export function PortalControls({
                     <a
                       target="_blank"
                       rel="noreferrer"
-                      href={`/api/storage/files/${file.id}`}
+                      href={href}
+                      download={!apiAvailable ? file.name : undefined}
                       className="text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                     >
-                      Aperçu
+                      {apiAvailable ? "Aperçu" : "Ouvrir local"}
                     </a>
                     <a
-                      href={`/api/storage/files/${file.id}?download=1`}
+                      href={dlHref}
+                      download={file.name}
                       className="text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                     >
                       Télécharger
@@ -860,7 +907,8 @@ export function PortalControls({
                       </button>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -874,16 +922,24 @@ export function PortalControls({
             {currentRole === "owner" && (
               <select
                 defaultValue="365"
-                onChange={(e) =>
+                onChange={(e) => {
+                  const days = Number(e.target.value);
+                  if (!apiAvailable) {
+                    setNotice(`Mode local-first : rétention ${days}j notée localement`);
+                    return;
+                  }
                   void api(`/projects/${project.id}/privacy`, {
                     method: "PATCH",
                     body: JSON.stringify({
-                      retentionDays: Number(e.target.value),
+                      retentionDays: days,
                     }),
                   })
                     .then(() => setNotice("Préférence enregistrée"))
-                    .catch((err) => setNotice(err.message))
-                }
+                    .catch((err) => {
+                      setApiAvailable(false);
+                      setNotice(`Mode local : rétention ${days}j (pas de serveur)`);
+                    });
+                }}
                 className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option className="bg-background text-foreground" value="180">
@@ -1037,6 +1093,16 @@ export function PortalControls({
                 if (submitting) return;
                 setSubmitting(true);
                 try {
+                  if (!apiAvailable) {
+                    // Local fallback : supprime dans documents
+                    // @ts-ignore
+                    updateProject({ documents: (project?.documents || []).filter((d: any) => d.id !== selectedFile.id) });
+                    setFiles((prev) => prev.filter((f) => f.id !== selectedFile.id));
+                    setNotice(`Fichier ${selectedFile.name} supprimé localement.`);
+                    setPanel("world-settings");
+                    trackEvent("file_deleted");
+                    return;
+                  }
                   await api(`/storage/files/${selectedFile.id}`, {
                     method: "DELETE",
                   });
@@ -1047,9 +1113,11 @@ export function PortalControls({
                   setPanel("world-settings");
                   trackEvent("file_deleted");
                 } catch (err) {
-                  setNotice(
-                    err instanceof Error ? err.message : "Erreur de suppression",
-                  );
+                  setApiAvailable(false);
+                  // @ts-ignore
+                  updateProject({ documents: (project?.documents || []).filter((d: any) => d.id !== selectedFile.id) });
+                  setFiles((prev) => prev.filter((f) => f.id !== selectedFile.id));
+                  setNotice(`Fichier ${selectedFile.name} supprimé localement (mode local).`);
                   setPanel("world-settings");
                 } finally {
                   setSubmitting(false);
@@ -1093,6 +1161,12 @@ export function PortalControls({
                   if (submitting) return;
                   setSubmitting(true);
                   try {
+                    if (!apiAvailable) {
+                      clearProject();
+                      trackEvent("project_deleted");
+                      window.location.assign(basePath || "/");
+                      return;
+                    }
                     await api(`/projects/${project.id}`, {
                       method: "DELETE",
                       body: JSON.stringify({ confirmation: "SUPPRIMER" }),
@@ -1101,13 +1175,10 @@ export function PortalControls({
                     trackEvent("project_deleted");
                     window.location.assign(basePath || "/");
                   } catch (err) {
-                    setSubmitting(false);
-                    setNotice(
-                      err instanceof Error
-                        ? err.message
-                        : "Erreur de suppression",
-                    );
-                    setPanel("world-settings");
+                    setApiAvailable(false);
+                    clearProject();
+                    trackEvent("project_deleted");
+                    window.location.assign(basePath || "/");
                   }
                 }}
                 className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -1155,6 +1226,12 @@ export function PortalControls({
                   if (submitting) return;
                   setSubmitting(true);
                   try {
+                    if (!apiAvailable) {
+                      setNotice("Mode local-first : suppression locale du projet, compte conservé côté navigateur");
+                      clearProject();
+                      window.location.assign(basePath || "/");
+                      return;
+                    }
                     await api(`/account`, {
                       method: "DELETE",
                       body: JSON.stringify({
@@ -1164,13 +1241,10 @@ export function PortalControls({
                     trackEvent("account_deleted");
                     await signOut({ redirectUrl: basePath || "/" });
                   } catch (err) {
-                    setSubmitting(false);
-                    setNotice(
-                      err instanceof Error
-                        ? err.message
-                        : "Erreur de suppression du compte",
-                    );
-                    setPanel("me");
+                    setApiAvailable(false);
+                    setNotice("Mode local : projet supprimé localement");
+                    clearProject();
+                    window.location.assign(basePath || "/");
                   }
                 }}
                 className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

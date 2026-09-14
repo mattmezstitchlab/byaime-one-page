@@ -241,9 +241,7 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [musicSearchBusy, setMusicSearchBusy] = useState(false);
   const [musicSearchError, setMusicSearchError] = useState("");
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
-  const [participantMedia, setParticipantMedia] = useState<ParticipantMedia[]>([]);
-  const [songRequests, setSongRequests] = useState<SongRequest[]>([]);
-  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  // P3: participantMedia/songRequests/selectedVideoId supprimés — fusionnés dans Galerie unifiée
   const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [localDocError, setLocalDocError] = useState("");
   const [localDocProgress, setLocalDocProgress] = useState<{ done: number; total: number; current: string } | null>(null);
