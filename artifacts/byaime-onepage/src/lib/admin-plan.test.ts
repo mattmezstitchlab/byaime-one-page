@@ -19,7 +19,7 @@ describe("buildAdminPlan (le back-office dans l'ordre)", () => {
     const concevoir = plan.sections[0].items.map(item => item.id);
 
     expect(concevoir).toContain("timeline");
-    expect(concevoir).toContain("providers");
+    expect(concevoir).toContain("pilotage");
     expect(concevoir).toContain("documents");
     expect(concevoir).toContain("logistics");
     expect(concevoir).toContain("messages");

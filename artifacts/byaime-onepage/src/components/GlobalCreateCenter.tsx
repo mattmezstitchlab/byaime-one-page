@@ -14,7 +14,6 @@ const actionIcons = {
 } satisfies Partial<Record<UniversalCreateActionId, typeof Users>>;
 
 const contextCopy: Record<PrivateDestinationId, string> = {
-  profile: "Le Profil reste votre projection personnelle. Les nouvelles informations sont créées dans le Monde actif, puis apparaissent ici lorsqu’elles vous concernent.",
   world: "Ajoutez une information dans le Monde actif. AIME ouvre directement l’espace opérationnel qui peut réellement l’enregistrer.",
 };
 
@@ -35,11 +34,8 @@ export function GlobalCreateCenter({ destination }: { destination: PrivateDestin
     action => action.availableInCurrentProject && action.id in actionIcons,
   );
   const openAction = (id: UniversalCreateActionId) => {
-    if (destination === "world") {
-      window.dispatchEvent(new CustomEvent<UniversalCreateActionId>("aime:open-create-target", { detail: id }));
-    } else {
-      navigate(`/user-portal?create=${id}`);
-    }
+    /* Le Monde est la seule destination privée : l'événement suffit. */
+    window.dispatchEvent(new CustomEvent<UniversalCreateActionId>("aime:open-create-target", { detail: id }));
     setOpen(false);
   };
 

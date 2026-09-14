@@ -68,6 +68,32 @@ describe("LandingComposer", () => {
     expect(new Date(draft.pivot!.value as number).getFullYear()).toBe(2027);
   });
 
+  /*
+   * La date saisie dans les questions doit arriver intacte dans le Monde.
+   * Ce test n'existait pas : on ne contrôlait que l'année, et le parseur
+   * reprenait le quantième du jour courant pour un mois écrit sans jour
+   * (« septembre 2026 » saisi un 14 devenait le 14, saisi un 31 basculait
+   * en octobre). Jour, mois ET année sont maintenant exigés.
+   */
+  it("transmet le jour et le mois de la date, pas seulement l'année", () => {
+    for (const answer of ["14 août 2027", "5 septembre 2026", "1er mars 2028"]) {
+      const parsed = parseIntention(composeIntention({ date: answer }));
+      const at = new Date(parsed.pivot!.value as number);
+      expect(at.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })).toBe(
+        answer.replace(/^1er /, "1 "),
+      );
+    }
+    /* Un mois écrit sans quantième prend le 1er du mois, quel que soit le jour
+       où le visiteur remplit les questions. */
+    const monthOnly = new Date(parseIntention(composeIntention({ date: "septembre 2026" })).pivot!.value as number);
+    expect(monthOnly.getDate()).toBe(1);
+    expect(monthOnly.getMonth()).toBe(8);
+    /* Le parcours en anglais suit la même règle. */
+    const english = new Date(parseIntention(composeIntention({ date: "September 5, 2026" }, { locale: "en" })).pivot!.value as number);
+    expect(english.getDate()).toBe(5);
+    expect(english.getMonth()).toBe(8);
+  });
+
   it("n'invente aucune information absente", () => {
     const sentence = composeIntention({});
     expect(sentence).toBe("Notre mariage.");

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { computeVisibilityModel, ENTITY_KIND_LABELS, type RoleVisibility, type VisibilityNode } from "@/lib/timeline-graph";
+import { computeVisibilityModel, ENTITY_KIND_LABELS, type RoleVisibility } from "@/lib/timeline-graph";
 import { getWorldPhaseShortLabel, PANEL_FOR_KIND, type WeddingPanelId } from "@/lib/wedding-navigation";
 import { useI18n } from "@/lib/i18n";
 import { useProject } from "@/store/project-store";
@@ -10,15 +10,13 @@ const ROLE_LABELS: Record<RoleVisibility, string> = {
   owner: "Propriétaire",
   planner: "Planificateur",
   family: "Proche",
-  viewer: "Invité",
-};
+  viewer: "Invité" };
 
 const ROLE_HINTS: Record<RoleVisibility, string> = {
   owner: "Tout est visible, finances et documents compris.",
   planner: "Tout sauf les actions réservées au propriétaire.",
   family: "Le partagé, sans finances ni documents privés.",
-  viewer: "Seulement ce qui est relié à un Moment publié à l'audience.",
-};
+  viewer: "Seulement ce qui est relié à un Moment publié à l'audience." };
 
 /*
  * La table des couleurs par catégorie vit dans `lib/category-colors.ts` : elle
@@ -65,8 +63,7 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
   const legend = LEGEND_ORDER.filter(kind => presentKinds.has(kind)).map(kind => ({
     kind,
     color: KIND_COLORS[kind],
-    label: kind === "event" ? t("world.kind.moment") : ENTITY_KIND_LABELS[kind],
-  }));
+    label: kind === "event" ? t("world.kind.moment") : ENTITY_KIND_LABELS[kind] }));
 
   return (
     <div className="space-y-5">

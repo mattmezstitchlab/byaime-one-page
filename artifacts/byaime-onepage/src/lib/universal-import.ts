@@ -43,14 +43,12 @@ const BUDGET_KEYS = new Set(["budget", "enveloppe", "total", "cout", "cost", "pr
 const MEMBER_METIER = new Set(["metier", "role", "category", "categorie", "type", "profession", "job", "specialite", "specialty", "activite", "corpsdemetier"]);
 const MEMBER_NAME = new Set(["name", "nom", "societe", "company", "prestataire", "vendor", "provider", "raison", "raisonsociale", "enseigne", "titre", "title", "label"]);
 const MEMBER_CONTACT = new Set(["contact", "email", "mail", "telephone", "phone", "tel", "portable", "mobile", "e-mail", "courriel", "numero"]);
-const MEMBER_STATUS = new Set(["status", "statut", "etat", "state", "avancement"]);
 const MEMBER_PRICE = new Set(["price", "prix", "tarif", "montant", "amount", "cout", "cost", "total"]);
 
 const STEP_TIME = new Set(["time", "heure", "heures", "horaire", "horaires", "datetime", "start", "debut", "date", "hour", "hora", "debutetape"]);
 const STEP_TITLE = new Set(["title", "titre", "nom", "name", "label", "etape", "step", "moment", "intitule", "libelle", "activite", "event", "evenement"]);
 const STEP_PLACE = new Set(["location", "lieu", "place", "endroit", "salle", "ou", "where", "venue"]);
 const STEP_DETAIL = new Set(["detail", "details", "description", "notes", "commentaire", "info", "infos", "texte", "text", "resume"]);
-const STEP_DURATION = new Set(["duree", "duration", "minutes", "dureeminutes", "dureeestimee"]);
 
 const PARKING_KEYS = new Set(["parking", "stationnement", "parkingvisiteurs", "seplanet"]);
 const ACCESS_KEYS = new Set(["accessibilite", "acces", "access", "handicap", "pmr", "mobilitereduite", "accessibility"]);

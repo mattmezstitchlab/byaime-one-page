@@ -77,12 +77,6 @@ export function AdminSommairePage() {
           <h2 className="text-[11px] uppercase tracking-[0.38em] text-[var(--agency-eyebrow)]">Hors du Monde</h2>
           <ul className="mt-6">
             <li className="border-t border-[var(--agency-hairline)]">
-              <Link href="/profile" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[var(--agency-paper)]">
-                <span className="text-[16px]">Bilan et page des mariés</span>
-                <span className="ml-auto text-[12px] text-[var(--agency-eyebrow)]">Le livrable vertical, et son partage.</span>
-              </Link>
-            </li>
-            <li className="border-t border-[var(--agency-hairline)]">
               <Link href="/monde" className="flex w-full items-baseline gap-5 py-4 transition-colors hover:bg-[var(--agency-paper)]">
                 <span className="text-[16px]">Vitrine de l&rsquo;agence</span>
                 <span className="ml-auto text-[12px] text-[var(--agency-eyebrow)]">La Bande, la page unique de vos futurs mariés.</span>

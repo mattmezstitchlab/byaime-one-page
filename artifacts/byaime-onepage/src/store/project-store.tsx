@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useAuth } from '@clerk/react';
-import { WorldProject, TimelineEvent, Provider, Guest, Payment, Document, Task, Table, Communication, fact, type ParticipantLink } from '../lib/types';
+import { WorldProject, fact, type ParticipantLink } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
 import { INTENTION_DRAFT_KEY, INTENTION_META_KEY, MIN_INTENTION_LENGTH, readIntentionMeta, type IntentionMeta } from '@/lib/intention-draft';
 import { normalizeProject } from '../lib/project-migration';
@@ -10,8 +10,7 @@ import {
   projectCatalogFromRows,
   roleForActiveProject,
   shouldCreateProject,
-  type ProjectCatalogItem,
-} from '@/lib/project-catalog';
+  type ProjectCatalogItem } from '@/lib/project-catalog';
 
 type ProjectStore = {
   project: WorldProject | null;
@@ -84,8 +83,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const request = useCallback(async (path: string, init?: RequestInit) => {
     const response = await fetch(`/api${path}`, {
       ...init,
-      headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers },
-    });
+      headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers } });
     const body = response.status === 204 ? undefined : await response.json().catch(() => ({}));
     if (!response.ok) throw Object.assign(new Error(body?.error || `Erreur ${response.status}`), { status: response.status, body });
     return body;
@@ -271,8 +269,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         } else {
           const updated = await request(`/projects/${project.id}`, {
             method: 'PUT',
-            body: JSON.stringify({ title: project.title, data: project, updatedAt: versionRef.current }),
-          });
+            body: JSON.stringify({ title: project.title, data: project, updatedAt: versionRef.current }) });
           versionRef.current = updated.updatedAt;
           serverSyncedProjectRef.current = project;
         }
@@ -337,8 +334,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       budget: draft.budget,
       persona: draft.persona,
       currency: draft.currency,
-      logistics: draft.logistics,
-    } as WorldProject);
+      logistics: draft.logistics } as WorldProject);
     setPendingOwnedProjectId(newProject.id);
     setProject(newProject);
     setDraft(null);

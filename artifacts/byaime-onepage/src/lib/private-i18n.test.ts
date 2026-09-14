@@ -47,10 +47,10 @@ describe("dictionnaire bilingue", () => {
 
 describe("coque privée traduite", () => {
   it("traduit la navigation globale, et garde les mêmes routes", () => {
-    expect(getPrivateNavigation("fr").map(item => item.label)).toEqual(["Profil", "Monde"]);
-    expect(getPrivateNavigation("en").map(item => item.label)).toEqual(["Profile", "World"]);
+    expect(getPrivateNavigation("fr").map(item => item.label)).toEqual(["Monde"]);
+    expect(getPrivateNavigation("en").map(item => item.label)).toEqual(["World"]);
     for (const locale of LOCALES) {
-      expect(getPrivateNavigation(locale).map(item => item.href)).toEqual(["/profile", "/user-portal"]);
+      expect(getPrivateNavigation(locale).map(item => item.href)).toEqual(["/user-portal"]);
     }
   });
 
@@ -69,7 +69,7 @@ describe("coque privée traduite", () => {
     const ids = (locale: Locale) => getWeddingRailItems("avant", owner, locale).map(item => item.id);
     expect(ids("en")).toEqual(ids("fr"));
     expect(getWeddingRailItems("avant", owner, "en").map(item => item.label)).toEqual([
-      "Timeline", "People", "Vendors", "Tasks", "Documents", "Logistics", "Music",
+      "Timeline", "Control room", "Documents", "Logistics", "Music",
     ]);
     expect(getWeddingNavigation("avant", owner, "en").primary.map(item => item.label)).toEqual([
       "Messages",

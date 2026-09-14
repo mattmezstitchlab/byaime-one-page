@@ -1,9 +1,9 @@
-import { type ReactNode, useEffect, useMemo, useState, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { MapPin, CalendarDays, User, Folder, Image as ImageIcon, Network, BookOpen, Fingerprint, Plus, Pencil, ZoomIn, ZoomOut, Car, Accessibility, CloudRain } from "lucide-react";
-import { useClerk, useUser } from "@clerk/react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, CalendarDays, User, Pencil, Car, Accessibility, CloudRain } from "lucide-react";
+import { useClerk } from "@clerk/react";
 import { useLocation, useParams } from "wouter";
 import { getGetPublicProfileQueryKey, useGetPublicProfile, type PublicProfile } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
@@ -13,10 +13,7 @@ import { CenteredBlock } from "@/components/CenteredBlock";
 
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
-import { layoutTimeline } from "@/lib/timeline-layout";
-import { focusWorld } from "@/lib/world-focus";
-import { EventIcon, FilTrack } from "@/components/FilTrack";
-import { indexTimelineConflicts } from "@/lib/timeline-graph";
+import { EventIcon } from "@/components/FilTrack";
 
 import { ProfileFil } from "@/components/ProfileFil";
 import { CoupleReport } from "@/components/CoupleReport";
@@ -27,15 +24,9 @@ type ProfileView = Omit<PublicProfile, "timeline"> & {
   timeline: ProfileTimelineEvent[];
 };
 
-const SECTIONS = [
-  { id: "identity", label: "Identité", x: 400, icon: Fingerprint },
-  { id: "history", label: "Histoire", x: 2000, icon: BookOpen },
-  { id: "archives", label: "Archives", x: 4000, icon: Folder },
-  { id: "network", label: "Réseau", x: 5000, icon: Network },
-];
 
 /** Étiquette de section : au-dessus de la dernière ligne de Moments. */
-const SECTION_LABEL_TOP = -300;
+
 
 export function ProfileIdentityHero({
   displayName,
@@ -45,8 +36,7 @@ export function ProfileIdentityHero({
   pivot,
   isPrivatePreview,
   onEditIdentity,
-  children,
-}: {
+  children }: {
   displayName: string;
   profileImage?: string;
   subtitle?: string;
@@ -146,8 +136,7 @@ const PRACTICAL_ROWS: { key: keyof ProfilePractical; label: string; icon: typeof
 export function ProfilePracticalInfo({
   practical,
   isPrivatePreview,
-  onEdit,
-}: {
+  onEdit }: {
   practical?: ProfilePractical;
   isPrivatePreview: boolean;
   onEdit: () => void;
@@ -197,26 +186,37 @@ export function ProfilePracticalInfo({
   );
 }
 
-export function PublicProfilePage({ privatePreview: forcePrivatePreview = false }: { privatePreview?: boolean }) {
+export function PublicProfilePage({ privatePreview: previewProp = false }: { privatePreview?: boolean }) {
   const params = useParams<{ projectId: string }>();
-  const [, navigate] = useLocation();
-  const { user } = useUser();
+  const [location] = useLocation();
   const { openUserProfile } = useClerk();
   const {
     project,
     isHydrated,
     currentRole,
     canEdit,
-    participantLinks,
     refreshParticipantLinks,
     updateProject,
-    updateEntity,
-  } = useProject();
+    updateEntity } = useProject();
+
+  /*
+   * L'aperçu privé du mini-site.
+   *
+   * 14/09 : la route `/profile` a été retirée de l'espace privé, et avec elle
+   * le seul endroit qui passait `privatePreview`. L'aperçu — ce que voient les
+   * invités, plus ce qui manque et le bouton qui ouvre la Logistique — est
+   * testé (`public-profile.test.tsx`) et utile : il est rétabli sur la route
+   * publique existante via `?apercu=1`, réservé au couple et au planner, et
+   * uniquement sur leur propre Monde. Aucune route ni système supplémentaire.
+   */
+  const previewAsked = new URLSearchParams(location.split("?")[1] ?? "").get("apercu") === "1";
+  const canPreview = currentRole === "owner" || currentRole === "planner";
+  const forcePrivatePreview = previewProp
+    || (previewAsked && canPreview && project?.id === params.projectId);
 
   const profileId = forcePrivatePreview ? project?.id || "" : params.projectId || "";
   const { data: publishedProfile, isLoading, error } = useGetPublicProfile(profileId, {
-    query: { queryKey: getGetPublicProfileQueryKey(profileId), retry: false, enabled: !forcePrivatePreview && Boolean(profileId) },
-  });
+    query: { queryKey: getGetPublicProfileQueryKey(profileId), retry: false, enabled: !forcePrivatePreview && Boolean(profileId) } });
 
   const privatePreview = useMemo<ProfileView | undefined>(() => {
     if (!project || (!forcePrivatePreview && project.id !== params.projectId)) return undefined;
@@ -227,8 +227,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       ...(project.venue.value?.trim() ? { venue: project.venue.value.trim() } : {}),
       ...(logistics?.parking?.trim() ? { parking: logistics.parking.trim() } : {}),
       ...(logistics?.accessibility?.trim() ? { accessibility: logistics.accessibility.trim() } : {}),
-      ...(logistics?.weatherFallback?.trim() ? { weatherFallback: logistics.weatherFallback.trim() } : {}),
-    };
+      ...(logistics?.weatherFallback?.trim() ? { weatherFallback: logistics.weatherFallback.trim() } : {}) };
     return {
       id: project.id,
       title: project.title,
@@ -255,9 +254,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
           universe: event.universe,
           ...(event.provenance ? { provenance: event.provenance } : {}),
           visibility: event.visibility || "prive",
-          relations: event.relations,
-        })),
-    };
+          relations: event.relations })) };
   }, [currentRole, forcePrivatePreview, params.projectId, project]);
 
   const profile: ProfileView | undefined = forcePrivatePreview ? privatePreview : publishedProfile;
@@ -272,9 +269,7 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
     updateProject({
       publicProfile: {
         published: project.publicProfile?.published ?? false,
-        shareReport: !shareReport,
-      },
-    });
+        shareReport: !shareReport } });
   };
 
   /* Quel mode du Profil est réellement ouvert : cinématique, Fil, ou frise. */
@@ -304,13 +299,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
       else if (meta && !existingMeta) meta.remove();
     };
   }, [profile]);
-
-  useEffect(() => {
-    if (!isPrivatePreview) return;
-    const toggleEditor = () => setSelectedNode({ type: "identity", label: "Identité" });
-    window.addEventListener("aime:toggle-profile-editor", toggleEditor);
-    return () => window.removeEventListener("aime:toggle-profile-editor", toggleEditor);
-  }, [isPrivatePreview]);
 
   useEffect(() => {
     if (!isPrivatePreview || (currentRole !== "owner" && currentRole !== "planner")) return;
@@ -350,8 +338,6 @@ export function PublicProfilePage({ privatePreview: forcePrivatePreview = false 
     );
   }
 
-  const displayName = isPrivatePreview ? user?.fullName || user?.firstName || profile.title : profile.title;
-  const profileImage = isPrivatePreview ? user?.imageUrl : undefined;
 
 
   return (

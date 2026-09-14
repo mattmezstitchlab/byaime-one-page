@@ -1,10 +1,8 @@
 import { TimelineEvent } from "./types";
 
 const MONTH = 30 * 86400000;
-const WEEK = 7 * 86400000;
 const DAY = 86400000;
 const HOUR = 3600000;
-const MINUTE = 60000;
 
 export function generateWeddingTimeline(pivotTime: number, universe: string, intentionText: string): TimelineEvent[] {
   let idCounter = 100;

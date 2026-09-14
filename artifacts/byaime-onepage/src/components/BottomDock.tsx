@@ -1,25 +1,19 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
-import { PlanningPanel } from "./panels/PlanningPanel";
-import { GuestPanel } from "./panels/GuestPanel";
-import { ProviderPanel } from "./panels/ProviderPanel";
-import { DayOfPanel } from "./panels/DayOfPanel";
-import { WeddingModulesPanel } from "./panels/WeddingModulesPanel";
+import { MondePanel } from "./panels/MondePanel";
 import type { TimelineView } from "@/lib/timeline-graph";
 import {
   getPanelContextGroup,
   getWeddingPanelLabel,
-  WEDDING_MODULE_IDS,
+  normalizePanelId,
   type WorldPhase,
-  type WeddingModule,
   type WeddingNavigation,
   type WeddingPanelId,
-  type WeddingRailItem,
-} from "@/lib/wedding-navigation";
+  type WeddingRailItem } from "@/lib/wedding-navigation";
 import { useI18n } from "@/lib/i18n";
 import { useProject } from "@/store/project-store";
-import { CARD, EYEBROW, TITLE, LEAD, PILL_SMALL } from "@/lib/site-design";
+import { EYEBROW, TITLE, LEAD, PILL_SMALL } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { format } from "date-fns";
@@ -45,7 +39,7 @@ export function BottomDock({
   rail = [],
   onPanelChange,
   onPhaseChange,
-}: {
+  onViewChange }: {
   phase: WorldPhase;
   view: TimelineView;
   activePanel: WeddingPanelId | null;
@@ -53,10 +47,11 @@ export function BottomDock({
   rail?: WeddingRailItem[];
   onPhaseChange: (phase: WorldPhase) => void;
   onPanelChange: (panel: WeddingPanelId | null) => void;
+  /** Retourner à une vue (Timeline, Musique) ferme la fenêtre. */
+  onViewChange?: (view: TimelineView) => void;
 }) {
   const { t, locale } = useI18n();
   const { project } = useProject();
-  const isModule = activePanel !== null && WEDDING_MODULE_IDS.some(module => module === activePanel);
   const contextGroup = activePanel ? getPanelContextGroup(activePanel, rail, navigation, view, locale) : null;
 
   const dateLocale = locale === "en" ? enUS : fr;
@@ -72,18 +67,9 @@ export function BottomDock({
 
   if (!activePanel) return null;
 
-  const allItems = [...rail, ...navigation.primary, ...navigation.secondary];
-  // Déduplication par panel id pour éviter doublons rail/phase
-  const seen = new Set<string>();
-  const deduped = allItems.filter(item => {
-    if (item.destination.kind !== "panel") return false;
-    const key = item.destination.panel;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 
   const railPanels = rail.filter(i => i.destination.kind === "panel");
+  const railViews = rail.filter(i => i.destination.kind === "view");
   const phasePanels = [...navigation.primary, ...navigation.secondary].filter(i => i.destination.kind === "panel");
 
   const title = getWeddingPanelLabel(activePanel, locale);
@@ -94,6 +80,8 @@ export function BottomDock({
 
   const content = (
     <motion.div
+      data-testid="monde-panel"
+      data-panel={activePanel}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -135,11 +123,34 @@ export function BottomDock({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
           {/* Sidebar — 232px comme sur design/index.html */}
           <aside className="flex shrink-0 flex-col gap-6 overflow-y-auto border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4 py-6 md:w-[232px] md:border-b-0 md:border-r">
+            {railViews.length > 0 && onViewChange && (
+              <div>
+                <p className={cn(EYEBROW, "px-2")}>Vues</p>
+                <div className="mt-3 flex flex-col gap-1">
+                  {railViews.map(item => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      data-testid={`world-menu-view-${item.id}`}
+                      onClick={() => {
+                        if (item.destination.kind === "view") onViewChange(item.destination.view);
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-[var(--agency-body)] transition hover:bg-[var(--agency-ink)]/[0.04] hover:text-[var(--agency-ink)]"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--agency-hairline)]" />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
               <p className={cn(EYEBROW, "px-2")}>Le Monde</p>
               <div className="mt-3 flex flex-col gap-1">
                 {railPanels.map(item => {
-                  const isActive = item.destination.kind === "panel" && item.destination.panel === activePanel;
+                  /* Comparaison normalisée : `guests` surligne l'onglet Pilotage du menu. */
+                      const isActive = item.destination.kind === "panel" && normalizePanelId(item.destination.panel) === normalizePanelId(activePanel);
                   return (
                     <button
                       key={item.id}
@@ -166,7 +177,8 @@ export function BottomDock({
                 <p className={cn(EYEBROW, "px-2")}>{phase === "avant" ? "Avant" : phase === "pendant" ? "Jour J" : "Après"}</p>
                 <div className="mt-3 flex flex-col gap-1">
                   {phasePanels.map(item => {
-                    const isActive = item.destination.kind === "panel" && item.destination.panel === activePanel;
+                    /* Comparaison normalisée : `guests` surligne l'onglet Pilotage du menu. */
+                      const isActive = item.destination.kind === "panel" && normalizePanelId(item.destination.panel) === normalizePanelId(activePanel);
                     return (
                       <button
                         key={item.id}
@@ -196,8 +208,7 @@ export function BottomDock({
                   <span
                     className="grid h-12 w-12 place-items-center rounded-full p-[2px]"
                     style={{
-                      background: `conic-gradient(from -90deg, var(--agency-ink) 0deg ${completion * 3.6}deg, var(--agency-hairline) ${completion * 3.6}deg 360deg)`,
-                    }}
+                      background: `conic-gradient(from -90deg, var(--agency-ink) 0deg ${completion * 3.6}deg, var(--agency-hairline) ${completion * 3.6}deg 360deg)` }}
                   >
                     <span className="grid h-full w-full place-items-center rounded-full bg-[var(--agency-paper)] text-[11px] font-medium tabular-nums">{completion}%</span>
                   </span>
@@ -259,11 +270,9 @@ export function BottomDock({
 
             <div className="min-h-0 flex-1 overflow-y-auto bg-[#fcfbfa] px-7 py-8 sm:px-10 sm:py-10">
               <div className="mx-auto max-w-4xl">
-                {activePanel === "planning" && <PlanningPanel />}
-                {activePanel === "guests" && <GuestPanel />}
-                {activePanel === "providers" && <ProviderPanel />}
-                {activePanel === "dayof" && <DayOfPanel />}
-                {isModule && <WeddingModulesPanel module={activePanel as WeddingModule} />}
+                {/* Une seule fenêtre, un seul contenu : le menu de gauche en
+                    est la liste d'onglets. */}
+                <MondePanel panel={activePanel} />
               </div>
             </div>
           </div>

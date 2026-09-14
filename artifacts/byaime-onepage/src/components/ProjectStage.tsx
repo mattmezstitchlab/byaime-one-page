@@ -2,14 +2,13 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useClerk } from '@clerk/react';
 import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
-import { AIME_VISUALS, getAssetUrl } from '@/lib/assets';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { enUS, fr } from 'date-fns/locale';
 import { Link } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
 import { BottomDock } from './BottomDock';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Eye, Search, Waves } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Eye, ImagePlus, Search, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
 import { WorldTopMenu } from '@/components/WorldTopMenu';
@@ -24,40 +23,35 @@ import { MESSAGE_TO_EVENT } from '@/lib/person-spotlight-bus';
 import { VisibilityGraph } from './VisibilityGraph';
 import { WorldSearch } from './WorldSearch';
 import { WorldSwitcher } from './WorldSwitcher';
-import type { Guest, Provider } from '@/lib/types';
+import type { Guest } from '@/lib/types';
 import {
+  normalizePanelId,
   isWeddingDestinationActive,
   getWeddingCapabilities,
   getWeddingNavigation,
-  getWeddingPanelLabel,
   getWeddingRailItems,
   isWeddingPanelAvailable,
   findPhaseForPanel,
   getInitialWorldPhase,
+  getWorldPhases,
+  getWorldPhaseShortLabel,
   type WorldPhase,
   type WeddingRole,
   type WeddingDestination,
-  type WeddingPanelId,
-} from '@/lib/wedding-navigation';
+  type WeddingPanelId } from '@/lib/wedding-navigation';
 import { setWorldNavState } from '@/lib/world-nav-state';
 import { trackEvent } from '@/lib/analytics';
 import { useI18n } from '@/lib/i18n';
 import { heroVisualOverlayCss } from '@/lib/types';
+import { isCustomHeroVisual, resolveHeroVisual, visualSourceUrl, WORLD_VISUAL_CHOICES } from '@/lib/world-visuals';
+import { VisualImportControl } from '@/components/VisualImportControl';
 import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
 
 const CREATE_PANEL_TARGETS: Partial<Record<UniversalCreateActionId, WeddingPanelId>> = {
   person: "guests",
   task: "planning",
-  "document-media": "documents",
-};
+  "document-media": "documents" };
 
-function normalizePanelId(panel: WeddingPanelId): WeddingPanelId {
-  if (panel === "seating") return "guests";
-  if (panel === "budget") return "providers";
-  if (panel === "memories" || panel === "film" || panel === "contributions" || panel === "thanks") return "documents";
-  if (panel === "ceremony" || panel === "team") return "logistics";
-  return panel;
-}
 /*
  * Créer un Moment n'ouvre pas un panneau : c'est un jalon de la Timeline. On
  * revient à la vue chronologique et on demande l'ajout d'un jalon (la Timeline
@@ -83,9 +77,6 @@ function Monogram({ label, name, large = false }: { label: string; name: string;
   );
 }
 
-function ProviderPortrait({ provider }: { provider: Provider; index?: number }) {
-  return <Monogram label={(provider.name || provider.role).charAt(0)} name={provider.name || provider.role} />;
-}
 
 function GuestPortrait({ guest, large = false }: { guest: Guest; index?: number; large?: boolean }) {
   return <Monogram label={guest.name.charAt(0)} name={guest.name} large={large} />;
@@ -103,6 +94,7 @@ export function ProjectStage() {
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [worldMenuOpen, setWorldMenuOpen] = useState(false);
+  const [heroEditorOpen, setHeroEditorOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<WeddingPanelId | null>(null);
 
   /*
@@ -160,20 +152,17 @@ export function ProjectStage() {
     [phase, currentRole, previewRole, locale],
   );
 
-  const setActivePanelNormalized = (panel: WeddingPanelId | null) => {
-    if (!panel) { setActivePanel(null); return; }
-    setActivePanel(normalizePanelId(panel));
-  };
-
-  useEffect(() => {
-    if (!activePanel) return;
-    if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
-  }, [activePanel, navigation, view, rail]);
-
+  /*
+   * `activePanel` garde l'identifiant demandé, PAS sa forme normalisée : un
+   * `guests` doit ouvrir Pilotage sur l'onglet Personnes, un `planning` sur
+   * Tâches. La normalisation sert à décider si le panneau existe et à surligner
+   * le bon onglet du menu de gauche (`MondePanel` la refait de son côté).
+   */
   /*
    * Ouverture de panneau « sûre » : si le panneau demandé n'existe pas dans la
-   * phase courante (ex. « Souvenirs » en Avant), on bascule d'abord vers la
-   * phase qui le porte, au lieu de le voir se refermer aussitôt.
+   * phase courante (ex. « Régie du Jour J » appelée depuis la phase Avant, ou
+   * « Souvenirs » en Avant), on bascule d'abord vers la phase qui le porte, au
+   * lieu de le voir se refermer aussitôt.
    */
   const openPanelSafely = (panel: WeddingPanelId) => {
     const normalized = normalizePanelId(panel);
@@ -181,7 +170,7 @@ export function ProjectStage() {
     const effectiveView: TimelineView = normalized === "music" ? "music" : view;
     if (normalized === "music") setView("music");
     if (isWeddingPanelAvailable(normalized, navigation, effectiveView, rail)) {
-      setActivePanel(normalized);
+      setActivePanel(panel);
       return;
     }
     const targetPhase = findPhaseForPanel(normalized, role, effectiveView);
@@ -189,8 +178,26 @@ export function ProjectStage() {
       setPhase(targetPhase);
       if (view === "public-info" && targetPhase === "avant") setView("chronological");
     }
-    setActivePanel(normalized);
+    setActivePanel(panel);
   };
+
+  /*
+   * Toute ouverture de panneau passe par ici — menu de gauche, menu du haut,
+   * raccourcis du hero, deep-links. `null` ferme la fenêtre.
+   */
+  const setActivePanelFromMenu = (panel: WeddingPanelId | null) => {
+    if (panel === null) {
+      setActivePanel(null);
+      return;
+    }
+    openPanelSafely(panel);
+  };
+
+  useEffect(() => {
+    if (!activePanel) return;
+    if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
+  }, [activePanel, navigation, view, rail]);
+
   const openPanelSafelyRef = useRef(openPanelSafely);
   openPanelSafelyRef.current = openPanelSafely;
 
@@ -333,42 +340,43 @@ export function ProjectStage() {
     avant: {
       eyebrow: t("world.hero.avant.eyebrow"),
       title: project.title,
-      description: t("world.hero.avant.desc"),
-    },
+      description: t("world.hero.avant.desc") },
     pendant: {
       eyebrow: liveEvent ? t("world.hero.pendant.eyebrow.live") : t("world.hero.pendant.eyebrow"),
       title: project.title,
       description: featuredDayEvent
         ? `${liveEvent ? t("world.hero.now") : t("world.hero.upcoming")}${featuredDayEvent.location ? ` · ${featuredDayEvent.location}` : ""}${featuredDayEvent.responsible ? ` · ${featuredDayEvent.responsible}` : ""}`
-        : t("world.hero.pendant.empty"),
-    },
+        : t("world.hero.pendant.empty") },
     apres: {
       eyebrow: t("world.hero.apres.eyebrow"),
       title: project.title,
       description: memoryCount
         ? t("world.hero.apres.desc", { count: memoryCount })
-        : t("world.hero.apres.empty"),
-    },
-  }[phase];
+        : t("world.hero.apres.empty") } }[phase];
   const heroCopy = isPublicInfo
     ? {
         eyebrow: t("world.hero.publicInfo.eyebrow"),
         title: project.title,
         description: project.subtitle && !subtitleIsRedundant
           ? project.subtitle
-          : t("world.hero.publicInfo.desc"),
-      }
+          : t("world.hero.publicInfo.desc") }
     : phaseHeroCopy;
+  /*
+   * Le hero a TOUJOURS un grand visuel. Un Monde sans `heroVisual` (créé avant
+   * ce réglage, ou importé) retombait sur un fond blanc : le bouton « Visuel »
+   * posé ici le remplace en un clic, sans passer par le panneau de l'orbe.
+   */
+  const heroVisual = resolveHeroVisual(project);
+  const heroSrc = visualSourceUrl(heroVisual);
+  const heroIsCustom = isCustomHeroVisual(project);
   /* Les initiales de la semaine viennent de la locale : « L M M J V S D » en
      français, « M T W T F S S » en anglais, toujours à partir du lundi. */
   const weekdayInitials = eachDayOfInterval({
     start: startOfWeek(new Date(), { weekStartsOn: 1 }),
-    end: endOfWeek(new Date(), { weekStartsOn: 1 }),
-  }).map(day => format(day, "EEEEE", { locale: dateLocale }).toLocaleUpperCase(locale));
+    end: endOfWeek(new Date(), { weekStartsOn: 1 }) }).map(day => format(day, "EEEEE", { locale: dateLocale }).toLocaleUpperCase(locale));
   const calendarDays = eachDayOfInterval({
     start: startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 1 }),
-    end: endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }),
-  });
+    end: endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }) });
   const selectedDayEvents = project.timeline.filter(event => isSameDay(event.time, selectedDate));
   const nextCountdown = countdownTargets[0] || { id: 'pivot', time: pivotDate, title: t('world.title.dday'), kind: t('world.kind.pivot') };
   const distanceToNext = Math.max(0, nextCountdown.time - now);
@@ -388,8 +396,10 @@ export function ProjectStage() {
         : `${minutes} ${t("world.unit.min")}`;
   };
   const openWeddingDestination = (destination: WeddingDestination) => {
+    /* Passe par l'ouverture sûre : « Régie du Jour J » appelé depuis la phase
+       Avant doit basculer la phase, sinon la fenêtre se referme aussitôt. */
     if (destination.kind === "panel") {
-      setActivePanel(destination.panel);
+      setActivePanelFromMenu(destination.panel);
       return;
     }
     if (destination.kind === "view") {
@@ -447,6 +457,14 @@ export function ProjectStage() {
             <button type="button" onClick={() => setPreviewRole(role => role ? null : "viewer")} aria-pressed={previewRole === "viewer"} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", previewRole === "viewer" ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
               {previewRole === "viewer" ? t("world.nav.preview.active") : t("world.nav.preview")}
             </button>
+            {/* Ce que voient les invités : le mini-site public, en aperçu privé. */}
+            <Link
+              href={`/profil/${project.id}?apercu=1`}
+              data-testid="world-mini-site-preview"
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {t("world.nav.miniSite")}
+            </Link>
             <TimelinePlayback events={visibleEvents} />
           </div>
           {/* Le graphe (commun à tout le mariage) et la recherche : deux icônes fixes, en haut à droite. */}
@@ -480,54 +498,101 @@ export function ProjectStage() {
           </div>
         )}
       </nav>
-      {/* Cinematic Header — fond blanc par défaut, mais visuel custom si heroVisual est défini */}
-      <header className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden bg-[var(--agency-paper)] px-6 pb-24 pt-32 sm:pt-40 md:px-12">
-        {project.heroVisual?.url ? (
-          project.heroVisual.kind === "video" ? (
-            <video
-              src={project.heroVisual.url}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="absolute inset-0 z-0 h-full w-full object-cover"
-            />
-          ) : (
-            <img src={project.heroVisual.url} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
-          )
+      {/* Hero immersif — toujours un grand visuel, éditable sur place. */}
+      <header data-testid="world-hero" className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden bg-[var(--agency-ink)] px-6 pb-24 pt-32 sm:pt-40 md:px-12">
+        {heroVisual.kind === "video" ? (
+          <video
+            src={heroSrc}
+            autoPlay
+            muted
+            loop
+            playsInline
+            data-testid="world-hero-media"
+            className="absolute inset-0 z-0 h-full w-full object-cover"
+          />
         ) : (
-          <div className="absolute inset-0 z-0 bg-[var(--agency-paper)]" aria-hidden />
+          <img src={heroSrc} alt="" data-testid="world-hero-media" className="absolute inset-0 z-0 h-full w-full object-cover" />
         )}
         <div
           className="absolute inset-0 z-10"
           aria-hidden
-          style={project.heroVisual ? { background: heroVisualOverlayCss(project.heroVisual) } : undefined}
+          style={{ background: heroVisualOverlayCss(heroVisual) }}
         />
-        {/* Voile blanc léger quand pas de visuel custom, pour garder lisibilité */}
-        {!project.heroVisual?.url && <div className="absolute inset-0 z-10 bg-[var(--agency-paper)]/10" aria-hidden />}
-        <div className={cn("aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6", project.heroVisual?.url && "text-white")}>
+        <div className="aime-visual-copy relative z-20 mx-auto w-full max-w-5xl space-y-6 text-white">
           <motion.button
             type="button"
             onClick={() => setWorldMenuOpen(true)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              "flex w-fit items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] backdrop-blur-md transition",
-              project.heroVisual?.url
-                ? "border-white/25 bg-white/15 text-white hover:bg-white hover:text-black"
-                : "border-[var(--agency-ink)]/20 bg-[var(--agency-paper)]/60 text-[var(--agency-ink)] hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)]"
-            )}
+            className="flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white backdrop-blur-md transition hover:bg-white hover:text-black"
             aria-label={t("world.hero.chooseWorld")}
           >
             {heroCopy.eyebrow}
             <ChevronDown className="h-3 w-3" />
           </motion.button>
 
+          {/*
+           * Les trois périodes, toujours visibles.
+           *
+           * 14/09 : le seul sélecteur de période vivait au bas de la barre
+           * latérale de `BottomDock`, et `BottomDock` ne se rend que si une
+           * fenêtre est déjà ouverte. Un Monde ouvert sans fenêtre n'offrait
+           * donc AUCUN moyen d'aller vers le Jour J — l'orchestration était
+           * invisible. Le sélecteur monte dans le hero.
+           */}
+          {!isPublicInfo && (
+            <motion.div
+              role="group"
+              aria-label={t("world.phase.group")}
+              data-testid="world-phase-switch"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="-mt-3 flex w-fit items-center gap-1 rounded-full border border-white/25 bg-white/10 p-1 backdrop-blur-md"
+            >
+              {getWorldPhases(locale).map(entry => {
+                const active = entry.id === phase;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    data-testid={`world-phase-${entry.id}`}
+                    onClick={() => setPhase(entry.id)}
+                    aria-current={active ? "true" : undefined}
+                    title={entry.label}
+                    className={cn(
+                      "rounded-full px-4 py-1.5 text-[11px] uppercase tracking-[0.16em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+                      active ? "bg-white text-black" : "text-white/80 hover:bg-white/15 hover:text-white",
+                    )}
+                  >
+                    {getWorldPhaseShortLabel(entry.id, locale)}
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+
+          {/* Le visuel du hero se change là où on le voit : import, URL, ou
+              vignette du Monde. Plus de détour par le panneau de l'orbe. */}
+          {canEdit && (
+            <motion.button
+              type="button"
+              onClick={() => setHeroEditorOpen(true)}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              data-testid="world-hero-edit-visual"
+              className="-mt-3 flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white/85 backdrop-blur-md transition hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              <ImagePlus className="h-3 w-3" />
+              {heroIsCustom ? t("world.hero.visual.change") : t("world.hero.visual.choose")}
+            </motion.button>
+          )}
+
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className={cn("text-4xl sm:text-6xl md:text-7xl font-display font-semibold tracking-tight", project.heroVisual?.url ? "text-white" : "text-[var(--agency-ink)]")}
+            className="text-4xl sm:text-6xl md:text-7xl font-display font-semibold tracking-tight text-white"
           >
             {heroCopy.title}
           </motion.h1>
@@ -536,7 +601,7 @@ export function ProjectStage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={cn("min-h-12 max-w-2xl text-[15px] font-light leading-relaxed md:text-base", !heroCopy.description && "invisible", project.heroVisual?.url ? "text-white/80" : "text-[var(--agency-body)]")}
+            className={cn("min-h-12 max-w-2xl text-[15px] font-light leading-relaxed text-white/80 md:text-base", !heroCopy.description && "invisible")}
           >
             {heroCopy.description || t("world.hero.fallback")}
           </motion.p>
@@ -658,8 +723,7 @@ export function ProjectStage() {
               <span><span className="text-[var(--agency-ink)]/75">{t("world.hero.suggestion")}</span>{" "}{t("world.hero.suggestion.body", {
                 subject: project.missing.length > 1
                   ? t("world.hero.suggestion.more", { subject: project.missing[0], count: project.missing.length - 1 })
-                  : project.missing[0],
-              })}</span>
+                  : project.missing[0] })}</span>
             </motion.div>
           )}
         </div>
@@ -739,9 +803,12 @@ export function ProjectStage() {
         <UniversalTimeline events={visibleEvents} />
       </main>
 
-      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanelNormalized} onPhaseChange={nextPhase => {
+      <BottomDock phase={phase} view={view} activePanel={activePanel} navigation={navigation} rail={rail} onPanelChange={setActivePanelFromMenu} onPhaseChange={nextPhase => {
         setPhase(nextPhase);
         if (view === "public-info") setView("chronological");
+      }} onViewChange={nextView => {
+        setView(nextView);
+        setActivePanel(null);
       }} />
       {spotlight && <PersonSpotlight person={spotlight} onClose={() => setSpotlight(null)} />}
       {tasksOpen && (
@@ -793,6 +860,25 @@ export function ProjectStage() {
             }}
           />
           <p className="mt-6 text-xs font-light leading-relaxed text-foreground/40">{t("world.switcher.hint")}</p>
+        </CenteredBlock>
+      )}
+      {heroEditorOpen && (
+        <CenteredBlock
+          eyebrow={t("world.hero.visual.eyebrow")}
+          title={t("world.hero.visual.title")}
+          description={t("world.hero.visual.desc")}
+          onClose={() => setHeroEditorOpen(false)}
+          size="lg"
+          testId="world-hero-visual-panel"
+        >
+          <VisualImportControl
+            label={t("world.hero.visual.field")}
+            value={project.heroVisual ?? heroVisual}
+            onChange={heroVisual => updateProject({ heroVisual })}
+            choices={WORLD_VISUAL_CHOICES}
+            choicesLabel={t("world.hero.visual.choices")}
+          />
+          <p className="mt-4 text-xs font-light leading-relaxed text-[var(--agency-body)]">{t("world.hero.visual.hint")}</p>
         </CenteredBlock>
       )}
       {calendarOpen && (

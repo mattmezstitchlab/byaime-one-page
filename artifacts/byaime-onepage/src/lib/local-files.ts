@@ -41,7 +41,6 @@ const JUNK = /(^|\/)(\.ds_store|thumbs\.db|desktop\.ini)$|(^|\/)__macosx\/|(^|\/
 
 export function isAcceptedLocally(item: LocalCandidate, policy: LocalImportPolicy = LOCAL_IMPORT_POLICY) {
   const name = item.name.toLowerCase();
-  const path = item.path.toLowerCase();
   const extension = name.includes(".") ? `.${name.split(".").pop()}` : "";
   const byExtension = policy.accept.includes(extension);
   const byType = Boolean(item.type) && policy.accept.includes(item.type.toLowerCase());

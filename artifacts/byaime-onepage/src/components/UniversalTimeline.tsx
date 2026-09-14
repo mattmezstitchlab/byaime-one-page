@@ -1,17 +1,17 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link2, MapPin, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import type { TimelineEntityKind, TimelineEvent } from "@/lib/types";
+import type { TimelineEntityKind, TimelineEvent, WorldProject } from "@/lib/types";
 import type { WorldFocusRequest } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
 import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KIND_LABELS, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
 import { getInitialWorldPhase, PANEL_FOR_KIND } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
-import { AIME_VISUALS, getAssetUrl } from "@/lib/assets";
 import { getSubchapter } from "@/lib/timeline-chapters";
-import { momentVisualOverlayAlpha } from "@/lib/types";
+import { chapterAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
+import { momentVisualOverlayAlpha, type WorldVisual } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
 import { DayRunTimeline } from "@/components/DayRunTimeline";
@@ -19,45 +19,75 @@ import { AvantOverview } from "@/components/AvantOverview";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
 
-
-const images = AIME_VISUALS.timelineAmbientImages;
-
-/* Fond : blanc par défaut, visuel custom si event.visual est défini (répare l'importateur visuel) */
-const AmbientBackground = ({ event }: { event: TimelineEvent; index: number }) => {
-  const visual = event.visual;
-  if (!visual?.url) {
-    return <div className="absolute inset-0 z-0 bg-[var(--agency-paper)]" aria-hidden />;
-  }
+/*
+ * Fond d'une scène de la Timeline.
+ *
+ * Chaque zone reçoit un visuel : celui que le couple a importé sur le Moment,
+ * sinon celui que le manifeste propose pour cette zone (cérémonie, repas,
+ * invités, préparatifs, musique…). `momentVisual` ne renvoie jamais `null` :
+ * la Timeline ne s'ouvre plus sur une colonne de cartes blanches.
+ *
+ * Le visuel du manifeste est un chemin du dossier public : `visualSourceUrl`
+ * le résout, et laisse untouched une dataURL ou une URL absolue importée.
+ */
+const AmbientBackground = ({ visual }: { visual: WorldVisual }) => {
   const alpha = momentVisualOverlayAlpha(visual);
+  const src = visualSourceUrl(visual);
   return (
     <>
       {visual.kind === "video" ? (
-        <video src={visual.url} autoPlay muted loop playsInline className="absolute inset-0 z-0 h-full w-full object-cover" />
+        <video src={src} autoPlay muted loop playsInline className="absolute inset-0 z-0 h-full w-full object-cover" />
       ) : (
-        <img src={visual.url} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
+        <img src={src} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" />
       )}
       <div className="absolute inset-0 z-[1] bg-black" style={{ opacity: alpha }} aria-hidden />
     </>
   );
 };
 
-function SubchapterTransition({ title }: { title: string }) {
+/** Le libellé court d'une zone, pour l'œillère d'une scène. */
+const ZONE_LABELS: Record<ReturnType<typeof momentVisualZone>, string> = {
+  ceremony: "Cérémonie",
+  table: "Table & saveurs",
+  guests: "Invités",
+  prep: "Préparatifs",
+  attire: "Tenues",
+  music: "Musique",
+  flowers: "Fleurs",
+  portrait: "Images",
+  film: "Film",
+  transport: "Transport",
+  reception: "Réception",
+  venue: "Lieu" };
+
+function SubchapterTransition({ title, event }: { title: string; event?: TimelineEvent }) {
+  const asset = visualSourceUrl({ kind: "image", url: chapterAmbientAsset(title, event?.phase ?? "avant") });
   return (
-    <div className="w-full py-24 flex items-center justify-center bg-[var(--agency-paper)] text-[var(--agency-ink)] relative z-10 border-t border-foreground/5">
-       <h2 className="text-sm tracking-[0.4em] uppercase text-foreground/40">{title}</h2>
+    <div
+      data-testid={`timeline-chapter-${title}`}
+      className="relative isolate flex w-full items-center justify-center overflow-hidden border-t border-[var(--agency-hairline)] py-24 text-[var(--agency-ink)]"
+    >
+      {/* Une zone de respiration a, elle aussi, son visuel : le chapitre annonce
+          ce qui vient (la cérémonie, le repas, la soirée…). */}
+      <img src={asset} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" aria-hidden />
+      <div className="absolute inset-0 z-[1] bg-black/55" aria-hidden />
+      <h2 className="relative z-10 text-sm tracking-[0.4em] uppercase text-white/80">{title}</h2>
     </div>
   );
 }
 
-function EventScene({ event, index, onClick }: { event: TimelineEvent, index: number, onClick: () => void }) {
-  const hasVisual = Boolean(event.visual?.url);
+function EventScene({ event, project, onClick }: { event: TimelineEvent; project: WorldProject; onClick: () => void }) {
+  const visual = momentVisual(event, project);
+  const zone = momentVisualZone(event, project);
+  const isCustomVisual = Boolean(event.visual?.url);
   return (
     <button
       onClick={onClick}
+      data-testid={`timeline-scene-${event.id}`}
       className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-[var(--agency-hairline)] px-6 py-24 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40 group"
-      style={{ backgroundColor: hasVisual ? "#000" : "var(--agency-paper)" }}
+      style={{ backgroundColor: "#000" }}
     >
-      <AmbientBackground event={event} index={index} />
+      <AmbientBackground visual={visual} />
 
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center">
         <motion.div
@@ -65,11 +95,9 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className={hasVisual
-            ? "space-y-6 flex flex-col items-center rounded-[20px] p-8 md:p-12 bg-black/25 backdrop-blur-md border border-white/15 hover:bg-black/30 transition-colors"
-            : "space-y-6 flex flex-col items-center rounded-[20px] p-8 md:p-12 bg-[var(--agency-paper)]/85 backdrop-blur-sm border border-[var(--agency-hairline)] shadow-[0_2px_24px_rgba(23,20,16,0.06)] hover:bg-[var(--agency-paper)] transition-colors"}
+          className="space-y-6 flex flex-col items-center rounded-[20px] p-8 md:p-12 bg-black/25 backdrop-blur-md border border-white/15 hover:bg-black/30 transition-colors"
         >
-          <div className={hasVisual ? "flex items-center gap-3 text-xs tracking-widest uppercase text-white/70 font-medium" : "flex items-center gap-3 text-xs tracking-widest uppercase text-[var(--agency-eyebrow)] font-medium"}>
+          <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-white/70 font-medium">
             <CalendarDays className="w-4 h-4" />
             <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: fr })}</span>
             {event.durationMinutes && (
@@ -81,25 +109,31 @@ function EventScene({ event, index, onClick }: { event: TimelineEvent, index: nu
             )}
           </div>
 
-          <h3 className={hasVisual ? "text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-white group-hover:text-white/90 transition-colors" : "text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-[var(--agency-ink)] group-hover:text-[var(--agency-ink)]/90 transition-colors"}>
+          <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-white group-hover:text-white/90 transition-colors">
             {event.title}
           </h3>
 
           {event.detail && (
-            <p className={hasVisual ? "text-lg md:text-xl text-white/80 font-light max-w-2xl text-balance leading-relaxed" : "text-lg md:text-xl text-[var(--agency-body)] font-light max-w-2xl text-balance leading-relaxed"}>
+            <p className="text-lg md:text-xl text-white/80 font-light max-w-2xl text-balance leading-relaxed">
               {event.detail}
             </p>
           )}
 
           <div className="flex flex-wrap justify-center gap-x-7 gap-y-3 pt-8">
+            {/* La zone qui a fourni le visuel : le couple voit d'où vient le fond,
+                et sait qu'il peut le remplacer. */}
+            <span data-testid="timeline-zone" className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
+              <Waves className="w-3 h-3" />
+              {isCustomVisual ? "Visuel importé" : ZONE_LABELS[zone]}
+            </span>
             {event.location && (
-              <span className={hasVisual ? "flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60" : "flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-[var(--agency-eyebrow)]"}>
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
                 <MapPin className="w-3 h-3" />
                 {event.location}
               </span>
             )}
             {(event.relations?.length || 0) > 0 && (
-              <span className={hasVisual ? "flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60" : "flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-[var(--agency-eyebrow)]"}>
+              <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
                 <Link2 className="w-3 h-3" />
                 {event.relations!.length} liens
               </span>
@@ -172,15 +206,15 @@ export function UniversalTimeline({ events }: { events: TimelineEvent[] }) {
       {isAvantRun && <AvantOverview />}
 
 
-      {!isDayRun && events.map((item, index) => {
+      {!isDayRun && events.map(item => {
         const subchapter = getSubchapter(item, pivotTime);
         const isNewSubchapter = subchapter !== currentSubchapter;
         currentSubchapter = subchapter;
 
         return (
           <Fragment key={item.id}>
-            {isNewSubchapter && <SubchapterTransition title={subchapter} />}
-            <EventScene event={item} index={index} onClick={() => setSelected(item.id)} />
+            {isNewSubchapter && <SubchapterTransition title={subchapter} event={item} />}
+            <EventScene event={item} project={project} onClick={() => setSelected(item.id)} />
           </Fragment>
         );
       })}

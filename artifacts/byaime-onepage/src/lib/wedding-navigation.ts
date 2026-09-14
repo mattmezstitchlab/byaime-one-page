@@ -1,4 +1,3 @@
-import type { CollaborationRole } from "./collaboration-roles";
 import { translate, type Locale } from "./i18n-dictionary";
 import type { TimelineView } from "./timeline-graph";
 import type { TimelineEntityKind } from "./types";
@@ -61,17 +60,36 @@ export const WEDDING_MODULE_IDS = [
   "contributions", "thanks", "film", "honeymoon",
 ] as const;
 export type WeddingModule = (typeof WEDDING_MODULE_IDS)[number];
-export type WeddingPanelId = WeddingModule | "planning" | "guests" | "providers" | "dayof";
+export type WeddingPanelId = WeddingModule | "planning" | "guests" | "providers" | "dayof" | "pilotage";
 export type WeddingDestination = { kind: "view"; view: TimelineView } | { kind: "panel"; panel: WeddingPanelId } | { kind: "route"; href: string };
 export type WeddingNavigationItem = { id: string; label: string; description: string; destination: WeddingDestination };
 export type WeddingNavigation = { primary: WeddingNavigationItem[]; secondary: WeddingNavigationItem[] };
 
-function normalizePanelId(panel: WeddingPanelId): WeddingPanelId {
-  if (panel === "seating") return "guests";
-  if (panel === "budget") return "providers";
+/**
+ * Normalisation des panneaux.
+ *
+ * P3 (14/09) : Personnes, Prestataires et Tâches ne sont plus trois fenêtres —
+ * c'est un seul panneau, « Pilotage », avec trois onglets. Les identifiants
+ * historiques restent acceptés partout (deep-links `/panel=guests`, favoris,
+ * statistiques cliquées) : ils atterrissent sur le bon onglet de Pilotage.
+ */
+export function normalizePanelId(panel: WeddingPanelId): WeddingPanelId {
+  if (panel === "seating" || panel === "guests") return "pilotage";
+  if (panel === "budget" || panel === "providers") return "pilotage";
+  if (panel === "planning") return "pilotage";
   if (panel === "memories" || panel === "film" || panel === "contributions" || panel === "thanks") return "documents";
   if (panel === "ceremony" || panel === "team") return "logistics";
   return panel;
+}
+
+/** L'onglet de Pilotage visé par un identifiant historique. */
+export type PilotageTabId = "guests" | "providers" | "planning";
+
+export function pilotageTabFor(panel: WeddingPanelId): PilotageTabId | undefined {
+  if (panel === "seating" || panel === "guests") return "guests";
+  if (panel === "budget" || panel === "providers") return "providers";
+  if (panel === "planning") return "planning";
+  return undefined;
 }
 
 
@@ -90,27 +108,24 @@ const item = (
 
 const timeline = (locale: Locale, variant: "" | ".live" | ".replay") =>
   item(locale, "timeline", `timeline${variant}`, { kind: "view", view: "chronological" }, `world.item.timeline${variant}`);
-const people = (locale: Locale) => item(locale, "people", "people", { kind: "panel", panel: "guests" });
-const providers = (locale: Locale) => item(locale, "providers", "providers", { kind: "panel", panel: "providers" });
-const tasks = (locale: Locale) => item(locale, "tasks", "tasks", { kind: "panel", panel: "planning" });
+const pilotage = (locale: Locale) => item(locale, "pilotage", "pilotage", { kind: "panel", panel: "pilotage" });
 const documents = (locale: Locale) => item(locale, "documents", "documents", { kind: "panel", panel: "documents" });
-const finances = (locale: Locale) => item(locale, "finances", "finances", { kind: "panel", panel: "budget" });
 const music = (locale: Locale, live = false) =>
   item(locale, "music", "music", { kind: "view", view: "music" }, live ? "world.item.music.live" : "world.item.music");
 const dayof = (locale: Locale) => item(locale, "day-of", "dayof", { kind: "panel", panel: "dayof" });
 const practical = (locale: Locale) => item(locale, "public-info", "publicInfo", { kind: "view", view: "public-info" });
-const seating = (locale: Locale) => item(locale, "seating", "seating", { kind: "panel", panel: "seating" });
-const contributions = (locale: Locale) => item(locale, "contributions", "contributions", { kind: "panel", panel: "contributions" });
-const ceremony = (locale: Locale) => item(locale, "ceremony", "ceremony", { kind: "panel", panel: "ceremony" });
 const logistics = (locale: Locale) => item(locale, "logistics", "logistics", { kind: "panel", panel: "logistics" });
 const messages = (locale: Locale) => item(locale, "messages", "messages", { kind: "panel", panel: "messages" });
-const team = (locale: Locale) => item(locale, "team", "team", { kind: "panel", panel: "team" });
 
 /**
  * Catégories communes aux trois périodes (Avant / Jour J / Après). Elles vivent
  * dans la barre latérale verticale gauche, comme la navigation globale, pour ne
  * plus encombrer la navigation horizontale de chaque phase.
  */
+/* Vocabulaire d'icônes du rail. Le rail de P3 n'en utilise que cinq
+   * (timeline, people, documents, logistics, music) ; « providers » et « tasks »
+   * restent déclarés parce que `Record<WeddingRailIcon, …>` (CommandBar) doit
+   * pouvoir typer les sept. */
 export const WEDDING_RAIL_ICONS = ["timeline", "people", "providers", "tasks", "documents", "logistics", "music"] as const;
 export type WeddingRailIcon = (typeof WEDDING_RAIL_ICONS)[number];
 export type WeddingRailItem = WeddingNavigationItem & { icon: WeddingRailIcon };
@@ -122,7 +137,7 @@ export function isWeddingEntryAllowed(
   if (entry.id === "finances") return capabilities.seeFinances;
   if (entry.id === "documents" || entry.id === "film") return capabilities.managePrivateDocuments;
   if (capabilities.manage || capabilities.editOperational) return true;
-  return ["timeline", "people", "public-info", "music", "contributions"].includes(entry.id);
+  return ["timeline", "people", "pilotage", "public-info", "music", "contributions"].includes(entry.id);
 }
 
 /** Barre latérale du Monde : les catégories communes, identiques d'une phase à l'autre. */
@@ -138,9 +153,7 @@ export function getWeddingRailItems(
   }[phase];
   const entries: WeddingRailItem[] = [
     { ...timelineByPhase, icon: "timeline" },
-    { ...people(locale), icon: "people" },
-    { ...providers(locale), icon: "providers" },
-    { ...tasks(locale), icon: "tasks" },
+    { ...pilotage(locale), icon: "people" },
     { ...documents(locale), icon: "documents" },
     { ...logistics(locale), icon: "logistics" },
     { ...music(locale, phase === "pendant"), icon: "music" },
@@ -150,8 +163,8 @@ export function getWeddingRailItems(
 
 /**
  * Navigation horizontale : ne reste que ce qui est propre à la phase courante.
- * Le socle commun (Personnes, Prestataires, Tâches, Finances, Documents,
- * Équipe, Musique) est dans la barre latérale ; cette rangée décrit la période.
+ * Le socle commun (Pilotage, Documents, Logistique, Musique) est dans la
+ * fenêtre unique ; cette rangée décrit la période.
  */
 export function getWeddingNavigation(
   phase: WorldPhase,
@@ -177,7 +190,7 @@ export function getWeddingNavigation(
 }
 
 export const WEDDING_PANEL_IDS = [
-  "planning", "guests", "providers", "dayof", "seating", "budget", "documents", "ceremony",
+  "pilotage", "planning", "guests", "providers", "dayof", "seating", "budget", "documents", "ceremony",
   "music", "logistics", "messages", "team", "memories", "contributions", "thanks", "film", "honeymoon",
 ] as const;
 
@@ -259,7 +272,7 @@ export function isWeddingPanelAvailable(
     item => item.destination.kind === "panel" && item.destination.panel === normalized,
   );
   if (available) return true;
-  if (["guests", "providers", "documents", "logistics"].includes(normalized)) return true;
+  if (["pilotage", "documents", "logistics"].includes(normalized)) return true;
   return panel === "music" && view === "music";
 }
 
@@ -278,11 +291,11 @@ export function getWeddingNavigationLabel(
 
 /** Associe chaque type d'entité de la Timeline au panneau du Monde qui l'édite. */
 export const PANEL_FOR_KIND: Partial<Record<TimelineEntityKind, WeddingPanelId>> = {
-  guest: "guests",
-  table: "guests",
-  provider: "providers",
-  task: "planning",
-  payment: "providers",
+  guest: "pilotage",
+  table: "pilotage",
+  provider: "pilotage",
+  task: "pilotage",
+  payment: "pilotage",
   document: "documents",
   music: "music",
   team: "logistics",

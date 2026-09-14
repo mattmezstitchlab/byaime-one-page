@@ -6,7 +6,6 @@ import {
   Plus,
   Trash2,
   Check,
-  AlertTriangle,
   Send,
   Upload,
   Download,
@@ -14,25 +13,14 @@ import {
   LoaderCircle,
   Search,
   ShieldCheck,
-  Film,
-  Image as ImageIcon,
-  Music2,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Heart,
 } from "lucide-react";
-import type { MemoryItem, MusicSearchResult, MusicTrack, Payment, Document } from "@/lib/types";
-import { effectiveGuestRsvp } from "@/lib/participant-rsvp";
+import type { MusicSearchResult, MusicTrack, Document } from "@/lib/types";
 import { MESSAGE_TO_EVENT, consumeMessageDraft } from "@/lib/person-spotlight-bus";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import type { WeddingModule } from "@/lib/wedding-navigation";
-import { formatCents, currencySymbol } from "@/lib/money";
-import { queueWorldFocus } from "@/lib/world-focus";
 
 export type { WeddingModule } from "@/lib/wedding-navigation";
 
-const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 const newId = () => crypto.randomUUID();
 
 type SentMessage = {
@@ -47,30 +35,6 @@ type SentMessage = {
   scheduledAt?: string | null;
   cancelledAt?: string | null;
   sentAt?: string | null;
-  createdAt: string;
-};
-type ParticipantMedia = {
-  id: string;
-  name: string;
-  contentType: string;
-  size: number;
-  guestId?: string | null;
-  guestName?: string | null;
-  caption?: string | null;
-  moderationStatus: "pending" | "approved" | "rejected";
-  visibility: "private" | "couple" | "guests";
-  consent?: boolean;
-  createdAt?: string;
-};
-type SongRequest = {
-  id: string;
-  projectId: string;
-  guestId: string;
-  guestName?: string | null;
-  title: string;
-  artist: string;
-  message?: string | null;
-  status: "new" | "seen" | "accepted" | "played" | "rejected";
   createdAt: string;
 };
 
@@ -116,10 +80,6 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-const fileSize = (bytes: number) =>
-  bytes < 1_000_000
-    ? `${Math.max(1, Math.round(bytes / 1_000))} Ko`
-    : `${(bytes / 1_000_000).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
 
 function readFileAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -150,7 +110,7 @@ function AddBar({ label, onAdd }: { label: string; onAdd: () => void }) {
   );
 }
 
-function Empty({ children }: { children: string }) {
+function Empty({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-3xl border border-dashed border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-12 text-center text-sm text-[var(--agency-body)]">
       {children}
@@ -158,59 +118,6 @@ function Empty({ children }: { children: string }) {
   );
 }
 
-function MemoryChecklist() {
-  const { project, updateEntity, removeEntity } = useProject();
-  if (!project || project.memories.length === 0) return <Empty>Les souvenirs à préparer apparaîtront ici.</Empty>;
-  return (
-    <>
-      {project.memories.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4"
-        >
-          <button
-            onClick={() => updateEntity("memories", item.id, { status: item.status === "termine" ? "a_faire" : "termine" })}
-            className={cn(
-              "grid h-6 w-6 place-items-center rounded-full border",
-              item.status === "termine"
-                ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]"
-                : "border-[var(--agency-hairline)]",
-            )}
-          >
-            {item.status === "termine" && <Check className="h-3 w-3" />}
-          </button>
-          <div className="grid flex-1 gap-2 sm:grid-cols-2">
-            <input
-              value={item.title}
-              onChange={(e) => updateEntity("memories", item.id, { title: e.target.value })}
-              className="bg-transparent text-sm outline-none text-[var(--agency-ink)]"
-            />
-            <input
-              value={item.owner || ""}
-              onChange={(e) => updateEntity("memories", item.id, { owner: e.target.value })}
-              placeholder="Responsable"
-              className="bg-transparent text-xs outline-none text-[var(--agency-body)] placeholder:text-[var(--agency-eyebrow)]"
-            />
-            <select
-              value={item.kind}
-              onChange={(e) => updateEntity("memories", item.id, { kind: e.target.value as MemoryItem["kind"] })}
-              className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none"
-            >
-              <option value="shot">Shot list</option>
-              <option value="media">Média</option>
-              <option value="message">Message</option>
-              <option value="album">Album</option>
-              <option value="rappel">Rappel</option>
-            </select>
-          </div>
-          <button onClick={() => removeEntity("memories", item.id)} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      ))}
-    </>
-  );
-}
 
 export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const {
@@ -218,7 +125,6 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     currentRole,
     syncStatus,
     syncError,
-    participantLinks,
     refreshParticipantLinks,
     updateProject,
     updateEntity,
@@ -235,14 +141,12 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
   const [freeRecipients, setFreeRecipients] = useState("");
   const [freeSubject, setFreeSubject] = useState("");
   const [freeBody, setFreeBody] = useState("");
-  const [rescheduleAt, setRescheduleAt] = useState<Record<string, string>>({});
   const [musicQuery, setMusicQuery] = useState("");
   const [musicResults, setMusicResults] = useState<MusicSearchResult[]>([]);
   const [musicSearchBusy, setMusicSearchBusy] = useState(false);
   const [musicSearchError, setMusicSearchError] = useState("");
   const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
   // P3: participantMedia/songRequests/selectedVideoId supprimés — fusionnés dans Galerie unifiée
-  const [lightboxId, setLightboxId] = useState<string | null>(null);
   const [localDocError, setLocalDocError] = useState("");
   const [localDocProgress, setLocalDocProgress] = useState<{ done: number; total: number; current: string } | null>(null);
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video" | "doc">("all");
@@ -289,26 +193,15 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
       });
   }, [canManage, module, projectId]);
 
-  useEffect(() => {
-    if (!projectId || !canManage || ![ "contributions", "film", "memories", "thanks" ].includes(module)) return;
-    void api<ParticipantMedia[]>(`/projects/${projectId}/participant-media`)
-      .then(setParticipantMedia)
-      .catch(() => setParticipantMedia([]));
-  }, [canManage, module, projectId]);
-
-  useEffect(() => {
-    if (!projectId || !canManage || ![ "music", "thanks" ].includes(module)) return;
-    void api<SongRequest[]>(`/projects/${projectId}/song-requests`)
-      .then(setSongRequests)
-      .catch(() => setSongRequests([]));
-  }, [canManage, module, projectId]);
+  /*
+   * 14/09 : deux effets de récupération traînaient ici après la fusion P3 —
+   * ils appelaient `setParticipantMedia` et `setSongRequests`, supprimés avec
+   * la Galerie unifiée. Ouvrir Contributions, Film, Souvenirs, Merci ou
+   * Musique levait `ReferenceError` et faisait tomber tout le panneau.
+   */
 
   if (!project) return null;
 
-  const addPayment = () =>
-    addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
-
-  // --- Documents local-first : FileReader -> dataURL -> project.documents ---
   const importLocalDocuments = async (files: File[]) => {
     if (!files.length) return;
     setLocalDocError("");
@@ -425,83 +318,8 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
     setFreeOpen(false);
   };
 
-  const cancelScheduledMessage = async (messageId: string) => {
-    setBusy(true);
-    try {
-      if (projectId) await api<SentMessage>(`/projects/${projectId}/messages/${messageId}`, { method: "POST" });
-      setMessages((cur) => cur.filter((m) => m.id !== messageId));
-    } catch {
-      setMessages((cur) => cur.filter((m) => m.id !== messageId));
-    } finally {
-      setBusy(false);
-    }
-  };
 
-  const rescheduleMessage = async (messageId: string) => {
-    const value = rescheduleAt[messageId];
-    if (!value) return;
-    setBusy(true);
-    try {
-      if (projectId)
-        await api<SentMessage>(`/projects/${projectId}/messages/${messageId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ scheduledAt: new Date(value).toISOString() }),
-        });
-      setMessages((cur) =>
-        cur.map((m) => (m.id === messageId ? { ...m, scheduledAt: new Date(value).toISOString() } : m)),
-      );
-    } catch {
-      setRemoteError("Reprogrammation indisponible hors-ligne");
-    } finally {
-      setBusy(false);
-    }
-  };
 
-  const moderateMedia = async (mediaId: string, status: ParticipantMedia["moderationStatus"]) => {
-    setBusy(true);
-    try {
-      if (projectId) {
-        const updated = await api<ParticipantMedia>(`/projects/${projectId}/participant-media/${mediaId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ status }),
-        });
-        setParticipantMedia((cur) => cur.map((item) => (item.id === updated.id ? updated : item)));
-      } else {
-        setParticipantMedia((cur) => cur.map((item) => (item.id === mediaId ? { ...item, moderationStatus: status } : item)));
-      }
-    } catch {
-      setParticipantMedia((cur) => cur.map((item) => (item.id === mediaId ? { ...item, moderationStatus: status } : item)));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const updateSongRequest = async (requestId: string, status: SongRequest["status"]) => {
-    setBusy(true);
-    try {
-      if (projectId) {
-        const updated = await api<SongRequest>(`/projects/${projectId}/song-requests/${requestId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ status }),
-        });
-        setSongRequests((cur) => cur.map((item) => (item.id === updated.id ? updated : item)));
-      } else {
-        setSongRequests((cur) => cur.map((item) => (item.id === requestId ? { ...item, status } : item)));
-      }
-    } catch {
-      setSongRequests((cur) => cur.map((item) => (item.id === requestId ? { ...item, status } : item)));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const sendThankYou = async (recipient: string, name: string) => {
-    await deliverMessageLocal(
-      [recipient],
-      `Merci d’avoir partagé ${project.title}`,
-      `Bonjour ${name},\n\nMerci d’avoir été à nos côtés et d’avoir partagé ce Moment avec nous.\n\nAvec toute notre affection.`,
-    );
-  };
 
   if (module === "seating") {
     return (
@@ -965,11 +783,11 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
           <div className="space-y-4">
             <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">Ancien panneau Team fusionné ici. Gérez rôles, missions, contacts jour J.</div>
             <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
-              <div className="flex justify-between items-center mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Équipe & rôles</p><AddBar label="Rôle" onAdd={()=>updateProject({ team: [...project.team, { id:newId(), role:"Nouveau rôle", person:"À assigner", tasks:[] }] })} /></div>
+              <div className="flex justify-between items-center mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Équipe & rôles</p><AddBar label="Rôle" onAdd={()=>updateProject({ team: [...project.team, { id:newId(), name:"Nouveau rôle", role:"Nouveau rôle", responsibilities:[], person:"À assigner", tasks:[] }] })} /></div>
               {project.team.length===0 ? <Empty>Aucun rôle défini.</Empty> : project.team.map((member)=>(
                 <details key={member.id} className="group border-b border-foreground/5 py-3 last:border-0">
                   <summary className="flex items-center justify-between cursor-pointer list-none">
-                    <div><p className="text-sm">{member.role} <span className="text-foreground/40">· {member.person}</span></p><p className="text-xs text-foreground/40">{member.tasks.length} tâche(s)</p></div>
+                    <div><p className="text-sm">{member.role} <span className="text-foreground/40">· {member.person}</span></p><p className="text-xs text-foreground/40">{(member.tasks ?? []).length} tâche(s)</p></div>
                     <span className="text-[10px] uppercase tracking-widest text-foreground/30 group-open:rotate-180 transition">▼</span>
                   </summary>
                   <div className="mt-3 space-y-2">
@@ -977,13 +795,13 @@ export function WeddingModulesPanel({ module }: { module: WeddingModule }) {
                       <input value={member.role} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, role:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder="Rôle" />
                       <input value={member.person} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, person:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder="Personne" />
                     </div>
-                    {member.tasks.map((t,i)=>(
+                    {(member.tasks ?? []).map((t,i)=>(
                       <div key={`${member.id}-${i}`} className="flex items-center gap-2">
-                        <input value={t} onChange={(e)=>{ const next=[...member.tasks]; next[i]=e.target.value; updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:next}:x) }); }} className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-3 py-1 text-xs outline-none" />
-                        <button onClick={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:x.tasks.filter((_,j)=>j!==i)}:x) })} className="text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>
+                        <input value={t} onChange={(e)=>{ const next=[...(member.tasks ?? [])]; next[i]=e.target.value; updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:next}:x) }); }} className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-3 py-1 text-xs outline-none" />
+                        <button onClick={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:(x.tasks ?? []).filter((_,j)=>j!==i)}:x) })} className="text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>
                       </div>
                     ))}
-                    <div className="flex gap-2"><AddBar label="Tâche" onAdd={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:[...x.tasks, "Nouvelle tâche"]}:x) })} /><button onClick={()=>updateProject({ team: project.team.filter((x)=>x.id!==member.id) })} className="text-[10px] uppercase tracking-widest text-[#B42318]">Supprimer rôle</button></div>
+                    <div className="flex gap-2"><AddBar label="Tâche" onAdd={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:[...(x.tasks ?? []), "Nouvelle tâche"]}:x) })} /><button onClick={()=>updateProject({ team: project.team.filter((x)=>x.id!==member.id) })} className="text-[10px] uppercase tracking-widest text-[#B42318]">Supprimer rôle</button></div>
                   </div>
                 </details>
               ))}
@@ -1262,24 +1080,6 @@ if (module === "messages") {
   );
 }
 
-function GuestSeat({ guest, tables, onChange }: { guest: { name: string; tableId?: string; dietary?: string }; tables: { id: string; name: string }[]; onChange: (value: string) => void }) {
-  return (
-    <div className="flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4 py-2">
-      <span className="flex-1 truncate text-sm text-[var(--agency-ink)]">
-        {guest.name}
-        {guest.dietary && <span className="ml-2 text-[10px] text-[var(--agency-body)]">{guest.dietary}</span>}
-      </span>
-      <select value={guest.tableId || ""} onChange={(e) => onChange(e.target.value)} className="max-w-[130px] rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none">
-        <option value="">Sans table</option>
-        {tables.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 function formatTrackDuration(durationMs?: number) {
   if (!durationMs || durationMs <= 0) return null;
@@ -1435,36 +1235,6 @@ function MusicTrackRow({
   );
 }
 
-function PaymentRow({ payment, currency, onToggle, onDelete, onEdit }: { payment: Payment; currency?: string; onToggle: () => void; onDelete: () => void; onEdit: (u: Partial<Payment>) => void }) {
-  return (
-    <div className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5">
-      <button onClick={onToggle} className={cn("grid h-6 w-6 place-items-center rounded-full border", payment.state === "paye" ? "border-[var(--agency-ink)] bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-[var(--agency-hairline)]")}>
-        {payment.state === "paye" && <Check className="h-3.5 w-3.5" />}
-      </button>
-      <div className="flex-1">
-        <input value={payment.label} onChange={(e) => onEdit({ label: e.target.value })} className="w-full bg-transparent text-sm outline-none text-[var(--agency-ink)]" />
-        <p className="mt-1 text-xs text-[var(--agency-body)]">
-          {new Date(payment.at).toLocaleDateString("fr-FR")} · {payment.state === "paye" ? "réglé" : "à régler"}
-        </p>
-      </div>
-      <div className="flex items-center gap-1">
-        <input
-          aria-label="Montant du paiement"
-          type="number"
-          value={payment.amountCents / 100}
-          onChange={(e) => onEdit({ amountCents: Number(e.target.value) * 100 })}
-          className="w-24 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-right font-mono text-sm outline-none"
-        />
-        <span className="w-8 text-xs text-[var(--agency-body)]" aria-hidden>
-          {currencySymbol(currency)}
-        </span>
-      </div>
-      <button onClick={onDelete} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
 
 function EditableArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
@@ -1481,22 +1251,6 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
   );
 }
 
-function CollectionPanel({ title, addLabel, onAdd, children }: { title: string; addLabel: string; onAdd: () => void; children: ReactNode }) {
-  return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">{title}</p>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">Un espace simple, pensé pour avancer — même dessin que l’écran démo.</p>
-          </div>
-          <AddBar label={addLabel} onAdd={onAdd} />
-        </div>
-      </div>
-      <div className="space-y-3">{children}</div>
-    </div>
-  );
-}
 
 function PersistenceState({ status, error }: { status: "local" | "loading" | "saving" | "saved" | "error" | "conflict"; error?: string }) {
   const state =

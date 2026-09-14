@@ -33,11 +33,12 @@ describe("wedding navigation", () => {
     },
   );
 
-  it("gives owners and planners the common categories in the rail and the Avant mode tools horizontally", () => {
+  it("gives owners and planners the merged categories in the rail and the Avant mode tools horizontally", () => {
     for (const role of ["owner", "planner"] as const) {
       const capabilities = getWeddingCapabilities(role);
+      /* P3 : Personnes + Prestataires + Tâches = un seul panneau « Pilotage ». */
       expect(getWeddingRailItems("avant", capabilities).map(item => item.label)).toEqual([
-        "Timeline", "Personnes", "Prestataires", "Tâches", "Documents", "Logistique", "Musique",
+        "Timeline", "Pilotage", "Documents", "Logistique", "Musique",
       ]);
       expect(getWeddingNavigation("avant", capabilities).primary.map(item => item.label)).toEqual([
         "Messages",
@@ -104,9 +105,10 @@ describe("wedding navigation", () => {
     expect(providers.items.map(item => item.id)).toContain("documents");
     expect(providers.items.map(item => item.id)).not.toContain("ceremony");
 
+    /* Un identifiant historique reste rangé dans le socle commun, via Pilotage. */
     const guests = getPanelContextGroup("guests", rail, navigation, "chronological");
     expect(guests.id).toBe("rail");
-    expect(guests.items.map(item => item.id)).toContain("people");
+    expect(guests.items.map(item => item.id)).toContain("pilotage");
   });
 
   it("range un outil du mode dans « Outils du mode » avec les outils voisins de la phase", () => {
