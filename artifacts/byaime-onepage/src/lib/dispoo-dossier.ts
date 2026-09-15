@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   fact,
   type Logistics,
+  type MusicTrack,
   type Provider,
   type ProviderCategory,
   type TimelineEvent,
@@ -30,6 +31,11 @@ import {
  *   repris tels quels dans la logistique invitée) ;
  * - `budget?` : `total?` (en unités majeures, ex. 20000 = 20 000 €),
  *   `currency?` (code ISO, ex. "EUR").
+ *
+ * Champs Carte AIME v1 (optionnels, hors Dispoo) : `subtitle?` (accroche ou
+ * bio du premier site), `visual?` (URL d'image), `music?` (`title?`,
+ * `artist?`, `url?` — un seul morceau). Ils sont repris tels quels, jamais
+ * inventés ; ce qui n'a pas de destination v1 est simplement ignoré.
  *
  * Règles de propagation : un dossier valide n'écrase jamais — il crée le Monde
  * s'il n'existe pas, sinon il complète les blancs et ignore les doublons
@@ -83,6 +89,15 @@ const dossierSchemaV1 = z.object({
     .object({
       total: z.number().nonnegative().optional(),
       currency: z.string().optional(),
+    })
+    .optional(),
+  subtitle: z.string().optional(),
+  visual: z.string().optional(),
+  music: z
+    .object({
+      title: z.string().optional(),
+      artist: z.string().optional(),
+      url: z.string().optional(),
     })
     .optional(),
 });
@@ -227,6 +242,11 @@ export function dossierLogistics(dossier: DispooDossierV1): Logistics {
   };
 }
 
+/** L'accroche de la carte (headline puis bio) pour le sous-titre du Monde. */
+export function dossierSubtitle(dossier: DispooDossierV1): string | null {
+  return dossier.subtitle?.trim() || null;
+}
+
 /** L'identité du dossier vers l'ébauche d'un Monde neuf (normalisée par le store). */
 export function dossierToProjectDraft(dossier: DispooDossierV1): Partial<WorldProject> {
   const dayMs = dossierDayMs(dossier) ?? Date.now();
@@ -234,10 +254,14 @@ export function dossierToProjectDraft(dossier: DispooDossierV1): Partial<WorldPr
   const venue = dossier.identity.venue?.trim() || null;
   const total = dossier.budget?.total;
   const guests = dossier.identity.guests;
+  const subtitle = dossierSubtitle(dossier);
+  const visual = dossier.visual?.trim();
   return {
     title: dossier.identity.name.trim(),
     universe: "Mariage",
     persona: "couple",
+    ...(subtitle ? { subtitle } : {}),
+    ...(visual ? { heroVisual: { kind: "image" as const, url: visual } } : {}),
     ...(dossier.budget?.currency?.trim() ? { currency: dossier.budget.currency.trim().toUpperCase() } : {}),
     pivot: fact(dayMs, "confirme"),
     city: fact(city, city ? "confirme" : "manquant"),
@@ -246,6 +270,35 @@ export function dossierToProjectDraft(dossier: DispooDossierV1): Partial<WorldPr
     guestsCount: fact(guests ?? null, guests !== undefined ? "confirme" : "manquant"),
     logistics: dossierLogistics(dossier),
   };
+}
+
+/**
+ * Le morceau de la carte (un seul) vers une piste AIME : statut « valide »
+ * quand l'artiste est connu, « à choisir » sinon — le parcours iTunes existant
+ * du panneau Musique prend le relais. L'URL de la carte est conservée en note,
+ * sans invention. Doublon (même titre normalisé) = aucune piste.
+ */
+export function dossierMusicTracks(
+  dossier: DispooDossierV1,
+  project: WorldProject | null,
+): Array<Omit<MusicTrack, "id">> {
+  const title = dossier.music?.title?.trim();
+  if (!title) return [];
+  if (project?.music?.some(track => normalizeName(track.title) === normalizeName(title))) return [];
+  const artist = dossier.music?.artist?.trim() ?? "";
+  const url = dossier.music?.url?.trim();
+  return [
+    {
+      moment: "Nouveau Moment",
+      title,
+      artist,
+      status: artist ? "valide" : "a_choisir",
+      ...(url ? { notes: `Source : ${url}` } : {}),
+      metadataStatus: "manual",
+      provenance: "integration",
+      timelineEventIds: [],
+    },
+  ];
 }
 
 const normalizeName = (value: string) => stripAccents(value.trim());
@@ -313,6 +366,10 @@ export function dossierMergeUpdates(
   if (currency && !project.currency) updates.currency = currency;
   const guests = dossier.identity.guests;
   if (guests !== undefined && project.guestsCount.value === null) updates.guestsCount = fact(guests, "confirme");
+  const subtitle = dossierSubtitle(dossier);
+  if (subtitle && !project.subtitle?.trim()) updates.subtitle = subtitle;
+  const visual = dossier.visual?.trim();
+  if (visual && !project.heroVisual?.url?.trim()) updates.heroVisual = { kind: "image", url: visual };
   const fill = dossierLogisticsFill(dossier, project);
   if (Object.keys(fill).length > 0) updates.logistics = { ...project.logistics, ...fill };
   return updates;
@@ -324,9 +381,10 @@ export function dossierMergeUpdates(
 
 export type DossierPlanItem =
   | { group: "identity"; action: "create"; name: string; dayMs: number; place?: string }
-  | { group: "identity"; action: "fill"; field: "city" | "venue" | "guests"; value: string }
+  | { group: "identity"; action: "fill"; field: "city" | "venue" | "guests" | "subtitle" | "visual"; value: string }
   | { group: "providers"; member: DispooTeamMember; category: ProviderCategory; role: string }
   | { group: "moments"; step: DispooRundownStep; time: number }
+  | { group: "music"; title: string; artist?: string }
   | { group: "logistics"; field: "parking" | "accessibility" | "weatherFallback"; value: string }
   | { group: "budget"; total: number; currency: string }
   | { group: "skipped"; label: string; reason: "duplicate" | "badTime" | "filled" };
@@ -361,6 +419,24 @@ export function planDossierPropagation(
         items.push({ group: "skipped", label: String(guests), reason: "filled" });
       }
     }
+  }
+
+  /* Carte AIME : sous-titre, visuel et musique — montrés, jamais appliqués en silence. */
+  const subtitle = dossierSubtitle(dossier);
+  if (subtitle) {
+    if (!project || !project.subtitle?.trim()) items.push({ group: "identity", action: "fill", field: "subtitle", value: subtitle });
+    else items.push({ group: "skipped", label: subtitle, reason: "filled" });
+  }
+  const visual = dossier.visual?.trim();
+  if (visual) {
+    if (!project || !project.heroVisual?.url?.trim()) items.push({ group: "identity", action: "fill", field: "visual", value: visual });
+    else items.push({ group: "skipped", label: visual, reason: "filled" });
+  }
+  const musicTitle = dossier.music?.title?.trim();
+  if (musicTitle) {
+    const [track] = dossierMusicTracks(dossier, project);
+    if (track) items.push({ group: "music", title: track.title, ...(track.artist ? { artist: track.artist } : {}) });
+    else items.push({ group: "skipped", label: musicTitle, reason: "duplicate" });
   }
 
   const freshProviders = newDossierProviders(dossier, project);

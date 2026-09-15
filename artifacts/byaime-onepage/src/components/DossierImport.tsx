@@ -4,7 +4,9 @@ import { useProject } from "@/store/project-store";
 import {
   dossierMemberToProvider,
   dossierMergeUpdates,
+  dossierMusicTracks,
   dossierStepToMoment,
+  dossierSubtitle,
   dossierToProjectDraft,
   newDossierMoments,
   newDossierProviders,
@@ -16,12 +18,13 @@ import { formatBudget } from "@/lib/money";
 import type { UniversalDrop } from "@/lib/universal-import";
 import { trackEvent } from "@/lib/analytics";
 
-const GROUP_ORDER: DossierPlanItem["group"][] = ["identity", "providers", "moments", "logistics", "budget", "skipped"];
+const GROUP_ORDER: DossierPlanItem["group"][] = ["identity", "providers", "moments", "music", "logistics", "budget", "skipped"];
 
 const GROUP_KEYS: Record<DossierPlanItem["group"], I18nKey> = {
   identity: "dossier.group.identity",
   providers: "dossier.group.providers",
   moments: "dossier.group.moments",
+  music: "dossier.group.music",
   logistics: "dossier.group.logistics",
   budget: "dossier.group.budget",
   skipped: "dossier.group.skipped",
@@ -31,6 +34,8 @@ const FIELD_KEYS = {
   city: "dossier.field.city",
   venue: "dossier.field.venue",
   guests: "dossier.field.guests",
+  subtitle: "dossier.field.subtitle",
+  visual: "dossier.field.visual",
   parking: "dossier.field.parking",
   accessibility: "dossier.field.accessibility",
   weatherFallback: "dossier.field.weatherFallback",
@@ -79,8 +84,9 @@ export function DossierImport({
 
   const confirm = () => {
     if (!canEdit || actionable.length === 0) return;
+    /* La carte nomme le Monde : l'accroche du premier site prime sur le libellé générique. */
     if (!project) {
-      createProjectFromDraft(dossierToProjectDraft(dossier), t("dossier.import.subtitle"));
+      createProjectFromDraft(dossierToProjectDraft(dossier), dossierSubtitle(dossier) ?? t("dossier.import.subtitle"));
     } else {
       const updates = dossierMergeUpdates(dossier, project);
       if (Object.keys(updates).length > 0) updateProject(updates);
@@ -91,9 +97,13 @@ export function DossierImport({
     for (const moment of newDossierMoments(dossier, project)) {
       addEntity("timeline", dossierStepToMoment(moment.step, moment.time));
     }
+    for (const track of dossierMusicTracks(dossier, project)) {
+      addEntity("music", track);
+    }
     trackEvent("dossier_imported", {
       providers: providerCount,
       moments: momentCount,
+      music: plan.filter(item => item.group === "music").length,
       mode: project ? "merge" : "create",
       source,
     });
@@ -150,6 +160,13 @@ export function DossierImport({
         <li key={`moment-${index}`} className="py-2">
           <p className="text-sm text-foreground/90 tabular-nums">{clockLabel(item.time)} — {item.step.title.trim()}</p>
           {item.step.location?.trim() && <p className="mt-0.5 text-xs text-foreground/45">{item.step.location.trim()}</p>}
+        </li>
+      );
+    }
+    if (item.group === "music") {
+      return (
+        <li key={`music-${index}`} className="py-2">
+          <p className="text-sm text-foreground/90">{item.title}{item.artist ? ` — ${item.artist}` : ""}</p>
         </li>
       );
     }

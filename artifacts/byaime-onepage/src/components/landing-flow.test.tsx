@@ -41,7 +41,7 @@ const store = vi.hoisted(() => {
       state.drafted = draft;
       return draft;
     }),
-    addEntity: vi.fn((_collection: string) => "new-id"),
+    addEntity: vi.fn((_collection: string, _entity?: unknown) => "new-id"),
     updateProject: vi.fn(),
   };
 });
@@ -64,10 +64,14 @@ const CARTE = JSON.stringify({
   kind: "carte-aime",
   version: 1,
   name: "Camille & Léo",
+  headline: "Notre mariage, le 14 août 2027 à Lyon",
+  image_url: "https://premier-site.fr/photo.jpg",
   city: "Lyon",
   wedding_date: "2027-08-14",
   venue: "Domaine du Bois",
   guests: 120,
+  currency: "EUR",
+  music: { title: "Sign of the Times", artist: "Harry Styles" },
 });
 
 let root: ReturnType<typeof createRoot> | null = null;
@@ -152,6 +156,10 @@ describe("Parcours d'entrée : carte d'abord", () => {
     expect(document.body.textContent).toContain("Créer le Monde « Camille & Léo »");
     expect(document.body.textContent).toContain("Lyon");
     expect(document.body.textContent).toContain("Domaine du Bois");
+    /* Les champs carte : accroche, visuel et musique montrés, jamais appliqués en silence. */
+    expect(document.body.textContent).toContain("Sous-titre");
+    expect(document.body.textContent).toContain("Notre mariage, le 14 août 2027 à Lyon");
+    expect(document.body.textContent).toContain("Sign of the Times");
 
     await click("dossier-import-confirm");
 
@@ -160,6 +168,10 @@ describe("Parcours d'entrée : carte d'abord", () => {
     expect(document.body.textContent).toContain("Qui êtes-vous dans ce mariage ?");
     await click("role-couple");
     expect(store.createProjectFromDraft).toHaveBeenCalledTimes(1);
+    expect(store.state.drafted?.subtitle).toBe("Notre mariage, le 14 août 2027 à Lyon");
+    expect(store.state.drafted?.heroVisual).toEqual({ kind: "image", url: "https://premier-site.fr/photo.jpg" });
+    const musicAdd = store.addEntity.mock.calls.find(([collection]) => collection === "music");
+    expect(musicAdd?.[1]).toMatchObject({ title: "Sign of the Times", artist: "Harry Styles", status: "valide" });
     expect(window.location.pathname).toBe("/creation");
   });
 

@@ -4,8 +4,10 @@ import {
   dossierLogisticsFill,
   dossierMemberToProvider,
   dossierMergeUpdates,
+  dossierMusicTracks,
   dossierStepMs,
   dossierStepToMoment,
+  dossierSubtitle,
   dossierToProjectDraft,
   isDossierCandidate,
   metierToProvider,
@@ -13,8 +15,9 @@ import {
   newDossierProviders,
   parseDispooDossierText,
   planDossierPropagation,
+  type DispooDossierV1,
 } from "./dispoo-dossier";
-import { fact, type WorldProject } from "./types";
+import { fact, type MusicTrack, type WorldProject } from "./types";
 
 const SAMPLE = {
   kind: "dispoo/dossier-jour-j",
@@ -233,5 +236,85 @@ describe("dossier Jour J", () => {
     expect(plan.filter(item => item.group === "skipped")).toHaveLength(4);
     const fill = plan.find(item => item.group === "identity");
     expect(fill).toMatchObject({ action: "fill", field: "venue", value: "Domaine des Cèdres" });
+  });
+});
+
+/* La Carte AIME v1, une fois normalisée par l'import (champs optionnels du dossier). */
+const CARTE_DOSSIER = (): DispooDossierV1 => ({
+  kind: "dispoo/dossier-jour-j",
+  version: 1,
+  identity: { name: "Camille & Léo", date: "2027-08-14", city: "Lyon", venue: "Domaine du Bois", guests: 120 },
+  team: [],
+  rundown: [],
+  budget: { total: 20000, currency: "EUR" },
+  subtitle: "Notre mariage, le 14 août 2027 à Lyon",
+  visual: "https://premier-site.fr/photo.jpg",
+  music: { title: "Sign of the Times", artist: "Harry Styles", url: "https://open.spotify.com/track/x" },
+});
+
+describe("Carte AIME v1", () => {
+  it("l'ébauche créée depuis la carte porte sous-titre et visuel", () => {
+    const dossier = CARTE_DOSSIER();
+    const draft = dossierToProjectDraft(dossier);
+    expect(draft.title).toBe("Camille & Léo");
+    expect(draft.subtitle).toBe("Notre mariage, le 14 août 2027 à Lyon");
+    expect(draft.heroVisual).toEqual({ kind: "image", url: "https://premier-site.fr/photo.jpg" });
+    expect(dossierSubtitle(dossier)).toBe("Notre mariage, le 14 août 2027 à Lyon");
+  });
+
+  it("la musique de la carte devient une piste « intégration », validée car l'artiste est connu", () => {
+    const [track] = dossierMusicTracks(CARTE_DOSSIER(), null);
+    expect(track).toMatchObject({ title: "Sign of the Times", artist: "Harry Styles", status: "valide", provenance: "integration" });
+    expect(track?.notes).toContain("open.spotify.com");
+
+    /* Sans artiste : à choisir — le parcours iTunes existant prend le relais. */
+    const sansArtiste: DispooDossierV1 = { ...CARTE_DOSSIER(), music: { title: "Entrée", url: "https://youtu.be/x" } };
+    const [bare] = dossierMusicTracks(sansArtiste, null);
+    expect(bare).toMatchObject({ artist: "", status: "a_choisir" });
+    expect(bare?.notes).toContain("https://youtu.be/x");
+
+    /* Doublon (même titre, casse ou accents près) : aucune piste de plus. */
+    const project = projectWith({
+      music: [{ id: "m9", moment: "M", title: "sign of the times", artist: "HS", status: "valide" } as unknown as MusicTrack],
+    });
+    expect(dossierMusicTracks(CARTE_DOSSIER(), project)).toHaveLength(0);
+  });
+
+  it("la fusion complète les blancs (sous-titre, visuel, devise) sans rien écraser", () => {
+    const dossier = CARTE_DOSSIER();
+    const dejaRaconte = projectWith({
+      guestsCount: fact(null, "manquant"),
+      subtitle: "Déjà raconté",
+      heroVisual: { kind: "image", url: "https://deja.fr/a.jpg" },
+      currency: "USD",
+    });
+    const rien = dossierMergeUpdates(dossier, dejaRaconte);
+    expect(rien.subtitle).toBeUndefined();
+    expect(rien.heroVisual).toBeUndefined();
+    expect(rien.currency).toBeUndefined();
+
+    const applied = dossierMergeUpdates(dossier, projectWith({ guestsCount: fact(null, "manquant") }));
+    expect(applied.subtitle).toBe("Notre mariage, le 14 août 2027 à Lyon");
+    expect(applied.heroVisual).toEqual({ kind: "image", url: "https://premier-site.fr/photo.jpg" });
+    expect(applied.currency).toBe("EUR");
+  });
+
+  it("le plan montre accroche, visuel et musique — rien ne s'applique en silence", () => {
+    const plan = planDossierPropagation(CARTE_DOSSIER(), null);
+    const fills = plan.filter(item => item.group === "identity" && item.action === "fill");
+    expect(fills.map(item => ("field" in item ? item.field : ""))).toEqual(expect.arrayContaining(["subtitle", "visual"]));
+    expect(plan.some(item => item.group === "music" && item.title === "Sign of the Times")).toBe(true);
+
+    /* Sur un Monde déjà complet : doublons et déjà-remplis sont signalés. */
+    const complete = projectWith({
+      guestsCount: fact(120, "confirme"),
+      subtitle: "x",
+      heroVisual: { kind: "image", url: "https://deja.fr/a.jpg" },
+      music: [{ id: "m1", moment: "M", title: "Sign of the Times", artist: "HS", status: "valide" } as unknown as MusicTrack],
+    });
+    const planFusion = planDossierPropagation(CARTE_DOSSIER(), complete);
+    expect(planFusion.filter(item => item.group === "music")).toHaveLength(0);
+    expect(planFusion.some(item => item.group === "skipped" && item.label === "Sign of the Times")).toBe(true);
+    expect(planFusion.filter(item => item.group === "skipped" && item.reason === "filled").length).toBeGreaterThanOrEqual(2);
   });
 });
