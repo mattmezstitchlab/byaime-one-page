@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { addDays, format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ArrowRight, CalendarDays, CircleCheck, Landmark, Sparkles, TriangleAlert, Users, Wallet } from "lucide-react";
 
@@ -21,6 +21,7 @@ import {
   RESOLUTIONS,
   RESOLUTION_LABELS,
   SHIFT_OPTIONS,
+  bandeInstants,
   buildBandeState,
   commitShift,
   declareDayDelay,
@@ -178,13 +179,7 @@ export function BandePage() {
     setPlan(null);
   };
 
-  const instants = [
-    { id: "maintenant", label: "Aujourd'hui", at: Date.now() },
-    { id: "dernier-mois", label: "Le dernier mois", at: startOfDay(addDays(project.pivot.value, -21)).getTime() + 9 * HOUR },
-    { id: "veille", label: "La veille", at: startOfDay(project.pivot.value).getTime() - 6 * HOUR },
-    { id: "ceremonie", label: "Le Jour J, 16 h 30", at: project.pivot.value + 16.5 * HOUR },
-    { id: "soiree", label: "Le Jour J, 22 h", at: project.pivot.value + 22 * HOUR },
-  ];
+  const instants = bandeInstants(project, Date.now());
 
   return (
     <div className="min-h-[100dvh] bg-[var(--agency-paper)] text-[var(--agency-ink)]">
