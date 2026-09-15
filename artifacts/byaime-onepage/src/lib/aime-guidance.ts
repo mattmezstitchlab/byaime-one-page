@@ -11,6 +11,7 @@ import {
   type AimeScreenId } from "./aime-architecture";
 import { focusWorld } from "./world-focus";
 import { findTimelineConflicts } from "./timeline-graph";
+import { worldAlerts } from "./world-alerts";
 import type { WorldProject } from "./types";
 import type { WeddingPanelId, WorldPhase } from "./wedding-navigation";
 import { getWeddingCapabilities } from "./wedding-navigation";
@@ -116,7 +117,7 @@ const confirmed = (fact: { value: unknown; confidence: string } | undefined) =>
 
 export function nextBestActions(
   project: WorldProject | null,
-  options: { phase?: WorldPhase; role?: string } = {},
+  options: { phase?: WorldPhase; role?: string; now?: number } = {},
 ): AimeNextStep[] {
   const phase = options.phase ?? "avant";
   const capabilities = getWeddingCapabilities(options.role ?? "owner");
@@ -230,6 +231,65 @@ export function nextBestActions(
       why: "Deux Moments qui se chevauchent se règlent mieux maintenant qu'à 18 h le jour même.",
       weight: "blocant",
       action: { label: "Ouvrir la synthèse du Monde", detail: "Alertes, dépendances, avance.", focus: { overview: true } } });
+  }
+
+  /*
+   * Alertes de cohérence (`world-alerts.ts`) : dire ce qui dérape — retards
+   * Avant, confirmations en attente, montants invraisemblables, relances —
+   * sans que le couple ait à le chercher écran par écran. Les alertes ne
+   * créent aucun panneau : elles deviennent des recommandations qui mènent
+   * aux écrans existants. Ajoutées après les étapes ci-dessus pour que les
+   * blocages structurels (date, lieu, RSVP) gardent toujours la priorité.
+   */
+  const alerts = worldAlerts(project, { now: options.now });
+  const lateAlerts = alerts.filter(alert => alert.kind === "retard");
+  if (lateAlerts.length > 0) {
+    const [first] = lateAlerts; // les retards sortent triés : le premier est le plus ancien
+    steps.push({
+      id: "late",
+      title: lateAlerts.length === 1 ? first.title : `${lateAlerts.length} engagement(s) Avant sont en retard`,
+      why: `${first.detail} Un retard se déplace, un retard ignoré se subit.`,
+      weight: "blocant",
+      action: { label: "Ouvrir la Timeline", detail: "Replacer ce qui peut l'être.", focus: { view: "chronological" } } });
+  }
+  const confirmations = alerts.filter(alert => alert.kind === "a_confirmer");
+  if (confirmations.length > 0) {
+    steps.push({
+      id: "confirm",
+      title: confirmations.length === 1
+        ? "Vous avez encore 1 élément à confirmer"
+        : `Vous avez encore ${confirmations.length} éléments à confirmer`,
+      why: "Tant qu'un élément reste en attente, ce qui le suit dans la Timeline reste une hypothèse.",
+      weight: "utile",
+      action: { label: "Ouvrir la synthèse du Monde", detail: "Décider, confirmer, avancer.", focus: { overview: true } } });
+  }
+  const incoherences = alerts.filter(alert => alert.kind === "incoherence_jauge");
+  if (incoherences.length > 0) {
+    steps.push({
+      id: "guests-budget",
+      title: incoherences.length === 1
+        ? incoherences[0].title
+        : `Vérifier ${incoherences.length} montant(s) face à la jauge d'invités`,
+      why: incoherences[0].detail,
+      weight: "utile",
+      action: { label: "Ouvrir les finances", detail: "Devis, montants, jauge.", focus: { panel: "budget" } } });
+  }
+  alerts.filter(alert => alert.kind === "relance").forEach(alert => {
+    steps.push({
+      id: alert.id,
+      title: alert.title,
+      why: `Un message est prêt : « ${alert.detail} »`,
+      weight: "utile",
+      action: { label: "Ouvrir les messages", detail: "Modèles et destinataires.", focus: { panel: "messages" } } });
+  });
+  const upcoming = alerts.find(alert => alert.kind === "prochaine_action");
+  if (upcoming) {
+    steps.push({
+      id: "next-moment",
+      title: upcoming.title,
+      why: upcoming.detail,
+      weight: "saison",
+      action: { label: "Ouvrir la Timeline", detail: "Le Moment le plus proche dans le temps.", focus: { view: "chronological" } } });
   }
 
   if (phase === "avant") {

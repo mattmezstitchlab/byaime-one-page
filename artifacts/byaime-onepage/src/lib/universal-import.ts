@@ -1,6 +1,7 @@
 import {
   DISPOO_DOSSIER_KIND,
   DISPOO_DOSSIER_VERSION,
+  parseDispooDossierText,
   type DispooDossierV1,
 } from "./dispoo-dossier";
 
@@ -17,6 +18,35 @@ import {
  */
 
 export type UniversalDrop = { label: string; reason: "unmapped" | "badTime" };
+
+export type CarteParseResult =
+  | { ok: true; dossier: DispooDossierV1; source: "dispoo" | "universal"; dropped: UniversalDrop[] }
+  | { ok: false };
+
+/**
+ * La carte, quel que soit son transport : fichier, code collé, ou reprise
+ * d'un brouillon visiteur. Une seule lecture pour tous les chemins — Dossier
+ * strict d'abord, puis import universel. Un JSON qui RESSEMBLE à un dossier
+ * mais qui est invalide reste une erreur (pas un repli silencieux).
+ */
+export function parseCarteText(text: string, name: string): CarteParseResult {
+  const trimmed = text.trim();
+  if (!trimmed) return { ok: false };
+  const strict = parseDispooDossierText(trimmed);
+  if (strict.ok) return { ok: true, dossier: strict.dossier, source: "dispoo", dropped: [] };
+  const details = strict.errors.filter(issue => issue !== "notDossier" && issue !== "notJson");
+  if (details.length > 0) return { ok: false };
+  let raw: unknown = null;
+  try {
+    raw = JSON.parse(trimmed);
+  } catch {
+    raw = null;
+  }
+  const universal = raw !== null ? normalizeUniversalJson(raw, name) : { ok: false as const };
+  return universal.ok
+    ? { ok: true, dossier: universal.dossier, source: "universal", dropped: universal.dropped }
+    : { ok: false };
+}
 
 export type UniversalResult =
   | { ok: true; dossier: DispooDossierV1; dropped: UniversalDrop[] }
@@ -53,6 +83,23 @@ const STEP_DETAIL = new Set(["detail", "details", "description", "notes", "comme
 const PARKING_KEYS = new Set(["parking", "stationnement", "parkingvisiteurs", "seplanet"]);
 const ACCESS_KEYS = new Set(["accessibilite", "acces", "access", "handicap", "pmr", "mobilitereduite", "accessibility"]);
 const WEATHER_KEYS = new Set(["meteo", "repli", "replimeteo", "weather", "planb", "pluie", "secours", "weatherfallback", "intemperies"]);
+
+/*
+ * Carte AIME v1 : accroche, visuel, musique, devise. Correspondance EXACTE
+ * seulement — ces clés décrivent la journée (contexte du premier site), pas
+ * une donnée du Jour J, et une sous-chaîne trop large ferait des erreurs
+ * (« subtitle » contient « title », « photographe » contient « photo »).
+ * `kind`/`version` (l'enveloppe de la carte) ne correspondent à rien : ils
+ * sont ignorés proprement, jamais inventés. `category`/`skills` n'ont pas de
+ * destination v1 : ignorés (destination agence plus tard).
+ */
+const SUBTITLE_KEYS = new Set(["headline", "slogan", "tagline", "bio", "biographie", "description", "accroche", "subtitle", "soustitre"]);
+const VISUAL_KEYS = new Set(["imageurl", "image", "photo", "photourl", "picture", "avatar", "visuel", "cover", "couverture", "heroimage", "herovisual", "imageprincipale", "pochette"]);
+const MUSIC_KEYS = new Set(["music", "musique", "song", "chanson", "morceau"]);
+const CURRENCY_KEYS = new Set(["currency", "devise", "monnaie"]);
+const MUSIC_TITLE_KEYS = new Set(["title", "titre", "nom", "name", "label", "intitule"]);
+const MUSIC_ARTIST_KEYS = new Set(["artist", "artiste", "chanteur", "chanteuse", "groupe", "interprete", "band"]);
+const MUSIC_URL_KEYS = new Set(["url", "link", "lien", "href", "spotify", "deezer", "applemusic", "ecouter", "listen"]);
 
 const keyMatches = (cleaned: string, tokens: Set<string>): boolean => {
   if (tokens.has(cleaned)) return true;
@@ -139,11 +186,34 @@ function mapPrice(record: Record<string, unknown>): { priceCents?: number; dropp
   return { dropped: false };
 }
 
-function pickText(record: Record<string, unknown>, keys: Set<string>): string | undefined {
+function pickText(record: Record<string, unknown>, keys: Set<string>, exclude?: (key: string) => boolean): string | undefined {
   for (const [rawKey, value] of Object.entries(record)) {
+    if (exclude?.(cleanKey(rawKey))) continue;
     if (keyMatches(cleanKey(rawKey), keys)) {
       const text = asText(value);
       if (text) return text;
+    }
+  }
+  return undefined;
+}
+
+/* Correspondance exacte : pour les champs de contexte de la Carte AIME. */
+function pickExactText(root: Record<string, unknown>, keys: Set<string>): string | undefined {
+  for (const scope of scopesOf(root)) {
+    for (const [rawKey, value] of Object.entries(scope)) {
+      if (keys.has(cleanKey(rawKey))) {
+        const text = asText(value);
+        if (text) return text;
+      }
+    }
+  }
+  return undefined;
+}
+
+function pickExactRecord(root: Record<string, unknown>, keys: Set<string>): Record<string, unknown> | undefined {
+  for (const scope of scopesOf(root)) {
+    for (const [rawKey, value] of Object.entries(scope)) {
+      if (keys.has(cleanKey(rawKey)) && isRecord(value)) return value;
     }
   }
   return undefined;
@@ -202,8 +272,13 @@ export function normalizeUniversalJson(raw: unknown, fallbackName: string): Univ
   if (!isRecord(raw)) return { ok: false };
   const dropped: UniversalDrop[] = [];
 
-  const name = pickText(raw, NAME_KEYS)
-    ?? scopesOf(raw).map(scope => pickText(scope, NAME_KEYS)).find(Boolean)
+  /* Les champs de contexte de la carte ne nomment jamais le mariage :
+     « subtitle » contient « title », « weddingdate » contient « wedding » —
+     sans ce filtre, l'accroche ou la date deviendraient le nom. */
+  const reserved = (key: string) =>
+    SUBTITLE_KEYS.has(key) || VISUAL_KEYS.has(key) || MUSIC_KEYS.has(key) || CURRENCY_KEYS.has(key) || keyMatches(key, DATE_KEYS);
+  const name = pickText(raw, NAME_KEYS, reserved)
+    ?? scopesOf(raw).map(scope => pickText(scope, NAME_KEYS, reserved)).find(Boolean)
     ?? fallbackName.replace(/\.json$/i, "").trim()
     ?? "Import JSON";
   const safeName = name.trim() || "Import JSON";
@@ -299,7 +374,26 @@ export function normalizeUniversalJson(raw: unknown, fallbackName: string): Univ
     if (budget) break;
   }
 
-  const recognized = team.length > 0 || rundown.length > 0 || (logistics && Object.keys(logistics).length > 0) || budget !== undefined || guests !== undefined;
+  /* Carte AIME v1 : accroche, visuel, musique, devise. */
+  const subtitle = pickExactText(raw, SUBTITLE_KEYS);
+  const visualUrl = pickExactText(raw, VISUAL_KEYS);
+  const currencyRoot = pickExactText(raw, CURRENCY_KEYS);
+  const musicRecord = pickExactRecord(raw, MUSIC_KEYS);
+  const music = musicRecord
+    ? {
+        title: pickExactText(musicRecord, MUSIC_TITLE_KEYS),
+        artist: pickExactText(musicRecord, MUSIC_ARTIST_KEYS),
+        url: pickExactText(musicRecord, MUSIC_URL_KEYS),
+      }
+    : undefined;
+  const hasMusic = !!(music && (music.title || music.artist || music.url));
+  const budgetOut: DispooDossierV1["budget"] = budget
+    ? { ...budget, ...(currencyRoot && !budget.currency ? { currency: currencyRoot } : {}) }
+    : currencyRoot
+      ? { currency: currencyRoot }
+      : undefined;
+
+  const recognized = team.length > 0 || rundown.length > 0 || (logistics && Object.keys(logistics).length > 0) || budget !== undefined || guests !== undefined || subtitle !== undefined || visualUrl !== undefined || hasMusic;
   if (!recognized) return { ok: false };
 
   return {
@@ -318,7 +412,10 @@ export function normalizeUniversalJson(raw: unknown, fallbackName: string): Univ
       team,
       rundown,
       ...(logistics && Object.keys(logistics).length > 0 ? { logistics } : {}),
-      ...(budget ? { budget } : {}),
+      ...(budgetOut ? { budget: budgetOut } : {}),
+      ...(subtitle ? { subtitle } : {}),
+      ...(visualUrl ? { visual: visualUrl } : {}),
+      ...(hasMusic ? { music } : {}),
     },
   };
 }

@@ -3,7 +3,7 @@ import { answerAime, nextBestActions } from "./aime-guidance";
 import { AIME_SCREENS } from "./aime-architecture";
 import { createInitialProject, parseIntention } from "./parser";
 import { fact } from "./types";
-import type { WorldProject } from "./types";
+import type { TimelineEvent, WorldProject } from "./types";
 
 /*
  * Le moteur de conseil ne doit jamais sortir du décor : chaque étape proposée
@@ -88,6 +88,115 @@ describe("agent de guidage d'AIME", () => {
     const ids = nextBestActions(untouched).map(step => step.id);
     expect(ids).toContain("invite");
     expect(ids).not.toContain("rsvp"); // on ne relance pas ce qui n'a pas été envoyé
+  });
+
+  /* ————— Alertes de cohérence : `world-alerts.ts` transformé en recommandations ————— */
+
+  const NOW = Date.UTC(2026, 8, 15, 10); // fixe : les alertes ne doivent jamais dépendre de l'horloge du test
+
+  const moment = (overrides: Partial<TimelineEvent> = {}): TimelineEvent => ({
+    id: "m1",
+    time: Date.UTC(2027, 7, 14, 12),
+    kind: "jalon",
+    title: "Moment",
+    status: "prepare",
+    confidence: "confirme",
+    phase: "avant",
+    universe: "Mariage",
+    provenance: "real",
+    ...overrides,
+  });
+
+  /*
+   * Un Monde « silencieux » : date, ville et lieu confirmés, un invité invité
+   * et confirmé, une table posée, aucun prestataire en cours. Rien ne déclenche
+   * les étapes structurelles — seules les alertes de cohérence peuvent parler.
+   */
+  const quietWorld = (patch: Partial<WorldProject> = {}): WorldProject =>
+    bareWorld("Notre mariage le 14 août 2027 près de Lille.", {
+      pivot: fact(Date.UTC(2027, 7, 14, 12), "confirme"),
+      city: fact("Lille", "confirme"),
+      venue: fact("Domaine du Bois", "confirme"),
+      guests: [{ id: "g1", name: "Camille", role: "invite", invitationSent: true, rsvp: "confirme", attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false } }] as WorldProject["guests"],
+      tables: [{ id: "tb1", name: "Table d'honneur", capacity: 8 }] as WorldProject["tables"],
+      providers: [] as unknown as WorldProject["providers"],
+      ...patch,
+    });
+
+  it("dit qu'un engagement Avant est en retard, sans panneau nouveau", () => {
+    const monde = quietWorld({
+      timeline: [moment({ id: "e1", title: "Réserver le traiteur", time: NOW - 86400000 })],
+    });
+    const steps = nextBestActions(monde, { phase: "avant", now: NOW });
+    expect(steps.map(step => step.id)).toEqual(["late"]);
+    expect(steps[0].title).toBe("« Réserver le traiteur » est en retard");
+    expect(steps[0].weight).toBe("blocant");
+    expect(steps[0].action.focus?.view).toBe("chronological");
+    expectValidSteps(steps);
+  });
+
+  it("ne transforme pas une suggestion non adoptée en fausse urgence", () => {
+    const monde = quietWorld({
+      timeline: [moment({ id: "s1", title: "Suggestion jamais adoptée", time: NOW - 86400000, provenance: "suggested" })],
+    });
+    expect(nextBestActions(monde, { phase: "avant", now: NOW })).toEqual([]);
+  });
+
+  it("compte les éléments à confirmer avec les mots du couple", () => {
+    const monde = quietWorld({
+      timeline: [
+        moment({ id: "e1", title: "Valider le menu", status: "a_valider" }),
+        moment({ id: "e2", title: "Confirmer les fleurs", status: "en_attente" }),
+      ],
+    });
+    const steps = nextBestActions(monde, { phase: "avant", now: NOW });
+    const confirm = steps.find(step => step.id === "confirm");
+    expect(confirm?.title).toBe("Vous avez encore 2 éléments à confirmer");
+    expect(confirm?.action.focus?.overview).toBe(true);
+    const answer = answerAime("je fais quoi maintenant ?", { project: monde });
+    expect(answer.kind).toBe("next");
+    expect(answer.steps.join(" ")).toContain("Vous avez encore 2 éléments à confirmer");
+  });
+
+  it("relève l'incohérence entre un devis et la jauge d'invités", () => {
+    const monde = quietWorld({
+      guests: Array.from({ length: 120 }, (_, index) => ({
+        id: `g${index}`, name: `Invité ${index}`, role: "invite" as const,
+        invitationSent: true, rsvp: "confirme" as const,
+        attendance: { ceremony: true, cocktail: true, dinner: true, brunch: false },
+      })) as WorldProject["guests"],
+      timeline: [moment({ id: "d1", kind: "devis", title: "Devis traiteur", amountCents: 50000 })],
+    });
+    const step = nextBestActions(monde, { phase: "avant", now: NOW }).find(item => item.id === "guests-budget");
+    expect(step?.title).toContain("Devis traiteur");
+    expect(step?.weight).toBe("utile");
+    expect(step?.action.focus?.panel).toBe("budget");
+  });
+
+  it("propose la relance d'un prestataire resté sans réponse", () => {
+    const monde = quietWorld({
+      providers: [{ id: "p9", category: "traiteur", role: "Traiteur", name: "Maison Bernard", status: "contacte" }] as WorldProject["providers"],
+    });
+    const steps = nextBestActions(monde, { phase: "avant", now: NOW });
+    const relance = steps.find(step => step.id === "relance-p9");
+    expect(relance?.title).toBe("Préparer une relance pour Maison Bernard");
+    expect(relance?.why).toContain("Bonjour Maison Bernard");
+    expect(relance?.action.focus?.panel).toBe("messages");
+  });
+
+  it("garde la hiérarchie : un retard passe avant un conseil", () => {
+    const monde = quietWorld({
+      providers: [{ id: "p9", category: "traiteur", role: "Traiteur", name: "Maison Bernard", status: "contacte" }] as WorldProject["providers"],
+      timeline: [
+        moment({ id: "e1", title: "Réserver le traiteur", time: NOW - 86400000 }),
+        moment({ id: "e2", title: "Valider le menu", status: "a_valider" }),
+        moment({ id: "e3", title: "Cérémonie", phase: "pendant" }),
+      ],
+    });
+    const steps = nextBestActions(monde, { phase: "avant", now: NOW });
+    expect(steps[0].id).toBe("late");
+    expect(steps[0].weight).toBe("blocant");
+    expectValidSteps(steps);
   });
 
   it("adapte le conseil à la phase du Monde", () => {

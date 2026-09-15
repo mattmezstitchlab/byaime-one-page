@@ -17,17 +17,19 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("LandingComposer", () => {
-  it("ouvre l'accueil sur deux choix — Couple ou Wedding planner — avant toute question", () => {
+  it("ouvre sur deux portes — importer la carte d'abord, ou commencer sans carte", () => {
     const markup = render(<LandingComposer />);
 
     expect(markup).toContain('data-testid="landing-composer"');
-    expect(markup).toContain('data-testid="landing-persona"');
-    expect(markup).toContain("Qui êtes-vous ?");
-    expect(markup).toContain('data-testid="landing-persona-couple" aria-pressed="false"');
-    expect(markup).toContain('data-testid="landing-persona-pro" aria-pressed="false"');
-    expect(markup).toContain("Couple");
-    expect(markup).toContain("Wedding planner");
-    // Aucune question, aucun champ, aucun bouton de création avant le choix.
+    expect(markup).toContain('data-testid="landing-entry"');
+    expect(markup).toContain('data-testid="landing-import-primary"');
+    expect(markup).toContain("Importer ma carte");
+    expect(markup).toContain('data-testid="landing-start-blank"');
+    expect(markup).toContain("Commencer sans carte");
+    // Le choix Couple / Wedding planner ne revient jamais : une seule expérience.
+    expect(markup).not.toContain('data-testid="landing-persona');
+    expect(markup).not.toContain("Wedding planner");
+    // Aucune question, aucun champ, aucun bouton de création avant le choix de porte.
     expect(markup).not.toContain('data-testid="landing-intention-form"');
     expect(markup).not.toContain('data-testid="landing-intention-input"');
     expect(markup).not.toContain('data-testid="landing-intention-submit"');

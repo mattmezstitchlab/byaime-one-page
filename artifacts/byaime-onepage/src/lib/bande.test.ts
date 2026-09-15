@@ -4,6 +4,7 @@ import {
   DEMO_PHRASE,
   DAY_SHIFT_OPTIONS,
   demoWorld,
+  bandeInstants,
   buildChapters,
   buildDayBande,
   buildBandeState,
@@ -378,5 +379,64 @@ describe("l'écran entier se dérive d'un projet, d'un rôle et d'un instant", (
     const state = buildBandeState(fixture(), "viewer", PIVOT - 100 * DAY);
     expect(state.visibleCount).toBe(0);
     expect(state.totalCount).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * Les repères « voyager dans le temps » de la Bande : les deux instants du
+ * Jour J suivent l'ancre cérémonie de la Timeline générée, au lieu des
+ * heures fixes héritées de l'ancien germe (pivot + 16,5 h / + 22 h).
+ */
+describe("bandeInstants — les repères du Jour J suivent l'ancre cérémonie", () => {
+  const HOUR = 3_600_000;
+  /** Samedi 12 juin 2027, minuit local (le pivot de la démo). */
+  const MINUIT = new Date(2027, 5, 12, 0, 0, 0, 0).getTime();
+  /** Le même jour à 12 h : ce que le parseur pose quand l'heure n'est pas dite. */
+  const MIDI = new Date(2027, 5, 12, 12, 0, 0, 0).getTime();
+  const worldFrom = (phrase: string, pivot: number): WorldProject =>
+    createInitialProject(
+      { ...parseIntention(phrase), universe: "Mariage", pivot: fact(pivot, "confirme") },
+      phrase,
+      { persona: "couple" },
+    );
+
+  it("démo (pivot à minuit) : valeurs et libellés historiques inchangés", () => {
+    const instants = bandeInstants(fixture(MINUIT), MINUIT);
+    const ceremonie = instants.find(item => item.id === "ceremonie")!;
+    const soiree = instants.find(item => item.id === "soiree")!;
+    expect(ceremonie.at).toBe(MINUIT + 16.5 * HOUR);
+    expect(ceremonie.label).toBe("Le Jour J, 16 h 30");
+    expect(soiree.at).toBe(MINUIT + 22 * HOUR);
+    expect(soiree.label).toBe("Le Jour J, 22 h");
+    expect(instants.find(item => item.id === "veille")!.at).toBe(MINUIT - 6 * HOUR);
+    expect(instants.find(item => item.id === "dernier-mois")!.at).toBe(MINUIT - 21 * DAY + 9 * HOUR);
+  });
+
+  it("pivot à 12 h (le parseur) : les repères restent le jour du Jour J", () => {
+    const project = worldFrom("Mariage le samedi 12 juin 2027, 120 invités, budget 30 000 €", MIDI);
+    const ceremonie = bandeInstants(project, MIDI).find(item => item.id === "ceremonie")!;
+    // Avant : pivot + 16,5 h = le lendemain 4 h 30, sous un libellé « 16 h 30 ».
+    expect(new Date(ceremonie.at).getDate()).toBe(12);
+    expect(ceremonie.at).toBe(MIDI + 4.5 * HOUR); // 16 h 30, jour du pivot
+    expect(ceremonie.label).toBe("Le Jour J, 16 h 30");
+  });
+
+  it("cérémonie à 15h : les repères suivent l'ancre générée, en cohérence avec la Timeline", () => {
+    const project = worldFrom("Mariage le samedi 12 juin 2027, cérémonie à 15h, 120 invités", MIDI);
+    expect(project.timeline.find(event => event.id === "dj3")!.time).toBe(MIDI + 3 * HOUR);
+    const instants = bandeInstants(project, MIDI);
+    const ceremonie = instants.find(item => item.id === "ceremonie")!;
+    const soiree = instants.find(item => item.id === "soiree")!;
+    expect(ceremonie.at).toBe(MIDI + 3.5 * HOUR); // 15 h 30 : la cérémonie est lancée
+    expect(ceremonie.label).toBe("Le Jour J, 15 h 30");
+    expect(soiree.at).toBe(MIDI + 9 * HOUR);      // 21 h : ancre + 6 h, comme avant
+    expect(soiree.label).toBe("Le Jour J, 21 h");
+  });
+
+  it("sans Moment de cérémonie : repli sur le comportement historique", () => {
+    const project = { ...fixture(MINUIT), timeline: [] };
+    const instants = bandeInstants(project as WorldProject, MINUIT);
+    expect(instants.find(item => item.id === "ceremonie")!.at).toBe(MINUIT + 16.5 * HOUR);
+    expect(instants.find(item => item.id === "soiree")!.at).toBe(MINUIT + 22 * HOUR);
   });
 });

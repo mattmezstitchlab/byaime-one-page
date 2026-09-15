@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { normalizeUniversalJson } from "./universal-import";
+import { normalizeUniversalJson, parseCarteText } from "./universal-import";
 import { dossierDayMs, dossierToProjectDraft, planDossierPropagation } from "./dispoo-dossier";
+
+/* La Carte AIME v1 telle que le premier site l'exportera (schéma flat validé). */
+const CARTE_AIME = {
+  kind: "carte-aime",
+  version: 1,
+  name: "Camille Dupont & Léo Martin",
+  headline: "Notre mariage, le 14 août 2027 à Lyon",
+  bio: "Deux rencontres, une histoire.",
+  image_url: "https://premier-site.fr/photo.jpg",
+  category: "couple",
+  skills: [],
+  city: "Lyon",
+  wedding_date: "2027-08-14",
+  venue: "Domaine du Bois",
+  guests: 120,
+  budget: 20000,
+  currency: "EUR",
+  music: { title: "Sign of the Times", artist: "Harry Styles", url: "https://open.spotify.com/track/x" },
+};
 
 const FRENCH_SITE = {
   mariage: {
@@ -110,5 +129,87 @@ describe("import universel", () => {
     expect(draft.title).toBe("Léa & Hugo");
     expect(draft.guestsCount).toEqual({ value: 120, confidence: "confirme" });
     expect(draft.budget).toEqual({ value: 24000, confidence: "confirme" });
+  });
+});
+
+describe("Carte AIME v1", () => {
+  it("lit la carte complète : identité, accroche, visuel, devise, musique", () => {
+    const result = normalizeUniversalJson(CARTE_AIME, "carte-aime.json");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.dossier.identity).toMatchObject({
+      name: "Camille Dupont & Léo Martin",
+      date: "2027-08-14",
+      city: "Lyon",
+      venue: "Domaine du Bois",
+      guests: 120,
+    });
+    expect(result.dossier.budget).toEqual({ total: 20000, currency: "EUR" });
+    expect(result.dossier.subtitle).toBe("Notre mariage, le 14 août 2027 à Lyon");
+    expect(result.dossier.visual).toBe("https://premier-site.fr/photo.jpg");
+    expect(result.dossier.music).toMatchObject({ title: "Sign of the Times", artist: "Harry Styles", url: "https://open.spotify.com/track/x" });
+    /* L'enveloppe (kind/version) et le contexte sans destination v1
+       (category, skills) sont ignorés proprement, jamais inventés. */
+    expect(result.dropped).toEqual([]);
+  });
+
+  it("l'accroche seule suffit, et la bio prend le relais sans headline", () => {
+    const bio = normalizeUniversalJson({ name: "N&A", wedding_date: "2027-08-14", bio: "Notre histoire." }, "carte.json");
+    expect(bio.ok).toBe(true);
+    if (bio.ok) expect(bio.dossier.subtitle).toBe("Notre histoire.");
+  });
+
+  it("l'accroche ne devient jamais le nom, même seule", () => {
+    const result = normalizeUniversalJson({ headline: "Une accroche", wedding_date: "2027-08-14" }, "carte.json");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.dossier.identity.name).toBe("carte");
+    expect(result.dossier.subtitle).toBe("Une accroche");
+  });
+
+  it("le sous-titre ne prend pas la place du titre", () => {
+    /* « subtitle » contient « title » : sans filtre, il éclipserait le nom. */
+    const result = normalizeUniversalJson(
+      { title: "Le vrai nom", subtitle: "Un sous-titre", wedding_date: "2027-08-14" },
+      "carte.json",
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.dossier.identity.name).toBe("Le vrai nom");
+    expect(result.dossier.subtitle).toBe("Un sous-titre");
+  });
+
+  it("une devise racine sans budget voyage quand même jusqu'au Monde", () => {
+    const result = normalizeUniversalJson({ name: "N&A", wedding_date: "2027-08-14", headline: "Bonjour", currency: "chf" }, "carte.json");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.dossier.budget).toEqual({ currency: "chf" });
+  });
+
+  it("ni nom ni signal reconnaissable : la carte est refusée, rien n'est inventé", () => {
+    const result = normalizeUniversalJson({ wedding_date: "2027-08-14", category: "couple", skills: ["photo"] }, "carte.json");
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("parseCarteText — une seule lecture, tous transports", () => {
+  it("lit la carte collée comme le fichier : même résultat, même source", () => {
+    const pasted = parseCarteText(JSON.stringify(CARTE_AIME), "carte-aime.json");
+    expect(pasted.ok).toBe(true);
+    if (!pasted.ok) return;
+    expect(pasted.source).toBe("universal");
+    expect(pasted.dossier.identity.name).toBe("Camille Dupont & Léo Martin");
+
+    /* Un vrai Dossier Jour J reste reconnu comme tel (source « dispoo »). */
+    const dossier = JSON.stringify({ kind: "dispoo/dossier-jour-j", version: 1, identity: { name: "L&A", date: "2027-08-14" } });
+    const strict = parseCarteText(dossier, "dossier.json");
+    expect(strict.ok).toBe(true);
+    if (strict.ok) expect(strict.source).toBe("dispoo");
+  });
+
+  it("un texte vide ou illisible est refusé sans lever", () => {
+    expect(parseCarteText("", "carte.json").ok).toBe(false);
+    expect(parseCarteText("   ", "carte.json").ok).toBe(false);
+    expect(parseCarteText("pas du json", "carte.json").ok).toBe(false);
   });
 });

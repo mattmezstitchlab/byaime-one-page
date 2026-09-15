@@ -1,4 +1,4 @@
-import { addMonths, format, startOfDay } from "date-fns";
+import { addDays, addMonths, format, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 import { CONFIDENCE_SHORT } from "./confidence";
@@ -525,6 +525,41 @@ export const PHRASE_EXAMPLES: readonly string[] = [
   "Petit mariage en juin 2027, 40 personnes, 12 000 €",
   "Mariage en mars 2026 à Lisbonne, 90 convives, budget 45 k€",
 ];
+
+/*
+ * Les instants « voyager dans le temps » de la Bande publique.
+ *
+ * Les deux repères du Jour J suivaient l'ancien système d'heures fixes
+ * (pivot + 16,5 h et + 22 h, libellé « 16 h 30 » écrit en dur) : avec un
+ * pivot posé à 12 h par le parseur, le visiteur était envoyé le lendemain
+ * à 4 h 30 sous un libellé « 16 h 30 ». Ils suivent désormais l'ancre
+ * cérémonie de la Timeline générée (le Moment « dj3 », déjà référence
+ * croisée par la musique du germe), en gardant leur intention d'origine :
+ * 30 min après le début (la cérémonie est lancée) et l'entrée en soirée
+ * (+ 6 h). Sans Moment de cérémonie, repli sur le comportement historique ;
+ * sur la démo (pivot à minuit, ancre 16 h), valeurs et libellés restent
+ * bit-identiques à ceux d'avant.
+ */
+export type BandeInstant = { id: string; label: string; at: number };
+
+export function bandeInstants(project: WorldProject, now: number): BandeInstant[] {
+  const HOUR = 3_600_000;
+  const dayStart = startOfDay(project.pivot.value).getTime();
+  const ceremony = project.timeline.find(event => event.id === "dj3")?.time ?? dayStart + 16 * HOUR;
+  const clock = (time: number) => {
+    const moment = new Date(time);
+    const minutes = moment.getMinutes();
+    return minutes ? `${moment.getHours()} h ${String(minutes).padStart(2, "0")}` : `${moment.getHours()} h`;
+  };
+  return [
+    { id: "maintenant", label: "Aujourd'hui", at: now },
+    { id: "dernier-mois", label: "Le dernier mois", at: startOfDay(addDays(project.pivot.value, -21)).getTime() + 9 * HOUR },
+    { id: "veille", label: "La veille", at: dayStart - 6 * HOUR },
+    { id: "ceremonie", label: `Le Jour J, ${clock(ceremony + 0.5 * HOUR)}`, at: ceremony + 0.5 * HOUR },
+    { id: "soiree", label: `Le Jour J, ${clock(ceremony + 6 * HOUR)}`, at: ceremony + 6 * HOUR },
+  ];
+}
+
 
 /**
  * Construit un Monde entier depuis une phrase, avec le parseur déjà utilisé par

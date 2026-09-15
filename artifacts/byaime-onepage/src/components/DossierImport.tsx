@@ -4,7 +4,9 @@ import { useProject } from "@/store/project-store";
 import {
   dossierMemberToProvider,
   dossierMergeUpdates,
+  dossierMusicTracks,
   dossierStepToMoment,
+  dossierSubtitle,
   dossierToProjectDraft,
   newDossierMoments,
   newDossierProviders,
@@ -16,12 +18,13 @@ import { formatBudget } from "@/lib/money";
 import type { UniversalDrop } from "@/lib/universal-import";
 import { trackEvent } from "@/lib/analytics";
 
-const GROUP_ORDER: DossierPlanItem["group"][] = ["identity", "providers", "moments", "logistics", "budget", "skipped"];
+const GROUP_ORDER: DossierPlanItem["group"][] = ["identity", "providers", "moments", "music", "logistics", "budget", "skipped"];
 
 const GROUP_KEYS: Record<DossierPlanItem["group"], I18nKey> = {
   identity: "dossier.group.identity",
   providers: "dossier.group.providers",
   moments: "dossier.group.moments",
+  music: "dossier.group.music",
   logistics: "dossier.group.logistics",
   budget: "dossier.group.budget",
   skipped: "dossier.group.skipped",
@@ -31,6 +34,8 @@ const FIELD_KEYS = {
   city: "dossier.field.city",
   venue: "dossier.field.venue",
   guests: "dossier.field.guests",
+  subtitle: "dossier.field.subtitle",
+  visual: "dossier.field.visual",
   parking: "dossier.field.parking",
   accessibility: "dossier.field.accessibility",
   weatherFallback: "dossier.field.weatherFallback",
@@ -57,6 +62,9 @@ export function DossierImport({
   dropped = [],
   onDone,
   onCancel,
+  title,
+  description,
+  confirmOverride,
 }: {
   dossier: DispooDossierV1;
   fileName: string;
@@ -64,6 +72,12 @@ export function DossierImport({
   dropped?: UniversalDrop[];
   onDone: (message: string) => void;
   onCancel: () => void;
+  /* Le héros raconte la même lecture autrement : « Voici ce que nous avons compris ». */
+  title?: string;
+  description?: string;
+  /* Le visiteur non connecté : la carte confirmée attend la création du compte
+     (même cycle de vie que la phrase) au lieu d'écrire dans un Monde éphémère. */
+  confirmOverride?: () => void;
 }) {
   const { project, createProjectFromDraft, updateProject, addEntity, canEdit } = useProject();
   const { t, locale } = useI18n();
@@ -74,8 +88,23 @@ export function DossierImport({
 
   const confirm = () => {
     if (!canEdit || actionable.length === 0) return;
+    /* Le héros, visiteur non connecté : la carte attend le compte, elle n'écrit
+       nulle part — le même « compris » se rejouera à l'hydratation. */
+    if (confirmOverride) {
+      trackEvent("dossier_imported", {
+        providers: providerCount,
+        moments: momentCount,
+        music: plan.filter(item => item.group === "music").length,
+        mode: "pending",
+        source,
+      });
+      confirmOverride();
+      onDone(t("dossier.import.pending"));
+      return;
+    }
+    /* La carte nomme le Monde : l'accroche du premier site prime sur le libellé générique. */
     if (!project) {
-      createProjectFromDraft(dossierToProjectDraft(dossier), t("dossier.import.subtitle"));
+      createProjectFromDraft(dossierToProjectDraft(dossier), dossierSubtitle(dossier) ?? t("dossier.import.subtitle"));
     } else {
       const updates = dossierMergeUpdates(dossier, project);
       if (Object.keys(updates).length > 0) updateProject(updates);
@@ -86,9 +115,13 @@ export function DossierImport({
     for (const moment of newDossierMoments(dossier, project)) {
       addEntity("timeline", dossierStepToMoment(moment.step, moment.time));
     }
+    for (const track of dossierMusicTracks(dossier, project)) {
+      addEntity("music", track);
+    }
     trackEvent("dossier_imported", {
       providers: providerCount,
       moments: momentCount,
+      music: plan.filter(item => item.group === "music").length,
       mode: project ? "merge" : "create",
       source,
     });
@@ -148,6 +181,13 @@ export function DossierImport({
         </li>
       );
     }
+    if (item.group === "music") {
+      return (
+        <li key={`music-${index}`} className="py-2">
+          <p className="text-sm text-foreground/90">{item.title}{item.artist ? ` — ${item.artist}` : ""}</p>
+        </li>
+      );
+    }
     if (item.group === "logistics") {
       return (
         <li key={`logistics-${index}`} className="py-2">
@@ -172,9 +212,9 @@ export function DossierImport({
   return (
     <div data-testid="dossier-import">
       <p className="text-[10px] uppercase tracking-[.22em] text-foreground/45">{t(source === "universal" ? "dossier.import.eyebrowUniversal" : "dossier.import.eyebrow")}</p>
-      <h3 className="mt-2 font-display text-2xl font-light">{t("dossier.import.title")}</h3>
+      <h3 className="mt-2 font-display text-2xl font-light">{title ?? t("dossier.import.title")}</h3>
       <p className="mt-1 truncate text-xs text-foreground/40">{fileName}</p>
-      <p className="mt-3 text-sm font-light leading-relaxed text-foreground/60">{t("dossier.import.desc")}</p>
+      <p className="mt-3 text-sm font-light leading-relaxed text-foreground/60">{description ?? t("dossier.import.desc")}</p>
 
       {actionable.length === 0 ? (
         <p className="mt-6 rounded-2xl border border-foreground/10 bg-foreground/[.03] p-5 text-center text-sm text-foreground/50">
