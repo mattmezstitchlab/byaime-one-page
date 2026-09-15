@@ -1,6 +1,7 @@
 import {
   DISPOO_DOSSIER_KIND,
   DISPOO_DOSSIER_VERSION,
+  parseDispooDossierText,
   type DispooDossierV1,
 } from "./dispoo-dossier";
 
@@ -17,6 +18,35 @@ import {
  */
 
 export type UniversalDrop = { label: string; reason: "unmapped" | "badTime" };
+
+export type CarteParseResult =
+  | { ok: true; dossier: DispooDossierV1; source: "dispoo" | "universal"; dropped: UniversalDrop[] }
+  | { ok: false };
+
+/**
+ * La carte, quel que soit son transport : fichier, code collé, ou reprise
+ * d'un brouillon visiteur. Une seule lecture pour tous les chemins — Dossier
+ * strict d'abord, puis import universel. Un JSON qui RESSEMBLE à un dossier
+ * mais qui est invalide reste une erreur (pas un repli silencieux).
+ */
+export function parseCarteText(text: string, name: string): CarteParseResult {
+  const trimmed = text.trim();
+  if (!trimmed) return { ok: false };
+  const strict = parseDispooDossierText(trimmed);
+  if (strict.ok) return { ok: true, dossier: strict.dossier, source: "dispoo", dropped: [] };
+  const details = strict.errors.filter(issue => issue !== "notDossier" && issue !== "notJson");
+  if (details.length > 0) return { ok: false };
+  let raw: unknown = null;
+  try {
+    raw = JSON.parse(trimmed);
+  } catch {
+    raw = null;
+  }
+  const universal = raw !== null ? normalizeUniversalJson(raw, name) : { ok: false as const };
+  return universal.ok
+    ? { ok: true, dossier: universal.dossier, source: "universal", dropped: universal.dropped }
+    : { ok: false };
+}
 
 export type UniversalResult =
   | { ok: true; dossier: DispooDossierV1; dropped: UniversalDrop[] }

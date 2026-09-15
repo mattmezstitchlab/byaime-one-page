@@ -3,8 +3,9 @@ import { ArrowLeft, FileUp, LoaderCircle, ScanLine } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { DossierImport } from "@/components/DossierImport";
-import { isDossierCandidate, parseDispooDossierText, type DispooDossierV1 } from "@/lib/dispoo-dossier";
-import { normalizeUniversalJson, type UniversalDrop } from "@/lib/universal-import";
+import { parseCarteText, type UniversalDrop } from "@/lib/universal-import";
+import { savePendingCarte } from "@/lib/intention-draft";
+import type { DispooDossierV1 } from "@/lib/dispoo-dossier";
 
 const MAX_BYTES = 6 * 1024 * 1024;
 
@@ -18,18 +19,20 @@ function readAsText(file: File): Promise<string> {
 }
 
 type Understood = {
-  dossier: DispooDossierV1;
+  text: string;
   name: string;
+  dossier: DispooDossierV1;
   source: "dispoo" | "universal";
   dropped: UniversalDrop[];
 };
 
 /*
  * La porte « Importer ma carte » du héros : un fichier (carte-aime.json, dossier
- * JSON) ou le code copié-collé — le même contenu, deux transports. La lecture
- * est celle de l'import universel existant (aucun nouveau lecteur) ; ce qui est
- * reconnu part ensuite sur l'écran « Voici ce que nous avons compris », qui
- * reste la seule étape de confirmation.
+ * JSON) ou le code copié-collé — le même contenu, deux transports. Une seule
+ * lecture (parseCarteText : Dossier strict, puis import universel) ; ce qui est
+ * reconnu part sur l'écran « Voici ce que nous avons compris », seule étape de
+ * confirmation. Pour un visiteur sans compte, la carte confirmée attend la
+ * création du compte (même cycle de vie que la phrase d'intention).
  */
 export function CarteImport({
   signedIn,
@@ -57,32 +60,14 @@ export function CarteImport({
     }
     setBusy(true);
     try {
-      /* Même lecture que l'espace privé : Dossier strict, puis import universel. */
-      const strict = parseDispooDossierText(trimmed);
-      if (strict.ok) {
-        setUnderstood({ dossier: strict.dossier, name, source: "dispoo", dropped: [] });
-        trackEvent("dossier_detected", { source: "dispoo", entry: "hero" });
-        return;
-      }
-      const details = strict.errors.filter(issue => issue !== "notDossier" && issue !== "notJson");
-      if (details.length > 0) {
-        setError(t("carte.import.error"));
-        return;
-      }
-      let raw: unknown = null;
-      try {
-        raw = JSON.parse(trimmed);
-      } catch {
-        raw = null;
-      }
-      const universal = raw !== null ? normalizeUniversalJson(raw, name) : { ok: false as const };
-      if (universal.ok) {
-        setUnderstood({ dossier: universal.dossier, name, source: "universal", dropped: universal.dropped });
+      const result = parseCarteText(trimmed, name);
+      if (result.ok) {
+        setUnderstood({ text: trimmed, name, dossier: result.dossier, source: result.source, dropped: result.dropped });
         trackEvent("dossier_detected", {
-          source: "universal",
+          source: result.source,
           entry: "hero",
-          team: universal.dossier.team.length,
-          rundown: universal.dossier.rundown.length,
+          team: result.dossier.team.length,
+          rundown: result.dossier.rundown.length,
         });
       } else {
         setError(t("carte.import.error"));
@@ -102,6 +87,16 @@ export function CarteImport({
           dropped={understood.dropped}
           title={t("carte.import.reviewTitle")}
           description={t("carte.import.reviewDesc")}
+          confirmOverride={
+            signedIn
+              ? undefined
+              : () => {
+                  /* La carte confirmée attend le compte : stockée en local,
+                     consommée une fois à l'hydratation qui suit l'inscription. */
+                  savePendingCarte({ text: understood.text, name: understood.name });
+                  onConfirmed();
+                }
+          }
           onDone={onConfirmed}
           onCancel={() => setUnderstood(null)}
         />
@@ -182,7 +177,7 @@ export function CarteImport({
           type="button"
           data-testid="carte-import-analyse"
           disabled={busy || !pasted.trim()}
-          onClick={() => analyse(pasted, isDossierCandidate("carte.json", "application/json") ? "carte.json" : "carte")}
+          onClick={() => analyse(pasted, "carte-aime.json")}
           className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-6 text-[14px] font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
           {busy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <ScanLine className="h-4 w-4" aria-hidden />}

@@ -8,6 +8,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Router } from "wouter";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 import { I18nProvider } from "@/lib/i18n";
 import type { WorldProject } from "@/lib/types";
 
@@ -77,15 +78,15 @@ const CARTE = JSON.stringify({
 let root: ReturnType<typeof createRoot> | null = null;
 let container: HTMLDivElement | null = null;
 
-const mount = async () => {
+const mount = async (component: ReactNode = <LandingComposer />) => {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
     root!.render(
-        <I18nProvider initialLocale="fr">
+      <I18nProvider initialLocale="fr">
         <Router>
-          <LandingComposer />
+          {component}
         </Router>
       </I18nProvider>,
     );
@@ -144,7 +145,7 @@ describe("Parcours d'entrée : carte d'abord", () => {
     expect(input.placeholder).toContain("14 août 2027");
   });
 
-  it("importe une carte collée : compris → confirmé → rôle mariés → création", async () => {
+  it("visiteur : compris → confirmé → la carte attend le compte → rôle mariés", async () => {
     await mount();
     await click("landing-import-primary");
     await typePaste(CARTE);
@@ -163,16 +164,38 @@ describe("Parcours d'entrée : carte d'abord", () => {
 
     await click("dossier-import-confirm");
 
+    /* Sans compte, rien n'est écrit dans un Monde éphémère : la carte attend
+       l'inscription — le même cycle de vie que la phrase d'intention. */
+    expect(store.createProjectFromDraft).not.toHaveBeenCalled();
+    const pending = window.localStorage.getItem("aime-carte-pending");
+    expect(pending).not.toBeNull();
+    expect(pending).toContain("Camille & Léo");
+
     /* Le rôle arrive APRÈS la confirmation, et route vers l'existant. */
     expect(document.querySelector('[data-testid="role-choice"]')).not.toBeNull();
     expect(document.body.textContent).toContain("Qui êtes-vous dans ce mariage ?");
     await click("role-couple");
+    expect(window.location.pathname).toBe("/creation");
+  });
+
+  it("connecté : compris → confirmé → le Monde est créé depuis la carte", async () => {
+    await mount(<LandingComposer signedIn />);
+    await click("landing-import-primary");
+    await typePaste(CARTE);
+    await click("carte-import-analyse");
+    await click("dossier-import-confirm");
+
     expect(store.createProjectFromDraft).toHaveBeenCalledTimes(1);
     expect(store.state.drafted?.subtitle).toBe("Notre mariage, le 14 août 2027 à Lyon");
     expect(store.state.drafted?.heroVisual).toEqual({ kind: "image", url: "https://premier-site.fr/photo.jpg" });
     const musicAdd = store.addEntity.mock.calls.find(([collection]) => collection === "music");
     expect(musicAdd?.[1]).toMatchObject({ title: "Sign of the Times", artist: "Harry Styles", status: "valide" });
-    expect(window.location.pathname).toBe("/creation");
+    expect(window.localStorage.getItem("aime-carte-pending")).toBeNull();
+
+    /* Le rôle reste l'étape de routage : mariés connectés → Monde. */
+    expect(document.querySelector('[data-testid="role-choice"]')).not.toBeNull();
+    await click("role-couple");
+    expect(window.location.pathname).toBe("/user-portal");
   });
 
   it("route le planner vers la connexion agence, et dit la vérité aux invités", async () => {

@@ -71,3 +71,41 @@ export function readIntentionMeta(): IntentionMeta {
     return DEFAULT_INTENTION_META;
   }
 }
+
+/*
+ * La carte confirmée par un visiteur non connecté : le même cycle de vie que
+ * la phrase — stockée en local, consommée UNE FOIS à l'hydratation qui suit
+ * la création du compte, puis supprimée. On conserve le texte brut : la
+ * lecture (parseCarteText) est rejouée à la reprise, jamais inventée.
+ */
+export const CARTE_PENDING_KEY = "aime-carte-pending";
+
+export type PendingCarte = { text: string; name: string };
+
+export function savePendingCarte(pending: PendingCarte): void {
+  if (typeof window === "undefined") return;
+  const text = pending.text.trim();
+  if (!text) {
+    window.localStorage.removeItem(CARTE_PENDING_KEY);
+    return;
+  }
+  window.localStorage.setItem(CARTE_PENDING_KEY, JSON.stringify({ text, name: pending.name }));
+}
+
+export function readPendingCarte(): PendingCarte | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(CARTE_PENDING_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PendingCarte>;
+    if (typeof parsed.text !== "string" || !parsed.text.trim()) return null;
+    return { text: parsed.text, name: typeof parsed.name === "string" && parsed.name ? parsed.name : "carte-aime.json" };
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingCarte(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(CARTE_PENDING_KEY);
+}

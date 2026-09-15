@@ -64,6 +64,7 @@ export function DossierImport({
   onCancel,
   title,
   description,
+  confirmOverride,
 }: {
   dossier: DispooDossierV1;
   fileName: string;
@@ -74,6 +75,9 @@ export function DossierImport({
   /* Le héros raconte la même lecture autrement : « Voici ce que nous avons compris ». */
   title?: string;
   description?: string;
+  /* Le visiteur non connecté : la carte confirmée attend la création du compte
+     (même cycle de vie que la phrase) au lieu d'écrire dans un Monde éphémère. */
+  confirmOverride?: () => void;
 }) {
   const { project, createProjectFromDraft, updateProject, addEntity, canEdit } = useProject();
   const { t, locale } = useI18n();
@@ -84,6 +88,20 @@ export function DossierImport({
 
   const confirm = () => {
     if (!canEdit || actionable.length === 0) return;
+    /* Le héros, visiteur non connecté : la carte attend le compte, elle n'écrit
+       nulle part — le même « compris » se rejouera à l'hydratation. */
+    if (confirmOverride) {
+      trackEvent("dossier_imported", {
+        providers: providerCount,
+        moments: momentCount,
+        music: plan.filter(item => item.group === "music").length,
+        mode: "pending",
+        source,
+      });
+      confirmOverride();
+      onDone(t("dossier.import.pending"));
+      return;
+    }
     /* La carte nomme le Monde : l'accroche du premier site prime sur le libellé générique. */
     if (!project) {
       createProjectFromDraft(dossierToProjectDraft(dossier), dossierSubtitle(dossier) ?? t("dossier.import.subtitle"));

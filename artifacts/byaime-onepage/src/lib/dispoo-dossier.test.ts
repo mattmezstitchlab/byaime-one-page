@@ -5,6 +5,7 @@ import {
   dossierMemberToProvider,
   dossierMergeUpdates,
   dossierMusicTracks,
+  buildProjectFromDossier,
   dossierStepMs,
   dossierStepToMoment,
   dossierSubtitle,
@@ -316,5 +317,26 @@ describe("Carte AIME v1", () => {
     expect(planFusion.filter(item => item.group === "music")).toHaveLength(0);
     expect(planFusion.some(item => item.group === "skipped" && item.label === "Sign of the Times")).toBe(true);
     expect(planFusion.filter(item => item.group === "skipped" && item.reason === "filled").length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("buildProjectFromDossier — la carte confirmée avant le compte", () => {
+  it("assemble un Monde complet : identité + prestataires + Moments + musique", () => {
+    const dossier = parseSample();
+    const draft = buildProjectFromDossier(dossier);
+    expect(draft.id).toEqual(expect.any(String));
+    expect(draft.title).toBe("Mariage de Léa & Hugo");
+    expect(draft.providers).toHaveLength(3);
+    expect(draft.providers?.every(provider => typeof provider.id === "string")).toBe(true);
+    expect(draft.timeline).toHaveLength(2);
+    expect(draft.timeline?.every(event => typeof event.id === "string" && event.provenance === "integration")).toBe(true);
+    expect(draft.music).toHaveLength(0);
+
+    /* La carte : une piste « intégration », des ids stables. */
+    const carteDraft = buildProjectFromDossier(CARTE_DOSSIER());
+    expect(carteDraft.music).toHaveLength(1);
+    expect(carteDraft.music?.[0]).toMatchObject({ title: "Sign of the Times", provenance: "integration" });
+    expect(carteDraft.subtitle).toBe("Notre mariage, le 14 août 2027 à Lyon");
+    expect(carteDraft.heroVisual).toEqual({ kind: "image", url: "https://premier-site.fr/photo.jpg" });
   });
 });

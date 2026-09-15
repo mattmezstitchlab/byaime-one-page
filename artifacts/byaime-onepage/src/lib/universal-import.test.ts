@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeUniversalJson } from "./universal-import";
+import { normalizeUniversalJson, parseCarteText } from "./universal-import";
 import { dossierDayMs, dossierToProjectDraft, planDossierPropagation } from "./dispoo-dossier";
 
 /* La Carte AIME v1 telle que le premier site l'exportera (schéma flat validé). */
@@ -189,5 +189,27 @@ describe("Carte AIME v1", () => {
   it("ni nom ni signal reconnaissable : la carte est refusée, rien n'est inventé", () => {
     const result = normalizeUniversalJson({ wedding_date: "2027-08-14", category: "couple", skills: ["photo"] }, "carte.json");
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("parseCarteText — une seule lecture, tous transports", () => {
+  it("lit la carte collée comme le fichier : même résultat, même source", () => {
+    const pasted = parseCarteText(JSON.stringify(CARTE_AIME), "carte-aime.json");
+    expect(pasted.ok).toBe(true);
+    if (!pasted.ok) return;
+    expect(pasted.source).toBe("universal");
+    expect(pasted.dossier.identity.name).toBe("Camille Dupont & Léo Martin");
+
+    /* Un vrai Dossier Jour J reste reconnu comme tel (source « dispoo »). */
+    const dossier = JSON.stringify({ kind: "dispoo/dossier-jour-j", version: 1, identity: { name: "L&A", date: "2027-08-14" } });
+    const strict = parseCarteText(dossier, "dossier.json");
+    expect(strict.ok).toBe(true);
+    if (strict.ok) expect(strict.source).toBe("dispoo");
+  });
+
+  it("un texte vide ou illisible est refusé sans lever", () => {
+    expect(parseCarteText("", "carte.json").ok).toBe(false);
+    expect(parseCarteText("   ", "carte.json").ok).toBe(false);
+    expect(parseCarteText("pas du json", "carte.json").ok).toBe(false);
   });
 });

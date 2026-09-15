@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from '@clerk/react';
 import { WorldProject, fact, type ParticipantLink } from '../lib/types';
 import { parseIntention, createInitialProject } from '../lib/parser';
-import { INTENTION_DRAFT_KEY, INTENTION_META_KEY, MIN_INTENTION_LENGTH, readIntentionMeta, type IntentionMeta } from '@/lib/intention-draft';
+import { INTENTION_DRAFT_KEY, INTENTION_META_KEY, MIN_INTENTION_LENGTH, readIntentionMeta, readPendingCarte, clearPendingCarte, type IntentionMeta } from '@/lib/intention-draft';
+import { parseCarteText } from '@/lib/universal-import';
+import { buildProjectFromDossier, dossierSubtitle } from '@/lib/dispoo-dossier';
 import { normalizeProject } from '../lib/project-migration';
 import { trackEvent } from '@/lib/analytics';
 import { isCurrentRevision } from '@/lib/project-sync';
@@ -191,6 +193,29 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       } else {
         const cached = localStorage.getItem(`aime-project:${userId}`);
         if (!cached) {
+          /* La carte confirmée avant la création du compte reprend la main AVANT
+             la phrase : c'est la plus riche, et elle n'est jamais redemandée.
+             Même cycle de vie que l'intention — consommée une fois, supprimée. */
+          const pendingCarte = readPendingCarte();
+          if (pendingCarte) {
+            clearPendingCarte();
+            const carte = parseCarteText(pendingCarte.text, pendingCarte.name);
+            if (carte.ok) {
+              const carteProject = normalizeProject({
+                ...buildProjectFromDossier(carte.dossier),
+                schemaVersion: 2,
+                subtitle: dossierSubtitle(carte.dossier) ?? '',
+              } as WorldProject);
+              setPendingOwnedProjectId(carteProject.id);
+              setProject(carteProject);
+              serverSyncedProjectRef.current = null;
+              trackEvent('project_created', { source: 'carte' });
+              hydratedRef.current = true;
+              setIsHydrated(true);
+              setSyncStatus('saved');
+              return;
+            }
+          }
           /* L'intention posée sur l'accueil crée directement le Monde après la
              création du compte : pas de second champ « Racontez-nous tout » sur
              la page suivante. La phrase n'est jamais redemandée. */

@@ -273,6 +273,32 @@ export function dossierToProjectDraft(dossier: DispooDossierV1): Partial<WorldPr
 }
 
 /**
+ * Un Monde complet depuis une carte : l'ébauche d'identité (dossierToProjectDraft)
+ * PLUS les entités (prestataires, Moments, piste de musique) — l'équivalent
+ * exact du chemin « confirmer » de DossierImport, mais sans store : c'est ce
+ * que l'hydratation consomme quand un visiteur crée son compte après avoir
+ * confirmé sa carte. Les identifiants sont générés ici, une seule fois.
+ */
+export function buildProjectFromDossier(dossier: DispooDossierV1): Partial<WorldProject> {
+  return {
+    ...dossierToProjectDraft(dossier),
+    id: crypto.randomUUID(),
+    providers: newDossierProviders(dossier, null).map(member => ({
+      id: crypto.randomUUID(),
+      ...dossierMemberToProvider(member),
+    })),
+    timeline: newDossierMoments(dossier, null).map(({ step, time }) => ({
+      id: crypto.randomUUID(),
+      ...dossierStepToMoment(step, time),
+    })),
+    music: dossierMusicTracks(dossier, null).map(track => ({
+      id: crypto.randomUUID(),
+      ...track,
+    })),
+  };
+}
+
+/**
  * Le morceau de la carte (un seul) vers une piste AIME : statut « valide »
  * quand l'artiste est connu, « à choisir » sinon — le parcours iTunes existant
  * du panneau Musique prend le relais. L'URL de la carte est conservée en note,
