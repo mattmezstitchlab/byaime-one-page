@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
  *
  * - Fenêtre produit avec barre à pastilles (rouge/jaune/vert) comme sur l'écran démo,
  * - Eyebrow + grand titre + amorce en jetons agency (EYEBROW, TITLE, LEAD),
- * - Le même compositeur sombre que l'accueil (LandingComposer) pour le choix Couple / Wedding,
+ * - Le même compositeur sombre que l'accueil (LandingComposer) : porte « Importer ma carte » puis les cinq questions,
  * - Tous les panneaux ensuite parlent le même langage (CenteredBlock + BottomDock).
  */
 export function PortalOnboarding() {
@@ -46,7 +46,7 @@ export function PortalOnboarding() {
               <p className={cn(LEAD, "mt-5 max-w-xl text-center text-sm md:text-base")}>{t("private.onboarding.subtitle")}</p>
             </div>
 
-            {/* Le choix Couple / Wedding vit dans LandingComposer — conservé */}
+            {/* La porte d'entrée vit dans LandingComposer — import de carte d'abord, cinq questions ensuite */}
             <div className="mt-10 w-full">
               <LandingComposer signedIn />
             </div>

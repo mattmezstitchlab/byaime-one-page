@@ -57,6 +57,8 @@ export function DossierImport({
   dropped = [],
   onDone,
   onCancel,
+  title,
+  description,
 }: {
   dossier: DispooDossierV1;
   fileName: string;
@@ -64,6 +66,9 @@ export function DossierImport({
   dropped?: UniversalDrop[];
   onDone: (message: string) => void;
   onCancel: () => void;
+  /* Le héros raconte la même lecture autrement : « Voici ce que nous avons compris ». */
+  title?: string;
+  description?: string;
 }) {
   const { project, createProjectFromDraft, updateProject, addEntity, canEdit } = useProject();
   const { t, locale } = useI18n();
@@ -172,9 +177,9 @@ export function DossierImport({
   return (
     <div data-testid="dossier-import">
       <p className="text-[10px] uppercase tracking-[.22em] text-foreground/45">{t(source === "universal" ? "dossier.import.eyebrowUniversal" : "dossier.import.eyebrow")}</p>
-      <h3 className="mt-2 font-display text-2xl font-light">{t("dossier.import.title")}</h3>
+      <h3 className="mt-2 font-display text-2xl font-light">{title ?? t("dossier.import.title")}</h3>
       <p className="mt-1 truncate text-xs text-foreground/40">{fileName}</p>
-      <p className="mt-3 text-sm font-light leading-relaxed text-foreground/60">{t("dossier.import.desc")}</p>
+      <p className="mt-3 text-sm font-light leading-relaxed text-foreground/60">{description ?? t("dossier.import.desc")}</p>
 
       {actionable.length === 0 ? (
         <p className="mt-6 rounded-2xl border border-foreground/10 bg-foreground/[.03] p-5 text-center text-sm text-foreground/50">
