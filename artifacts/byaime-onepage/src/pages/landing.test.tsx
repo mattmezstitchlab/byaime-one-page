@@ -16,13 +16,13 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("Landing (accueil)", () => {
-  it("ouvre le hero sur l'import de carte, avant toute autre section", () => {
+  it("ouvre le hero sur la création de carte, avant toute autre section", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).toContain('data-testid="landing"');
     expect(markup).toContain('data-testid="landing-composer"');
     expect(markup).toContain('data-testid="landing-entry"');
-    expect(markup).toContain('data-testid="landing-import-primary"');
+    expect(markup).toContain('data-testid="landing-create-primary"');
     expect(markup).toContain("Sans carte bancaire");
     expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-showcase"'));
   });
@@ -64,10 +64,10 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain("Créer mon espace gratuitement");
   });
 
-  it("propose l'import de carte comme action principale du hero, et expose la langue", () => {
+  it("propose la création de carte comme action principale du hero, et expose la langue", () => {
     const markup = render(<LandingPage />);
 
-    expect(markup).toContain('data-testid="landing-import-primary"');
+    expect(markup).toContain('data-testid="landing-create-primary"');
     expect(markup).toContain('data-testid="landing-start-blank"');
     // Le choix Couple / Wedding planner a disparu du héros.
     expect(markup).not.toContain('data-testid="landing-persona');

@@ -1,3 +1,4 @@
+import { UniversalCardForm } from "./UniversalCardForm";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -29,15 +30,7 @@ import { RoleChoice } from "@/components/RoleChoice";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
-/*
- * Le parcours d'entrée d'AIME, dans l'ordre validé : CARTE → IMPORT →
- * « Voici ce que nous avons compris » → confirmation → rôle → Monde.
- *
- * Deux portes, plus jamais de choix Couple / Wedding planner : l'import de la
- * carte est l'action principale, « Commencer sans carte » l'alternative. Le
- * persona reste techniquement dans le modèle (vaut « couple ») mais n'est plus
- * une question : une seule expérience, et une seule fois chaque information.
- */
+/* Entrée personnelle directe ; import de dossier conservé dans les outils avancés. */
 type FieldKey = "date" | "place" | "guests" | "budget" | "tone";
 
 const QUESTION_KEYS: ReadonlyArray<{ key: FieldKey; icon: typeof CalendarDays }> = [
@@ -50,7 +43,7 @@ const QUESTION_KEYS: ReadonlyArray<{ key: FieldKey; icon: typeof CalendarDays }>
 
 const TOTAL_FIELDS = QUESTION_KEYS.length; // cinq informations, une à la fois
 
-type Stage = "entry" | "import" | "role" | "composer";
+type Stage = "create" | "entry" | "import" | "role" | "composer";
 
 const digits = (value: string) => value.replace(/[^\d]/g, "");
 const capitalise = (value: string) => value.charAt(0).toLocaleUpperCase() + value.slice(1);
@@ -131,7 +124,7 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
    * importer la carte d'abord, ou commencer les cinq questions.
    */
   const [stage, setStage] = useState<Stage>(() =>
-    Object.keys(resumed).length > 0 ? "composer" : "entry",
+    Object.keys(resumed).length > 0 || (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("creer") === "mariage") ? "composer" : "entry",
   );
   const [answers, setAnswers] = useState<Partial<Record<FieldKey, string>>>(resumed);
   const [index, setIndex] = useState(() => {
@@ -255,23 +248,23 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
           </div>
           <div className="p-5 text-center sm:p-6">
             <p className="text-center text-[11px] font-medium uppercase tracking-[0.24em] text-white/60">
-              {t("carte.entry.title")}
+              Votre Carte Universelle
             </p>
             <p className="mx-auto mt-2 max-w-md text-center text-[13px] leading-relaxed text-white/50">
-              {t("carte.entry.subtitle")}
+              Votre identité BYAIME. Une seule fois. Vous ne créez pas encore un mariage.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3">
               <button
                 type="button"
-                data-testid="landing-import-primary"
+                data-testid="landing-create-primary"
                 onClick={() => {
-                  trackEvent("carte_entry_opened", { entry: "import" });
-                  setStage("import");
+                  trackEvent("carte_entry_opened", { entry: "create" });
+                  signedIn ? navigate("/ma-carte") : setStage("create");
                 }}
                 className="inline-flex min-h-12 w-full max-w-sm items-center justify-center gap-2 rounded-full bg-white px-6 text-[14.5px] font-semibold text-black transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 <ScanLine className="h-4 w-4" aria-hidden />
-                {t("carte.entry.primary")}
+                {signedIn ? "Voir ma carte" : "Créer ma carte"}
               </button>
               <button
                 type="button"
@@ -282,11 +275,14 @@ export function LandingComposer({ signedIn = false }: { signedIn?: boolean }) {
                 }}
                 className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/25 px-5 text-[13px] text-white/75 transition hover:border-white/45 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                {t("carte.entry.secondary")}
+                Créer un mariage
               </button>
+              <details className="mt-2 text-xs text-white/50"><summary className="cursor-pointer py-2">Outils avancés</summary><button type="button" data-testid="landing-import-advanced" className="min-h-11 underline" onClick={() => setStage("import")}>Importer un dossier JSON</button></details>
             </div>
           </div>
         </div>
+      ) : stage === "create" ? (
+        <UniversalCardForm signedIn={signedIn} onBack={() => setStage("entry")} onCreateWedding={() => setStage("composer")} />
       ) : stage === "import" ? (
         <CarteImport signedIn={signedIn} onConfirmed={() => setStage("role")} onBack={() => setStage("entry")} />
       ) : stage === "role" ? (

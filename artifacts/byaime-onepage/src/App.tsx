@@ -1,3 +1,4 @@
+import { UniversalCardForm } from "@/components/UniversalCardForm";
 import { SiteFooter } from "@/components/SiteChrome";
 import { BODY, CARD, EYEBROW, FIELD, PILL_GHOST, PILL_INK, PILL_SMALL_GHOST, TITLE } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
@@ -129,7 +130,7 @@ function LandingRoute() {
   return <LandingPage signedIn={!!isSignedIn} />;
 }
 
-function PrivateRoute({ children }: { children: ReactNode }) {
+function PrivateRoute({ children, signInReturnTo }: { children: ReactNode; signInReturnTo?: string }) {
   return (
     <>
       <Show when="signed-in">
@@ -138,7 +139,7 @@ function PrivateRoute({ children }: { children: ReactNode }) {
         </PrivateLayout>
       </Show>
       <Show when="signed-out">
-        <Redirect to="/" />
+        <Redirect to={signInReturnTo ? authPath("/connexion", signInReturnTo) : "/"} />
       </Show>
     </>
   );
@@ -274,7 +275,7 @@ function RsvpPage({ params }: { params: { token: string } }) {
     });
     return () => { active = false; };
   }, [params.token, t]);
-  if (status === 'error') return <main data-testid="rsvp-page" data-rsvp-state="error" className="grid min-h-[100dvh] place-items-center bg-[var(--agency-paper)] p-6 text-center text-[var(--agency-ink)]"><div className="max-w-sm"><p data-testid="rsvp-error" className="text-destructive">{error}</p><button type="button" className={cn(PILL_GHOST, "mt-5")} onClick={() => window.location.reload()}>{t('rsvp.retry')}</button></div></main>;
+  if (status === 'error') return <main data-testid="rsvp-page" data-rsvp-state="error" className="grid min-h-[100dvh] place-items-center bg-[var(--agency-paper)] p-6 text-center text-[var(--agency-ink)]"><div className="max-w-sm"><p data-testid="rsvp-error" className="text-destructive">{error}</p><button type="button" className={cn(PILL_GHOST, "mt-5")} onClick={() => window.location.reload()}>{t('rsvp.retry')}</button><a className="mt-4 block text-sm underline" href={authPath('/connexion', `/rsvp/${params.token}`)}>Se connecter avec le compte associé</a></div></main>;
   const practical = portal.practicalInfo;
   const policy = portal.mediaPolicy;
   const formatPortalTime = (value: number | string, timeOnly = false) => {
@@ -286,6 +287,7 @@ function RsvpPage({ params }: { params: { token: string } }) {
   };
   return <main data-testid="rsvp-page" data-rsvp-state={status} className="min-h-[100dvh] bg-[var(--agency-paper)] p-5 pb-14 pt-8 text-[var(--agency-ink)] md:p-10 md:pb-16"><div className="mx-auto max-w-5xl">
     <header className="mb-7"><p className={EYEBROW}>{t('rsvp.eyebrow')}</p><h1 data-testid="rsvp-title" className={cn(TITLE, "mt-3 text-4xl")}>{projectTitle}</h1><p data-testid="rsvp-guest" className={cn(BODY, "mt-3 text-sm")}>{portal.guest?.name ? t('rsvp.hello', { name: portal.guest.name }) : t('rsvp.defaultTitle')} · {t('rsvp.noAccess')}</p>
+      <a href={authPath('/connexion', `/ma-carte?invitation=${params.token}`)} className={cn(PILL_GHOST, "mt-4 inline-flex")}>Associer cette invitation à ma carte</a>
       <nav aria-label={t('rsvp.nav')} className="mt-5 flex gap-2 overflow-x-auto pb-2">{([['rsvp', 'RSVP'], ['jour-j', t('rsvp.nav.day')], ['partager', t('rsvp.nav.share')], ['musique', t('rsvp.music.eyebrow')], ['apres', t('rsvp.nav.after')]] as const).map(([id, label]) => <a data-testid={`link-rsvp-${id}`} key={id} href={`#${id}`} className={cn(PILL_SMALL_GHOST, "shrink-0")}>{label}</a>)}</nav>
     </header>
     <div className="grid gap-5 md:grid-cols-2">
@@ -359,6 +361,7 @@ function Routes() {
     <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
+    <Route path="/ma-carte">{() => <PrivateRoute signInReturnTo={`/ma-carte${typeof window !== "undefined" ? window.location.search : ""}`}><div className="mx-auto max-w-2xl px-4 py-8"><UniversalCardForm signedIn /></div></PrivateRoute>}</Route>
     <Route path="/admin">{() => <PrivateRoute><LazyAdmin /></PrivateRoute>}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>

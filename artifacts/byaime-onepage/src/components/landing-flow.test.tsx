@@ -130,7 +130,7 @@ describe("Parcours d'entrée : carte d'abord", () => {
   it("ouvre sur deux portes, jamais sur le choix Couple / Wedding planner", async () => {
     await mount();
     expect(document.querySelector('[data-testid="landing-entry"]')).not.toBeNull();
-    expect(document.querySelector('[data-testid="landing-import-primary"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="landing-create-primary"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="landing-start-blank"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="landing-persona"]')).toBeNull();
     expect(document.querySelector('[data-testid="landing-intention-form"]')).toBeNull();
@@ -147,7 +147,7 @@ describe("Parcours d'entrée : carte d'abord", () => {
 
   it("visiteur : compris → confirmé → la carte attend le compte → rôle mariés", async () => {
     await mount();
-    await click("landing-import-primary");
+    await click("landing-import-advanced");
     await typePaste(CARTE);
     await click("carte-import-analyse");
 
@@ -180,7 +180,7 @@ describe("Parcours d'entrée : carte d'abord", () => {
 
   it("connecté : compris → confirmé → le Monde est créé depuis la carte", async () => {
     await mount(<LandingComposer signedIn />);
-    await click("landing-import-primary");
+    await click("landing-import-advanced");
     await typePaste(CARTE);
     await click("carte-import-analyse");
     await click("dossier-import-confirm");
@@ -200,7 +200,7 @@ describe("Parcours d'entrée : carte d'abord", () => {
 
   it("route le planner vers la connexion agence, et dit la vérité aux invités", async () => {
     await mount();
-    await click("landing-import-primary");
+    await click("landing-import-advanced");
     await typePaste(CARTE);
     await click("carte-import-analyse");
     await click("dossier-import-confirm");
@@ -214,7 +214,7 @@ describe("Parcours d'entrée : carte d'abord", () => {
 
   it("un code illisible affiche une erreur, sans écran « compris »", async () => {
     await mount();
-    await click("landing-import-primary");
+    await click("landing-import-advanced");
     await typePaste("ceci n'est pas une carte");
     await click("carte-import-analyse");
     expect(document.querySelector('[data-testid="carte-import-error"]')).not.toBeNull();

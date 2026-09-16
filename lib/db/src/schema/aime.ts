@@ -1,5 +1,7 @@
 import {
   boolean,
+  check,
+  foreignKey,
   integer,
   jsonb,
   pgEnum,
@@ -27,14 +29,45 @@ export const projectsTable = pgTable("aime_projects", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** A person, not a wedding. Clerk owns authentication; userId enforces one card. */
+export const universalCardsTable = pgTable("aime_universal_cards", {
+  userId: text("user_id").primaryKey(),
+  data: jsonb("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const membershipsTable = pgTable("aime_memberships", {
+  participantOnly: boolean("participant_only").notNull().default(false),
+  cardUserId: text("card_user_id").references(() => universalCardsTable.userId, { onDelete: "set null" }),
+  participation: jsonb("participation"),
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull(),
   email: text("email"),
   role: memberRole("role").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [uniqueIndex("aime_membership_project_user").on(table.projectId, table.userId)]);
+}, (table) => [uniqueIndex("aime_membership_project_user").on(table.projectId, table.userId), uniqueIndex("aime_membership_id_user").on(table.id, table.userId), check("aime_membership_own_card", sql`${table.cardUserId} IS NULL OR ${table.cardUserId} = ${table.userId}`)]);
+
+/** One functioning profile per profession, owned by the same universal person. */
+export const professionalProfilesTable = pgTable("aime_professional_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cardUserId: text("card_user_id").notNull().references(() => universalCardsTable.userId, { onDelete: "cascade" }),
+  profession: text("profession").notNull(),
+  data: jsonb("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [uniqueIndex("aime_profile_card_profession").on(t.cardUserId, t.profession), uniqueIndex("aime_profile_id_user").on(t.id, t.cardUserId)]);
+
+/** Dependent wedding interventions; no identity, no copies of professional defaults. */
+export const professionalAssignmentsTable = pgTable("aime_professional_assignments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  membershipId: uuid("membership_id").notNull(),
+  userId: text("user_id").notNull(),
+  profileId: uuid("profile_id").notNull(),
+  data: jsonb("data").notNull(),
+}, t => [
+  foreignKey({ name: "aime_assignment_member_owner", columns: [t.membershipId, t.userId], foreignColumns: [membershipsTable.id, membershipsTable.userId] }).onDelete("cascade"),
+  foreignKey({ name: "aime_assignment_profile_owner", columns: [t.profileId, t.userId], foreignColumns: [professionalProfilesTable.id, professionalProfilesTable.cardUserId] }).onDelete("cascade"),
+]);
 
 export const invitationsTable = pgTable("aime_invitations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -160,6 +193,10 @@ export const messagesTable = pgTable("aime_messages", {
 });
 
 export const rsvpsTable = pgTable("aime_rsvps", {
+  /** Explicit recipient confirmed by owner/planner, not inferred from a name. */
+  claimEmail: text("claim_email"),
+  claimedCardUserId: text("claimed_card_user_id").references(() => universalCardsTable.userId, { onDelete: "set null" }),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
   guestId: text("guest_id").notNull(),
@@ -168,7 +205,7 @@ export const rsvpsTable = pgTable("aime_rsvps", {
   response: jsonb("response"),
   respondedAt: timestamp("responded_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [uniqueIndex("aime_rsvp_project_guest").on(table.projectId, table.guestId)]);
+}, (table) => [uniqueIndex("aime_rsvp_project_guest").on(table.projectId, table.guestId), uniqueIndex("aime_rsvp_project_card").on(table.projectId, table.claimedCardUserId)]);
 
 export const songRequestsTable = pgTable("aime_song_requests", {
   id: uuid("id").primaryKey().defaultRandom(),

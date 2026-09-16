@@ -17,15 +17,15 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("LandingComposer", () => {
-  it("ouvre sur deux portes — importer la carte d'abord, ou commencer sans carte", () => {
+  it("propose la création personnelle et relègue JSON aux outils avancés", () => {
     const markup = render(<LandingComposer />);
 
     expect(markup).toContain('data-testid="landing-composer"');
     expect(markup).toContain('data-testid="landing-entry"');
-    expect(markup).toContain('data-testid="landing-import-primary"');
-    expect(markup).toContain("Importer ma carte");
+    expect(markup).toContain('data-testid="landing-create-primary"');
+    expect(markup).toContain("Créer ma carte");
     expect(markup).toContain('data-testid="landing-start-blank"');
-    expect(markup).toContain("Commencer sans carte");
+    expect(markup).toContain("Créer un mariage");
     // Le choix Couple / Wedding planner ne revient jamais : une seule expérience.
     expect(markup).not.toContain('data-testid="landing-persona');
     expect(markup).not.toContain("Wedding planner");

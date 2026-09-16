@@ -12,12 +12,13 @@
     "typecheck": "corepack pnpm run typecheck:libs && corepack pnpm run typecheck:e2e && corepack pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "typecheck:e2e": "tsc -p e2e/tsconfig.json --noEmit",
     "e2e": "playwright test",
-    "verify:vercel": "node ./scripts/verify-vercel.mjs"
+    "verify:vercel": "node ./scripts/verify-vercel.mjs",
+    "test:card-migrations": "node scripts/test-card-migrations.mjs"
   },
   "private": true,
-  "dependencies": {},
   "devDependencies": {
     "@clerk/testing": "^2.2.33",
+    "@electric-sql/pglite": "^0.5.8",
     "@playwright/test": "^1.63.0",
     "@types/node": "catalog:",
     "prettier": "^3.9.6",

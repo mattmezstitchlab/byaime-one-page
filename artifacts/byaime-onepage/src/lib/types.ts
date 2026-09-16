@@ -1,3 +1,4 @@
+import type { UniversalCard, Participation, ProfessionalParameters } from "@workspace/aime-domain";
 export type Confidence = "confirme" | "deduit" | "suggere" | "a_confirmer" | "manquant";
 
 export type Fact<T> = {
@@ -45,6 +46,8 @@ export type Guest = {
 };
 
 export type ParticipantLink = {
+  claimEmail?: string | null;
+  claimedAt?: string | null;
   guestId: string;
   token: string;
   revoked: boolean;
@@ -314,6 +317,8 @@ export type TimelineEvent = {
 };
 
 export type WorldProject = {
+  /** Read-only projection of cards referenced by memberships. Never persisted in project data. */
+  cardParticipants?: { functioning?: { profileId: string; profession: string; parameters: ProfessionalParameters; availability: string; errors: string[] }[]; userId: string; card: Pick<UniversalCard, "firstName" | "lastName" | "nickname" | "photoUrl" | "profession">; participation: Pick<Participation, "roles" | "rsvp" | "moments" | "arrival" | "departure"> }[];
   schemaVersion: 2;
   storyVersion?: 1;
   id: string;
