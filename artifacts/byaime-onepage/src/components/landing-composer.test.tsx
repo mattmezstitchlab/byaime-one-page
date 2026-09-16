@@ -17,19 +17,29 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("LandingComposer", () => {
-  it("propose la création personnelle et relègue JSON aux outils avancés", () => {
+  it("ouvre sur une seule promesse : créer ma carte", () => {
     const markup = render(<LandingComposer />);
 
     expect(markup).toContain('data-testid="landing-composer"');
-    expect(markup).toContain('data-testid="landing-entry"');
+    expect(markup).toContain('data-testid="oneboarding-entry"');
     expect(markup).toContain('data-testid="landing-create-primary"');
     expect(markup).toContain("Créer ma carte");
-    expect(markup).toContain('data-testid="landing-start-blank"');
-    expect(markup).toContain("Créer un mariage");
+    expect(markup).toContain("Votre carte BYAIME");
+    expect(markup).toContain("Votre identité. Une seule fois.");
+
+    /* Une seule action. « Créer un mariage », « Voir ma carte » et « Outils
+       avancés » sont sortis de la porte d'entrée : ils demandaient de comprendre
+       l'architecture de BYAIME avant de commencer. Le mariage est devenu une
+       étape du Oneboarding, pas une porte. */
+    expect(markup).not.toContain('data-testid="landing-start-blank"');
+    expect(markup).not.toContain("Créer un mariage");
+    expect(markup).not.toContain("Voir ma carte");
+    expect(markup).not.toContain("Outils avancés");
+
     // Le choix Couple / Wedding planner ne revient jamais : une seule expérience.
     expect(markup).not.toContain('data-testid="landing-persona');
     expect(markup).not.toContain("Wedding planner");
-    // Aucune question, aucun champ, aucun bouton de création avant le choix de porte.
+    // Aucune question, aucun champ, aucun bouton de création avant d'avoir commencé.
     expect(markup).not.toContain('data-testid="landing-intention-form"');
     expect(markup).not.toContain('data-testid="landing-intention-input"');
     expect(markup).not.toContain('data-testid="landing-intention-submit"');

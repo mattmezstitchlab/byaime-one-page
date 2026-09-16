@@ -1,5 +1,12 @@
 # Corrections des trois priorités UX — 16 septembre 2026
 
+> **Partiellement remplacé.** L'entrée de l'accueil a depuis été refondue en un
+> Oneboarding unique : « Voir ma carte » et « Outils avancés » ont quitté la
+> porte d'entrée, et l'entrée connectée est désormais « Ma carte ». La
+> description de l'entrée ci-dessous (§2) est donc historique. Les constats sur
+> les états de sauvegarde (§2) et la recherche musicale (§3) restent valables.
+> Voir [ONEBOARDING_PARCOURS.md](../ONEBOARDING_PARCOURS.md).
+
 Cette passe ne modifie ni l’architecture, ni les API, ni les règles de partage, ni la Timeline. Les rapports précédents restent des constats historiques avant correction.
 
 ## 1. Reconnaître chaque mariage

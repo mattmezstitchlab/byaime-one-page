@@ -33,6 +33,15 @@ type ProjectStore = {
   commitDraft: () => void;
   createProjectFromIntention: (text: string) => boolean;
   createProjectFromDraft: (draft: Partial<WorldProject>, subtitle: string) => void;
+  /**
+   * Crée le Monde côté serveur et attend la réponse. `pendingServer` est vrai
+   * quand aucune session n'existe : le projet reste alors local et la création
+   * suivra la connexion.
+   */
+  createProjectOnServer: (
+    draft: Partial<WorldProject>,
+    subtitle: string,
+  ) => Promise<{ ok: true; id: string; pendingServer: boolean } | { ok: false; error: string }>;
   createWeddingDemo: () => void;
   clearProject: () => void;
   selectProject: (id: string) => Promise<boolean>;
@@ -405,6 +414,89 @@ function ProjectStore({ session, children }: { session: ProjectStoreSession; chi
     setIntentionTextState('');
   }, []);
 
+  /*
+   * Création d'un Monde avec confirmation réelle du service.
+   *
+   * Pourquoi cette fonction existe : `createProjectFromIntention` ne crée rien
+   * côté serveur — elle pose le projet en local, et l'écriture part 900 ms plus
+   * tard dans l'effet de sauvegarde. Le parcours, lui, naviguait immédiatement.
+   * Résultat observé : la personne arrivait dans son mariage pendant que
+   * `POST /api/projects` échouait, et le seul signe était un message brut
+   * (« Le service n’a pas pu répondre… ») affiché plus tard dans un panneau.
+   *
+   * Ici, l'appel est attendu. Tant qu'il n'a pas répondu 2xx, le parcours n'a
+   * pas le droit d'avancer : on ne navigue jamais vers un mariage qui n'existe
+   * pas. En cas d'échec, rien n'est perdu — l'ébauche est rendue telle quelle et
+   * les réponses restent saisies.
+   *
+   * Sans session, il n'y a pas de service à attendre : le projet reste local et
+   * la création suivra la connexion (comportement déjà en place).
+   */
+  const createProjectOnServer = useCallback(async (
+    draft: Partial<WorldProject>,
+    subtitle: string,
+  ): Promise<
+    | { ok: true; id: string; pendingServer: boolean }
+    | { ok: false; error: string }
+  > => {
+    projectCreationSourceRef.current = 'created';
+    const newProject = normalizeProject({
+      schemaVersion: 2,
+      id: crypto.randomUUID(),
+      title: draft.title || "Projet",
+      subtitle,
+      universe: draft.universe || "Mariage",
+      pivot: draft.pivot || fact(Date.now() + 31536000000, "deduit"),
+      city: draft.city,
+      venue: draft.venue,
+      guestsCount: draft.guestsCount,
+      budget: draft.budget,
+      persona: draft.persona,
+      currency: draft.currency,
+      logistics: draft.logistics } as WorldProject);
+
+    if (!userId || !isSignedIn) {
+      setPendingOwnedProjectId(newProject.id);
+      setProject(newProject);
+      setDraft(null);
+      setIntentionTextState('');
+      return { ok: true, id: newProject.id, pendingServer: true };
+    }
+
+    try {
+      setSyncStatus('saving');
+      const created = await request('/projects', {
+        method: 'POST',
+        body: JSON.stringify({ title: newProject.title, data: newProject }),
+      });
+      const withServerId: WorldProject = { ...newProject, id: created.id };
+      /* Posé avant `setProject` : l'effet de sauvegarde debounce voit aussitôt
+         que ce projet est déjà synchronisé et ne renvoie pas une seconde
+         écriture. */
+      serverSyncedProjectRef.current = withServerId;
+      versionRef.current = created.updatedAt;
+      setProject(withServerId);
+      setProjects(prev => [...prev, { id: created.id, title: created.title, role: 'owner' }]);
+      setPendingOwnedProjectId(undefined);
+      setDraft(null);
+      setIntentionTextState('');
+      hydratedRef.current = true;
+      setIsHydrated(true);
+      localStorage.setItem(`aime-project:${userId}`, JSON.stringify(withServerId));
+      localStorage.setItem(`aime-active-project:${userId}`, created.id);
+      setSyncError(undefined);
+      setSyncStatus('saved');
+      /* Cette fonction ne crée jamais par import : la source est fixée plus haut. */
+      trackEvent('project_created');
+      return { ok: true, id: created.id, pendingServer: false };
+    } catch (error) {
+      /* Rien n'est posé dans le store : le parcours reste sur ses réponses. */
+      setSyncStatus('error');
+      setSyncError(error instanceof Error ? error.message : 'Création impossible');
+      return { ok: false, error: error instanceof Error ? error.message : 'Création impossible' };
+    }
+  }, [isSignedIn, request, userId]);
+
   const createWeddingDemo = useCallback(() => {
     projectCreationSourceRef.current = 'created';
     const example = "On se marie le 14 août 2027 près de Lille, 120 invités, ambiance champêtre avec un budget de 20 000€";
@@ -503,6 +595,7 @@ function ProjectStore({ session, children }: { session: ProjectStoreSession; chi
       commitDraft,
       createProjectFromIntention,
       createProjectFromDraft,
+      createProjectOnServer,
       createWeddingDemo,
       clearProject,
       selectProject,
