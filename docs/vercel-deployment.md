@@ -43,11 +43,15 @@ Preview, Development as needed):
   `replit.md`.
 - `VITE_CLERK_PUBLISHABLE_KEY` — same value as `CLERK_PUBLISHABLE_KEY`.
   Without it the app runs in **degraded mode**: public pages stay served (the
-  agency showcase `/`, `/agence`, `/mentions-legales`, `/confidentialite`,
-  `/conditions`, a couple's report `/bilan/:id`, a guest portal `/rsvp/:token`)
-  and any route that needs a session shows the "Connexion momentanément
-  indisponible" screen with a link to the showcase, instead of mounting a
-  `ClerkProvider` pointed at a non-existent instance.
+  home page `/` — also served on the retired URLs `/agence` and `/monde`,
+  `/mentions-legales`, `/confidentialite`, `/conditions`, a couple's report
+  `/bilan/:id`, a guest portal `/rsvp/:token`) and any route that needs a
+  session shows the "Connexion momentanément indisponible" screen with a link
+  back to the home page, instead of mounting a `ClerkProvider` pointed at a
+  non-existent instance. The home page composes with the project store, so
+  degraded mode mounts it through `LocalProjectProvider` (an absent session
+  injected into the store) rather than `ProjectProvider`, whose `useAuth()`
+  would throw without a `ClerkProvider`.
 
   Note: the environment variable is the only reliable signal. Clerk's
   `publishableKeyFromHost(host, key)` fabricates a key from the hostname when
@@ -67,7 +71,69 @@ Preview, Development as needed):
 
 The build itself can complete without `DATABASE_URL`, but any runtime that
 loads the API bundle without this variable will fail with the explicit error
-`DATABASE_URL must be set. Did you forget to provision a database?`.
+`DATABASE_URL must be set. Did you forget to provision a database?`. Because
+that happens at module load, Vercel answers its own error page and the JSON
+error handler below never runs: this is the one failure the application cannot
+convert into a readable message. A quick way to tell the two apart on a live
+deployment: `GET /api/healthz` answers `{"status":"ok"}` without touching the
+database, so a deployment where it succeeds while every database-backed route
+fails has a reachable application and a broken schema or connection.
+
+## Database schema
+
+Schema changes ship as idempotent SQL in `lib/db/migrations/` and are **not**
+applied by the deployment: run them against the target Postgres before (or
+immediately after) the deploy that needs them.
+
+```bash
+psql "$DATABASE_URL" -f lib/db/migrations/20260916_universal_cards.sql
+psql "$DATABASE_URL" -f lib/db/migrations/20260916_professional_profiles.sql
+psql "$DATABASE_URL" -f lib/db/migrations/20260916_verified_rsvp_claims.sql
+```
+
+To find out what a given database actually has, run the read-only diagnostic:
+
+```bash
+DATABASE_URL="postgres://…" corepack pnpm run check:db
+```
+
+`scripts/src/check-db-schema.ts` connects, lists every expected table and every
+column added by the 2026-09-16 migrations as present or missing, prints the
+exact `psql` commands to apply, and exits 0 (complete), 1 (incomplete or
+unreachable) or 2 (no `DATABASE_URL`). It never prints the password and changes
+nothing.
+
+`20260916_universal_cards.sql` creates `aime_universal_cards`, the table behind
+`/ma-carte`; without it `GET /api/me/card` raises
+`relation "aime_universal_cards" does not exist` and answers a 500. All three
+files are safe to re-run (`CREATE TABLE IF NOT EXISTS`,
+`ADD COLUMN IF NOT EXISTS`, guarded constraints). Their behaviour — uniqueness
+of a verified claim, closed tombstones, lossless profile extraction, ownership
+foreign keys — is checked against an in-memory Postgres by
+`pnpm run test:card-migrations`. `lib/db` also exposes `pnpm --filter @workspace/db run push`
+(drizzle-kit) for a database you manage that way.
+
+## API error contract
+
+Every `/api/*` answer is JSON, failures included. `app.ts` mounts
+`jsonErrorHandler` last, so an error no route caught becomes
+`{ "error": "<phrase française>" }` with the right status instead of Express's
+default HTML page — the HTML page is what made a browser print
+`Unexpected token '<', "<!DOCTYPE "... is not valid JSON` in place of the
+`/ma-carte` form on 2026-09-16.
+
+- `artifacts/api-server/src/lib/apiFailure.ts` derives the status and the
+  message: pure, no Express, no logging, covered by `apiFailure.test.ts`.
+- The real cause is logged, never returned: no SQL, no table name, no
+  connection string, no stack reaches the client. Look for the log line
+  `Erreur non rattrapée : réponse JSON d'échec renvoyée` in the function logs,
+  with `err`, `errorCode`, `requestId`, `method`, `path`.
+- If the response has already started, the handler hands control back to
+  Express instead of writing over it.
+- The client side matches: `src/lib/api-messages.ts` and `src/lib/api-call.ts`
+  turn any failure (unreachable network, non-JSON body, 401/403/404/409/5xx)
+  into a French sentence, and `/ma-carte` keeps its form usable with a
+  non-blocking retry banner.
 
 ## Clean rebuild checks
 
@@ -87,3 +153,14 @@ verifies that both Vercel configs pin the pnpm install/build/output settings
 and route `/api` correctly, verifies that the Vercel entrypoints still point
 only to `dist/app.mjs`, and fails if forbidden generated artifacts are tracked
 by Git.
+
+When `VERCEL_VERIFY_DEPLOYMENT_URL` (or `VERCEL_DEPLOYMENT_URL` / `VERCEL_URL`)
+is set, it also probes the live deployment: `/api/healthz`, `/api/projects`,
+`/api/projects/:id`, `/api/cron/scheduled-messages`, `/api/me/card` and
+`/api/me/professional-profiles` must return the expected status **and**
+`application/json` with a body that parses. A route answering HTML fails the
+check — that is the invariant whose breach produced the `/ma-carte` parse error.
+
+```bash
+VERCEL_VERIFY_DEPLOYMENT_URL=https://www.byaime.fr corepack pnpm run verify:vercel
+```

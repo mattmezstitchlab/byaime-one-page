@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "aime-local-bridge": "tsx ./src/aime-local-bridge.ts",
+    "check:db": "tsx ./src/check-db-schema.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

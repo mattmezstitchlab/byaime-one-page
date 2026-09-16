@@ -166,8 +166,8 @@ export function MentionsLegalesPage() {
           </SiteSection>
 
           <div className="mt-16 flex flex-wrap items-center gap-3 border-t border-[var(--agency-hairline)] pt-8">
-            <a href={sitePath("/monde")} className={PILL_INK}>
-              Retour à la Bande
+            <a href={sitePath("/")} className={PILL_INK}>
+              Retour à l’accueil
             </a>
             <a href={sitePath("/confidentialite")} className={PILL_GHOST}>
               Confidentialité

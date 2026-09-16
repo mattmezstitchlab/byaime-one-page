@@ -35,8 +35,10 @@ describe("métadonnées de la vitrine", () => {
   });
 
   it("construit des URLs absolues sur le domaine du site", () => {
-    expect(AGENCY_PATH).toBe("/agence");
-    expect(agencyUrl()).toBe(`${SITE_ORIGIN}/agence`);
+    // `/agence` et `/monde` sont retirées (16/09/2026) et redirigent : la page
+    // publique déclarée aux moteurs est la racine, jamais une URL qui redirige.
+    expect(AGENCY_PATH).toBe("/");
+    expect(agencyUrl()).toBe(`${SITE_ORIGIN}/`);
     expect(agencyUrl("/mentions-legales")).toBe(`${SITE_ORIGIN}/mentions-legales`);
     expect(agencyUrl("images/agency/agency-hero.jpg")).toBe(`${SITE_ORIGIN}/images/agency/agency-hero.jpg`);
   });
@@ -108,9 +110,12 @@ describe("publication : ce qui est indexable", () => {
     expect(bilan).toContain('robots: "noindex, nofollow"');
   });
 
-  it("déclare la vitrine et ses mentions légales dans le sitemap", () => {
-    expect(sitemap).toContain(`${SITE_ORIGIN}/agence`);
+  it("déclare la page publique et ses mentions légales dans le sitemap", () => {
+    expect(sitemap).toContain(`${SITE_ORIGIN}/<`);
     expect(sitemap).toContain(`${SITE_ORIGIN}/mentions-legales`);
+    // Une URL qui redirige ne se déclare pas : la vitrine et la Bande sont retirées.
+    expect(sitemap).not.toContain("/agence");
+    expect(sitemap).not.toContain("/monde");
     // Rien de privé dans le sitemap.
     expect(sitemap).not.toContain("/bilan/");
     expect(sitemap).not.toContain("/user-portal");

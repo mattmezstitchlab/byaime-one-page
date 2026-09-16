@@ -20,8 +20,8 @@ const ROLE_HINTS: Record<RoleVisibility, string> = {
 
 /*
  * La table des couleurs par catégorie vit dans `lib/category-colors.ts` : elle
- * est partagée avec la Bande (`/monde`), qui est publique et ne monte aucun
- * ClerkProvider. Le ré-export garde l'import historique
+ * est partagée par des écrans publics qui ne montent aucun ClerkProvider. Le
+ * ré-export garde l'import historique
  * `KIND_COLORS from "@/components/VisibilityGraph"` valable (test inclus).
  */
 export { KIND_COLORS } from "@/lib/category-colors";

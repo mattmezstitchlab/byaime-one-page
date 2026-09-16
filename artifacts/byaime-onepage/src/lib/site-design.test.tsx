@@ -65,12 +65,19 @@ describe("le vocabulaire visuel est écrit une fois", () => {
 });
 
 describe("la barre et le pied de page publics", () => {
-  it("nomment les pages publiques, sans dépendre d'une session", () => {
-    const markup = renderToStaticMarkup(<SiteHeader current="/monde" />);
+  it("ramènent à l'accueil, la page unique, sans dépendre d'une session", () => {
+    const markup = renderToStaticMarkup(<SiteHeader current="/mentions-legales" />);
     expect(markup).toContain('data-testid="site-wordmark"');
-    expect(markup).toContain('href="/monde"');
-    expect(markup).toContain('aria-current="page"');
-    expect(SITE_NAV.map(item => item.path)).toEqual(["/monde"]);
+    expect(markup).toContain('href="/"');
+    /*
+     * La Bande (`/monde`) a été retirée le 16/09/2026 : la barre ne nomme plus
+     * aucune page séparée. Elle garde sa liste (vide) pour qu'une future page
+     * publique n'ait qu'un endroit à modifier — et rien ne pointe plus vers
+     * l'URL retirée.
+     */
+    expect(SITE_NAV).toEqual([]);
+    expect(markup).not.toContain('href="/monde"');
+    expect(markup).not.toContain("aria-current");
 
     /*
      * Une page publique doit rester entière quand l'authentification n'est pas
@@ -167,12 +174,10 @@ describe("les blocs de page", () => {
 
 describe("les pages publiques consomment l'ossature", () => {
   const pages: Array<[string, string]> = [
-    ["les sections de la vitrine", "../components/VitrineSections.tsx"],
     ["les mentions légales", "../pages/Mentions.tsx"],
     ["la confidentialité et les conditions", "../pages/Legal.tsx"],
     ["le bilan partagé", "../pages/BilanPage.tsx"],
     ["la réponse d'un invité", "../App.tsx"],
-    ["la Bande", "../pages/Bande.tsx"],
   ];
 
   it.each(pages)("%s assemble les blocs partagés au lieu de les redessiner", (_label, path) => {

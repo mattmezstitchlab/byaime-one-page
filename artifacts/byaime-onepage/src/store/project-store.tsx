@@ -49,8 +49,47 @@ const ProjectContext = createContext<ProjectStore | null>(null);
 
 const normalizeStoredProject = normalizeProject;
 
+/**
+ * Ce que le store lit de la session : trois champs, et rien d'autre. Les
+ * injecter (plutôt que d'appeler `useAuth()` dans le store lui-même) permet de
+ * servir l'accueil public quand l'authentification n'est pas configurée.
+ */
+export type ProjectStoreSession = {
+  isLoaded: boolean;
+  isSignedIn: boolean;
+  userId: string | null;
+};
+
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, userId } = useAuth();
+  return (
+    /* Clerk laisse `isLoaded`/`isSignedIn` indéfinis avant son chargement : le
+       store, lui, exige des booléens — `undefined` veut dire « pas encore »,
+       donc « pas chargé, pas connecté ». */
+    <ProjectStore session={{ isLoaded: !!isLoaded, isSignedIn: !!isSignedIn, userId: userId ?? null }}>
+      {children}
+    </ProjectStore>
+  );
+}
+
+/**
+ * Variante sans authentification, utilisée uniquement par le mode dégradé
+ * (`App.tsx`) : sans `VITE_CLERK_PUBLISHABLE_KEY` il n'y a pas de
+ * `ClerkProvider`, et `useAuth()` lèverait. L'accueil est une page publique —
+ * il reste servi, avec la session absente par définition, c'est-à-dire
+ * exactement l'état d'un visiteur non connecté en mode nominal : local-first,
+ * aucune requête, aucune donnée personnelle.
+ */
+export function LocalProjectProvider({ children }: { children: ReactNode }) {
+  return (
+    <ProjectStore session={{ isLoaded: true, isSignedIn: false, userId: null }}>
+      {children}
+    </ProjectStore>
+  );
+}
+
+function ProjectStore({ session, children }: { session: ProjectStoreSession; children: ReactNode }) {
+  const { isLoaded, isSignedIn, userId } = session;
   const [project, setProject] = useState<WorldProject | null>(null);
   const [participantLinkState, setParticipantLinkState] = useState<{
     contextKey: string;

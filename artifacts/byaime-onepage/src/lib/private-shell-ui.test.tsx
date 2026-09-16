@@ -51,7 +51,9 @@ describe("private shell controls", () => {
     );
 
     expect(markup).toContain('data-testid="private-home-logo"');
-    expect(markup).toContain('href="/monde"');
+    /* La Bande (`/monde`) a été retirée le 16/09/2026 : le logo de l'espace
+       privé ramène à l'accueil, la page unique du site. */
+    expect(markup).toContain('href="/"');
     expect(markup).toContain('aria-label="Retour à l’accueil AIME"');
   });
 });

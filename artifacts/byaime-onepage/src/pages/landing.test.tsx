@@ -76,13 +76,13 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain('data-testid="landing-locale-en"');
   });
 
-  it("garde une seule hiérarchie de titre et le nom AIME cliquable vers la Bande", () => {
+  it("garde une seule hiérarchie de titre et le nom AIME cliquable vers l’accueil", () => {
     const markup = render(<LandingPage />);
 
     expect(markup.match(/<h1/g)).toHaveLength(1);
     expect(markup).toContain("un seul espace privé");
-    expect(markup).toContain('aria-label="AIME — La Bande, la page unique"');
-    expect(markup).toContain('href="/monde"');
+    expect(markup).toContain('aria-label="AIME — accueil"');
+    expect(markup).toContain('href="/"');
     expect(markup).toContain('data-testid="landing-admin"');
     expect(markup).toContain('returnTo=%2Fadmin');
   });
@@ -133,22 +133,23 @@ describe("Landing (accueil)", () => {
 });
 
 /*
- * Constat §2.1 du plan, puis fusion du 14/09 : la vitrine était introuvable,
- * puis elle a été fusionnée dans la Bande (`/monde`), devenue la page unique du
- * site public. L'accueil mène donc à la Bande en toutes lettres, en en-tête
- * comme en pied de page, et ne pointe plus vers `/agence`.
+ * Constat §2.1 du plan, fusion du 14/09, puis retrait du 16/09/2026 : la
+ * vitrine était introuvable, elle avait été fusionnée dans la Bande (`/monde`),
+ * et la Bande a été supprimée. L'accueil est désormais la seule page publique du
+ * site : il ne mène plus ni à `/monde`, ni à `/agence`, et ne nomme plus la
+ * Bande nulle part.
  */
-describe("Landing — la Bande, page unique, est trouvable", () => {
-  it("propose un lien explicite en en-tête et en pied de page", () => {
+describe("Landing — l’accueil est la page unique du site", () => {
+  it("ne propose plus aucun lien vers la Bande retirée", () => {
     const markup = render(<LandingPage />);
 
-    expect(markup).toContain('data-testid="landing-bande"');
-    expect(markup).toContain('data-testid="footer-bande"');
-    expect(markup).toContain("La Bande");
-    expect(markup.match(/href="\/monde"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    expect(markup).not.toContain('data-testid="landing-bande"');
+    expect(markup).not.toContain('data-testid="footer-bande"');
+    expect(markup).not.toContain("La Bande");
+    expect(markup).not.toContain('href="/monde"');
   });
 
-  it("ne pointe plus vers l'ancienne vitrine : tout est fusionné dans la Bande", () => {
+  it("ne pointe plus vers l'ancienne vitrine non plus", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).not.toContain('data-testid="landing-agency"');

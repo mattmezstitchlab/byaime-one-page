@@ -119,7 +119,7 @@ export function GuestPanel({ momentId = null }: { momentId?: string | null } = {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      {/* Header carte — même langage que Bande */}
+      {/* Header carte — même langage que le reste des panneaux */}
       <div className={cn(CARD, "p-6")}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-2xl">

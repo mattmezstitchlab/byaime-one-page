@@ -3,9 +3,9 @@
  *
  * Constat (§2.8 du plan) : `App.tsx` rendait un écran « Connexion momentanément
  * indisponible » pour TOUTES les routes dès que `VITE_CLERK_PUBLISHABLE_KEY`
- * manquait — y compris `/agence`, la vitrine commerciale, qui n'a besoin ni de
- * session, ni de base, ni d'API. Une page publique ne doit pas pouvoir tomber à
- * cause d'un fournisseur d'authentification.
+ * manquait — y compris l'accueil du site, qui n'a besoin ni de session, ni de
+ * base, ni d'API. Une page publique ne doit pas pouvoir tomber à cause d'un
+ * fournisseur d'authentification.
  *
  * Cette dérivation pure décide, pour un chemin donné, quelle vue servir en mode
  * dégradé. `App.tsx` ne fait que l'exécuter : la liste des pages réellement
@@ -21,8 +21,8 @@ export type DegradedView =
   | { kind: "report"; projectId: string }
   /** Le portail d'un invité : aucun compte requis pour répondre à une RSVP. */
   | { kind: "rsvp"; token: string }
-  /** La Bande (`/monde`) : la page unique du site public, calculée dans le navigateur. */
-  | { kind: "bande" }
+  /** L'accueil : la page unique du site public, rendue sans session. */
+  | { kind: "landing" }
   /** Tout le reste exige une session : on le dit, sans rien demander. */
   | { kind: "unavailable"; requestedPath: string };
 
@@ -33,11 +33,13 @@ export type DegradedView =
 export function resolveDegradedView(path: string): DegradedView {
   const clean = path.split("?")[0].split("#")[0] || "/";
 
-  /* La racine, l'ancienne vitrine `/agence` et `/monde` servent toutes la Bande,
-     la page unique du site public — directement, sans redirection : un
-     `<Redirect>` ne rend rien côté serveur, donc la page la plus exposée du
-     site serait blanche au pré-rendu. */
-  if (clean === "/" || clean === "/agence" || clean === "/monde") return { kind: "bande" };
+  /* La racine sert l'accueil, la page unique du site public — directement, sans
+     redirection : un `<Redirect>` ne rend rien côté serveur, donc la page la
+     plus exposée du site serait blanche au pré-rendu. `/agence` (l'ancienne
+     vitrine) et `/monde` (la Bande, retirée le 16/09/2026) servent le même
+     accueil pour la même raison : en mode nominal ils redirigent, ici ils
+     rendent. */
+  if (clean === "/" || clean === "/agence" || clean === "/monde") return { kind: "landing" };
   if (clean === "/mentions-legales") return { kind: "mentions" };
   if (clean === "/confidentialite") return { kind: "privacy" };
   if (clean === "/conditions") return { kind: "terms" };

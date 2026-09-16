@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 /*
  * Révélation douce au défilement, coupée si le mouvement est réduit.
  *
- * Sortie de `Landing.tsx` parce que la Bande (`/monde`) reprend la même mise en
- * scène : une seule implémentation, et le rendu serveur affiche directement le
- * contenu (ni `IntersectionObserver`, ni `window` côté serveur).
+ * Sortie de `Landing.tsx` parce que plusieurs écrans publics reprenaient la même
+ * mise en scène : une seule implémentation, et le rendu serveur affiche
+ * directement le contenu (ni `IntersectionObserver`, ni `window` côté serveur).
  */
 export function Reveal({ children, className }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);

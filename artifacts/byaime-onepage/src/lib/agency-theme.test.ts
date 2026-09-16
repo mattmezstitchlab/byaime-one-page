@@ -55,12 +55,10 @@ function contrastRatio(foreground: string, background: string): number {
 /** Les pages qui portent l'identité de l'agence : vitrine et livrables. */
 const AGENCY_PAGES = [
   "../pages/Landing.tsx",
-  "../components/VitrineSections.tsx",
   "../pages/BilanPage.tsx",
   "../pages/AdminSommaire.tsx",
   "../pages/Mentions.tsx",
   "../pages/Legal.tsx",
-  "../pages/Bande.tsx",
   "../components/CoupleReport.tsx",
   // Le dessin partagé est lui-même contrôlé : c'est de là que les pages le tiennent.
   "../components/SiteChrome.tsx",
