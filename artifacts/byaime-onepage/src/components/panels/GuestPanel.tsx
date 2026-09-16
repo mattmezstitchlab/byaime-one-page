@@ -1,3 +1,4 @@
+import { RsvpRecipientAuthorization } from "@/components/RsvpRecipientAuthorization";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Copy, ExternalLink, Link2, Plus, Search, Trash2, UserRoundPlus, X } from "lucide-react";
 import { useProject } from "@/store/project-store";
@@ -265,6 +266,7 @@ export function GuestPanel({ momentId = null }: { momentId?: string | null } = {
                 </select>
               </div>
 
+              {apiAvailable && canInviteParticipants && activeLink && <RsvpRecipientAuthorization projectId={project.id} guestId={guest.id} contact={guest.contact} claimEmail={activeLink.claimEmail} claimedAt={activeLink.claimedAt} onSaved={refreshParticipantLinks} />}
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--agency-hairline)] pt-4">
                 <span className="mr-auto inline-flex items-center gap-2 text-[10px] uppercase tracking-[.12em] text-[var(--agency-eyebrow)]">
                   <Link2 className="h-3 w-3" />

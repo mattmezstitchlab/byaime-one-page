@@ -124,6 +124,7 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
 
   if (node.type === "item" && node.collection === "timeline") {
      const event = node.sourceRef;
+     if (event.id.startsWith("card-presence:")) return <CenteredBlock eyebrow="Présence liée à une carte" title={event.title} onClose={onClose}><p className="mt-4 text-sm">{event.detail}</p><p className="mt-3 text-sm">Ce créneau provient de la participation au mariage. Son auteur peut le modifier dans <a href="/ma-carte" className="underline">Ma carte → Ma présence</a>, sans ressaisir son identité.</p></CenteredBlock>;
      return (
        <CenteredBlock eyebrow="Édition du Moment" title={event.title} onClose={onClose} leading={<Calendar className="mt-4 w-6 h-6 text-foreground/50" />}>
          <div className="space-y-6 mt-4">

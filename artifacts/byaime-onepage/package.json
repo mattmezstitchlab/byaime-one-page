@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "dev:preview": "vite --config preview/vite.preview.mjs --host 0.0.0.0",
+    "dev:preview": "vite --config preview/vite.preview.mjs --configLoader runner --host 0.0.0.0",
     "build": "pnpm --filter @workspace/api-server run build && vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",

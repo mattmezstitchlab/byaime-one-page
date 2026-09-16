@@ -1,3 +1,7 @@
+import { claimRsvp } from "../lib/claimRsvp";
+import { canAccessClaimedRsvp, claimConsentSchema, claimRecipientSchema, participationWithRsvp, withoutRsvpCopies, rsvpFieldsChanged, normalizedClaimEmail, claimedParticipantWorld } from "../lib/rsvpClaim";
+import { cardSchema, participationSchema, projectWithCards, profileInputSchema, functioningSchema, assignmentErrors, assignmentSchema } from "../lib/universalCard";
+import { stripCardProjection, type CardParticipant, type ProfessionalProfile, type ProfessionalAssignment } from "@workspace/aime-domain";
 import { Router, type IRouter, type RequestHandler } from "express";
 import { createHash, randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
@@ -5,6 +9,9 @@ import { clerkClient, getAuth } from "@clerk/express";
 import { and, asc, eq, gt, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import {
   db,
+  universalCardsTable,
+  professionalProfilesTable,
+  professionalAssignmentsTable,
   filesTable,
   invitationsTable,
   localBridgeSessionsTable,
@@ -443,9 +450,16 @@ const bridgeImportFinalizeInput = z.object({
   size: z.number().int().positive().max(MAX_FILE_SIZE),
 });
 
+function optionalUserId(req: Parameters<RequestHandler>[0]): string | undefined {
+  try { return authenticatedUserId(getAuth(req)); } catch { return undefined; }
+}
+function rsvpOwnerCondition(userId?: string) {
+  const anonymous = and(isNull(rsvpsTable.claimedAt), isNull(rsvpsTable.claimedCardUserId));
+  return userId ? or(anonymous, eq(rsvpsTable.claimedCardUserId, userId))! : anonymous!;
+}
 type RsvpLink = { id: string; projectId: string; guestId: string; token: string; revoked: boolean };
 
-async function activeRsvp(token: string): Promise<RsvpLink | undefined> {
+async function activeRsvp(token: string, userId?: string): Promise<RsvpLink | undefined> {
   if (!uuid.safeParse(token).success) return undefined;
   const [link] = await db
     .select({
@@ -456,7 +470,7 @@ async function activeRsvp(token: string): Promise<RsvpLink | undefined> {
       revoked: rsvpsTable.revoked,
     })
     .from(rsvpsTable)
-    .where(and(eq(rsvpsTable.token, token), eq(rsvpsTable.revoked, false)));
+    .where(and(eq(rsvpsTable.token, token), eq(rsvpsTable.revoked, false), rsvpOwnerCondition(userId)));
   return link;
 }
 
@@ -496,7 +510,7 @@ function auth(
   next();
 }
 
-async function membership(projectId: string, userId: string) {
+async function membership(projectId: string, userId: string, allowParticipant = false) {
   const [member] = await db
     .select()
     .from(membershipsTable)
@@ -506,8 +520,156 @@ async function membership(projectId: string, userId: string) {
         eq(membershipsTable.userId, userId),
       ),
     );
-  return member;
+  return member?.participantOnly && !allowParticipant ? undefined : member;
 }
+
+function toProfessionalProfile(row: typeof professionalProfilesTable.$inferSelect): ProfessionalProfile {
+  return { ...row, data: functioningSchema.parse(row.data), updatedAt: row.updatedAt.toISOString() };
+}
+async function memberAssignments(memberId: string): Promise<ProfessionalAssignment[]> {
+  const rows = await db.select().from(professionalAssignmentsTable).where(eq(professionalAssignmentsTable.membershipId, memberId));
+  return rows.map(row => assignmentSchema.parse({ ...(row.data as object), id: row.id, profileId: row.profileId }));
+}
+async function cardProjectData(projectId: string, data: unknown, role: ProjectRole, userId: string, participantOnly = false) {
+  const rows = await db.select({ memberId: membershipsTable.id, userId: universalCardsTable.userId, card: universalCardsTable.data, participation: membershipsTable.participation })
+    .from(membershipsTable).innerJoin(universalCardsTable, eq(membershipsTable.cardUserId, universalCardsTable.userId))
+    .where(eq(membershipsTable.projectId, projectId));
+  const interventions = await db.select({ assignment: professionalAssignmentsTable, profile: professionalProfilesTable })
+    .from(professionalAssignmentsTable)
+    .innerJoin(membershipsTable, eq(professionalAssignmentsTable.membershipId, membershipsTable.id))
+    .innerJoin(professionalProfilesTable, eq(professionalAssignmentsTable.profileId, professionalProfilesTable.id))
+    .where(eq(membershipsTable.projectId, projectId));
+  const claimed = await db.select().from(rsvpsTable).where(eq(rsvpsTable.projectId, projectId));
+  const participants = rows.flatMap(row => {
+    if (role === "viewer" && row.userId !== userId) return [];
+    const link = claimed.find(r => r.claimedCardUserId === row.userId);
+    const card = cardSchema.safeParse(row.card), participation = participationSchema.safeParse(link ? participationWithRsvp(row.participation, link.response) : row.participation);
+    const own = interventions.filter(i => i.assignment.membershipId === row.memberId);
+    return card.success && participation.success ? [{
+      userId: row.userId, card: card.data,
+      participation: { ...participation.data, assignments: own.map(({ assignment: a }) => assignmentSchema.parse({ ...(a.data as object), id: a.id, profileId: a.profileId })) },
+      profiles: own.map(i => toProfessionalProfile(i.profile)),
+    } as CardParticipant] : [];
+  });
+  if (participantOnly) {
+    const link = claimed.find(r => r.claimedCardUserId === userId);
+    return projectWithCards(claimedParticipantWorld(data, link?.guestId ?? ''), participants.filter(p => p.userId === userId));
+  }
+  return projectDataForRole(projectWithCards(data, participants), role);
+}
+router.get("/me/professional-profiles", auth, async (req: AuthedRequest, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const rows = await db.select().from(professionalProfilesTable).where(eq(professionalProfilesTable.cardUserId, req.userId!));
+  res.json(rows.map(toProfessionalProfile));
+});
+router.put("/me/professional-profiles", auth, async (req: AuthedRequest, res) => {
+  const input = parseBody(profileInputSchema, req, res); if (!input) return;
+  const [card] = await db.select().from(universalCardsTable).where(eq(universalCardsTable.userId, req.userId!));
+  if (!card) { res.status(409).json({ error: "Créez votre carte avant votre profil métier." }); return; }
+  const [current] = await db.select().from(professionalProfilesTable).where(and(eq(professionalProfilesTable.cardUserId, req.userId!), eq(professionalProfilesTable.profession, input.profession)));
+  if ((current?.updatedAt.toISOString() ?? null) !== input.updatedAt) { res.status(409).json({ error: "Ce profil métier a changé. Rechargez-le." }); return; }
+  const values = { data: input.data, updatedAt: new Date(Math.max(Date.now(), (current?.updatedAt.getTime() ?? 0) + 1)) };
+  const saved = current
+    ? await db.update(professionalProfilesTable).set(values).where(and(eq(professionalProfilesTable.id, current.id), sql`date_trunc('milliseconds', ${professionalProfilesTable.updatedAt}) = ${current.updatedAt}`)).returning()
+    : await db.insert(professionalProfilesTable).values({ ...values, profession: input.profession, cardUserId: req.userId! }).onConflictDoNothing().returning();
+  if (!saved[0]) { res.status(409).json({ error: "Conflit de version du profil métier" }); return; }
+  res.json(toProfessionalProfile(saved[0]));
+});
+
+router.get("/me/card", auth, async (req: AuthedRequest, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const [card] = await db.select().from(universalCardsTable).where(eq(universalCardsTable.userId, req.userId!));
+  res.json(card ?? null);
+});
+router.put("/me/card", auth, async (req: AuthedRequest, res) => {
+  const input = parseBody(z.object({ data: cardSchema, updatedAt: z.string().datetime().nullable() }), req, res);
+  if (!input) return;
+  const [current] = await db.select().from(universalCardsTable).where(eq(universalCardsTable.userId, req.userId!));
+  if ((current?.updatedAt.toISOString() ?? null) !== input.updatedAt) {
+    res.status(409).json({ error: "Votre carte a changé. Rechargez-la avant de modifier." }); return;
+  }
+  const values = { data: input.data, updatedAt: new Date(Math.max(Date.now(), (current?.updatedAt.getTime() ?? 0) + 1)) };
+  const result = current
+    ? await db.update(universalCardsTable).set(values).where(and(eq(universalCardsTable.userId, req.userId!), sql`date_trunc('milliseconds', ${universalCardsTable.updatedAt}) = ${current.updatedAt}`)).returning()
+    : await db.insert(universalCardsTable).values({ userId: req.userId!, ...values }).onConflictDoNothing().returning();
+  if (!result[0]) { res.status(409).json({ error: "Conflit de version de la carte" }); return; }
+  res.json(result[0]);
+});
+router.get("/projects/:id/my-participation", auth, async (req: AuthedRequest, res) => {
+  const member = await membership(String(req.params.id), req.userId!, true);
+  if (!member) { res.status(404).json({ error: "Mariage introuvable" }); return; }
+  res.setHeader("Cache-Control", "no-store");
+  const [link] = await db.select().from(rsvpsTable).where(and(eq(rsvpsTable.projectId, member.projectId), eq(rsvpsTable.claimedCardUserId, req.userId!)));
+  res.json(link ? { ...participationWithRsvp(member.participation, link.response), assignments: await memberAssignments(member.id), linkedRsvp: { token: link.token, revoked: link.revoked } } : member.participation ? { ...(member.participation as object), assignments: await memberAssignments(member.id) } : null);
+});
+router.put("/projects/:id/my-participation", auth, async (req: AuthedRequest, res) => {
+  const input = parseBody(participationSchema, req, res);
+  if (!input) return;
+  const member = await membership(String(req.params.id), req.userId!, true);
+  if (!member) { res.status(404).json({ error: "Rejoignez ce mariage par invitation avant de vous y associer." }); return; }
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, member.projectId));
+  if ((project?.data as any)?.closure?.closedAt) { res.status(409).json({ error: "Ce mariage est clôturé." }); return; }
+  const [card] = await db.select().from(universalCardsTable).where(eq(universalCardsTable.userId, req.userId!));
+  if (!card) { res.status(409).json({ error: "Créez votre carte auparavant." }); return; }
+  const result = await db.transaction(async tx => {
+    // Parent then child lock order: a closed/deleted project cannot race a context save.
+    const [latestProject] = await tx.select().from(projectsTable).where(eq(projectsTable.id, member.projectId)).for("share");
+    if (!latestProject || (latestProject.data as any)?.closure?.closedAt) return { error: "Mariage clôturé ou introuvable" };
+    const [latestMember] = await tx.select().from(membershipsTable).where(eq(membershipsTable.id, member.id)).for("update");
+    if (!latestMember) return { error: "Association introuvable" };
+    const [linked] = await tx.select().from(rsvpsTable).where(and(eq(rsvpsTable.projectId, member.projectId), eq(rsvpsTable.claimedCardUserId, req.userId!))).for("share");
+    if (linked && rsvpFieldsChanged(input, latestMember.participation, linked.response).length) return { error: "Le RSVP lié a changé ou a été modifié ici. Rechargez et utilisez le portail de l’invitation pour ses réponses ; aucune copie ne sera enregistrée." };
+    const profiles = (await tx.select().from(professionalProfilesTable).where(eq(professionalProfilesTable.cardUserId, req.userId!))).map(toProfessionalProfile);
+    const stored = await tx.select().from(professionalAssignmentsTable).where(eq(professionalAssignmentsTable.membershipId, member.id));
+    const assignments = input.assignments ?? stored.map(a => assignmentSchema.parse({ ...(a.data as object), id: a.id, profileId: a.profileId }));
+    const issues = assignmentErrors(req.userId!, input.roles, assignments, profiles, ((latestProject.data as any)?.timeline ?? []), input);
+    if (issues.length) return { error: issues.join(" · ") };
+    const { assignments: _assignments, ...context } = input;
+    await tx.update(membershipsTable).set({ cardUserId: req.userId!, participation: linked ? withoutRsvpCopies(context) : context }).where(eq(membershipsTable.id, member.id));
+    if (input.assignments !== undefined) {
+      await tx.delete(professionalAssignmentsTable).where(eq(professionalAssignmentsTable.membershipId, member.id));
+      if (assignments.length) await tx.insert(professionalAssignmentsTable).values(assignments.map(({ id, profileId, ...data }) => ({ id, profileId, membershipId: member.id, userId: req.userId!, data })));
+    }
+    return { context, assignments };
+  });
+  if (result.error) { res.status(422).json({ error: result.error }); return; }
+  res.json({ ...result.context, assignments: result.assignments });
+});
+
+// Possession of a bearer RSVP link alone never proves the recipient's identity.
+router.get("/rsvp/:token/claim", auth, createRateLimit({ windowMs: 900000, max: 20, key: req => `claim-preview:${(req as AuthedRequest).userId}` }), async (req: AuthedRequest, res) => {
+  if (!uuid.safeParse(String(req.params.token)).success) { res.status(404).json({ error: "Invitation invalide" }); return; }
+  res.setHeader("Cache-Control", "no-store");
+  const user = await clerkClient.users.getUser(req.userId!);
+  const verifiedEmails = user.emailAddresses.filter(e => e.verification?.status === "verified").map(e => e.emailAddress);
+  const result = await claimRsvp(db, { token: String(req.params.token), userId: req.userId!, verifiedEmails, confirm: false });
+  res.status(result.error ? result.status! : 200).json(result);
+});
+router.post("/rsvp/:token/claim", auth, createRateLimit({ windowMs: 900000, max: 10, key: req => `claim-confirm:${(req as AuthedRequest).userId}` }), async (req: AuthedRequest, res) => {
+  if (!uuid.safeParse(String(req.params.token)).success) { res.status(404).json({ error: "Invitation invalide" }); return; }
+  if (!parseBody(claimConsentSchema, req, res)) return;
+  res.setHeader("Cache-Control", "no-store");
+  const user = await clerkClient.users.getUser(req.userId!);
+  const verifiedEmails = user.emailAddresses.filter(e => e.verification?.status === "verified").map(e => e.emailAddress);
+  const result = await claimRsvp(db, { token: String(req.params.token), userId: req.userId!, verifiedEmails, confirm: true });
+  res.status(result.error ? result.status! : 200).json(result);
+});
+router.patch("/projects/:id/rsvp-links/:guestId/claim-recipient", auth, async (req: AuthedRequest, res) => {
+  const input = parseBody(claimRecipientSchema, req, res); if (!input) return;
+  const member = await membership(String(req.params.id), req.userId!);
+  if (!member || !managedRoles.has(member.role)) { res.status(403).json({ error: "Confirmation réservée aux organisateurs autorisés." }); return; }
+  const result = await db.transaction(async tx => {
+    const [project] = await tx.select().from(projectsTable).where(eq(projectsTable.id, member.projectId)).for("update");
+    if (!project || (project.data as any)?.closure?.closedAt) return { error: "Mariage clôturé ou introuvable" };
+    const links = await tx.select().from(rsvpsTable).where(eq(rsvpsTable.projectId, member.projectId));
+    const link = links.find(r => r.guestId === String(req.params.guestId));
+    if (!link || link.claimedAt || link.revoked) return { error: "Invitation absente, révoquée ou déjà rattachée. Aucun transfert automatique n’est autorisé." };
+    if (links.some(r => r.id !== link.id && !r.revoked && normalizedClaimEmail(r.claimEmail) === input.email)) return { error: "Utilisez une adresse personnelle unique pour chaque invitation." };
+    await tx.update(rsvpsTable).set({ claimEmail: input.email }).where(eq(rsvpsTable.id, link.id));
+    return { confirmed: true };
+  });
+  res.status(result.error ? 409 : 200).json(result);
+});
 
 function ensureBridgeSessionToken(input: string): { sessionTokenHash: string } {
   return { sessionTokenHash: signUploadAuthorization({ token: input }, uploadSecret()) };
@@ -616,7 +778,7 @@ router.get(
   auth,
   async (req: AuthedRequest, res): Promise<void> => {
     const rows = await db
-      .select({ project: projectsTable, role: membershipsTable.role })
+      .select({ project: projectsTable, role: membershipsTable.role, participantOnly: membershipsTable.participantOnly })
       .from(membershipsTable)
       .innerJoin(
         projectsTable,
@@ -624,11 +786,11 @@ router.get(
       )
       .where(eq(membershipsTable.userId, req.userId!));
     res.json(
-      rows.map(({ project, role }) => ({
+      await Promise.all(rows.map(async ({ project, role, participantOnly }) => ({
         ...project,
-        data: projectDataForRole(project.data, role),
+        data: await cardProjectData(project.id, project.data, role, req.userId!, participantOnly),
         role,
-      })),
+      }))),
     );
   },
 );
@@ -658,7 +820,7 @@ router.get(
       buildAuthorizedWeddingBrief({
         projectId: project.id,
         title: project.title,
-        data: project.data,
+        data: await cardProjectData(project.id, project.data, member.role, req.userId!),
         role: member.role,
         useWorldLocation: false,
       }),
@@ -692,7 +854,7 @@ router.get(
       buildAuthorizedProfileFil({
         projectId: project.id,
         title: project.title,
-        data: project.data,
+        data: await cardProjectData(project.id, project.data, member.role, req.userId!),
         role: member.role,
       }),
     );
@@ -726,7 +888,7 @@ router.post(
       buildAuthorizedWeddingBrief({
         projectId: project.id,
         title: project.title,
-        data: project.data,
+        data: await cardProjectData(project.id, project.data, member.role, req.userId!),
         role: member.role,
         useWorldLocation: true,
       }),
@@ -803,6 +965,11 @@ router.get(
       format: "aime-personal-export",
       version: 1,
       exportedAt: new Date().toISOString(),
+      claimedInvitations: await db.select({ projectId: rsvpsTable.projectId, guestId: rsvpsTable.guestId, response: rsvpsTable.response, claimedAt: rsvpsTable.claimedAt }).from(rsvpsTable).where(eq(rsvpsTable.claimedCardUserId, userId)),
+      professionalProfiles: await db.select().from(professionalProfilesTable).where(eq(professionalProfilesTable.cardUserId, userId)),
+      professionalAssignments: await db.select().from(professionalAssignmentsTable).where(eq(professionalAssignmentsTable.userId, userId)),
+      universalCard: await db.select().from(universalCardsTable).where(eq(universalCardsTable.userId, userId)),
+      participations: await db.select({ projectId: membershipsTable.projectId, participation: membershipsTable.participation }).from(membershipsTable).where(eq(membershipsTable.userId, userId)),
       ownedProjects,
       collaborations,
       uploadedFiles,
@@ -869,6 +1036,8 @@ router.delete(
       return;
     }
     await db.transaction(async (tx) => {
+      await tx.update(rsvpsTable).set({ claimEmail: null }).where(eq(rsvpsTable.claimedCardUserId, userId));
+      await tx.delete(universalCardsTable).where(eq(universalCardsTable.userId, userId));
       await tx.delete(filesTable).where(eq(filesTable.uploaderUserId, userId));
       await tx.delete(messagesTable).where(eq(messagesTable.createdBy, userId));
       await tx
@@ -907,7 +1076,7 @@ router.post(
     const [project] = await db.transaction(async (tx) => {
       const created = await tx
         .insert(projectsTable)
-        .values({ ...input, ownerUserId: req.userId! })
+        .values({ ...input, data: stripCardProjection(input.data), ownerUserId: req.userId! })
         .returning();
       await tx.insert(membershipsTable).values({
         projectId: created[0].id,
@@ -961,14 +1130,14 @@ router.put(
         error: "Le projet a été modifié ailleurs",
         project: {
           ...current,
-          data: projectDataForRole(current.data, member.role),
+          data: await cardProjectData(current.id, current.data, member.role, req.userId!),
         },
       });
       return;
     }
     const nextData = mergeProtectedProjectData(
       current.data,
-      input.data,
+      stripCardProjection(input.data),
       member.role,
     );
     const [updated] = await db
@@ -987,7 +1156,7 @@ router.put(
     }
     res.json({
       ...updated,
-      data: projectDataForRole(updated.data, member.role),
+      data: await cardProjectData(updated.id, updated.data, member.role, req.userId!),
       role: member.role,
     });
   },
@@ -1218,7 +1387,10 @@ router.post(
           email: invite.email,
           role: invite.role,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({ target: [membershipsTable.projectId, membershipsTable.userId], set: {
+          role: sql`CASE WHEN ${membershipsTable.participantOnly} THEN ${invite.role}::aime_member_role ELSE ${membershipsTable.role} END`,
+          participantOnly: false,
+        } });
       await tx
         .update(invitationsTable)
         .set({ acceptedAt: new Date() })
@@ -2382,6 +2554,7 @@ router.get(
       res.status(404).json({ error: "Lien RSVP invalide" });
       return;
     }
+    if (!canAccessClaimedRsvp(link.rsvp, optionalUserId(req))) { res.status(401).json({ error: "Cette invitation est rattachée à un compte. Connectez-vous avec ce compte pour continuer." }); return; }
     res.setHeader("Cache-Control", "no-store");
     const songRequests = await db.select({
       id: songRequestsTable.id, title: songRequestsTable.title, artist: songRequestsTable.artist,
@@ -2432,7 +2605,7 @@ router.post(
   async (req, res): Promise<void> => {
     const input = parseBody(participantUploadInput, req, res);
     if (!input) return;
-    const link = await activeRsvp(String(req.params.token));
+    const link = await activeRsvp(String(req.params.token), optionalUserId(req));
     if (!link) {
       res.status(404).json({ error: "Lien RSVP invalide ou révoqué" });
       return;
@@ -2458,7 +2631,7 @@ router.post(
   async (req, res): Promise<void> => {
     const input = parseBody(participantMediaFinalize, req, res);
     if (!input) return;
-    const link = await activeRsvp(String(req.params.token));
+    const link = await activeRsvp(String(req.params.token), optionalUserId(req));
     if (!link) {
       res.status(404).json({ error: "Lien RSVP invalide ou révoqué" });
       return;
@@ -2491,9 +2664,10 @@ router.post(
       visibility: "private",
     });
     const [media] = await db.transaction(async (tx) => {
+      await tx.select().from(projectsTable).where(eq(projectsTable.id, link.projectId)).for("update");
       const [active] = await tx.select({ id: rsvpsTable.id })
         .from(rsvpsTable)
-        .where(and(eq(rsvpsTable.id, link.id), eq(rsvpsTable.token, link.token), eq(rsvpsTable.revoked, false)));
+        .where(and(eq(rsvpsTable.id, link.id), eq(rsvpsTable.token, link.token), eq(rsvpsTable.revoked, false), rsvpOwnerCondition(optionalUserId(req)))).for("update");
       if (!active) return [];
       return tx.insert(filesTable).values({
         ...uploaded,
@@ -2526,7 +2700,7 @@ router.get(
     key: (req) => `rsvp-media-read:${req.ip}:${String(req.params.token)}`,
   }),
   async (req, res): Promise<void> => {
-    const link = await activeRsvp(String(req.params.token));
+    const link = await activeRsvp(String(req.params.token), optionalUserId(req));
     if (!link || !uuid.safeParse(String(req.params.mediaId)).success) {
       res.status(404).json({ error: "Média introuvable" });
       return;
@@ -2567,14 +2741,18 @@ router.post(
   async (req, res): Promise<void> => {
     const input = parseBody(songRequestInput, req, res);
     if (!input) return;
-    const link = await activeRsvp(String(req.params.token));
+    const link = await activeRsvp(String(req.params.token), optionalUserId(req));
     if (!link) {
       res.status(404).json({ error: "Lien RSVP invalide ou révoqué" });
       return;
     }
-    const [request] = await db.insert(songRequestsTable)
-      .values({ ...input, projectId: link.projectId, guestId: link.guestId, status: "new" })
-      .returning();
+    const [request] = await db.transaction(async tx => {
+      await tx.select().from(projectsTable).where(eq(projectsTable.id, link.projectId)).for("update");
+      const [active] = await tx.select().from(rsvpsTable).where(and(eq(rsvpsTable.id, link.id), eq(rsvpsTable.token, link.token), eq(rsvpsTable.revoked, false), rsvpOwnerCondition(optionalUserId(req)))).for("update");
+      if (!active) return [];
+      return tx.insert(songRequestsTable).values({ ...input, projectId: link.projectId, guestId: link.guestId, status: "new" }).returning();
+    });
+    if (!request) { res.status(404).json({ error: "Lien RSVP invalide ou révoqué" }); return; }
     res.status(201).json(request);
   },
 );
@@ -2600,6 +2778,9 @@ router.put(
       plusOne: input.plusOne,
     });
     const updated = await db.transaction(async (tx) => {
+      const [initial] = await tx.select().from(rsvpsTable).where(eq(rsvpsTable.token, String(req.params.token)));
+      if (!initial) return undefined;
+      await tx.select().from(projectsTable).where(eq(projectsTable.id, initial.projectId)).for("update");
       const respondedAt = new Date();
       const [saved] = await tx
         .update(rsvpsTable)
@@ -2608,6 +2789,7 @@ router.put(
           and(
             eq(rsvpsTable.token, String(req.params.token)),
             eq(rsvpsTable.revoked, false),
+            rsvpOwnerCondition(optionalUserId(req)),
           ),
         )
         .returning();

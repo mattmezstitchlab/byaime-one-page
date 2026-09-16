@@ -397,10 +397,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateProject = useCallback((updates: Partial<WorldProject>) => {
-    setProject(prev => prev ? { ...prev, ...updates } : null);
+    setProject(prev => prev ? { ...prev, ...updates, ...(updates.timeline ? { timeline: [...updates.timeline.filter(e => !e.id.startsWith('card-presence:')), ...prev.timeline.filter(e => e.id.startsWith('card-presence:'))] } : {}) } : null);
   }, []);
 
   const updateEntity = useCallback(<K extends keyof WorldProject>(collection: K, id: string, updates: any) => {
+    if (collection === "timeline" && id.startsWith("card-presence:")) return;
     setProject(prev => {
       if (!prev) return null;
       const list = prev[collection] as any[];
@@ -428,6 +429,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeEntity = useCallback(<K extends keyof WorldProject>(collection: K, id: string) => {
+    if (collection === "timeline" && id.startsWith("card-presence:")) return;
     setProject(prev => {
       if (!prev) return null;
       const list = prev[collection] as any[];

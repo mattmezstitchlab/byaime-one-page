@@ -1,3 +1,5 @@
+import { WeddingCardParticipants } from "./WeddingCardParticipants";
+import { useProject } from "@/store/project-store";
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
@@ -60,6 +62,7 @@ export function OrbButton() {
 
 export function PrivateLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { project } = useProject();
   const [openMeSignal, setOpenMeSignal] = useState(0);
 
   const activeDestination = getPrivateDestinationId(location);
@@ -86,17 +89,19 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
           <div className="flex-1" />
 
           <div className="flex items-center justify-end gap-1.5">
-            <PortalControls embedded openMeSignal={openMeSignal} />
+            <Link href="/ma-carte" className="inline-flex min-h-11 items-center rounded-full px-3 text-xs font-medium">Ma carte</Link>
+            {location !== '/ma-carte' && <PortalControls embedded openMeSignal={openMeSignal} />}
           </div>
         </header>
 
         {/* Scrollable Content */}
         <div className="relative flex-1 overflow-x-hidden overflow-y-auto pb-24">
+          {location !== '/ma-carte' && <WeddingCardParticipants participants={project?.cardParticipants ?? []} />}
           {children}
         </div>
 
         {/* L'orbe unique : tout l'espace privé tient dans son panneau. */}
-        <OrbButton />
+        {location !== '/ma-carte' && <OrbButton />}
         <CommandBar context={activeDestination} onOpenMe={openMe} />
         <GlobalCreateCenter destination={activeDestination} />
       </div>
