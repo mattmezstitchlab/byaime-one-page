@@ -298,18 +298,40 @@ export function Oneboarding({
   /* ------------------------------------------------------------------ */
   /* Les écritures. Chacune rend l'état réel — jamais une réussite feinte.*/
   /* ------------------------------------------------------------------ */
+  const sanitizeCard = (input: UniversalCard): UniversalCard => ({
+    ...input,
+    firstName: input.firstName.trim(),
+    lastName: input.lastName.trim(),
+    nickname: input.nickname.trim(),
+    city: input.city.trim(),
+    profession: input.profession.trim(),
+    interests: input.interests.map((v) => v.trim()).filter(Boolean).slice(0, 30),
+    photoUrl: input.photoUrl,
+  });
+
   const saveCardNow = async (): Promise<SaveNotice> => {
-    if (!card.firstName.trim() || !card.lastName.trim())
+    const sanitized = sanitizeCard(card);
+    if (!sanitized.firstName || !sanitized.lastName)
       throw new Error("Renseignez votre prénom et votre nom.");
+    if (sanitized.photoUrl && sanitized.photoUrl.length > 700000) {
+      throw new Error("Photo trop volumineuse : choisissez une image de moins de 500 Ko.");
+    }
+    if (sanitized.interests.some((i) => i.length > 100)) {
+      throw new Error("Un centre d’intérêt dépasse 100 caractères.");
+    }
+    // Met à jour l’état local avec la version sanitizée pour éviter un 400.
+    if (JSON.stringify(sanitized.interests) !== JSON.stringify(card.interests) || sanitized.firstName !== card.firstName || sanitized.lastName !== card.lastName) {
+      setCard(sanitized);
+    }
     if (!signedIn) {
-      sessionStorage.setItem(CARD_DRAFT_KEY, JSON.stringify({ card }));
+      sessionStorage.setItem(CARD_DRAFT_KEY, JSON.stringify({ card: sanitized }));
       return {
         kind: "draft",
         message:
           "Vos réponses sont conservées pendant cette étape. Créez un compte pour les retrouver sur tous vos appareils.",
       };
     }
-    const saved = await api("/me/card", { data: card, updatedAt: version });
+    const saved = await api("/me/card", { data: sanitized, updatedAt: version });
     setCard(saved.data);
     setVersion(saved.updatedAt);
     setCardUserId(saved.userId);
@@ -521,7 +543,9 @@ export function Oneboarding({
       else trackEvent("oneboarding_completed", { profile: plan.profile });
     } catch (e) {
       const message = failureMessage(e, "Enregistrement impossible");
-      setNotice({ kind: "failure", message });
+      const requestId = (e as any)?.requestId as string | undefined;
+      const idFromMessage = message.match(/\(id:\s*([^)]+)\)/)?.[1];
+      setNotice({ kind: "failure", message, requestId: requestId ?? idFromMessage });
       setFieldError(message);
     } finally {
       setBusy(false);

@@ -157,7 +157,7 @@ export type SaveNotice =
   | { kind: "idle" }
   | { kind: "draft"; message: string }
   | { kind: "saved"; message: string }
-  | { kind: "failure"; message: string };
+  | { kind: "failure"; message: string; requestId?: string };
 
 export const NOTICE_TONE = {
   draft: "border-white/20 bg-white/[0.06] text-white/75",
@@ -182,6 +182,15 @@ export function SaveNoticeBanner({
       : notice.kind === "saved"
         ? "Enregistré"
         : "Non enregistré";
+  // requestId is either explicit field or parsed from "(id: ...)" suffix added by api-call.
+  const explicitId = notice.kind === "failure" ? notice.requestId : undefined;
+  const parsedId =
+    notice.kind === "failure"
+      ? notice.message.match(/\(id:\s*([a-f0-9-]+)\)/i)?.[1] ?? notice.message.match(/\(id:\s*([^)]+)\)/)?.[1]
+      : undefined;
+  const requestId = explicitId ?? parsedId;
+  const cleanMessage =
+    notice.kind === "failure" ? notice.message.replace(/\s*\(id:\s*[^)]+\)\s*$/i, "").trim() : notice.message;
   return (
     <div
       data-testid="save-notice"
@@ -192,7 +201,10 @@ export function SaveNoticeBanner({
       <p className="text-[10.5px] font-medium uppercase tracking-[0.18em] opacity-70">
         {label}
       </p>
-      <p className="mt-1">{notice.message}</p>
+      <p className="mt-1">{cleanMessage}</p>
+      {requestId && notice.kind === "failure" ? (
+        <p className="mt-2 text-[10px] opacity-60">id: {requestId}</p>
+      ) : null}
       {notice.kind === "failure" && onRetry ? (
         <button
           type="button"
