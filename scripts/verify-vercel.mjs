@@ -50,11 +50,18 @@ const requiredRoutingChecks = [
   { requestPath: "/api/cron/scheduled-messages", expectedDestination: "/api/[...path].js" },
   { requestPath: "/profile", expectedDestination: "/index.html" },
 ];
+/* Toute route sondée doit répondre du JSON lisible, quel que soit son statut :
+   c'est l'invariant qu'a violé `/ma-carte` en production le 16/09/2026 (une
+   erreur non rattrapée sortait la page HTML par défaut d'Express, et le
+   navigateur affichait « Unexpected token '<'… »). Voir
+   `artifacts/api-server/src/lib/apiFailure.ts`. */
 const requiredDeploymentChecks = [
   { path: "/api/healthz", expectedStatuses: [200] },
   { path: "/api/projects", expectedStatuses: [401] },
   { path: `/api/projects/${deploymentProbeId}`, expectedStatuses: [401, 403, 404] },
   { path: "/api/cron/scheduled-messages", expectedStatuses: [401, 503] },
+  { path: "/api/me/card", expectedStatuses: [401] },
+  { path: "/api/me/professional-profiles", expectedStatuses: [401] },
 ];
 
 function run(command, args) {
@@ -197,11 +204,23 @@ async function assertDeploymentRoute(baseUrl, { path: requestPath, expectedStatu
   if (vercelError === "NOT_FOUND") {
     throw new Error(`${requestPath} returned Vercel NOT_FOUND instead of reaching the app`);
   }
+  const body = (await response.text()).slice(0, 300);
   if (!expectedStatuses.includes(response.status)) {
-    const body = (await response.text()).slice(0, 300);
     throw new Error(
       `${requestPath} returned ${response.status}; expected ${expectedStatuses.join("/")}.\n${body}`,
     );
+  }
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(
+      `${requestPath} answered ${contentType || "no content-type"} instead of application/json — `
+      + `the client reads response.json() and would show a raw parse error.\n${body}`,
+    );
+  }
+  try {
+    JSON.parse(body);
+  } catch {
+    throw new Error(`${requestPath} answered a body that is not valid JSON.\n${body}`);
   }
 }
 

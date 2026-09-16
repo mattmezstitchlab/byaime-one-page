@@ -16,6 +16,7 @@ import {
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
 import { isTrustedAppOrigin } from "./lib/security";
+import { jsonErrorHandler } from "./middlewares/jsonErrorHandler";
 
 const app: Express = express();
 
@@ -91,5 +92,11 @@ app.use(
 );
 
 app.use("/api", router);
+
+/* En dernier : sans ce gestionnaire, la moindre erreur non rattrapée sort en
+   page HTML (réponse par défaut d'Express) et le client qui lit `response.json()`
+   affiche « Unexpected token '<'… ». C'est ce que `/ma-carte` montrait en
+   production. Voir `src/lib/apiFailure.ts`. */
+app.use(jsonErrorHandler);
 
 export default app;

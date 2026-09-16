@@ -71,7 +71,54 @@ Preview, Development as needed):
 
 The build itself can complete without `DATABASE_URL`, but any runtime that
 loads the API bundle without this variable will fail with the explicit error
-`DATABASE_URL must be set. Did you forget to provision a database?`.
+`DATABASE_URL must be set. Did you forget to provision a database?`. Because
+that happens at module load, Vercel answers its own error page and the JSON
+error handler below never runs: this is the one failure the application cannot
+convert into a readable message.
+
+## Database schema
+
+Schema changes ship as idempotent SQL in `lib/db/migrations/` and are **not**
+applied by the deployment: run them against the target Postgres before (or
+immediately after) the deploy that needs them.
+
+```bash
+psql "$DATABASE_URL" -f lib/db/migrations/20260916_universal_cards.sql
+psql "$DATABASE_URL" -f lib/db/migrations/20260916_professional_profiles.sql
+psql "$DATABASE_URL" -f lib/db/migrations/20260916_verified_rsvp_claims.sql
+```
+
+`20260916_universal_cards.sql` creates `aime_universal_cards`, the table behind
+`/ma-carte`; without it `GET /api/me/card` raises
+`relation "aime_universal_cards" does not exist` and answers a 500. All three
+files are safe to re-run (`CREATE TABLE IF NOT EXISTS`,
+`ADD COLUMN IF NOT EXISTS`, guarded constraints). Their behaviour — uniqueness
+of a verified claim, closed tombstones, lossless profile extraction, ownership
+foreign keys — is checked against an in-memory Postgres by
+`pnpm run test:card-migrations`. `lib/db` also exposes `pnpm --filter @workspace/db run push`
+(drizzle-kit) for a database you manage that way.
+
+## API error contract
+
+Every `/api/*` answer is JSON, failures included. `app.ts` mounts
+`jsonErrorHandler` last, so an error no route caught becomes
+`{ "error": "<phrase française>" }` with the right status instead of Express's
+default HTML page — the HTML page is what made a browser print
+`Unexpected token '<', "<!DOCTYPE "... is not valid JSON` in place of the
+`/ma-carte` form on 2026-09-16.
+
+- `artifacts/api-server/src/lib/apiFailure.ts` derives the status and the
+  message: pure, no Express, no logging, covered by `apiFailure.test.ts`.
+- The real cause is logged, never returned: no SQL, no table name, no
+  connection string, no stack reaches the client. Look for the log line
+  `Erreur non rattrapée : réponse JSON d'échec renvoyée` in the function logs,
+  with `err`, `errorCode`, `requestId`, `method`, `path`.
+- If the response has already started, the handler hands control back to
+  Express instead of writing over it.
+- The client side matches: `src/lib/api-messages.ts` and `src/lib/api-call.ts`
+  turn any failure (unreachable network, non-JSON body, 401/403/404/409/5xx)
+  into a French sentence, and `/ma-carte` keeps its form usable with a
+  non-blocking retry banner.
 
 ## Clean rebuild checks
 
@@ -91,3 +138,14 @@ verifies that both Vercel configs pin the pnpm install/build/output settings
 and route `/api` correctly, verifies that the Vercel entrypoints still point
 only to `dist/app.mjs`, and fails if forbidden generated artifacts are tracked
 by Git.
+
+When `VERCEL_VERIFY_DEPLOYMENT_URL` (or `VERCEL_DEPLOYMENT_URL` / `VERCEL_URL`)
+is set, it also probes the live deployment: `/api/healthz`, `/api/projects`,
+`/api/projects/:id`, `/api/cron/scheduled-messages`, `/api/me/card` and
+`/api/me/professional-profiles` must return the expected status **and**
+`application/json` with a body that parses. A route answering HTML fails the
+check — that is the invariant whose breach produced the `/ma-carte` parse error.
+
+```bash
+VERCEL_VERIFY_DEPLOYMENT_URL=https://www.byaime.fr corepack pnpm run verify:vercel
+```

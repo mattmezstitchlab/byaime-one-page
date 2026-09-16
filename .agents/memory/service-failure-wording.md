@@ -11,7 +11,8 @@ d’une exception technique (`Unexpected token '<', "<!DOCTYPE "... is not valid
 **Why:** `/ma-carte` a affiché le message du parseur JSON à la place de tout le formulaire dès
 que `/api/me/card` a répondu autre chose que du JSON : serveur de développement lancé sans API
 (Vite répond `index.html`), passerelle qui renvoie sa propre page d’erreur, fonction serveur
-absente. La personne perdait à la fois la compréhension et sa saisie.
+absente — et, en production sur Vercel, une erreur non rattrapée dans une route : Express répond
+alors sa page HTML par défaut. La personne perdait à la fois la compréhension et sa saisie.
 
 **How to apply:**
 - Passer par `lib/api-call.ts` (`apiCall`, `jsonPut`) pour tout appel au service : il lit le
@@ -29,3 +30,13 @@ absente. La personne perdait à la fois la compréhension et sa saisie.
   échec ne bloque pas l’ouverture de l’écran principal.
 - Chaque message est contrôlé sans réseau (`lib/api-messages.test.ts`) et le comportement de la
   page l’est avec l’arbre réel (`pages/ma-carte.test.tsx`).
+
+**Côté service, la même règle :** une API répond **toujours** JSON, échec compris. Un routeur
+Express monté sans gestionnaire d’erreur répond du HTML dès qu’une route lève (table absente, base
+injoignable, corps illisible) : monter un gestionnaire à quatre arguments en dernier
+(`middlewares/jsonErrorHandler.ts`), qui dérive statut et message d’une fonction pure
+(`lib/apiFailure.ts`) et rend la main à Express si la réponse a déjà commencé. Le libellé vient de
+l’état, jamais de `error.message` : la cause réelle (SQL, nom de table, chaîne de connexion, pile)
+part dans les journaux avec `requestId`, méthode et chemin. Faire contrôler l’invariant sur le
+déploiement lui-même : `scripts/verify-vercel.mjs` exige `application/json` et un corps qui se
+parse sur chaque route sondée.

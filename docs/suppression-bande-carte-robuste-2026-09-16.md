@@ -116,12 +116,55 @@ une réponse HTML sur `/api/me/card`.
    propre `try` : leur échec laisse la carte ouverte. L’annulation d’une recherche musicale en
    cours est déplacée sur le démontage, pour qu’un réessai de chargement ne la coupe plus.
 
+## 3. Côté serveur : plus jamais de HTML en réponse d’erreur
+
+Le contexte a été précisé ensuite : le message technique apparaît **sur Vercel**, en étant
+connecté. La réponse HTML venait donc du service déployé. La cause est dans
+`artifacts/api-server/src/app.ts` : le routeur était monté, mais **aucun gestionnaire d’erreur** ne
+le suivait. Dès qu’une route lève — table absente faute de migration, base injoignable, corps
+illisible — Express 5 transmet l’erreur à son gestionnaire par défaut, qui répond une page
+`<!DOCTYPE html>… Internal Server Error`. Le navigateur, qui lit `response.json()`, échoue et
+recopie son propre texte : exactement le « Unexpected token '<' » vu à l’écran. Le client était
+donc la seconde moitié du problème, pas la seule.
+
+Corrigé par :
+
+1. `src/lib/apiFailure.ts` — dérivation pure de la réponse d’échec : un statut (celui que porte
+   l’erreur quand il est reconnaissable, 500 sinon) et un corps `{ "error": "…" }` en français,
+   libellé par état (400 corps illisible, 401, 403, 404, 409, 413, 422, 429, 5xx). **La cause
+   réelle n’est jamais renvoyée** : ni SQL, ni nom de table, ni chaîne de connexion, ni pile. Elle
+   part dans les journaux (`apiFailureLogFields`, avec `requestId`, méthode et chemin).
+2. `src/middlewares/jsonErrorHandler.ts` — le gestionnaire Express (quatre arguments) qui écrit
+   cette réponse ; si la réponse a déjà commencé, il rend la main à Express au lieu d’écrire
+   par-dessus.
+3. `app.ts` — `app.use(jsonErrorHandler)` en dernier, après `app.use("/api", router)`. L’entrée
+   Vercel (`api/[...path].js`) exporte cette même application : la correction vaut en production.
+4. `scripts/verify-vercel.mjs` — chaque route sondée sur un déploiement doit maintenant répondre
+   `application/json` **et** un corps qui se parse, quel que soit son statut, et `/api/me/card`
+   ainsi que `/api/me/professional-profiles` rejoignent les sondes. L’invariant qui a été violé
+   devient un contrôle rouge.
+
+Contrôles : `src/lib/apiFailure.test.ts` (8 tests) — JSON jamais HTML, aucune fuite technique
+(table, SQL, chaîne de connexion), libellé par état, repli sur 500 pour toute valeur inattendue,
+écriture réelle de la réponse, repli sur Express quand les en-têtes sont déjà partis, et montage en
+dernier dans `app.ts`. Vérifié aussi en HTTP réel, sur le bundle construit (`dist/index.mjs`) :
+une route qui lève, un rejet `async`, une route inconnue et un corps JSON invalide répondent tous
+`application/json` avec le libellé français, pendant que le journal garde la cause réelle
+(`Missing Clerk Secret Key`, `relation … does not exist`, `ECONNREFUSED …`). Une variable
+d’environnement manquante sur un déploiement — qui produisait auparavant une page HTML sur
+**toutes** les routes `/api/*` — donne désormais une phrase lisible.
+
+Ce que ça change pour la personne : `/ma-carte` affiche « Le service n’a pas pu répondre.
+Réessayez dans un instant. » dans un bandeau, avec le formulaire utilisable et « Recharger
+ma carte » — plus un texte anglais à la place de la page.
+
 ## Ce qui n’a pas changé
 
-Aucune API, aucun schéma, aucune migration, aucune règle de visibilité ou de partage, aucune
-donnée. La Carte Universelle garde ses trois niveaux (carte / profil métier / association) et son
-parcours en cinq étapes. L’espace privé, la Timeline, le profil public et le portail invité ne sont
-pas touchés.
+Aucun schéma, aucune migration, aucune règle de visibilité ou de partage, aucune donnée. Les routes
+de l’API gardent leurs chemins, leurs statuts et leurs corps de réponse en succès ; seule la
+réponse d’une erreur **non rattrapée** change (page HTML → JSON). La Carte Universelle garde ses
+trois niveaux (carte / profil métier / association) et son parcours en cinq étapes. L’espace privé,
+la Timeline, le profil public et le portail invité ne sont pas touchés.
 
 ## Vérifications
 
@@ -129,6 +172,14 @@ pas touchés.
 - `pnpm --filter @workspace/byaime-onepage run test` : **466 tests verts (72 fichiers)**. Le total
   précédent était 519 (74 fichiers) : 4 fichiers de contrôles supprimés avec la Bande et la
   vitrine (−66 tests), 2 fichiers ajoutés (`api-messages.test.ts`, `ma-carte.test.tsx`, +13).
+- `pnpm --filter @workspace/api-server run test` : **86 tests verts**, dont
+  `src/lib/apiFailure.test.ts` (8) — JSON jamais HTML, aucune fuite technique (table, SQL, chaîne
+  de connexion), libellé par état, repli sur 500 pour toute valeur inattendue, écriture réelle de
+  la réponse, repli sur Express quand les en-têtes sont déjà partis, et montage en dernier dans
+  `app.ts`. Vérifié aussi en HTTP réel sur le bundle construit (`node ./build.mjs`, puis
+  `dist/index.mjs`) : route qui lève, rejet `async`, route inconnue et corps JSON invalide
+  répondent tous `application/json`.
+- `pnpm test` (racine) : **585 tests verts** — 33 domaine, 86 serveur, 466 frontend.
 - `vite build` : réussi. Le chunk `Bande-*.js` (38,08 kB, 10,79 kB gzip) n’est plus émis ; le
   bundle d’entrée ne grossit pas.
 - `preview/smoke.mjs` : **CONTRÔLE LOCAL OK** — 32 vérifications, dont les routes retirées
@@ -142,10 +193,24 @@ pas touchés.
 
 ## À confirmer côté déploiement
 
-- Si l’erreur vue sur `/ma-carte` venait du **serveur** et non du client (par exemple un 500 parce
-  que `lib/db/migrations/20260916_universal_cards.sql` n’a pas été appliquée sur la base de
-  production), cette passe rend le message lisible et la page utilisable, mais la migration reste
-  à appliquer : c’est elle qui fait exister `aime_universal_cards`.
+- **Reste à faire sur Vercel.** Cette passe rend l’échec lisible et la page utilisable, mais elle
+  ne lève pas la cause : une route qui lève continue de lever. Si `/ma-carte` affiche « Le service
+  n’a pas pu répondre », la cause est côté base, à vérifier dans cet ordre :
+  1. les trois migrations du 16/09/2026 sont appliquées sur le Postgres de production —
+     `lib/db/migrations/20260916_universal_cards.sql` (crée `aime_universal_cards` : sans elle,
+     `GET /api/me/card` lève `relation "aime_universal_cards" does not exist`),
+     `20260916_professional_profiles.sql`, `20260916_verified_rsvp_claims.sql`. Elles sont
+     idempotentes (`IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`) et leur comportement est vérifié
+     hors production par `pnpm run test:card-migrations` ;
+  2. `DATABASE_URL` est défini pour l’environnement Production (et Preview le cas échéant) — sans
+     lui, le bundle lève au chargement et c’est Vercel qui répond sa propre page d’erreur, hors de
+     portée du gestionnaire JSON ;
+  3. les journaux de la fonction portent désormais la ligne « Erreur non rattrapée : réponse JSON
+     d'échec renvoyée » avec `err`, `errorCode`, `requestId`, `method` et `path` : c’est là qu’on
+     lit la table ou la connexion en défaut ;
+  4. `pnpm run verify:vercel` avec `VERCEL_VERIFY_DEPLOYMENT_URL` pointé sur le déploiement : les
+     sondes `/api/me/card` et `/api/me/professional-profiles` doivent répondre `application/json`
+     (401 sans session), et plus aucune route sondée ne peut répondre HTML.
 - Les liens publiés vers `/monde` redirigent désormais. `public/sitemap.xml` ne référençait pas la
   Bande ; il ne référence plus non plus `/agence`, qui redirige. Si un plan de site externe
   (Search Console, annuaire) déclare encore `/agence`, il est à mettre à jour vers `/`.

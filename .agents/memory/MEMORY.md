@@ -18,4 +18,4 @@
 - [Communications liées aux événements](event-communications.md) — séparer la confirmation du changement de la confirmation d’envoi, avec journal Resend relié au Moment.
 - [Cycle de vie des liens RSVP](rsvp-link-lifecycle.md) — réémettre avec un nouveau jeton, conserver la réponse et la propager à toutes les opérations du Monde.
 - [Une seule page publique](single-public-page.md) — l’accueil est l’unique page publique ; la Bande (`/monde`) est retirée et ses URL redirigent.
-- [Échec de service nommé, page jamais morte](service-failure-wording.md) — un service injoignable s’affiche en français à côté du formulaire, aucun texte technique à l’écran.
+- [Échec de service nommé, page jamais morte](service-failure-wording.md) — un service injoignable s’affiche en français à côté du formulaire, aucun texte technique à l’écran, et l’API répond toujours JSON (cause journalisée, jamais renvoyée).
