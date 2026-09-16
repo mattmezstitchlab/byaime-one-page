@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { invitationTarget } from "@/lib/invitation-target";
+import { failureMessage } from "@/lib/api-messages";
+import { apiCall } from "@/lib/api-call";
 
 type Review = {
   projectId: string;
@@ -39,14 +41,13 @@ export function RsvpClaimPanel({
     setReview(null);
     setConfirmed(false);
     try {
-      const response = await fetch(`/api/rsvp/${target.token}/claim`);
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error || "Validation impossible");
+      /* Un lien injoignable ou refusé est nommé en français par `apiCall` :
+         jamais le texte brut d'une réponse qui n'est pas du JSON. */
+      const result = await apiCall<Review>(`/rsvp/${target.token}/claim`);
       setToken(target.token);
       setReview(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Validation impossible");
+      setError(failureMessage(e, "Validation impossible"));
     } finally {
       setBusy(false);
     }
@@ -55,17 +56,14 @@ export function RsvpClaimPanel({
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`/api/rsvp/${token}/claim`, {
+      const result = await apiCall<{ projectId: string }>(`/rsvp/${token}/claim`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmed }),
       });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error || "Association impossible");
       await onJoined(result.projectId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Association impossible");
+      setError(failureMessage(e, "Association impossible"));
     } finally {
       setBusy(false);
     }

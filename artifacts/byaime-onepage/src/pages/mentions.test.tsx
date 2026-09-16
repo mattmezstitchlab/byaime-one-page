@@ -71,8 +71,10 @@ describe("mentions légales", () => {
     }
   });
 
-  it("renvoie vers la Bande, la confidentialité et les conditions", () => {
-    expect(html).toContain('href="/monde"');
+  it("renvoie vers l’accueil, la confidentialité et les conditions", () => {
+    expect(html).toContain("Retour à l’accueil");
+    expect(html).toContain('href="/"');
+    expect(html).not.toContain('href="/monde"');
     expect(html).toContain('href="/confidentialite"');
     expect(html).toContain('href="/conditions"');
   });

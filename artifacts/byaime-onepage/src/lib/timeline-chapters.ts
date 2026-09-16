@@ -3,9 +3,9 @@ import type { TimelineEvent } from "./types";
 /*
  * Les chapitres du fil : le nom du moment de la vie où tombe un Moment.
  *
- * Ce fichier existe parce que la même découpe sert deux écrans qui n'ont rien
- * en commun ailleurs : le Monde privé (`UniversalTimeline`) et la Bande
- * publique (`/monde`, sans session). Une recopie aurait fini par diverger —
+ * Ce fichier existe parce que la même découpe sert plusieurs écrans qui n'ont
+ * rien en commun ailleurs : le Monde privé (`UniversalTimeline`) et les visuels
+ * du Monde (`world-visuals.ts`). Une recopie aurait fini par diverger —
  * c'est exactement ce que le plan reproche à la pile de serifs recopiée quatre
  * fois avant le lot 1.8.
  *
@@ -56,20 +56,3 @@ export function getSubchapter(event: TimelineEvent, pivotTime: number): string {
   return "Jalon";
 }
 
-/**
- * Regroupe des Moments déjà triés par chapitre, sans en inventer : un chapitre
- * n'existe que s'il porte au moins un Moment.
- */
-export function groupByChapter(
-  events: TimelineEvent[],
-  pivotTime: number,
-): Array<{ chapter: string; events: TimelineEvent[] }> {
-  const groups: Array<{ chapter: string; events: TimelineEvent[] }> = [];
-  for (const event of [...events].sort((a, b) => a.time - b.time)) {
-    const chapter = getSubchapter(event, pivotTime);
-    const last = groups[groups.length - 1];
-    if (last && last.chapter === chapter) last.events.push(event);
-    else groups.push({ chapter, events: [event] });
-  }
-  return groups;
-}

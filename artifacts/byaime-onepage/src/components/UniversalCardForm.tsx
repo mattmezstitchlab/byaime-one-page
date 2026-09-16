@@ -16,6 +16,8 @@ import {
   type Participation,
 } from "@workspace/aime-domain";
 import { useProject } from "@/store/project-store";
+import { failureMessage } from "@/lib/api-messages";
+import { apiCall, jsonPut } from "@/lib/api-call";
 import { searchAppleMusic } from "@/lib/music-search";
 import type { MusicSearchResult } from "@/lib/types";
 
@@ -24,20 +26,17 @@ const inputStyle =
   "mt-1 min-h-11 w-full rounded-xl border border-white/25 bg-[#262320] px-3 py-2 text-white";
 const buttonStyle =
   "min-h-11 rounded-full bg-white px-5 py-2 text-sm font-semibold text-black disabled:opacity-40";
-async function api(path: string, body?: unknown) {
-  const response = await fetch(`/api${path}`, {
-    ...(body === undefined
-      ? {}
-      : {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Enregistrement impossible");
-  return data;
+/**
+ * Un appel au service de la Carte. Trois issues, toutes nommées en français
+ * (`lib/api-messages.ts`) : la donnée, le refus expliqué du serveur, ou un
+ * service injoignable. Jamais le texte brut d'un `JSON.parse` qui échoue sur une
+ * page HTML — c'est ce qui s'affichait sur `/ma-carte` quand l'API ne répondait
+ * pas, à la place du formulaire entier.
+ */
+async function api(path: string, body?: unknown): Promise<any> {
+  return apiCall(path, body === undefined ? undefined : jsonPut(body));
 }
+
 function localDate(value: string) {
   if (!value) return "";
   const d = new Date(value);
@@ -111,6 +110,9 @@ export function UniversalCardForm({
   const [busy, setBusy] = useState(signedIn);
   const [loaded, setLoaded] = useState(!signedIn);
   const [error, setError] = useState("");
+  /** Échec du chargement initial : il s'affiche à côté du formulaire, pas à sa place. */
+  const [loadError, setLoadError] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
   const [notice, setNotice] = useState("");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MusicSearchResult[]>([]);
@@ -121,20 +123,42 @@ export function UniversalCardForm({
   const searchController = useRef<AbortController | null>(null);
   useEffect(() => {
     let active = true;
-    setCard(emptyCard());
-    setPresence(emptyParticipation());
-    setVersion(null);
-    setCardUserId(null);
+    /* Le premier chargement repart d'une carte vide — le serveur ou le brouillon
+       local la remplissent aussitôt après. Un réessai ne touche pas à la saisie
+       en cours : réessayer ne doit jamais effacer ce qui est écrit. */
+    const fresh = reloadToken === 0;
+    if (fresh) {
+      setCard(emptyCard());
+      setPresence(emptyParticipation());
+      setVersion(null);
+      setCardUserId(null);
+    }
+    setLoadError("");
     setLoaded(!signedIn);
     setBusy(signedIn);
+    /** Le brouillon de session : identité déjà saisie sur cet appareil. */
+    const restoreDraft = () => {
+      try {
+        const raw = sessionStorage.getItem(DRAFT);
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        const { professional, ...identity } = draft.card;
+        if (professional && Object.keys(professional).length)
+          sessionStorage.setItem(
+            "aime-legacy-professional-draft",
+            JSON.stringify(professional),
+          );
+        setCard(identity);
+        if (identity.firstName?.trim() && identity.lastName?.trim())
+          setStep(4);
+      } catch {
+        /* Brouillon illisible : on repart d'une carte vide, sans message. */
+      }
+    };
     const load = async () => {
       try {
         const current = signedIn ? await api("/me/card") : null;
-        const functioning = signedIn
-          ? await api("/me/professional-profiles")
-          : [];
         if (!active) return;
-        setProfiles(functioning);
         if (current) {
           setCard(current.data);
           savedIdentity.current = current.data;
@@ -143,34 +167,47 @@ export function UniversalCardForm({
           setVersion(current.updatedAt);
           setCardUserId(current.userId);
         } else {
-          const raw = sessionStorage.getItem(DRAFT);
-          if (raw) {
-            const draft = JSON.parse(raw);
-            const { professional, ...identity } = draft.card;
-            if (professional && Object.keys(professional).length)
-              sessionStorage.setItem(
-                "aime-legacy-professional-draft",
-                JSON.stringify(professional),
-              );
-            setCard(identity);
-            if (identity.firstName?.trim() && identity.lastName?.trim())
-              setStep(4);
+          restoreDraft();
+        }
+        /* Les activités sont un complément de la carte : leur échec ne doit pas
+           empêcher de l'ouvrir (elles resteront simplement absentes). */
+        if (signedIn) {
+          try {
+            const functioning = await api("/me/professional-profiles");
+            if (active) setProfiles(Array.isArray(functioning) ? functioning : []);
+          } catch {
+            if (active && fresh) setProfiles([]);
           }
         }
-        setLoaded(true);
       } catch (e) {
-        if (active)
-          setError(e instanceof Error ? e.message : "Chargement impossible");
+        if (!active) return;
+        /* Le service peut être momentanément injoignable : la page reste
+           utilisable — saisie locale, brouillon retrouvé — et le dit, au lieu
+           de se remplacer par un message technique. */
+        setLoadError(failureMessage(e, "Chargement de votre carte impossible"));
+        restoreDraft();
       } finally {
-        if (active) setBusy(false);
+        /* Toujours rendre le formulaire : un échec de chargement est une
+           information, pas une page morte. */
+        if (active) {
+          setLoaded(true);
+          setBusy(false);
+        }
       }
     };
     void load();
     return () => {
       active = false;
-      searchController.current?.abort();
     };
-  }, [signedIn]);
+  }, [signedIn, reloadToken]);
+  /* Une recherche musicale en vol est annulée au démontage, pas à chaque
+     réessai de chargement de la carte. */
+  useEffect(
+    () => () => {
+      searchController.current?.abort();
+    },
+    [],
+  );
   const update = <K extends keyof UniversalCard>(
     key: K,
     value: UniversalCard[K],
@@ -346,21 +383,15 @@ export function UniversalCardForm({
       setBusy(false);
     }
   };
+  /* Uniquement pendant le chargement en cours : dès qu'il aboutit — réussite ou
+     échec — le formulaire est rendu, avec son avertissement le cas échéant. */
   if (!loaded)
     return (
-      <section className="rounded-[2rem] bg-[#171410] p-8 text-white">
-        <p role={error ? "alert" : "status"}>
-          {error || "Chargement de votre carte…"}
-        </p>
-        {error && (
-          <button
-            type="button"
-            className="mt-4 underline"
-            onClick={() => window.location.reload()}
-          >
-            Réessayer
-          </button>
-        )}
+      <section
+        data-testid="universal-card-loading"
+        className="rounded-[2rem] bg-[#171410] p-8 text-white"
+      >
+        <p role="status">Chargement de votre carte…</p>
       </section>
     );
   const contextSelector = (
@@ -502,6 +533,29 @@ export function UniversalCardForm({
                 ? "Retrouvez vos réglages habituels. Changez seulement ce qui est différent cette fois-ci."
                 : "Je me présente une fois. Je dis ce que je fais. Je choisis où je vais. BYAIME sait déjà le reste."}
       </p>
+      {loadError && (
+        <div
+          data-testid="card-load-error"
+          className="mt-5 rounded-2xl border border-amber-200/40 bg-amber-100/10 p-4"
+        >
+          <p role="alert" className="text-sm text-amber-100">
+            {loadError}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-amber-100/70">
+            Votre carte n’a pas pu être relue depuis votre compte. Vous pouvez
+            continuer ici : rien n’est enregistré tant que l’enregistrement n’a
+            pas abouti.
+          </p>
+          <button
+            type="button"
+            className={`${buttonStyle} mt-3`}
+            disabled={busy}
+            onClick={() => setReloadToken((token) => token + 1)}
+          >
+            {busy ? "Chargement…" : "Recharger ma carte"}
+          </button>
+        </div>
+      )}
       {step === 4 && (
         <ol
           aria-label="Votre parcours BYAIME"
@@ -1316,7 +1370,7 @@ export function UniversalCardForm({
                     <button
                       type="button"
                       className="min-h-11 underline"
-                      onClick={() => navigate("/monde")}
+                      onClick={() => navigate("/")}
                     >
                       Découvrir
                     </button>

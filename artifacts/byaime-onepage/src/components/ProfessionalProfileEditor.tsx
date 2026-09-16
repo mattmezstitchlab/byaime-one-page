@@ -10,6 +10,8 @@ import {
   type ProfessionalAssignment,
   resolveProfessionalAssignment,
 } from "@workspace/aime-domain";
+import { failureMessage } from "@/lib/api-messages";
+import { apiCall, jsonPut } from "@/lib/api-call";
 
 const input =
   "mt-1 min-h-11 w-full rounded-xl border border-white/25 bg-[#262320] px-3 py-2 text-white";
@@ -146,21 +148,12 @@ export function ProfessionalProfileEditor({
     setError("");
     setNotice("");
     try {
-      const response = await fetch("/api/me/professional-profiles", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profession,
-          data,
-          updatedAt: current?.updatedAt ?? null,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.error ||
-            "Profil métier invalide. Vérifiez les champs et disponibilités.",
-        );
+      /* Le refus du serveur (champ invalide, conflit de version) est repris tel
+         quel ; un service injoignable est nommé en français par `apiCall`. */
+      const result = await apiCall<ProfessionalProfile>(
+        "/me/professional-profiles",
+        jsonPut({ profession, data, updatedAt: current?.updatedAt ?? null }),
+      );
       setData(result.data);
       baseline.current = JSON.stringify(result.data);
       onSaved(result);
@@ -168,7 +161,7 @@ export function ProfessionalProfileEditor({
         "C’est enregistré. Vous retrouverez ces réglages dans vos mariages.",
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Enregistrement impossible");
+      setError(failureMessage(e, "Enregistrement impossible"));
     } finally {
       setBusy(false);
     }

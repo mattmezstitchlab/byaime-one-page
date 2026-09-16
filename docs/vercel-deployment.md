@@ -43,11 +43,15 @@ Preview, Development as needed):
   `replit.md`.
 - `VITE_CLERK_PUBLISHABLE_KEY` — same value as `CLERK_PUBLISHABLE_KEY`.
   Without it the app runs in **degraded mode**: public pages stay served (the
-  agency showcase `/`, `/agence`, `/mentions-legales`, `/confidentialite`,
-  `/conditions`, a couple's report `/bilan/:id`, a guest portal `/rsvp/:token`)
-  and any route that needs a session shows the "Connexion momentanément
-  indisponible" screen with a link to the showcase, instead of mounting a
-  `ClerkProvider` pointed at a non-existent instance.
+  home page `/` — also served on the retired URLs `/agence` and `/monde`,
+  `/mentions-legales`, `/confidentialite`, `/conditions`, a couple's report
+  `/bilan/:id`, a guest portal `/rsvp/:token`) and any route that needs a
+  session shows the "Connexion momentanément indisponible" screen with a link
+  back to the home page, instead of mounting a `ClerkProvider` pointed at a
+  non-existent instance. The home page composes with the project store, so
+  degraded mode mounts it through `LocalProjectProvider` (an absent session
+  injected into the store) rather than `ProjectProvider`, whose `useAuth()`
+  would throw without a `ClerkProvider`.
 
   Note: the environment variable is the only reliable signal. Clerk's
   `publishableKeyFromHost(host, key)` fabricates a key from the hostname when

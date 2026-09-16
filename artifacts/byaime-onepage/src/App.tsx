@@ -14,7 +14,7 @@ import NotFound from '@/pages/not-found';
 import { LegalPage } from '@/pages/Legal';
 import { LandingPage } from '@/pages/Landing';
 import { PortalBackdrop } from '@/components/PortalBackdrop';
-import { ProjectProvider } from '@/store/project-store';
+import { LocalProjectProvider, ProjectProvider } from '@/store/project-store';
 import { useI18n } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 import { resolveDegradedView } from '@/lib/public-shell';
@@ -67,7 +67,6 @@ const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ defau
 const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
 const LazyAdmin = lazy(() => import('@/pages/AdminSommaire').then(module => ({ default: module.AdminSommairePage })));
 const LazyMentions = lazy(() => import('@/pages/Mentions').then(module => ({ default: module.MentionsLegalesPage })));
-const LazyBande = lazy(() => import('@/pages/Bande').then(module => ({ default: module.BandePage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -352,12 +351,15 @@ function RouteFallback() {
 
 function Routes() {
   return <RoutedErrorBoundary><Suspense fallback={<RouteFallback />}><Switch>
-    {/* Pages publiques, sans session : la Bande (où la vitrine est fusionnée),
+    {/* Pages publiques, sans session : l'accueil — la page unique du site —,
         les mentions légales, le livrable d'un couple et les textes légaux.
-        L'ancienne vitrine `/agence` redirige vers la page unique. */}
-    <Route path="/agence"><Redirect to="/monde" /></Route>
+        La Bande (`/monde`) a été retirée le 16/09/2026 : l'URL, comme celle de
+        l'ancienne vitrine `/agence`, redirige vers l'accueil au lieu de mourir,
+        parce que des liens publiés (QR codes, réseaux, e-mails) pointent encore
+        vers elle. */}
+    <Route path="/agence"><Redirect to="/" /></Route>
+    <Route path="/monde"><Redirect to="/" /></Route>
     <Route path="/mentions-legales">{() => <LazyMentions />}</Route>
-    <Route path="/monde">{() => <LazyBande />}</Route>
     <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
@@ -395,7 +397,7 @@ function Providers() {
 /**
  * Une clé publique absente est une erreur de déploiement, pas une raison de
  * laisser une page blanche : l'écran reste lisible, aucune donnée n'est
- * demandée, et la vitrine — qui n'a besoin d'aucune session — reste accessible.
+ * demandée, et l'accueil — qui n'a besoin d'aucune session — reste accessible.
  */
 function MissingAuthKey({ requestedPath }: { requestedPath?: string }) {
   return (
@@ -413,11 +415,11 @@ function MissingAuthKey({ requestedPath }: { requestedPath?: string }) {
           </p>
         )}
         <a
-          href={sitePath('/monde')}
-          data-testid="auth-key-missing-agency"
+          href={sitePath('/')}
+          data-testid="auth-key-missing-home"
           className="mt-8 inline-block rounded-full bg-foreground px-6 py-3 text-xs font-medium text-background"
         >
-          Voir la Bande
+          Revenir à l’accueil
         </a>
       </div>
     </main>
@@ -427,9 +429,9 @@ function MissingAuthKey({ requestedPath }: { requestedPath?: string }) {
 /**
  * Mode dégradé : pas de clé publique, donc pas de `ClerkProvider` — et surtout
  * pas de dépendance à un fournisseur d'authentification pour les pages qui
- * n'en ont jamais eu besoin. La Bande (la page unique), les mentions légales,
- * les textes légaux et le bilan partagé d'un couple restent servis ; tout ce
- * qui exige une session affiche l'écran ci-dessus.
+ * n'en ont jamais eu besoin. L'accueil (la page unique du site), les mentions
+ * légales, les textes légaux et le bilan partagé d'un couple restent servis ;
+ * tout ce qui exige une session affiche l'écran ci-dessus.
  *
  * Le choix de la vue vient de `resolveDegradedView` (dérivation pure, testée) :
  * ce composant ne fait que l'exécuter.
@@ -449,8 +451,10 @@ function DegradedRoutes() {
       return <LazyBilan />;
     case 'rsvp':
       return <RsvpPage params={{ token: view.token }} />;
-    case 'bande':
-      return <LazyBande />;
+    case 'landing':
+      /* Personne n'est connecté — c'est le cas par définition dans ce mode :
+         l'accueil est rendu en visiteur (store en session absente). */
+      return <LandingPage />;
     default:
       return <MissingAuthKey requestedPath={view.requestedPath} />;
   }
@@ -462,11 +466,16 @@ export default function App() {
     return (
       <WouterRouter base={basePath}>
         <QueryClientProvider client={queryClient}>
-          <RoutedErrorBoundary>
-            <Suspense fallback={<RouteFallback />}>
-              <DegradedRoutes />
-            </Suspense>
-          </RoutedErrorBoundary>
+          {/* L'accueil public compose avec le store (compositeur d'intention) :
+              sans `ClerkProvider`, `useAuth()` lèverait. Le store est donc monté
+              en session absente — l'état exact d'un visiteur non connecté. */}
+          <LocalProjectProvider>
+            <RoutedErrorBoundary>
+              <Suspense fallback={<RouteFallback />}>
+                <DegradedRoutes />
+              </Suspense>
+            </RoutedErrorBoundary>
+          </LocalProjectProvider>
         </QueryClientProvider>
       </WouterRouter>
     );

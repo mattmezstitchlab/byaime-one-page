@@ -51,23 +51,16 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
       <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)]/85 backdrop-blur-xl">
         <div className="mx-auto flex h-12 w-full max-w-6xl items-center justify-between px-5 md:px-8">
           <Link
-            href="/monde"
-            aria-label="AIME — La Bande, la page unique"
+            href="/"
+            aria-label="AIME — accueil"
             className="inline-flex items-center gap-2 rounded-lg font-display text-[15px] font-semibold tracking-[.28em] text-[var(--agency-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40"
           >
             AIME
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* La vitrine de l'agence était joignable uniquement en cliquant sur
-                le mot « AIME » : elle a maintenant son lien, en toutes lettres. */}
-            {/* La Bande : le prototype public du produit, sans session. */}
-            <Link
-              href="/monde"
-              data-testid="landing-bande"
-              className="hidden h-8 items-center rounded-full px-3 text-xs text-[var(--agency-ink)]/75 transition hover:bg-[var(--agency-ink)]/10 hover:text-[var(--agency-ink)] sm:inline-flex"
-            >
-              {t("nav.bande")}
-            </Link>
+            {/* La Bande (`/monde`) a été retirée le 16/09/2026 : l'accueil est
+                la page unique du site, il n'y a plus de seconde page publique à
+                nommer dans cette barre. */}
             <LocaleToggle locale={locale} setLocale={setLocale} />
             <Link
               data-testid="landing-admin"
@@ -242,7 +235,6 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[var(--agency-eyebrow)]">{t("footer.col.product")}</p>
               <ul className="mt-4 space-y-2.5 text-xs text-[var(--agency-body)]">
-                <li><Link href="/monde" data-testid="footer-bande" className="transition hover:text-[var(--agency-ink)]">{t("footer.bande")}</Link></li>
                 <li><a href="#landing-product" className="transition hover:text-[var(--agency-ink)]">{t("nav.howItWorks")}</a></li>
                 <li><a href="#landing-values" className="transition hover:text-[var(--agency-ink)]">{t("apple.values.eyebrow")}</a></li>
                 <li><Link href="/creation" className="transition hover:text-[var(--agency-ink)]">{t("nav.signUp")}</Link></li>

@@ -86,7 +86,7 @@ export function DayOfPanel() {
           <div>
             <p className={EYEBROW}>Jour J</p>
             <h3 className={cn(TITLE, "mt-2 text-2xl")}>Le déroulé du Jour J</h3>
-            <p className={cn(LEAD, "mt-2 text-sm")}>Les changements structurants sont prévisualisés avant application, comme dans la Bande.</p>
+            <p className={cn(LEAD, "mt-2 text-sm")}>Les changements structurants sont prévisualisés avant application.</p>
           </div>
           {canEdit && (
             <button

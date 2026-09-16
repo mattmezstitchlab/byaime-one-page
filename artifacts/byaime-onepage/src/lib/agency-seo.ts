@@ -1,10 +1,10 @@
 /*
- * Ce que la vitrine dit d'elle-même aux moteurs et aux réseaux sociaux.
+ * Ce que la page publique dit d'elle-même aux moteurs et aux réseaux sociaux.
  *
- * Constat du plan (§2.2) : `/agence` est une route d'une application mono-page.
- * Le HTML servi portait le titre, la description et la canonical d'AIME — la
- * vitrine n'existait ni pour Google, ni pour un partage WhatsApp. Ce fichier est
- * la source unique de son identité documentaire :
+ * Constat du plan (§2.2) : une route d'application mono-page servait le titre, la
+ * description et la canonical par défaut — la page n'existait ni pour Google, ni
+ * pour un partage WhatsApp. Ce fichier est la source unique de son identité
+ * documentaire :
  *
  *  - `AGENCY_META`          → titre et description posés par `useRouteMeta`,
  *                             qui réécrit aussi la balise canonical ;
@@ -19,8 +19,15 @@
 
 import { AGENCY_HOST, AGENCY_IDENTITY, SITE_ORIGIN } from "./agency-identity";
 
-/** Chemin de la vitrine. Devient `/` au lot 1 bis (D1 : l'agence est la racine). */
-export const AGENCY_PATH = "/agence";
+/**
+ * Chemin de la page publique : la racine.
+ *
+ * La vitrine `/agence` avait été fusionnée dans la Bande (`/monde`), supprimée le
+ * 16/09/2026 ; les deux URL redirigent désormais vers `/`. Déclarer ici une URL
+ * qui redirige ferait publier une canonical morte — le pré-rendu (lot 2 du plan)
+ * s'appuie donc sur la racine, la seule page publique du site.
+ */
+export const AGENCY_PATH = "/";
 
 export const AGENCY_META = {
   title: `${AGENCY_IDENTITY.brand} — ${AGENCY_IDENTITY.role} · ${AGENCY_IDENTITY.cities[0]}`,

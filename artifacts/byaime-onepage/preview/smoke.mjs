@@ -149,21 +149,25 @@ function checkHtml(label, html, needles, absent = []) {
   );
 }
 
+/* Le choix Couple / Wedding planner a été retiré de l'accueil : il reste deux
+   portes (ma carte, mon mariage) et aucune question avant d'en avoir choisi une. */
 checkHtml(
-  "Accueil visiteur, sans brouillon (deux choix, questions à venir)",
+  "Accueil visiteur, sans brouillon (deux portes, questions à venir)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-composer"', 'data-testid="landing-persona"', "Couple", "Wedding planner", "un seul espace privé", "Sans carte bancaire"],
-  ['data-testid="landing-intention-input"', 'data-testid="landing-intention-finish"', "Choisir l’univers", "Laboratoire"],
+  ['data-testid="landing-composer"', 'data-testid="landing-entry"', 'data-testid="landing-create-primary"', 'data-testid="landing-start-blank"', "un seul espace privé", "Sans carte bancaire"],
+  ['data-testid="landing-persona', "Wedding planner", 'data-testid="landing-intention-input"', 'data-testid="landing-intention-finish"', "Choisir l’univers", "Laboratoire"],
 );
 
-/* Le brouillon ne fuit pas dans le hero : l'écran des deux choix passe
-   d'abord, les réponses repeuplées n'apparaissent qu'ensuite. */
+/* Un brouillon repris saute la porte d'entrée (`LandingComposer` : « Une carte
+   ou un brouillon repris saute la porte d'entrée ») : le visiteur revient sur la
+   première question non répondue, et le texte du brouillon n'est jamais affiché
+   tel quel sur la page. */
 globalThis.localStorage.setItem("aime-intention-draft", DRAFT);
 checkHtml(
-  "Accueil visiteur, avec brouillon (choix d'abord, brouillon invisible)",
+  "Accueil visiteur, avec brouillon (reprise sur les questions)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-persona"', "Wedding planner"],
-  ["Lille", 'data-testid="landing-intention-input"', "Laboratoire"],
+  ['data-testid="landing-intention-form"', 'data-testid="landing-intention-input"'],
+  ["Lille", 'data-testid="landing-entry"', "Laboratoire"],
 );
 globalThis.localStorage.removeItem("aime-intention-draft");
 checkHtml("Accueil membre", renderAt("/", createElement(LandingPage, { signedIn: true })), ["Accéder à mon espace"], ["Créer un compte gratuit"]);
@@ -171,10 +175,10 @@ checkHtml("Accueil membre", renderAt("/", createElement(LandingPage, { signedIn:
 /* La porte d'entrée doit passer entièrement en anglais (promesse, choix, réassurance). */
 setNavigatorLanguage("en-US", ["en-US", "en"]);
 checkHtml(
-  "Accueil visiteur en anglais (deux choix EN)",
+  "Accueil visiteur en anglais (promesse, navigation et réassurance EN)",
   renderAt("/", createElement(LandingPage, { signedIn: false })),
-  ['data-testid="landing-locale-en"', 'data-testid="landing-persona"', "A couple", "Wedding planner", "Your whole wedding", "No credit card", "Create my space", "Sign in"],
-  ["Notre mariage", "Créer mon espace", "un seul espace privé", 'data-testid="landing-intention-input"'],
+  ['data-testid="landing-locale-en"', 'data-testid="landing-entry"', "Your whole wedding", "No credit card", "Create my space", "Sign in"],
+  ["Notre mariage", "Créer mon espace", "un seul espace privé", 'data-testid="landing-persona', 'data-testid="landing-intention-input"'],
 );
 setNavigatorLanguage("fr-FR", ["fr-FR", "fr"]);
 
@@ -224,38 +228,39 @@ checkHtml("App complète (route /)", await renderApp("/"), ['data-testid="landin
 checkHtml("App complète (/confidentialite)", await renderApp("/confidentialite"), [], []);
 checkHtml("App complète (/creation)", await renderApp("/creation"), ["Clerk simulé"], []);
 
-/* La vitrine a été fusionnée dans la Bande : `/agence` redirige vers `/monde`
-   (un `<Redirect>` ne rend rien côté serveur, d'où le rendu vide attendu). */
+/* La Bande (`/monde`) a été retirée le 16/09/2026 ; l'ancienne vitrine
+   `/agence` l'avait été avant elle. Les deux URL redirigent vers l'accueil, la
+   page unique du site : un `<Redirect>` ne rend rien côté serveur, d'où le rendu
+   vide attendu — le navigateur, lui, suit la redirection. */
 checkHtml(
-  "L'ancienne vitrine (/agence) redirige vers la Bande",
+  "L'ancienne vitrine (/agence) redirige vers l'accueil",
   await renderApp("/agence"),
   [],
-  ['data-testid="agency-landing"', 'data-testid="bande-page"'],
+  ['data-testid="agency-landing"', 'data-testid="bande-page"', 'data-testid="landing"'],
 );
 checkHtml(
-  "La Bande (/monde) — la page unique : démonstration et vitrine fusionnées",
+  "La Bande retirée (/monde) redirige vers l'accueil",
   await renderApp("/monde"),
+  [],
+  ['data-testid="bande-page"', 'data-testid="bande-composer"', "La Bande", 'data-testid="landing"'],
+);
+/* L'accueil est la seule page publique restante : il porte la promesse, les
+   valeurs, l'appel à créer et les textes légaux (aucune session requise). */
+checkHtml(
+  "L'accueil (/) — la page unique du site",
+  await renderApp("/"),
   [
-    'data-testid="bande-page"',
-    'data-testid="bande-regie-jours"',
-    'data-testid="bande-resolution-mois"',
-    'data-testid="bande-phrase"',
-    'data-testid="bande-composer"',
-    "Ce qu&#x27;AIME a compris",
-    "aime-apple-title",
-    // La vitrine, réduite à l'essentiel : une preuve, trois lignes, un contact.
-    "Votre mariage, tout simplement.",
-    "Pourquoi AIME",
-    "Vous organisez moins. Vous décidez mieux.",
-    "Une phrase, pas un tableur",
-    "Une seule page, pour vos invités",
-    "La preuve, pas la promesse",
-    "Parlons de votre mariage.",
-    "La cerise sur le gâteau",
-    "Wedding Architect",
-    "bonjour@byaime.fr",
+    'data-testid="landing"',
+    'data-testid="landing-hero"',
+    'data-testid="landing-composer"',
+    'data-testid="landing-values"',
+    'data-testid="landing-cta"',
+    "Tout votre mariage, dans un seul espace privé",
+    'href="/conditions"',
+    'href="/confidentialite"',
+    'data-testid="footer-mentions"',
   ],
-  ["Connexion momentanément indisponible", 'data-testid="private-layout"', "timeline", "lacerisesurlegateau"],
+  ["Connexion momentanément indisponible", 'data-testid="private-layout"', "La Bande"],
 );
 checkHtml(
   "Mentions légales (/mentions-legales)",
@@ -340,10 +345,10 @@ async function renderDegradedApp(path) {
 
 const UNAVAILABLE = "Connexion momentanément indisponible";
 checkHtml(
-  "Dégradé : la Bande reste servie sur l'ancienne vitrine (/agence)",
+  "Dégradé : l'accueil reste servi sur l'ancienne vitrine (/agence)",
   await renderDegradedApp("/agence"),
-  ['data-testid="bande-page"', "Votre mariage, tout simplement."],
-  [UNAVAILABLE],
+  ['data-testid="landing"', 'data-testid="landing-composer"'],
+  [UNAVAILABLE, 'data-testid="bande-page"'],
 );
 checkHtml(
   "Dégradé : les mentions légales restent servies",
@@ -357,17 +362,21 @@ checkHtml(
   ["Confidentialité"],
   [UNAVAILABLE],
 );
+/* L'accueil public compose avec le store (compositeur d'intention) : en mode
+   dégradé il n'y a pas de `ClerkProvider`, le store est donc monté en session
+   absente (`LocalProjectProvider`). Si l'accueil tombait ici, la page la plus
+   exposée du site dépendrait d'un fournisseur d'authentification. */
 checkHtml(
-  "Dégradé : la racine sert la Bande, la page unique",
+  "Dégradé : la racine sert l'accueil, la page unique",
   await renderDegradedApp("/"),
-  ['data-testid="bande-page"'],
-  [UNAVAILABLE],
+  ['data-testid="landing"', 'data-testid="landing-composer"', 'data-testid="landing-create-primary"'],
+  [UNAVAILABLE, 'data-testid="bande-page"'],
 );
 checkHtml(
-  "Dégradé : la Bande reste servie",
+  "Dégradé : l'URL de la Bande retirée (/monde) sert l'accueil",
   await renderDegradedApp("/monde"),
-  ['data-testid="bande-page"', 'data-testid="bande-regie-invites"', 'data-testid="bande-role-viewer"'],
-  [UNAVAILABLE],
+  ['data-testid="landing"', 'data-testid="landing-composer"'],
+  [UNAVAILABLE, 'data-testid="bande-page"', "La Bande"],
 );
 checkHtml(
   "Dégradé : le portail d'un invité reste servi",
@@ -378,7 +387,7 @@ checkHtml(
 checkHtml(
   "Dégradé : une route à session explique, sans rien demander",
   await renderDegradedApp("/user-portal"),
-  [UNAVAILABLE, 'data-testid="auth-key-missing-path"', "Voir la Bande"],
+  [UNAVAILABLE, 'data-testid="auth-key-missing-path"', "Revenir à l’accueil"],
   ['data-testid="private-layout"', 'data-testid="landing"'],
 );
 await degradedVite.close();

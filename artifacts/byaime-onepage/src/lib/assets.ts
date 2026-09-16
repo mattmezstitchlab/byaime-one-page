@@ -67,12 +67,15 @@ export const AIME_VIDEOS = weddingVideos;
 export const AIME_VIDEO_PATHS: string[] = Object.values(weddingVideos);
 
 /*
- * Vitrine de l'agence « La cerise sur le gâteau — Wedding Architect », fusionnée
- * dans la Bande (`/monde`). Photographies éditoriales ivoire / pierre / charbon
- * servies en lecture seule depuis `public/images`, et grands visuels immersifs
- * du Monde Mariage pour les sections pleine largeur de la page unique. Comme
- * pour le Monde Mariage : noms stables, remplacement par de vraies photos sans
- * toucher au code.
+ * Visuels de l'agence « La cerise sur le gâteau — Wedding Architect ».
+ * Photographies éditoriales ivoire / pierre / charbon servies en lecture seule
+ * depuis `public/images`, et grands visuels immersifs du Monde Mariage pour les
+ * sections pleine largeur. Comme pour le Monde Mariage : noms stables,
+ * remplacement par de vraies photos sans toucher au code.
+ *
+ * La Bande (`/monde`) les consommait ; retirée le 16/09/2026, elle laisse ces
+ * chemins disponibles pour toute section éditoriale de l'accueil ou d'un
+ * livrable — `assets.test.ts` continue de vérifier que les fichiers existent.
  */
 export const AGENCY_VISUALS = {
   hero: 'images/agency/agency-hero.jpg',

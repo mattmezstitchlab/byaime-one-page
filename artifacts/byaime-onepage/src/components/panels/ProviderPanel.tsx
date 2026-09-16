@@ -33,7 +33,7 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
         <p className={EYEBROW}>Prestataires</p>
         <h3 className="aime-apple-title mt-2 text-2xl text-[var(--agency-ink)]">L'équipe qui porte le Jour J</h3>
         <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">
-          Chaque prestataire porte son rôle, son statut et ses Moments — reliés comme dans la Bande.
+          Chaque prestataire porte son rôle, son statut et ses Moments — reliés comme dans le Monde.
         </p>
         <div className="mt-5 flex gap-2">
           <label className="flex flex-1 items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-4">

@@ -48,7 +48,7 @@ export type FilArrival = {
 export const MOMENT_LANE_OFFSETS = [-88, 88, -184, 184] as const;
 
 /* Le libellé de confiance affiché dans l'infobulle du repère vient de
-   `lib/confidence.ts` : la même table sert le fil du profil public et la Bande. */
+   `lib/confidence.ts` : une seule table pour tous les fils du produit. */
 
 /*
  * États qui appellent une action de votre part, et seuls ceux-là portent un

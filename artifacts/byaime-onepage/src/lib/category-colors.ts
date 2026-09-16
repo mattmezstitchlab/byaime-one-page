@@ -9,10 +9,10 @@ import type { VisibilityNode } from "./timeline-graph";
  * `index.css` (`--cat-*`), jamais en hexadécimaux recopiés : c'est la recopie
  * qui avait produit des gris sous AA (plan §3.8).
  *
- * Ce fichier est une lib et non un composant pour une raison précise : la Bande
- * (`/monde`) est une page publique qui ne monte aucun `ClerkProvider`. Si la
- * table des couleurs restait dans `VisibilityGraph.tsx`, l'import traînerait
- * `useProject` donc Clerk dans une page qui promet de fonctionner sans session.
+ * Ce fichier est une lib et non un composant pour une raison précise : des
+ * écrans publics ne montent aucun `ClerkProvider`. Si la table des couleurs
+ * restait dans `VisibilityGraph.tsx`, l'import traînerait `useProject` donc
+ * Clerk dans une page qui promet de fonctionner sans session.
  */
 export const KIND_COLORS: Record<VisibilityNode["kind"], string> = {
   event: "hsl(var(--cat-event))",

@@ -37,7 +37,7 @@ export function PlanningPanel() {
             <p className={EYEBROW}>Organisation</p>
             <h3 className="aime-apple-title mt-2 text-2xl text-[var(--agency-ink)]">Les étapes</h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">
-              Chaque tâche porte sa phase, son statut et son responsable — comme les Moments de la Bande.
+              Chaque tâche porte sa phase, son statut et son responsable — comme les Moments du Monde.
             </p>
           </div>
           <div className="flex items-center gap-2">

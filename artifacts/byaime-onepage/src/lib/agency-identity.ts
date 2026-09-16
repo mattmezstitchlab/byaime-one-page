@@ -1,9 +1,9 @@
 /*
  * L'identité de l'agence, écrite UNE fois.
  *
- * La Bande (/monde, où la vitrine est fusionnée), la page de mentions légales
- * (/mentions-legales), le bilan partagé (/bilan/:id) et les métadonnées de
- * partage lisent ce fichier :
+ * La barre et le pied de page des pages publiques (`SiteChrome`), la page de
+ * mentions légales (/mentions-legales), le bilan partagé (/bilan/:id) et les
+ * métadonnées de partage lisent ce fichier :
  * changer un nom, une ville ou une adresse ne se fait plus dans quatre
  * endroits. Jusqu'ici la marque, le rôle et l'email de contact étaient trois
  * constantes locales de la page de la vitrine, invisibles du reste du site.

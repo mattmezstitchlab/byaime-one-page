@@ -16,7 +16,7 @@ const HOUR = 3600000;
  * toute la journée avec elle.
  *
  * Sans heure dans l'intention, l'ancre reste 16 h — la valeur historique du
- * germe, celle que verrouillent les contrôles de la Bande.
+ * germe, celle que verrouille `seed.test.ts`.
  */
 export const DEFAULT_CEREMONY_HOUR = 16;
 

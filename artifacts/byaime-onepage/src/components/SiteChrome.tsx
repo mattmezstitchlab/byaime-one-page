@@ -35,10 +35,15 @@ import { Reveal } from "@/components/Reveal";
 
 const { brand, role, cities, contactEmail } = AGENCY_IDENTITY;
 
-/** Les pages que la barre sait nommer : la Bande, la page unique du site. */
-export const SITE_NAV: ReadonlyArray<{ path: string; label: string }> = [
-  { path: "/monde", label: "La Bande" },
-];
+/**
+ * Les pages que la barre sait nommer, en plus du mot-marque qui ramène à
+ * l'accueil. La Bande (`/monde`) a été retirée le 16/09/2026 : l'accueil est la
+ * page unique du site, la barre ne nomme donc plus aucune page séparée. Les
+ * textes légaux restent en pied de page, et chaque page garde son action propre
+ * dans `actions`. La liste est conservée (vide) pour que l'ajout d'une page
+ * publique soit un seul endroit à modifier.
+ */
+export const SITE_NAV: ReadonlyArray<{ path: string; label: string }> = [];
 
 export function SiteHeader({
   current,

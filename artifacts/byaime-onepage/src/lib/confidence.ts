@@ -5,9 +5,9 @@ import type { Confidence } from "./types";
  *
  * C'est la seule convention du produit que l'utilisateur doit apprendre : AIME
  * peut déduire (« un samedi de juin, donc plutôt fin d'après-midi ») sans jamais
- * l'écrire comme une vérité. Les libellés vivaient dans `FilTrack.tsx` ; la
- * Bande (`/monde`, page publique sans session) en a besoin aussi, donc ils
- * vivent ici — une seule table, deux écrans.
+ * l'écrire comme une vérité. Les libellés vivaient dans `FilTrack.tsx` ; les
+ * écrans publics sans session en ont besoin aussi, donc ils vivent ici — une
+ * seule table, partagée.
  */
 export const CONFIDENCE_LABELS: Record<Confidence, string> = {
   confirme: "Confirmé",

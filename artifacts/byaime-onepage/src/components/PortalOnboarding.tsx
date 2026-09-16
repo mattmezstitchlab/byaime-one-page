@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * L'onboarding dans l'espace privé — le portail Couple / Wedding est conservé,
- * mais il reprend désormais le dessin de l'écran démo (design/index.html + Bande)
+ * mais il reprend désormais le dessin de l'écran démo (design/index.html)
  * pour tenir la route avec tous les panneaux.
  *
  * - Fenêtre produit avec barre à pastilles (rouge/jaune/vert) comme sur l'écran démo,
