@@ -40,3 +40,10 @@ l’état, jamais de `error.message` : la cause réelle (SQL, nom de table, cha�
 part dans les journaux avec `requestId`, méthode et chemin. Faire contrôler l’invariant sur le
 déploiement lui-même : `scripts/verify-vercel.mjs` exige `application/json` et un corps qui se
 parse sur chaque route sondée.
+
+**Diagnostiquer une base en défaut.** Quand toutes les routes qui lisent la base échouent alors
+qu’une route sans base (`/api/healthz`) répond, le schéma ou la connexion est en cause :
+`DATABASE_URL="postgres://…" corepack pnpm run check:db` (`scripts/src/check-db-schema.ts`) liste
+chaque table et chaque colonne attendue comme présente ou absente, en lecture seule, sans jamais
+afficher le mot de passe, et donne les commandes `psql` à appliquer. Une erreur non rattrapée
+reste invisible dans la réponse : elle se lit dans les journaux, jamais à l’écran.

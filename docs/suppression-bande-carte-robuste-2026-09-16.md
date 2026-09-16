@@ -154,6 +154,35 @@ une route qui lève, un rejet `async`, une route inconnue et un corps JSON inval
 d’environnement manquante sur un déploiement — qui produisait auparavant une page HTML sur
 **toutes** les routes `/api/*` — donne désormais une phrase lisible.
 
+### Ce que répond la production aujourd’hui
+
+Sondé le 16/09/2026 sur `https://www.byaime.fr`, sans session :
+
+| Route | Réponse |
+| --- | --- |
+| `GET /api/healthz` | `200` — `{"status":"ok"}` (JSON) |
+| `GET /api/me/card` | `401` — `{"error":"Authentification requise"}` (JSON) |
+| `GET /api/public/profiles/00000000-0000-0000-0000-000000000000` | page HTML `Internal Server Error` |
+| `GET /api/public/reports/00000000-0000-0000-0000-000000000000` | page HTML `Internal Server Error` |
+
+Lecture : l’application démarre (donc `DATABASE_URL` est présente, sans quoi
+`lib/db` lèverait au chargement et même `/api/healthz` échouerait) et
+l’authentification répond JSON. **Toute route qui interroge la base échoue**, y
+compris deux routes publiques — pas seulement `/api/me/card`. La base de
+production n’a donc pas le schéma attendu (migrations jamais appliquées) ou
+n’est pas joignable depuis la fonction ; le HTML vu sur `/ma-carte` venait de là,
+via l’absence de gestionnaire d’erreur.
+
+Pour trancher sans lire les journaux : `corepack pnpm run check:db` avec le
+`DATABASE_URL` de production (voir `docs/vercel-deployment.md`). Le script est en
+lecture seule, n’affiche jamais le mot de passe, et liste chaque table et chaque
+colonne attendue comme présente ou absente. Ses deux requêtes
+`information_schema` et sa liste d’attentes ont été vérifiées contre un Postgres
+isolé (PGlite) sur lequel les trois migrations du 16/09/2026 sont appliquées :
+15 tables et 6 colonnes annoncées. Le chemin « base joignable » n’a pas pu être
+exécuté ici — aucun serveur PostgreSQL dans cet environnement ; les chemins
+« URL absente » (code 2) et « base injoignable » (code 1) l’ont été.
+
 Ce que ça change pour la personne : `/ma-carte` affiche « Le service n’a pas pu répondre.
 Réessayez dans un instant. » dans un bandeau, avec le formulaire utilisable et « Recharger
 ma carte » — plus un texte anglais à la place de la page.
@@ -194,23 +223,32 @@ la Timeline, le profil public et le portail invité ne sont pas touchés.
 ## À confirmer côté déploiement
 
 - **Reste à faire sur Vercel.** Cette passe rend l’échec lisible et la page utilisable, mais elle
-  ne lève pas la cause : une route qui lève continue de lever. Si `/ma-carte` affiche « Le service
-  n’a pas pu répondre », la cause est côté base, à vérifier dans cet ordre :
-  1. les trois migrations du 16/09/2026 sont appliquées sur le Postgres de production —
-     `lib/db/migrations/20260916_universal_cards.sql` (crée `aime_universal_cards` : sans elle,
-     `GET /api/me/card` lève `relation "aime_universal_cards" does not exist`),
+  ne lève pas la cause : une route qui lève continue de lever. Les sondes ci-dessus montrent que
+  toute route interrogeant la base échoue en production, donc l’ordre de vérification est :
+  1. **`DATABASE_URL="postgres://…" corepack pnpm run check:db`** avec l’URL de production
+     (Vercel → Settings → Environment Variables). Lecture seule, mot de passe jamais affiché :
+     le script dit en une commande si la base est joignable, et liste chaque table et chaque
+     colonne attendue comme présente ou absente ;
+  2. s’il annonce une **connexion impossible** : corriger `DATABASE_URL` (hôte, port,
+     identifiants, `sslmode=require`, liste d’adresses IP autorisées) pour Production — et Preview
+     le cas échéant. Si la variable manque entièrement, le bundle lève au chargement et c’est
+     Vercel qui répond sa propre page d’erreur, hors de portée du gestionnaire JSON ;
+  3. s’il annonce des **tables ou colonnes absentes** : appliquer les trois migrations du
+     16/09/2026 dans l’ordre — `lib/db/migrations/20260916_universal_cards.sql` (crée
+     `aime_universal_cards`, sans laquelle `GET /api/me/card` lève
+     `relation "aime_universal_cards" does not exist`, et ajoute `card_user_id` / `participation`
+     à `aime_memberships`, sans lesquels les routes publiques échouent aussi),
      `20260916_professional_profiles.sql`, `20260916_verified_rsvp_claims.sql`. Elles sont
      idempotentes (`IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`) et leur comportement est vérifié
-     hors production par `pnpm run test:card-migrations` ;
-  2. `DATABASE_URL` est défini pour l’environnement Production (et Preview le cas échéant) — sans
-     lui, le bundle lève au chargement et c’est Vercel qui répond sa propre page d’erreur, hors de
-     portée du gestionnaire JSON ;
-  3. les journaux de la fonction portent désormais la ligne « Erreur non rattrapée : réponse JSON
-     d'échec renvoyée » avec `err`, `errorCode`, `requestId`, `method` et `path` : c’est là qu’on
-     lit la table ou la connexion en défaut ;
-  4. `pnpm run verify:vercel` avec `VERCEL_VERIFY_DEPLOYMENT_URL` pointé sur le déploiement : les
+     hors production par `pnpm run test:card-migrations`. La PR #30 demandait déjà ces migrations :
+     rien n’indique qu’elles aient été appliquées ;
+  4. relire ensuite les journaux de la fonction : la ligne « Erreur non rattrapée : réponse JSON
+     d'échec renvoyée » porte `err`, `errorCode`, `requestId`, `method` et `path`, donc la table
+     ou la connexion en défaut ;
+  5. `pnpm run verify:vercel` avec `VERCEL_VERIFY_DEPLOYMENT_URL` pointé sur le déploiement : les
      sondes `/api/me/card` et `/api/me/professional-profiles` doivent répondre `application/json`
      (401 sans session), et plus aucune route sondée ne peut répondre HTML.
+
 - Les liens publiés vers `/monde` redirigent désormais. `public/sitemap.xml` ne référençait pas la
   Bande ; il ne référence plus non plus `/agence`, qui redirige. Si un plan de site externe
   (Search Console, annuaire) déclare encore `/agence`, il est à mettre à jour vers `/`.

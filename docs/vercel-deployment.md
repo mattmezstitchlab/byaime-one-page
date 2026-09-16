@@ -74,7 +74,10 @@ loads the API bundle without this variable will fail with the explicit error
 `DATABASE_URL must be set. Did you forget to provision a database?`. Because
 that happens at module load, Vercel answers its own error page and the JSON
 error handler below never runs: this is the one failure the application cannot
-convert into a readable message.
+convert into a readable message. A quick way to tell the two apart on a live
+deployment: `GET /api/healthz` answers `{"status":"ok"}` without touching the
+database, so a deployment where it succeeds while every database-backed route
+fails has a reachable application and a broken schema or connection.
 
 ## Database schema
 
@@ -87,6 +90,18 @@ psql "$DATABASE_URL" -f lib/db/migrations/20260916_universal_cards.sql
 psql "$DATABASE_URL" -f lib/db/migrations/20260916_professional_profiles.sql
 psql "$DATABASE_URL" -f lib/db/migrations/20260916_verified_rsvp_claims.sql
 ```
+
+To find out what a given database actually has, run the read-only diagnostic:
+
+```bash
+DATABASE_URL="postgres://…" corepack pnpm run check:db
+```
+
+`scripts/src/check-db-schema.ts` connects, lists every expected table and every
+column added by the 2026-09-16 migrations as present or missing, prints the
+exact `psql` commands to apply, and exits 0 (complete), 1 (incomplete or
+unreachable) or 2 (no `DATABASE_URL`). It never prints the password and changes
+nothing.
 
 `20260916_universal_cards.sql` creates `aime_universal_cards`, the table behind
 `/ma-carte`; without it `GET /api/me/card` raises
