@@ -11,21 +11,24 @@ import {
   emptyParticipation,
   type ProfessionalProfile,
   ROLE_GROUPS,
-  PRESENCE_MOMENTS,
   type UniversalCard,
   type Participation,
 } from "@workspace/aime-domain";
 import { useProject } from "@/store/project-store";
 import { failureMessage } from "@/lib/api-messages";
+import { CARD_DRAFT_KEY } from "@/lib/intention-draft";
 import { apiCall, jsonPut } from "@/lib/api-call";
-import { searchAppleMusic } from "@/lib/music-search";
-import type { MusicSearchResult } from "@/lib/types";
+import {
+  IdentityFields,
+  MusicCard,
+  MusicPicker,
+  PresenceFields,
+  RolesPicker,
+  SlotsEditor,
+  cardButtonStyle as buttonStyle,
+  cardInputStyle as inputStyle,
+} from "./card-blocks";
 
-const DRAFT = "aime-personal-card-draft-v1";
-const inputStyle =
-  "mt-1 min-h-11 w-full rounded-xl border border-white/25 bg-[#262320] px-3 py-2 text-white";
-const buttonStyle =
-  "min-h-11 rounded-full bg-white px-5 py-2 text-sm font-semibold text-black disabled:opacity-40";
 /**
  * Un appel au service de la Carte. Trois issues, toutes nommées en français
  * (`lib/api-messages.ts`) : la donnée, le refus expliqué du serveur, ou un
@@ -35,38 +38,6 @@ const buttonStyle =
  */
 async function api(path: string, body?: unknown): Promise<any> {
   return apiCall(path, body === undefined ? undefined : jsonPut(body));
-}
-
-function localDate(value: string) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (!Number.isFinite(d.getTime())) return "";
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
-}
-function DateField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="block text-sm">
-      {label}
-      <input
-        className={inputStyle}
-        type="datetime-local"
-        value={localDate(value)}
-        onChange={(e) =>
-          onChange(e.target.value ? new Date(e.target.value).toISOString() : "")
-        }
-      />
-    </label>
-  );
 }
 
 export function UniversalCardForm({
@@ -114,13 +85,7 @@ export function UniversalCardForm({
   const [loadError, setLoadError] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
   const [notice, setNotice] = useState("");
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<MusicSearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [musicError, setMusicError] = useState("");
   const [justSavedCard, setJustSavedCard] = useState(false);
-  const searchController = useRef<AbortController | null>(null);
   useEffect(() => {
     let active = true;
     /* Le premier chargement repart d'une carte vide — le serveur ou le brouillon
@@ -139,7 +104,7 @@ export function UniversalCardForm({
     /** Le brouillon de session : identité déjà saisie sur cet appareil. */
     const restoreDraft = () => {
       try {
-        const raw = sessionStorage.getItem(DRAFT);
+        const raw = sessionStorage.getItem(CARD_DRAFT_KEY);
         if (!raw) return;
         const draft = JSON.parse(raw);
         const { professional, ...identity } = draft.card;
@@ -200,14 +165,6 @@ export function UniversalCardForm({
       active = false;
     };
   }, [signedIn, reloadToken]);
-  /* Une recherche musicale en vol est annulée au démontage, pas à chaque
-     réessai de chargement de la carte. */
-  useEffect(
-    () => () => {
-      searchController.current?.abort();
-    },
-    [],
-  );
   const update = <K extends keyof UniversalCard>(
     key: K,
     value: UniversalCard[K],
@@ -233,7 +190,7 @@ export function UniversalCardForm({
     }));
   const saveCard = async () => {
     if (!signedIn) {
-      sessionStorage.setItem(DRAFT, JSON.stringify({ card }));
+      sessionStorage.setItem(CARD_DRAFT_KEY, JSON.stringify({ card }));
       return;
     }
     const saved = await api("/me/card", { data: card, updatedAt: version });
@@ -242,7 +199,7 @@ export function UniversalCardForm({
     setJustSavedCard(true);
     setVersion(saved.updatedAt);
     setCardUserId(saved.userId);
-    sessionStorage.removeItem(DRAFT);
+    sessionStorage.removeItem(CARD_DRAFT_KEY);
   };
   const next = async () => {
     setBusy(true);
@@ -326,29 +283,6 @@ export function UniversalCardForm({
       setError(e instanceof Error ? e.message : "Association impossible");
     } finally {
       setBusy(false);
-    }
-  };
-  const search = async () => {
-    searchController.current?.abort();
-    const controller = new AbortController();
-    searchController.current = controller;
-    setSearching(true);
-    setMusicError("");
-    setResults([]);
-    setSearched(false);
-    try {
-      const found = await searchAppleMusic(query, controller.signal);
-      if (!controller.signal.aborted) {
-        setResults(found);
-        setSearched(true);
-      }
-    } catch (e) {
-      if (!controller.signal.aborted)
-        setMusicError(
-          "Le catalogue musical est momentanément inaccessible. Vous pouvez réessayer ou continuer sans musique.",
-        );
-    } finally {
-      if (!controller.signal.aborted) setSearching(false);
     }
   };
   const selectContext = async (id: string) => {
@@ -606,206 +540,18 @@ export function UniversalCardForm({
         <fieldset disabled={busy} className="min-w-0 space-y-5">
           {step === 0 && (
             <>
-              <h3 className="text-lg">Identité</h3>
-              <p className="text-xs text-white/60">
-                Photo, pseudo et ville sont facultatifs.
-              </p>
-              <label className="block text-sm">
-                Photo de profil
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="mt-2 block w-full text-sm"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (
-                      !["image/jpeg", "image/png", "image/webp"].includes(
-                        file.type,
-                      ) ||
-                      file.size > 500000
-                    ) {
-                      setError(
-                        "Choisissez une photo JPEG, PNG ou WebP de moins de 500 Ko.",
-                      );
-                      return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = () =>
-                      update("photoUrl", String(reader.result));
-                    reader.onerror = () =>
-                      setError("Lecture de photo impossible");
-                    reader.readAsDataURL(file);
-                  }}
-                />
-              </label>
-              {card.photoUrl && (
-                <div className="flex items-center gap-3">
-                  <img
-                    src={card.photoUrl}
-                    alt="Votre photo de profil"
-                    className="h-20 w-20 rounded-full object-cover"
-                  />
-                  <button type="button" onClick={() => update("photoUrl", "")}>
-                    Retirer
-                  </button>
-                </div>
-              )}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {(
-                  [
-                    ["firstName", "Prénom"],
-                    ["lastName", "Nom"],
-                    ["nickname", "Pseudo"],
-                    ["city", "Ville"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="block text-sm">
-                    {label}
-                    <input
-                      className={inputStyle}
-                      required={key === "firstName" || key === "lastName"}
-                      maxLength={100}
-                      value={card[key]}
-                      onChange={(e) => update(key, e.target.value)}
-                    />
-                  </label>
-                ))}
-              </div>
-              <h3 className="border-t border-white/15 pt-5 text-lg">Moi</h3>
-              <label className="block text-sm">
-                Métier
-                <input
-                  className={inputStyle}
-                  maxLength={100}
-                  value={card.profession}
-                  onChange={(e) => update("profession", e.target.value)}
-                  placeholder="Photographe, DJ… (facultatif)"
-                />
-              </label>
-              <p className="text-xs text-white/60">
-                Quelques mots pour vous présenter. Vous pourrez préciser votre
-                façon de travailler ensuite, si vous le souhaitez.
-              </p>
-              <label className="block text-sm">
-                Centres d’intérêt (séparés par des virgules)
-                <input
-                  className={inputStyle}
-                  value={card.interests.join(",")}
-                  onChange={(e) =>
-                    update("interests", e.target.value.split(","))
-                  }
-                  onBlur={() =>
-                    update(
-                      "interests",
-                      card.interests.map((v) => v.trim()).filter(Boolean),
-                    )
-                  }
-                />
-              </label>
-              <h3 className="border-t border-white/15 pt-5 text-lg">
-                Ma musique
-              </h3>
-              <p className="text-xs text-white/60">
-                Le morceau qui vous ressemble, directement sur votre carte.
-              </p>
-              <div>
-                <label className="block text-sm">
-                  Votre musique
-                  <input
-                    className={inputStyle}
-                    value={query}
-                    placeholder="Titre ou artiste"
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void search();
-                      }
-                    }}
-                  />
-                </label>
-                <button
-                  className={`${buttonStyle} mt-3`}
-                  type="button"
-                  disabled={searching || query.trim().length < 2}
-                  onClick={() => void search()}
-                >
-                  {searching ? "Recherche…" : "Rechercher un morceau"}
-                </button>
-                {musicError && (
-                  <div className="mt-3 rounded-xl border border-amber-200/30 p-4">
-                    <p role="alert" className="text-sm text-amber-100">
-                      {musicError}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        className={buttonStyle}
-                        disabled={searching || query.trim().length < 2}
-                        onClick={() => void search()}
-                      >
-                        Réessayer
-                      </button>
-                      <button
-                        type="button"
-                        className="min-h-11 text-sm underline"
-                        onClick={() => {
-                          searchController.current?.abort();
-                          setSearching(false);
-                          setMusicError("");
-                          setResults([]);
-                          setSearched(false);
-                          update("music", undefined);
-                          setNotice(
-                            "Vous pourrez ajouter un morceau plus tard. Vous pouvez maintenant terminer votre carte.",
-                          );
-                          document.getElementById("card-save")?.focus();
-                        }}
-                      >
-                        Continuer sans musique
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {searched && !musicError && !searching && !results.length && (
-                  <p role="status" className="mt-2 text-sm text-white/60">
-                    Aucun résultat affiché. Essayez une autre recherche.
-                  </p>
-                )}
-                {results.length > 0 && (
-                  <ul className="mt-3 max-h-64 overflow-auto">
-                    {results.map((result) => (
-                      <li key={result.externalId}>
-                        <button
-                          type="button"
-                          className="flex min-h-14 w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/10"
-                          onClick={() => {
-                            update("music", result);
-                            setResults([]);
-                            setSearched(false);
-                            setMusicError("");
-                          }}
-                        >
-                          {result.artworkUrl && (
-                            <img
-                              className="h-10 w-10 rounded"
-                              src={result.artworkUrl}
-                              alt=""
-                            />
-                          )}
-                          <span>
-                            {result.title}
-                            <small className="block text-white/60">
-                              {result.artist}
-                            </small>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <IdentityFields card={card} update={update} onError={setError} />
+              <MusicPicker
+                music={card.music}
+                onSelect={(result) => update("music", result)}
+                onClear={() => update("music", undefined)}
+                onSkipped={() => {
+                  setNotice(
+                    "Vous pourrez ajouter un morceau plus tard. Vous pouvez maintenant terminer votre carte.",
+                  );
+                  document.getElementById("card-save")?.focus();
+                }}
+              />
             </>
           )}
           {step === 4 && (
@@ -831,57 +577,8 @@ export function UniversalCardForm({
               </div>
             </div>
           )}
-          {(step === 0 || step === 4) && card.music && (
-            <div className="rounded-2xl border border-white/20 p-4">
-              {card.music.artworkUrl && (
-                <img
-                  src={card.music.artworkUrl}
-                  alt="Pochette du morceau"
-                  className="mb-3 h-20 w-20 rounded-lg"
-                />
-              )}
-              <p>
-                {card.music.title} · {card.music.artist}
-              </p>
-              {card.music.previewUrl ? (
-                <>
-                  <span className="mt-2 block text-xs text-white/60">
-                    ▶ PLAY — extrait du catalogue
-                  </span>
-                  <audio
-                    aria-label={`Écouter ${card.music.title}`}
-                    className="mt-2 w-full"
-                    controls
-                    preload="none"
-                    src={card.music.previewUrl}
-                  />
-                </>
-              ) : (
-                <p className="text-sm text-white/60">
-                  Aucun extrait disponible.
-                </p>
-              )}
-              {card.music.trackUrl && (
-                <a
-                  className="mt-2 block text-sm underline"
-                  href={card.music.trackUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Ouvrir dans Apple Music
-                </a>
-              )}
-              {step === 0 && (
-                <button
-                  type="button"
-                  className="mt-3 text-sm underline"
-                  onClick={() => update("music", undefined)}
-                >
-                  Retirer ce morceau
-                </button>
-              )}
-            </div>
-          )}
+          {/* À l'étape 0, le morceau est rendu par MusicPicker (avec « Retirer »). */}
+          {step === 4 && card.music && <MusicCard music={card.music} />}
           {step === 5 && (
             <div className="space-y-5" data-testid="participation-summary">
               <p className="text-sm text-white/70">
@@ -955,164 +652,17 @@ export function UniversalCardForm({
             </div>
           )}
           {step === 1 && (
-            <>
-              {Object.entries(ROLE_GROUPS).map(([group, roles]) => (
-                <fieldset key={group}>
-                  <legend className="mb-2 text-xs uppercase tracking-wider text-white/60">
-                    {group}
-                  </legend>
-                  <div className="flex flex-wrap gap-2">
-                    {roles.map((role) => (
-                      <label
-                        key={role}
-                        className="flex min-h-11 items-center gap-2 rounded-xl border border-white/20 px-3 text-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={presence.roles.includes(role)}
-                          onChange={(e) =>
-                            contextual(
-                              "roles",
-                              e.target.checked
-                                ? [...presence.roles, role]
-                                : presence.roles.filter((r) => r !== role),
-                            )
-                          }
-                        />
-                        {role}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              ))}
-            </>
+            <RolesPicker
+              roles={presence.roles}
+              onChange={(roles) => contextual("roles", roles)}
+            />
           )}
           {step === 2 && (
-            <>
-              {linkedRsvp && (
-                <div className="rounded-2xl border border-white/20 bg-white/5 p-4 text-sm">
-                  <strong>
-                    Vos réponses viennent de votre invitation RSVP.
-                  </strong>
-                  <p className="mt-2 text-white/70">
-                    Vous avez déjà répondu à l’invitation. Retrouvez votre
-                    réponse ci-dessous ; utilisez le lien pour la modifier. Vos
-                    autres informations concernent uniquement ce mariage.
-                  </p>
-                  {linkedRsvp.revoked ? (
-                    <p className="mt-2">
-                      Lien révoqué : contactez l’organisateur pour le réémettre.
-                    </p>
-                  ) : (
-                    <a
-                      className="mt-2 inline-block min-h-11 py-3 underline"
-                      href={`/rsvp/${linkedRsvp.token}`}
-                    >
-                      Modifier mes réponses RSVP
-                    </a>
-                  )}
-                </div>
-              )}
-              <label className="block text-sm">
-                RSVP
-                <select
-                  className={inputStyle}
-                  disabled={Boolean(linkedRsvp)}
-                  value={presence.rsvp}
-                  onChange={(e) =>
-                    contextual("rsvp", e.target.value as Participation["rsvp"])
-                  }
-                >
-                  <option value="en_attente">À confirmer</option>
-                  <option value="present">Présent</option>
-                  <option value="absent">Absent</option>
-                  <option value="peut_etre">Peut-être</option>
-                </select>
-              </label>
-              <label className="block text-sm">
-                Nombre d’accompagnants
-                <input
-                  className={inputStyle}
-                  type="number"
-                  min="0"
-                  max="50"
-                  disabled={Boolean(linkedRsvp)}
-                  value={presence.companions}
-                  onChange={(e) =>
-                    contextual("companions", Number(e.target.value))
-                  }
-                />
-              </label>
-              <fieldset>
-                <legend className="mb-2 text-sm">Moments de présence</legend>
-                <div className="flex flex-wrap gap-3">
-                  {PRESENCE_MOMENTS.map((moment) => (
-                    <label
-                      key={moment}
-                      className="flex min-h-11 items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        disabled={
-                          Boolean(linkedRsvp) &&
-                          ["Cérémonie", "Cocktail", "Dîner", "Brunch"].includes(
-                            moment,
-                          )
-                        }
-                        checked={presence.moments.includes(moment)}
-                        onChange={(e) =>
-                          contextual(
-                            "moments",
-                            e.target.checked
-                              ? [...presence.moments, moment]
-                              : presence.moments.filter((m) => m !== moment),
-                          )
-                        }
-                      />
-                      {moment}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              <p className="text-xs text-white/60">
-                Dates et heures dans votre fuseau local. Pour une fin après
-                minuit, choisissez le lendemain.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <DateField
-                  label="Arrivée"
-                  value={presence.arrival}
-                  onChange={(v) => contextual("arrival", v)}
-                />
-                <DateField
-                  label="Départ"
-                  value={presence.departure}
-                  onChange={(v) => contextual("departure", v)}
-                />
-              </div>
-              {(
-                [
-                  ["allergens", "Allergènes"],
-                  ["dietary", "Contraintes alimentaires"],
-                  ["needs", "Besoins particuliers"],
-                  ["notes", "Informations utiles"],
-                ] as const
-              ).map(([key, label]) => (
-                <label key={key} className="block text-sm">
-                  {label}
-                  <textarea
-                    className={inputStyle}
-                    maxLength={2000}
-                    disabled={
-                      Boolean(linkedRsvp) &&
-                      (key === "dietary" || key === "notes")
-                    }
-                    value={presence[key]}
-                    onChange={(e) => contextual(key, e.target.value)}
-                  />
-                </label>
-              ))}
-            </>
+            <PresenceFields
+              presence={presence}
+              contextual={contextual}
+              linkedRsvp={linkedRsvp}
+            />
           )}
           {step === 2 &&
             !presence.roles.some((role) =>
@@ -1143,87 +693,10 @@ export function UniversalCardForm({
                   contextual("assignments", assignments)
                 }
               />
-              <details>
-                <summary className="min-h-11 cursor-pointer text-sm">
-                  Ajouter des horaires particuliers (facultatif)
-                </summary>
-                <fieldset>
-                  <legend className="sr-only">
-                    Créneaux pour ce mariage (facultatifs)
-                  </legend>
-                  {presence.slots.map((slot, i) => (
-                    <div
-                      className="mt-3 space-y-3 rounded-xl border border-white/20 p-3"
-                      key={i}
-                    >
-                      <label className="text-sm">
-                        Moment
-                        <input
-                          required
-                          className={inputStyle}
-                          value={slot.label}
-                          placeholder="Cocktail, cérémonie…"
-                          onChange={(e) =>
-                            contextual(
-                              "slots",
-                              presence.slots.map((s, n) =>
-                                n === i ? { ...s, label: e.target.value } : s,
-                              ),
-                            )
-                          }
-                        />
-                      </label>
-                      <DateField
-                        label="Début"
-                        value={slot.start}
-                        onChange={(v) =>
-                          contextual(
-                            "slots",
-                            presence.slots.map((s, n) =>
-                              n === i ? { ...s, start: v } : s,
-                            ),
-                          )
-                        }
-                      />
-                      <DateField
-                        label="Fin"
-                        value={slot.end}
-                        onChange={(v) =>
-                          contextual(
-                            "slots",
-                            presence.slots.map((s, n) =>
-                              n === i ? { ...s, end: v } : s,
-                            ),
-                          )
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          contextual(
-                            "slots",
-                            presence.slots.filter((_, n) => n !== i),
-                          )
-                        }
-                      >
-                        Retirer
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    className="mt-3 min-h-11 text-sm underline"
-                    type="button"
-                    onClick={() =>
-                      contextual("slots", [
-                        ...presence.slots,
-                        { label: "", start: "", end: "" },
-                      ])
-                    }
-                  >
-                    + Ajouter un créneau
-                  </button>
-                </fieldset>
-              </details>
+              <SlotsEditor
+                slots={presence.slots}
+                onChange={(slots) => contextual("slots", slots)}
+              />
             </>
           )}
           {step === 4 && (
@@ -1244,7 +717,7 @@ export function UniversalCardForm({
                         return;
                       }
                       try {
-                        sessionStorage.setItem(DRAFT, JSON.stringify({ card }));
+                        sessionStorage.setItem(CARD_DRAFT_KEY, JSON.stringify({ card }));
                         navigate("/creation?returnTo=%2Fma-carte");
                       } catch {
                         setError(

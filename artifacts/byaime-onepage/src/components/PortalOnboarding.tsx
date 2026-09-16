@@ -61,7 +61,8 @@ export function PortalOnboarding() {
                 {t("private.onboarding.demo")}
               </button>
               <p className="text-center text-[11px] leading-relaxed text-[var(--agency-eyebrow)]">
-                Deux choix au départ — Couple ou Wedding planner — puis cinq questions. Le même parcours que l’accueil, dans le même dessin que la démo.
+                Un seul parcours, le même que l’accueil : vous vous présentez, puis BYAIME ne
+                demande plus que ce qui vous concerne.
               </p>
             </div>
           </div>

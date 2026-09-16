@@ -21,7 +21,7 @@ describe("Landing (accueil)", () => {
 
     expect(markup).toContain('data-testid="landing"');
     expect(markup).toContain('data-testid="landing-composer"');
-    expect(markup).toContain('data-testid="landing-entry"');
+    expect(markup).toContain('data-testid="oneboarding-entry"');
     expect(markup).toContain('data-testid="landing-create-primary"');
     expect(markup).toContain("Sans carte bancaire");
     expect(markup.indexOf('data-testid="landing-composer"')).toBeLessThan(markup.indexOf('data-testid="landing-showcase"'));
@@ -68,7 +68,14 @@ describe("Landing (accueil)", () => {
     const markup = render(<LandingPage />);
 
     expect(markup).toContain('data-testid="landing-create-primary"');
-    expect(markup).toContain('data-testid="landing-start-blank"');
+    /* Une seule action principale : ni « Créer un mariage », ni « Voir ma carte »,
+       ni « Outils avancés » dans la porte d'entrée. L'architecture ne se choisit
+       pas avant d'avoir commencé. */
+    expect(markup).not.toContain('data-testid="landing-start-blank"');
+    expect(markup).not.toContain("Créer un mariage");
+    expect(markup).not.toContain("Outils avancés");
+    expect(markup).toContain("Votre carte BYAIME");
+    expect(markup).toContain("Votre identité. Une seule fois.");
     // Le choix Couple / Wedding planner a disparu du héros.
     expect(markup).not.toContain('data-testid="landing-persona');
     expect(markup).toContain('data-testid="landing-locale"');

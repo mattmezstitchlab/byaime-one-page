@@ -8,6 +8,16 @@ import { DEFAULT_CURRENCY, isCurrencyCode, type CurrencyCode } from "./money";
 export const MIN_INTENTION_LENGTH = 12;
 
 export const INTENTION_DRAFT_KEY = "aime-intention-draft";
+
+/**
+ * Le brouillon de la carte personnelle.
+ *
+ * Une seule clé pour tout le parcours : `UniversalCardForm` (route `/ma-carte`)
+ * et le Oneboarding écrivent le **même** brouillon, jamais deux copies
+ * concurrentes. La clé est déclarée ici pour qu'aucun des deux ne puisse en
+ * faire dériver une seconde.
+ */
+export const CARD_DRAFT_KEY = "aime-personal-card-draft-v1";
 /** Métadonnées du parcours (persona Couple/Pro, devise, langue), à côté du texte. */
 export const INTENTION_META_KEY = "aime-intention-meta";
 

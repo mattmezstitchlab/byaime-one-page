@@ -126,26 +126,36 @@ afterEach(() => {
   container = null;
 });
 
-describe("Parcours d'entrée : carte d'abord", () => {
-  it("ouvre sur deux portes, jamais sur le choix Couple / Wedding planner", async () => {
+describe("Parcours d'entrée : une seule porte", () => {
+  it("ouvre sur une seule action, jamais sur le choix d'un tunnel", async () => {
     await mount();
-    expect(document.querySelector('[data-testid="landing-entry"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="oneboarding-entry"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="landing-create-primary"]')).not.toBeNull();
-    expect(document.querySelector('[data-testid="landing-start-blank"]')).not.toBeNull();
+    expect(document.body.textContent).toContain("Votre carte BYAIME");
+    expect(document.body.textContent).toContain("Votre identité. Une seule fois.");
+    /* L'architecture ne se choisit pas avant d'avoir commencé : ni seconde
+       porte « Créer un mariage », ni choix Couple / Wedding planner, ni
+       formulaire de questions affiché d'emblée. */
+    expect(document.querySelector('[data-testid="landing-start-blank"]')).toBeNull();
     expect(document.querySelector('[data-testid="landing-persona"]')).toBeNull();
     expect(document.querySelector('[data-testid="landing-intention-form"]')).toBeNull();
+    expect(document.body.textContent).not.toContain("Créer un mariage");
   });
 
-  it("« Commencer sans carte » ouvre directement les cinq questions", async () => {
+  it("« Créer ma carte » ouvre le Oneboarding sur la personne, en Question 1 sur 5", async () => {
     await mount();
-    await click("landing-start-blank");
-    const form = document.querySelector('[data-testid="landing-intention-form"]');
-    expect(form).not.toBeNull();
-    const input = document.querySelector('[data-testid="landing-intention-input"]') as HTMLInputElement;
-    expect(input.placeholder).toContain("14 août 2027");
+    await click("landing-create-primary");
+
+    const step = document.querySelector('[data-testid="oneboarding-step-person"]');
+    expect(step, "première étape absente").not.toBeNull();
+    expect(document.body.textContent).toContain("Question 1 sur 5");
+    expect(document.body.textContent).toContain("Commençons par vous");
+    /* Le mariage n'est jamais créé à cette étape : la carte d'abord. */
+    expect(document.querySelector('[data-testid="oneboarding-wedding-create"]')).toBeNull();
+    expect(store.createProjectFromDraft).not.toHaveBeenCalled();
   });
 
-  it("visiteur : compris → confirmé → la carte attend le compte → rôle mariés", async () => {
+  it("visiteur : carte importée → comprise → en attente du compte, puis retour au parcours", async () => {
     await mount();
     await click("landing-import-advanced");
     await typePaste(CARTE);
@@ -157,7 +167,6 @@ describe("Parcours d'entrée : carte d'abord", () => {
     expect(document.body.textContent).toContain("Créer le Monde « Camille & Léo »");
     expect(document.body.textContent).toContain("Lyon");
     expect(document.body.textContent).toContain("Domaine du Bois");
-    /* Les champs carte : accroche, visuel et musique montrés, jamais appliqués en silence. */
     expect(document.body.textContent).toContain("Sous-titre");
     expect(document.body.textContent).toContain("Notre mariage, le 14 août 2027 à Lyon");
     expect(document.body.textContent).toContain("Sign of the Times");
@@ -171,14 +180,15 @@ describe("Parcours d'entrée : carte d'abord", () => {
     expect(pending).not.toBeNull();
     expect(pending).toContain("Camille & Léo");
 
-    /* Le rôle arrive APRÈS la confirmation, et route vers l'existant. */
-    expect(document.querySelector('[data-testid="role-choice"]')).not.toBeNull();
-    expect(document.body.textContent).toContain("Qui êtes-vous dans ce mariage ?");
-    await click("role-couple");
-    expect(window.location.pathname).toBe("/creation");
+    /* L'import n'est plus un parcours parallèle : il ramène dans le Oneboarding,
+       au même endroit que tout le monde. Le rôle y est demandé, il ne route plus
+       vers quatre destinations différentes. */
+    expect(document.querySelector('[data-testid="oneboarding"]')).not.toBeNull();
+    expect(document.body.textContent).toContain("Question 1 sur 5");
+    expect(document.querySelector('[data-testid="role-choice"]')).toBeNull();
   });
 
-  it("connecté : compris → confirmé → le Monde est créé depuis la carte", async () => {
+  it("connecté : carte importée → comprise → le Monde est créé depuis la carte", async () => {
     await mount(<LandingComposer signedIn />);
     await click("landing-import-advanced");
     await typePaste(CARTE);
@@ -192,24 +202,8 @@ describe("Parcours d'entrée : carte d'abord", () => {
     expect(musicAdd?.[1]).toMatchObject({ title: "Sign of the Times", artist: "Harry Styles", status: "valide" });
     expect(window.localStorage.getItem("aime-carte-pending")).toBeNull();
 
-    /* Le rôle reste l'étape de routage : mariés connectés → Monde. */
-    expect(document.querySelector('[data-testid="role-choice"]')).not.toBeNull();
-    await click("role-couple");
-    expect(window.location.pathname).toBe("/user-portal");
-  });
-
-  it("route le planner vers la connexion agence, et dit la vérité aux invités", async () => {
-    await mount();
-    await click("landing-import-advanced");
-    await typePaste(CARTE);
-    await click("carte-import-analyse");
-    await click("dossier-import-confirm");
-
-    await click("role-planner");
-    expect(window.location.search).toContain("returnTo=%2Fadmin");
-
-    await click("role-guest");
-    expect(document.querySelector('[data-testid="role-note"]')?.textContent).toContain("lien personnel");
+    /* Retour dans le Oneboarding — pas dans un écran de routage séparé. */
+    expect(document.querySelector('[data-testid="oneboarding"]')).not.toBeNull();
   });
 
   it("un code illisible affiche une erreur, sans écran « compris »", async () => {

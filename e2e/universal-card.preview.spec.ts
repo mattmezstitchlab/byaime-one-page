@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 // Explicitly opt in: this checks real UI + shared validation/projection in the
 // isolated preview, NOT Clerk or PostgreSQL. Never run against production.
@@ -603,7 +603,20 @@ test("RSVP — validation puis consentement, sans redemander l’identité ni re
   ).toBe(true);
 });
 
-test("Première visite — je me présente, sans créer un mariage", async ({
+/*
+ * Le parcours d'entrée est désormais un seul Oneboarding : une porte, puis
+ * « Question 1 sur 5 » … « Question 5 sur 5 ». Les trois portes d'avant
+ * (`landing-entry`, `landing-start-blank`) n'existent plus ; « Voir ma carte »,
+ * « Créer un mariage » et « Outils avancés » ont quitté la porte d'entrée.
+ */
+
+/** Le repère « Question X sur 5 » : `aria-valuemax` reste 5, quel que soit le tunnel. */
+const progressbar = (page: Page) =>
+  page.getByTestId("oneboarding").getByRole("progressbar");
+const step = (page: Page, n: number) =>
+  progressbar(page).and(page.locator(`[aria-valuenow="${n}"]`));
+
+test("Première visite — je me présente, puis je crée mon mariage", async ({
   page,
 }) => {
   let ownCard: unknown = null;
@@ -616,76 +629,138 @@ test("Première visite — je me présente, sans créer un mariage", async ({
       };
     await route.fulfill({ json: ownCard });
   });
+  await page.route("**/api/me/professional-profiles", (route) =>
+    route.fulfill({ json: [] }),
+  );
+
   await page.goto("/");
-  const entry = page.getByTestId("landing-entry");
+
+  /* ---- Une seule porte : la promesse, puis une action. ---- */
+  const entry = page.getByTestId("oneboarding-entry");
+  await expect(entry).toContainText("Votre carte BYAIME");
+  await expect(entry).toContainText("Votre identité. Une seule fois.");
   await expect(
     entry.getByRole("button", { name: "Créer ma carte", exact: true }),
   ).toBeVisible();
   await expect(entry).toContainText("Vous ne créez pas encore un mariage");
-  await expect(page.getByTestId("landing-import-advanced")).not.toBeVisible();
+  /* Les anciennes portes parallèles ne reviennent pas. */
+  await expect(page.getByTestId("landing-start-blank")).toHaveCount(0);
+  await expect(entry.getByRole("button", { name: "Créer un mariage" })).toHaveCount(0);
+  await expect(entry.getByRole("button", { name: "Outils avancés" })).toHaveCount(0);
+
   await page.getByTestId("landing-create-primary").click();
-  const form = page.getByTestId("universal-card-form");
-  for (const title of ["Identité", "Moi", "Ma musique"])
-    await expect(
-      form.getByRole("heading", { name: title, exact: true }),
-    ).toBeVisible();
-  await form.getByLabel("Prénom", { exact: true }).fill("Camille");
-  await form.getByLabel("Nom", { exact: true }).fill("Martin");
+
+  /* ---- Question 1 sur 5 : la personne, jamais le mariage. ---- */
+  await expect(step(page, 1)).toBeVisible();
+  await expect(progressbar(page)).toHaveAttribute("aria-valuemax", "5");
+  const first = page.getByTestId("oneboarding-step-person");
+  await expect(first.getByRole("heading", { name: "Commençons par vous" })).toBeVisible();
+  await first.getByLabel("Prénom", { exact: true }).fill("Camille");
+  await first.getByLabel("Nom", { exact: true }).fill("Martin");
+
+  /* La musique reste une expression personnelle — et facultative. */
   await page.route("https://itunes.apple.com/search?**", (route) =>
     route.abort("failed"),
   );
-  await form
-    .getByLabel("Votre musique", { exact: true })
-    .fill("La vie en rose");
-  await form.getByRole("button", { name: "Rechercher un morceau" }).click();
-  await expect(form.getByRole("alert")).toContainText("continuer sans musique");
-  await form.getByRole("button", { name: "Continuer sans musique" }).click();
-  await expect(form.getByRole("alert")).toHaveCount(0);
-  await form
-    .getByRole("button", { name: "Préparer ma carte", exact: true })
-    .click();
+  await first.getByLabel("Votre musique", { exact: true }).fill("La vie en rose");
+  await first.getByRole("button", { name: "Rechercher un morceau" }).click();
+  await expect(first.getByRole("alert")).toContainText("continuer sans musique");
+  await first.getByRole("button", { name: "Continuer sans musique" }).click();
+  await expect(first.getByRole("alert")).toHaveCount(0);
+
+  /* Enregistrer la carte — et rien d'autre : aucun mariage n'est créé ici. */
+  await page.getByTestId("oneboarding-submit").click();
+  await expect(page.getByTestId("oneboarding-step-person")).toHaveCount(0);
+
+  /* ---- Question 2 sur 5 : le rôle dans ce mariage. ---- */
+  await expect(step(page, 2)).toBeVisible();
+  const role = page.getByTestId("oneboarding-step-role");
+  await expect(role.getByRole("heading", { name: "Votre rôle" })).toBeVisible();
+  await expect(role).toContainText("Ce choix concerne ce mariage, pas votre carte");
+  await role.getByRole("checkbox", { name: "Mariée", exact: true }).check();
+  await page.getByTestId("oneboarding-submit").click();
+
+  /* ---- Question 3 sur 5 : le mariage. Créer, ou rejoindre. ---- */
+  await expect(step(page, 3)).toBeVisible();
+  const wedding = page.getByTestId("oneboarding-step-wedding");
+  await expect(wedding.getByRole("heading", { name: "Le mariage" })).toBeVisible();
+  await expect(wedding).toContainText("Que souhaitez-vous faire ?");
+  await page.getByTestId("oneboarding-wedding-create").click();
+
+  /* Les cinq questions existantes, absorbées par l'Oneboarding. */
+  await wedding.getByLabel("Quand a lieu le mariage ?", { exact: true }).fill("14 août 2027");
+  await wedding.getByLabel("Où aura-t-il lieu ?", { exact: true }).fill("Lille");
+  await wedding.getByLabel("Combien d’invités ?", { exact: true }).fill("120");
+  await wedding.getByLabel("Quel est votre budget ?", { exact: true }).fill("20000");
+  await wedding.getByLabel("Quelle ambiance ?", { exact: true }).fill("champêtre");
+  await page.getByTestId("oneboarding-currency-EUR").click();
   await expect(
-    form.getByRole("heading", { name: "Mon brouillon est prêt" }),
+    page.getByRole("button", { name: "Créer ce mariage", exact: true }),
   ).toBeVisible();
+  await page.getByTestId("oneboarding-submit").click();
+
+  /* ---- Questions 4 et 5 : l'organisation, puis la Timeline. ---- */
+  await expect(step(page, 4)).toBeVisible();
+  await page.getByTestId("oneboarding-submit").click();
+  await expect(step(page, 5)).toBeVisible();
+  const confirm = page.getByTestId("oneboarding-step-confirm");
   await expect(
-    form.getByRole("heading", { name: "Camille Martin" }),
+    confirm.getByRole("heading", { name: "Ma Timeline est prête" }),
   ).toBeVisible();
-  await expect(
-    form.getByRole("combobox", { name: "Mariage concerné" }),
-  ).toHaveCount(0);
-  await expect(
-    form.getByRole("button", { name: "Enregistrer ma carte avec mon compte" }),
-  ).toBeVisible();
-  await form
-    .getByRole("button", { name: "Enregistrer ma carte avec mon compte" })
-    .click();
   await page
-    .getByRole("button", { name: "Entrer dans l’espace de démonstration" })
+    .getByRole("button", { name: "Ouvrir ma Timeline", exact: true })
     .click();
+  await page.waitForURL("**/user-portal**");
+
+  /* La carte a bien été écrite sur le serveur, sans passer par une phrase. */
+  expect(ownCard).not.toBeNull();
+  const data = (ownCard as { data: Record<string, unknown> }).data;
+  expect(data.firstName).toBe("Camille");
+  expect(data.lastName).toBe("Martin");
+});
+
+test("Déjà inscrit — « Ma carte », et l'étape 1 en lecture seule avec Modifier", async ({
+  page,
+}) => {
+  await page.route("**/api/me/card", (route) =>
+    route.fulfill({
+      json: {
+        userId: "known-user",
+        version: 3,
+        data: {
+          firstName: "Camille",
+          lastName: "Martin",
+          nickname: "",
+          city: "Lille",
+          profession: "Photographe",
+          photoUrl: "",
+          interests: ["jazz"],
+        },
+        updatedAt: new Date().toISOString(),
+      },
+    }),
+  );
+  await page.route("**/api/me/professional-profiles", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await page.goto("/");
+
+  /* Une carte existe : la porte le dit, et ne redemande rien. */
+  const entry = page.getByTestId("oneboarding-entry");
   await expect(
-    form.getByRole("heading", { name: "Mon brouillon est prêt" }),
+    entry.getByRole("button", { name: "Ma carte", exact: true }),
   ).toBeVisible();
-  await expect(
-    form.getByRole("heading", { name: "Camille Martin" }),
-  ).toBeVisible();
-  await expect(form.getByLabel("Prénom", { exact: true })).toHaveCount(0);
-  await expect(
-    form.getByRole("button", { name: "Créer ma carte", exact: true }),
-  ).toHaveCount(0);
-  await form
-    .getByRole("button", { name: "Enregistrer ma carte", exact: true })
-    .click();
-  await expect(
-    form.getByRole("heading", { name: "Ma carte est prête" }),
-  ).toBeVisible();
-  await page.reload();
-  await expect(
-    form.getByRole("heading", { name: "Ma carte", exact: true }),
-  ).toBeVisible();
-  await expect(
-    form.getByRole("button", { name: "Modifier ma carte", exact: true }),
-  ).toBeVisible();
-  await expect(form).toContainText("Carte enregistrée");
+  await expect(entry).toContainText("Bonjour Camille");
+  await page.getByTestId("landing-create-primary").click();
+
+  /* Le repère reste « sur 5 » : une étape déjà connue ne raccourcit pas le parcours. */
+  await expect(step(page, 1)).toBeVisible();
+  const first = page.getByTestId("oneboarding-step-person");
+  await expect(first).toContainText("Camille Martin");
+  await expect(first.getByLabel("Prénom", { exact: true })).toHaveCount(0);
+  await page.getByTestId("known-summary-edit").click();
+  await expect(first.getByLabel("Prénom", { exact: true })).toHaveCount(1);
+  await expect(first.getByLabel("Prénom", { exact: true })).toHaveValue("Camille");
 });
 
 test("Deux mariages homonymes — date et lieu dans le choix et le bandeau", async ({

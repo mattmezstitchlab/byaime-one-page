@@ -190,6 +190,28 @@ const fr = {
   "private.onboarding.title": "Quelques questions pour commencer.",
   "private.onboarding.subtitle": "Une réponse suffit. Vous compléterez le reste à votre rythme.",
   "private.onboarding.demo": "Explorer un mariage complet",
+  /* Titres d'étapes du Oneboarding. Le plan décide *quoi* demander ; ces clés
+     décident *comment cela se lit*, pour que le cadre (« Question 1 sur 5 ») et
+     son contenu partagent la même langue. */
+  "oneboarding.step.person.title": "Commençons par vous",
+  "oneboarding.step.person.description":
+    "Votre identité BYAIME, une seule fois. Elle ne dépend d’aucun mariage.",
+  "oneboarding.step.role.title": "Votre rôle",
+  "oneboarding.step.role.description":
+    "Ce que vous faites dans un mariage, et ce que vous exercez.",
+  "oneboarding.step.functioning.title": "Mon fonctionnement",
+  "oneboarding.step.functioning.description":
+    "Vos habitudes pour les activités choisies. Une seule fois, réutilisées dans chacun de vos mariages.",
+  "oneboarding.step.wedding.title": "Le mariage",
+  "oneboarding.step.wedding.description": "Celui qui vous concerne maintenant.",
+  "oneboarding.step.presence.title": "Ma présence",
+  "oneboarding.step.presence.description": "Ce qui concerne uniquement ce mariage.",
+  "oneboarding.step.organize.title": "Mon organisation",
+  "oneboarding.step.organize.description":
+    "Vos moments et vos horaires. Ils nourrissent votre Timeline.",
+  "oneboarding.step.confirm.title": "Ma Timeline est prête",
+  "oneboarding.step.confirm.description":
+    "BYAIME reprend tout ce que vous venez de lui dire.",
   // Périodes du Monde
   "world.phase.avant": "Avant",
   "world.phase.pendant": "Le Jour J",
@@ -789,6 +811,25 @@ const en: Record<I18nKey, string> = {
   "private.onboarding.title": "A few questions to get started.",
   "private.onboarding.subtitle": "One answer is enough. Fill in the rest at your own pace.",
   "private.onboarding.demo": "Explore a complete wedding",
+  "oneboarding.step.person.title": "Let’s start with you",
+  "oneboarding.step.person.description":
+    "Your BYAIME identity, once. It doesn’t depend on any wedding.",
+  "oneboarding.step.role.title": "Your role",
+  "oneboarding.step.role.description":
+    "What you do at a wedding, and what you practice.",
+  "oneboarding.step.functioning.title": "How I work",
+  "oneboarding.step.functioning.description":
+    "Your usual setup for the activities you picked. Once, reused across every wedding.",
+  "oneboarding.step.wedding.title": "The wedding",
+  "oneboarding.step.wedding.description": "The one that concerns you right now.",
+  "oneboarding.step.presence.title": "My presence",
+  "oneboarding.step.presence.description": "What concerns this wedding only.",
+  "oneboarding.step.organize.title": "My planning",
+  "oneboarding.step.organize.description":
+    "Your moments and timings. They feed your Timeline.",
+  "oneboarding.step.confirm.title": "Your Timeline is ready",
+  "oneboarding.step.confirm.description":
+    "BYAIME gathers everything you just told it.",
   "world.phase.avant": "Before",
   "world.phase.pendant": "The big day",
   "world.phase.apres": "After",

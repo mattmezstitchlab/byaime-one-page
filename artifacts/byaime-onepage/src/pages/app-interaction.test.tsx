@@ -55,18 +55,37 @@ describe("l'app complète (mode dégradé) sur /", () => {
     // La Bande a été retirée : plus aucune trace de son écran.
     expect(el.querySelector('[data-testid="bande-page"]')).toBeNull();
 
-    const start = el.querySelector<HTMLButtonElement>('[data-testid="landing-start-blank"]');
-    expect(start, "entrée « Créer un mariage » absente").not.toBeNull();
+    /* Une seule porte : « Créer ma carte ». Elle ouvre le Oneboarding, et la
+       première étape est toujours la personne — jamais le choix d'un tunnel. */
+    const start = el.querySelector<HTMLButtonElement>('[data-testid="landing-create-primary"]');
+    expect(start, "entrée « Créer ma carte » absente").not.toBeNull();
     act(() => start!.click());
 
-    const input = el.querySelector<HTMLInputElement>('[data-testid="landing-intention-input"]');
-    expect(input, "champ du compositeur absent après l'ouverture").not.toBeNull();
+    const step = el.querySelector('[data-testid="oneboarding-step-person"]');
+    expect(step, "première étape du Oneboarding absente").not.toBeNull();
+    /* Le repère « Question X sur 5 » est contrôlé sur ses attributs ARIA : le
+       libellé suit la langue du parcours, pas le test. */
+    const progress = el.querySelector('[role="progressbar"]');
+    expect(progress?.getAttribute("aria-valuenow")).toBe("1");
+    expect(progress?.getAttribute("aria-valuemax")).toBe("5");
+    /*
+     * Ce test monte l'app en anglais : le cadre ET le titre d'étape doivent être
+     * dans la même langue. Auparavant le titre restait figé en français
+     * (« Commençons par vous » sous « Question 1 of 5 ») ; les titres viennent
+     * désormais du dictionnaire i18n, comme le reste.
+     */
+    expect(el.textContent).toContain("Question 1 of 5");
+    expect(el.textContent).toContain("Let’s start with you");
+    expect(el.textContent).not.toContain("Commençons par vous");
+
+    const input = el.querySelector<HTMLInputElement>('input[maxlength="100"]');
+    expect(input, "champ de saisie absent après l'ouverture").not.toBeNull();
 
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
     act(() => {
-      setter.call(input!, "Mariage le 12 septembre 2027, près de Bordeaux, 90 invités");
+      setter.call(input!, "Camille");
       input!.dispatchEvent(new Event("input", { bubbles: true }));
     });
-    expect(input!.value).toContain("Bordeaux");
+    expect(input!.value).toBe("Camille");
   });
 });
