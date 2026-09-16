@@ -96,19 +96,21 @@ describe("gestionnaire d'erreur de l'application", () => {
       headersSent,
       status: vi.fn(() => response),
       json: vi.fn(() => response),
+      setHeader: vi.fn(() => {}),
     };
-    return response as unknown as Response & { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn> };
+    return response as unknown as Response & { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn>; setHeader: ReturnType<typeof vi.fn> };
   }
 
   it("écrit du JSON avec le bon statut et journalise la cause", () => {
     const response = res();
     const next = vi.fn() as unknown as NextFunction;
-    const req = { id: "req-1", method: "GET", originalUrl: "/api/me/card" } as unknown as Request;
+    const req = { id: "req-1", method: "GET", originalUrl: "/api/me/card", headers: {} } as unknown as Request;
 
     jsonErrorHandler(missingRelation(), req, response, next);
 
     expect(response.status).toHaveBeenCalledWith(500);
-    expect(response.json).toHaveBeenCalledWith(apiFailureResponse(missingRelation()).body);
+    const expectedBody = apiFailureResponse(missingRelation()).body;
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({ ...expectedBody, requestId: "req-1" }));
     expect(next).not.toHaveBeenCalled();
     expect(loggerError).toHaveBeenCalledOnce();
     const [champs, message] = loggerError.mock.calls[0] as [Record<string, unknown>, string];

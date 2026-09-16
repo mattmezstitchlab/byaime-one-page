@@ -24,19 +24,30 @@ export async function apiCall<T = any>(path: string, init?: RequestInit): Promis
   } catch {
     throw new Error(describeApiFailure({ kind: "network" }));
   }
-  const parsed = parseJsonBody(await response.text());
+  const raw = await response.text();
+  const parsed = parseJsonBody(raw);
+  const headerRequestId = response.headers.get("x-request-id")?.trim() || undefined;
+  const bodyRequestId =
+    parsed.ok && typeof parsed.value === "object" && parsed.value !== null
+      ? (parsed.value as { requestId?: unknown }).requestId
+      : undefined;
+  const requestId = typeof bodyRequestId === "string" && bodyRequestId.trim() ? bodyRequestId.trim() : headerRequestId;
+
   if (!response.ok) {
     const reported =
       parsed.ok && typeof parsed.value === "object" && parsed.value !== null
         ? (parsed.value as { error?: unknown }).error
         : undefined;
-    throw new Error(
-      describeApiFailure({
-        kind: "status",
-        status: response.status,
-        message: typeof reported === "string" ? reported : undefined,
-      }),
-    );
+    const base = describeApiFailure({
+      kind: "status",
+      status: response.status,
+      message: typeof reported === "string" ? reported : undefined,
+    });
+    const withId = requestId ? `${base} (id: ${requestId})` : base;
+    const err = new Error(withId) as Error & { requestId?: string; status?: number };
+    err.requestId = requestId;
+    err.status = response.status;
+    throw err;
   }
   if (!parsed.ok)
     throw new Error(

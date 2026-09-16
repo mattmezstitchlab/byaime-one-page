@@ -23,6 +23,7 @@ const app: Express = express();
 app.use(
   pinoHttp({
     logger,
+    genReqId: (req) => (req.headers["x-request-id"] as string) || undefined,
     serializers: {
       req(req) {
         return {
@@ -39,6 +40,18 @@ app.use(
     },
   }),
 );
+app.use((req, res, next) => {
+  const id = (req as any).id;
+  if (id) res.setHeader("x-request-id", String(id));
+  const originalJson = res.json.bind(res);
+  (res as any).json = (body: any) => {
+    if (body && typeof body === "object" && "error" in body && id && !("requestId" in body)) {
+      return originalJson({ ...body, requestId: String(id) });
+    }
+    return originalJson(body);
+  };
+  next();
+});
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use((req, res, next) => {
   const origin = req.get("origin");
@@ -81,7 +94,7 @@ if (isE2ETestServicesEnabled()) {
     handleE2EStorageUpload,
   );
 }
-app.use(express.json({ limit: "256kb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(
   clerkMiddleware((req) => ({
     publishableKey: publishableKeyFromHost(

@@ -144,8 +144,16 @@ export function IdentityFields({
         Centres d’intérêt (séparés par des virgules)
         <input
           className={cardInputStyle}
-          value={card.interests.join(",")}
-          onChange={(e) => update("interests", e.target.value.split(","))}
+          value={card.interests.join(", ")}
+          onChange={(e) =>
+            update(
+              "interests",
+              e.target.value
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean),
+            )
+          }
           onBlur={() =>
             update(
               "interests",

@@ -524,11 +524,21 @@ async function membership(projectId: string, userId: string, allowParticipant = 
 }
 
 function toProfessionalProfile(row: typeof professionalProfilesTable.$inferSelect): ProfessionalProfile {
-  return { ...row, data: functioningSchema.parse(row.data), updatedAt: row.updatedAt.toISOString() };
+  const parsed = functioningSchema.safeParse(row.data);
+  const data = parsed.success ? parsed.data : ({
+    parameters: {},
+    availability: { timezone: "Europe/Paris", weekly: [], windows: [], unavailable: [] },
+    coveredMoments: [],
+    legacyNotes: {},
+  } as any);
+  return { ...row, data, updatedAt: row.updatedAt.toISOString() };
 }
 async function memberAssignments(memberId: string): Promise<ProfessionalAssignment[]> {
   const rows = await db.select().from(professionalAssignmentsTable).where(eq(professionalAssignmentsTable.membershipId, memberId));
-  return rows.map(row => assignmentSchema.parse({ ...(row.data as object), id: row.id, profileId: row.profileId }));
+  return rows.flatMap(row => {
+    const parsed = assignmentSchema.safeParse({ ...(row.data as object), id: row.id, profileId: row.profileId });
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 async function cardProjectData(projectId: string, data: unknown, role: ProjectRole, userId: string, participantOnly = false) {
   const rows = await db.select({ memberId: membershipsTable.id, userId: universalCardsTable.userId, card: universalCardsTable.data, participation: membershipsTable.participation })
@@ -545,11 +555,16 @@ async function cardProjectData(projectId: string, data: unknown, role: ProjectRo
     const link = claimed.find(r => r.claimedCardUserId === row.userId);
     const card = cardSchema.safeParse(row.card), participation = participationSchema.safeParse(link ? participationWithRsvp(row.participation, link.response) : row.participation);
     const own = interventions.filter(i => i.assignment.membershipId === row.memberId);
-    return card.success && participation.success ? [{
+    if (!card.success || !participation.success) return [];
+    const assignments = own.flatMap(({ assignment: a }) => {
+      const parsed = assignmentSchema.safeParse({ ...(a.data as object), id: a.id, profileId: a.profileId });
+      return parsed.success ? [parsed.data] : [];
+    });
+    return [{
       userId: row.userId, card: card.data,
-      participation: { ...participation.data, assignments: own.map(({ assignment: a }) => assignmentSchema.parse({ ...(a.data as object), id: a.id, profileId: a.profileId })) },
+      participation: { ...participation.data, assignments },
       profiles: own.map(i => toProfessionalProfile(i.profile)),
-    } as CardParticipant] : [];
+    } as CardParticipant];
   });
   if (participantOnly) {
     const link = claimed.find(r => r.claimedCardUserId === userId);
@@ -621,7 +636,10 @@ router.put("/projects/:id/my-participation", auth, async (req: AuthedRequest, re
     if (linked && rsvpFieldsChanged(input, latestMember.participation, linked.response).length) return { error: "Le RSVP lié a changé ou a été modifié ici. Rechargez et utilisez le portail de l’invitation pour ses réponses ; aucune copie ne sera enregistrée." };
     const profiles = (await tx.select().from(professionalProfilesTable).where(eq(professionalProfilesTable.cardUserId, req.userId!))).map(toProfessionalProfile);
     const stored = await tx.select().from(professionalAssignmentsTable).where(eq(professionalAssignmentsTable.membershipId, member.id));
-    const assignments = input.assignments ?? stored.map(a => assignmentSchema.parse({ ...(a.data as object), id: a.id, profileId: a.profileId }));
+    const assignments = input.assignments ?? stored.flatMap(a => {
+      const parsed = assignmentSchema.safeParse({ ...(a.data as object), id: a.id, profileId: a.profileId });
+      return parsed.success ? [parsed.data] : [];
+    });
     const issues = assignmentErrors(req.userId!, input.roles, assignments, profiles, ((latestProject.data as any)?.timeline ?? []), input);
     if (issues.length) return { error: issues.join(" · ") };
     const { assignments: _assignments, ...context } = input;

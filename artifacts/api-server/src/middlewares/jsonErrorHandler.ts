@@ -14,21 +14,21 @@ import { logger } from "../lib/logger";
 
 export const jsonErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
   const { status, body } = apiFailureResponse(error);
+  const requestId = (req as any).id ?? (req.headers as any)["x-request-id"] ?? undefined;
 
   logger.error(
     {
       ...apiFailureLogFields(error),
       status,
-      requestId: req.id,
+      requestId,
       method: req.method,
       path: req.originalUrl,
     },
     "Erreur non rattrapée : réponse JSON d'échec renvoyée",
   );
 
-  /* Une réponse déjà entamée ne peut pas être remplacée : on rend la main à
-     Express, qui fermera la connexion. */
   if (res.headersSent) return next(error);
 
-  res.status(status).json(body);
+  if (requestId) res.setHeader("x-request-id", String(requestId));
+  res.status(status).json({ ...body, requestId });
 };

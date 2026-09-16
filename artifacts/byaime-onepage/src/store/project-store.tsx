@@ -134,8 +134,14 @@ function ProjectStore({ session, children }: { session: ProjectStoreSession; chi
     const response = await fetch(`/api${path}`, {
       ...init,
       headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers } });
-    const body = response.status === 204 ? undefined : await response.json().catch(() => ({}));
-    if (!response.ok) throw Object.assign(new Error(body?.error || `Erreur ${response.status}`), { status: response.status, body });
+    const headerRequestId = response.headers.get("x-request-id")?.trim() || undefined;
+    const body = response.status === 204 ? undefined : await response.json().catch(() => ({} as any));
+    if (!response.ok) {
+      const requestId = (body as any)?.requestId || headerRequestId;
+      const base = (body as any)?.error || `Erreur ${response.status}`;
+      const message = requestId ? `${base} (id: ${requestId})` : base;
+      throw Object.assign(new Error(message), { status: response.status, body, requestId });
+    }
     return body;
   }, []);
 
