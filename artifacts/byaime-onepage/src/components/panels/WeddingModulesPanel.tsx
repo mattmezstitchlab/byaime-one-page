@@ -19,7 +19,7 @@ import type { MusicSearchResult, MusicTrack, Document } from "@/lib/types";
 import { MESSAGE_TO_EVENT, consumeMessageDraft } from "@/lib/person-spotlight-bus";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import { momentDocumentIds, momentTrackIds } from "@/lib/moment-context";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type I18nKey } from "@/lib/i18n";
 import type { WeddingModule } from "@/lib/wedding-navigation";
 
 export type { WeddingModule } from "@/lib/wedding-navigation";
@@ -117,7 +117,8 @@ export function WeddingModulesPanel({
     addEntity,
     removeEntity,
   } = useProject();
-  const { t: tScope } = useI18n();
+  const { t: tScope, locale } = useI18n();
+  const dateLocale = locale === "en" ? "en-US" : "fr-FR";
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<SentMessage[]>([]);
   const [remoteError, setRemoteError] = useState("");
@@ -203,9 +204,7 @@ export function WeddingModulesPanel({
     setLocalDocError("");
     const oversize = files.filter((f) => f.size > MAX_DOC_BYTES);
     if (oversize.length) {
-      setLocalDocError(
-        `${oversize.length} fichier(s) dépassent ${Math.round(MAX_DOC_BYTES / 1024 / 1024)} Mo et ont été ignorés. Utilisez une image plus légère.`,
-      );
+      setLocalDocError(tScope("wm.docs.oversize", { n: oversize.length, max: Math.round(MAX_DOC_BYTES / 1024 / 1024) }));
     }
     const valid = files.filter((f) => f.size <= MAX_DOC_BYTES);
     if (!valid.length) return;
@@ -223,7 +222,7 @@ export function WeddingModulesPanel({
           url: dataUrl,
         } as unknown as Document);
       } catch (err) {
-        setLocalDocError((prev) => (prev ? `${prev} ` : "") + `${file.name}: lecture impossible.`);
+        setLocalDocError((prev) => (prev ? `${prev} ` : "") + tScope("wm.docs.readError", { name: file.name }));
       }
     }
     setLocalDocProgress(null);
@@ -260,7 +259,7 @@ export function WeddingModulesPanel({
           }),
         });
         setMessages((cur) => [delivery, ...cur]);
-        if (delivery.status !== "sent") setRemoteError(delivery.providerError || "Envoi non confirmé");
+        if (delivery.status !== "sent") setRemoteError(delivery.providerError || tScope("wm.messages.notConfirmed"));
       } else {
         throw new Error("no project");
       }
@@ -285,7 +284,7 @@ export function WeddingModulesPanel({
         },
         ...cur,
       ]);
-      setRemoteError("Mode hors-ligne: message conservé localement (simulation). L'envoi réel nécessite le backend.");
+      setRemoteError(tScope("wm.messages.offline"));
     } finally {
       setBusy(false);
     }
@@ -321,8 +320,8 @@ export function WeddingModulesPanel({
     return (
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
-          <p className="text-[11px] uppercase tracking-widest text-foreground/40">seating fusionné</p>
-          <p className="mt-2">Ce panneau est maintenant dans <strong>guests</strong>. Le rail vous y emmène automatiquement.</p>
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">{tScope("wm.seating.eyebrow")}</p>
+          <p className="mt-2">{tScope("wm.seating.text")}</p>
         </div>
       </div>
     );
@@ -332,8 +331,8 @@ export function WeddingModulesPanel({
     return (
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
-          <p className="text-[11px] uppercase tracking-widest text-foreground/40">budget fusionné</p>
-          <p className="mt-2">Ce panneau est maintenant dans <strong>providers</strong>. Le rail vous y emmène automatiquement.</p>
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">{tScope("wm.budget.eyebrow")}</p>
+          <p className="mt-2">{tScope("wm.budget.text")}</p>
         </div>
       </div>
     );
@@ -354,11 +353,11 @@ export function WeddingModulesPanel({
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Galerie unifiée · Documents, souvenirs, film</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">{tScope("wm.docs.eyebrow")}</p>
               <p className="mt-2 text-sm leading-relaxed text-[var(--agency-body)]">
-                Tout est stocké localement dans ce Monde (dataURL, {Math.round(MAX_DOC_BYTES / 1024 / 1024)} Mo max). Images, vidéos, PDFs, souvenirs — plus besoin de panneaux séparés Memories/Film/Contributions/Thanks.
+                {tScope("wm.docs.desc")}
               </p>
-              <p className="mt-2 text-xs text-[var(--agency-eyebrow)]">{project.documents.length} fichier(s) · {images.length} images · {videos.length} vidéos · {docs.length} docs · {project.memoryChecklist.filter((m)=>m.done).length}/{project.memoryChecklist.length} souvenirs cochés</p>
+              <p className="mt-2 text-xs text-[var(--agency-eyebrow)]">{tScope("wm.docs.count", { files: project.documents.length, images: images.length, videos: videos.length, docs: docs.length, done: project.memoryChecklist.filter((m)=>m.done).length, total: project.memoryChecklist.length })}</p>
             </div>
             {canManage && (
               <div className="flex flex-wrap items-center gap-2">
@@ -368,7 +367,7 @@ export function WeddingModulesPanel({
                   className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs text-[var(--agency-ink)] transition hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)] disabled:opacity-40"
                 >
                   {busy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                  Ajouter
+                  {tScope("wm.docs.add")}
                 </button>
                 <input
                   ref={fileRef}
@@ -386,7 +385,7 @@ export function WeddingModulesPanel({
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {(["all","image","video","doc"] as const).map((f) => (
-              <button key={f} onClick={()=>setGalleryFilter(f)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", galleryFilter===f ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{f==="all"?"Tous":f==="image"?"Images":f==="video"?"Vidéos":"Docs"}</button>
+              <button key={f} onClick={()=>setGalleryFilter(f)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", galleryFilter===f ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{tScope(`wm.docs.filter.${f}` as I18nKey)}</button>
             ))}
           </div>
           {momentId && (
@@ -407,7 +406,7 @@ export function WeddingModulesPanel({
               <span className="text-[11px] text-[var(--agency-body)]">
                 {momentDocCount > 0
                   ? tScope("moment.scope.count", { count: momentDocCount })
-                  : "Aucun fichier relié à ce Moment : la galerie montre tout le Monde."}
+                  : tScope("wm.docs.noMomentFiles")}
               </span>
             </div>
           )}
@@ -416,7 +415,7 @@ export function WeddingModulesPanel({
         {localDocProgress && (
           <div role="status" aria-live="polite" className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3 text-xs">
             <div className="flex justify-between">
-              <span>Import {localDocProgress.done + 1}/{localDocProgress.total} · {localDocProgress.current}</span>
+              <span>{tScope("wm.docs.importing", { done: localDocProgress.done + 1, total: localDocProgress.total, current: localDocProgress.current })}</span>
               <span className="font-mono text-[var(--agency-eyebrow)]">{localDocProgress.done}/{localDocProgress.total}</span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--agency-ink)]/10"><div className="h-full rounded-full bg-[var(--agency-ink)] transition-[width]" style={{ width: `${Math.round((localDocProgress.done / localDocProgress.total) * 100)}%` }} /></div>
@@ -428,14 +427,14 @@ export function WeddingModulesPanel({
         {/* Images grid */}
         {(galleryFilter==="all" || galleryFilter==="image") && images.length>0 && (
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-foreground/40">Images · lightbox local</p>
+            <p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.docs.imagesHeading")}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {images.map((doc)=>(
                 <div key={doc.id} className="group relative overflow-hidden rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)]">
                   {doc.url && <img src={doc.url} alt={doc.title} className="h-36 w-full object-cover cursor-pointer" onClick={()=>{ setGalleryLightboxUrl(doc.url!); setGalleryLightboxType("image"); }} />}
                   <div className="p-2 flex items-center justify-between gap-1">
                     <p className="truncate text-[11px]">{doc.title}</p>
-                    {canManage && <button aria-label={`Supprimer ${doc.title}`} onClick={()=>removeEntity("documents", doc.id)} className="p-1 text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>}
+                    {canManage && <button aria-label={tScope("wm.docs.deleteAria", { title: doc.title })} onClick={()=>removeEntity("documents", doc.id)} className="p-1 text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>}
                   </div>
                 </div>
               ))}
@@ -446,7 +445,7 @@ export function WeddingModulesPanel({
         {/* Videos grid */}
         {(galleryFilter==="all" || galleryFilter==="video") && videos.length>0 && (
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-foreground/40">Vidéos & film · local-first</p>
+            <p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.docs.videosHeading")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {videos.map((doc)=>(
                 <div key={doc.id} className="rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
@@ -464,24 +463,24 @@ export function WeddingModulesPanel({
         {/* Docs list */}
         {(galleryFilter==="all" || galleryFilter==="doc") && (
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-foreground/40">Documents</p>
-            {docs.length===0 && filtered.length===0 ? <Empty>Aucun document. Ajoutez images, vidéos, PDFs — tout reste local.</Empty> : docs.map((doc)=>{
+            <p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.docs.docsHeading")}</p>
+            {docs.length===0 && filtered.length===0 ? <Empty>{tScope("wm.docs.emptyAll")}</Empty> : docs.map((doc)=>{
               return (
                 <div key={doc.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--agency-hairline)]"><ExternalLink className="h-4 w-4"/></div>
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm">{doc.title}</p><p className="mt-1 text-xs text-[var(--agency-eyebrow)]">{doc.kind} · {new Date(doc.at).toLocaleDateString("fr-FR")}</p></div>
-                  {doc.url && <><a aria-label={`Aperçu ${doc.title}`} target="_blank" rel="noreferrer" href={doc.url} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]"><ExternalLink className="h-4 w-4"/></a><a aria-label={`Télécharger ${doc.title}`} href={doc.url} download={doc.title} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]"><Download className="h-4 w-4"/></a></>}
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm">{doc.title}</p><p className="mt-1 text-xs text-[var(--agency-eyebrow)]">{doc.kind} · {new Date(doc.at).toLocaleDateString(dateLocale)}</p></div>
+                  {doc.url && <><a aria-label={tScope("wm.docs.previewAria", { title: doc.title })} target="_blank" rel="noreferrer" href={doc.url} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]"><ExternalLink className="h-4 w-4"/></a><a aria-label={tScope("wm.docs.downloadAria", { title: doc.title })} href={doc.url} download={doc.title} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]"><Download className="h-4 w-4"/></a></>}
                   {canManage && <button aria-label={`Supprimer ${doc.title}`} onClick={()=>removeEntity("documents", doc.id)} className="p-2 text-[var(--agency-eyebrow)] hover:text-[#B42318]"><Trash2 className="h-4 w-4"/></button>}
                 </div>
               );
             })}
-            {galleryFilter!=="doc" && filtered.length===0 && <Empty>Aucun fichier pour ce filtre.</Empty>}
+            {galleryFilter!=="doc" && filtered.length===0 && <Empty>{tScope("wm.docs.emptyFilter")}</Empty>}
           </div>
         )}
 
         {/* Memories checklist intégré */}
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-          <div className="flex items-center justify-between mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Checklist souvenirs · ex-Memories fusionnée</p><span className="text-[10px] text-foreground/30">{project.memoryChecklist.filter((m)=>m.done).length}/{project.memoryChecklist.length}</span></div>
+          <div className="flex items-center justify-between mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.docs.checklistHeading")}</p><span className="text-[10px] text-foreground/30">{project.memoryChecklist.filter((m)=>m.done).length}/{project.memoryChecklist.length}</span></div>
           {project.memoryChecklist.map((item)=>(
             <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0">
               <button onClick={()=>updateProject({ memoryChecklist: project.memoryChecklist.map((x)=> x.id===item.id ? {...x, done:!x.done}:x) })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3"/>}</button>
@@ -489,14 +488,14 @@ export function WeddingModulesPanel({
               {canManage && <button onClick={()=>updateProject({ memoryChecklist: project.memoryChecklist.filter((x)=>x.id!==item.id) })} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-3.5 h-3.5"/></button>}
             </div>
           ))}
-          {canManage && <div className="pt-3"><AddBar label="Souvenir" onAdd={()=>updateProject({ memoryChecklist: [...project.memoryChecklist, { id: newId(), label:"Nouveau souvenir", done:false }] })} /></div>}
+          {canManage && <div className="pt-3"><AddBar label={tScope("wm.docs.addMemory")} onAdd={()=>updateProject({ memoryChecklist: [...project.memoryChecklist, { id: newId(), label:tScope("wm.docs.newMemory"), done:false }] })} /></div>}
         </div>
 
         {/* Lightbox with ESC */}
         {galleryLightboxUrl && (
           <div className="fixed inset-0 z-[100] bg-black/80 grid place-items-center p-4" onClick={()=>setGalleryLightboxUrl(null)} onKeyDown={(e)=>{ if(e.key==="Escape") setGalleryLightboxUrl(null); }} tabIndex={-1}>
             <div className="relative max-w-3xl w-full">
-              <button onClick={()=>setGalleryLightboxUrl(null)} className="absolute -top-8 right-0 text-white text-xs uppercase tracking-widest">Fermer ✕ (ESC)</button>
+              <button onClick={()=>setGalleryLightboxUrl(null)} className="absolute -top-8 right-0 text-white text-xs uppercase tracking-widest">{tScope("wm.docs.closeLightbox")}</button>
               {galleryLightboxType==="image" ? <img src={galleryLightboxUrl} className="w-full max-h-[85vh] object-contain rounded-xl" /> : <video src={galleryLightboxUrl} controls autoPlay className="w-full max-h-[85vh] rounded-xl bg-black" />}
             </div>
           </div>
@@ -504,8 +503,8 @@ export function WeddingModulesPanel({
 
         {/* Contributions offline note */}
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">
-          <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-2">Contributions invités · ex-panel supprimé</p>
-          Mode local-first : les contributions invités via /participant-media nécessitent backend. En local, demandez aux invités d'envoyer fichiers par mail et importez-les ici en tant que documents. Le QR code public ne dépose plus en ligne.
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-2">{tScope("wm.docs.contribNote.heading")}</p>
+          {tScope("wm.docs.contribNote.text")}
         </div>
       </div>
     );
@@ -516,8 +515,8 @@ export function WeddingModulesPanel({
     return (
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm leading-relaxed">
-          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Cérémonie fusionnée dans Organisation</p>
-          <p className="mt-2">Ce panneau a été réunifié dans <strong>Organisation</strong> (onglet Cérémonie). Utilisez le rail Logistique.</p>
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">{tScope("wm.ceremony.eyebrow")}</p>
+          <p className="mt-2">{tScope("wm.ceremony.text")}</p>
         </div>
       </div>
     );
@@ -541,7 +540,7 @@ export function WeddingModulesPanel({
                 .filter(track => momentTrackIdList.includes(track.id))
                 .map(track => `${track.title}${track.artist ? ` · ${track.artist}` : ""}`)
                 .join(" · ")
-            : "Aucun morceau n'est encore relié à ce Moment."}
+            : tScope("wm.music.scopeEmpty")}
         </p>
       </div>
     ) : null;
@@ -550,20 +549,20 @@ export function WeddingModulesPanel({
         <div className="mx-auto max-w-4xl space-y-5">
           {musicScopeBanner}
           <div>
-            <h4 className="text-sm font-medium">Musique reliée aux Moments</h4>
-            <p className="mt-1 text-xs text-foreground/45">Consultation seule.</p>
+            <h4 className="text-sm font-medium">{tScope("wm.music.readOnlyTitle")}</h4>
+            <p className="mt-1 text-xs text-foreground/45">{tScope("wm.music.readOnly")}</p>
           </div>
           {project.music.length === 0 ? (
-            <Empty>Aucun morceau n’est encore relié à un Moment.</Empty>
+            <Empty>{tScope("wm.music.empty")}</Empty>
           ) : (
             orderedTracks.map((track) => (
               <div key={track.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
                 <TrackArtwork track={track} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">{track.title}</p>
-                  <p className="mt-1 truncate text-xs text-foreground/45">{track.artist || "Artiste à préciser"} · {track.moment}</p>
+                  <p className="mt-1 truncate text-xs text-foreground/45">{track.artist || tScope("wm.music.artistUnknown")} · {track.moment}</p>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider text-foreground/35">{track.status === "valide" ? "Validé" : "À choisir"}</span>
+                <span className="text-[10px] uppercase tracking-wider text-foreground/35">{track.status === "valide" ? tScope("wm.music.validated") : tScope("wm.music.toChoose")}</span>
               </div>
             ))
           )}
@@ -572,7 +571,7 @@ export function WeddingModulesPanel({
     const runMusicSearch = async () => {
       const term = musicQuery.trim();
       if (term.length < 2) {
-        setMusicSearchError("Saisissez au moins deux caractères.");
+        setMusicSearchError(tScope("wm.music.minChars"));
         setMusicResults([]);
         return;
       }
@@ -585,7 +584,7 @@ export function WeddingModulesPanel({
         setMusicResults(await searchAppleMusic(term, controller.signal));
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setMusicSearchError(error instanceof Error ? error.message : "Recherche impossible.");
+        setMusicSearchError(error instanceof Error ? error.message : tScope("wm.music.searchFailed"));
       } finally {
         setMusicSearchBusy(false);
       }
@@ -635,22 +634,22 @@ export function WeddingModulesPanel({
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <ShieldCheck className="h-4 w-4 text-brand-accent" />
-            <span className="font-medium text-foreground/90">Source autorisée connectée</span>
+            <span className="font-medium text-foreground/90">{tScope("wm.music.sourceTitle")}</span>
             <span className="text-foreground/40">· {MUSIC_SOURCE}</span>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-foreground/55">Métadonnées Apple. Aperçu audio seulement si Apple fournit un extrait légal.</p>
+          <p className="mt-2 text-xs leading-relaxed text-foreground/55">{tScope("wm.music.sourceDesc")}</p>
         </div>
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
           <div className="flex flex-wrap items-end gap-3">
             <label className="min-w-[220px] flex-1">
-              <span className="mb-2 block text-[10px] uppercase tracking-widest text-foreground/40">Rechercher dans {MUSIC_SOURCE}</span>
+              <span className="mb-2 block text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.music.searchLabel", { source: MUSIC_SOURCE })}</span>
               <input
                 value={musicQuery}
                 onChange={(event) => setMusicQuery(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") void runMusicSearch();
                 }}
-                placeholder="Titre ou artiste"
+                placeholder={tScope("wm.music.searchPlaceholder")}
                 className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-sm outline-none focus:border-foreground/30"
               />
             </label>
@@ -661,7 +660,7 @@ export function WeddingModulesPanel({
               className="inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-4 py-2 text-xs font-medium text-[var(--agency-paper)] disabled:opacity-40"
             >
               {musicSearchBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              Rechercher
+              {tScope("wm.music.search")}
             </button>
           </div>
           {musicSearchError && (
@@ -672,10 +671,10 @@ export function WeddingModulesPanel({
           {musicResults.length > 0 && (
             <div className="mt-4 space-y-2 border-t border-[var(--agency-hairline)] pt-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40">Résultats réels</p>
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.music.results")}</p>
                 {selectedTrack && (
                   <label className="flex items-center gap-2 text-xs text-foreground/55">
-                    Relier à
+                    {tScope("wm.music.linkTo")}
                     <select
                       value={selectedTrack.id}
                       onChange={(event) => setSelectedMusicId(event.target.value)}
@@ -698,15 +697,15 @@ export function WeddingModulesPanel({
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-medium">Morceaux reliés aux Moments</h4>
-            <p className="mt-1 text-xs text-foreground/40">Chaque morceau peut être relié à un ou plusieurs événements.</p>
+            <h4 className="text-sm font-medium">{tScope("wm.music.tracksTitle")}</h4>
+            <p className="mt-1 text-xs text-foreground/40">{tScope("wm.music.tracksDesc")}</p>
           </div>
           <AddBar
-            label="Saisie manuelle"
+            label={tScope("wm.music.manual")}
             onAdd={() =>
               addEntity("music", {
-                moment: "Nouveau Moment",
-                title: "À choisir",
+                moment: tScope("wm.music.newMoment"),
+                title: tScope("wm.music.toChoose"),
                 artist: "",
                 status: "a_choisir",
                 metadataStatus: "manual",
@@ -742,36 +741,36 @@ export function WeddingModulesPanel({
     return (
       <div className="max-w-4xl mx-auto space-y-5">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Organisation unifiée · Cérémonie + Logistique + Équipe</p>
-          <p className="mt-2 text-xs leading-relaxed text-[var(--agency-body)]">Fusion des anciens panneaux Ceremony / Logistics / Team. Tout éditable local-first.</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">{tScope("wm.orga.eyebrow")}</p>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--agency-body)]">{tScope("wm.orga.desc")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {(["ceremony","logistics","team"] as const).map((s)=>(
-              <button key={s} onClick={()=>setOrgaTab(s)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", orgaTab===s ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{s==="ceremony"?"Cérémonie":s==="logistics"?"Logistique":"Équipe"}</button>
+              <button key={s} onClick={()=>setOrgaTab(s)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", orgaTab===s ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{tScope(`wm.orga.tab.${s}` as I18nKey)}</button>
             ))}
           </div>
         </div>
 
         {orgaTab==="ceremony" && (
           <div className="space-y-4">
-            <EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={(notes) => updateProject({ ceremony: { ...c, notes } })} />
+            <EditableArea label={tScope("wm.orga.ceremonyNotes")} value={c.notes} onChange={(notes) => updateProject({ ceremony: { ...c, notes } })} />
             <div className="grid gap-3 sm:grid-cols-2">
-              <EditableArea label="Menu" value={c.menu} onChange={(menu) => updateProject({ ceremony: { ...c, menu } })} />
-              <EditableArea label="Boissons" value={c.drinks} onChange={(drinks) => updateProject({ ceremony: { ...c, drinks } })} />
-              <EditableArea label="Gâteau" value={c.cake} onChange={(cake) => updateProject({ ceremony: { ...c, cake } })} />
-              <EditableArea label="Première danse" value={c.firstDance} onChange={(firstDance) => updateProject({ ceremony: { ...c, firstDance } })} />
+              <EditableArea label={tScope("wm.orga.menu")} value={c.menu} onChange={(menu) => updateProject({ ceremony: { ...c, menu } })} />
+              <EditableArea label={tScope("wm.orga.drinks")} value={c.drinks} onChange={(drinks) => updateProject({ ceremony: { ...c, drinks } })} />
+              <EditableArea label={tScope("wm.orga.cake")} value={c.cake} onChange={(cake) => updateProject({ ceremony: { ...c, cake } })} />
+              <EditableArea label={tScope("wm.orga.firstDance")} value={c.firstDance} onChange={(firstDance) => updateProject({ ceremony: { ...c, firstDance } })} />
             </div>
             <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
-              <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Structure</p>
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">{tScope("wm.orga.structure")}</p>
               {c.structure.map((item, i) => (
                 <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm">
                   <span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>
                   <input value={item} onChange={(e)=>{ const next=[...c.structure]; next[i]=e.target.value; updateProject({ ceremony:{...c, structure:next } }); }} className="flex-1 bg-transparent outline-none text-sm" />
                 </div>
               ))}
-              {canManage && <div className="pt-2"><AddBar label="Étape" onAdd={()=>updateProject({ ceremony:{...c, structure:[...c.structure, "Nouvelle étape"] }})} /></div>}
+              {canManage && <div className="pt-2"><AddBar label={tScope("wm.orga.addStep")} onAdd={()=>updateProject({ ceremony:{...c, structure:[...c.structure, tScope("wm.orga.newStep")] }})} /></div>}
             </div>
             <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
-              <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">Lectures et vœux</p>
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40 mb-3">{tScope("wm.orga.readings")}</p>
               {c.readings.map((r) => (
                 <div key={r.id} className="mb-3 rounded-xl border border-foreground/5 p-3">
                   <div className="flex gap-2">
@@ -782,7 +781,7 @@ export function WeddingModulesPanel({
                 </div>
               ))}
               {c.vows.map((v) => (
-                <EditableArea key={v.id} label={`Vœux de ${v.person}`} value={v.text} onChange={(text) => updateProject({ ceremony: { ...c, vows: c.vows.map((x) => (x.id === v.id ? { ...x, text } : x)) } })} />
+                <EditableArea key={v.id} label={tScope("wm.orga.vowsOf", { person: v.person })} value={v.text} onChange={(text) => updateProject({ ceremony: { ...c, vows: c.vows.map((x) => (x.id === v.id ? { ...x, text } : x)) } })} />
               ))}
             </div>
           </div>
@@ -790,15 +789,15 @@ export function WeddingModulesPanel({
 
         {orgaTab==="logistics" && (
           <div className="space-y-4">
-            <EditableArea label="Parking" value={l.parking} onChange={(parking) => updateProject({ logistics: { ...l, parking } })} />
-            <EditableArea label="Accessibilité" value={l.accessibility} onChange={(accessibility) => updateProject({ logistics: { ...l, accessibility } })} />
-            <EditableArea label="Plan météo de repli" value={l.weatherFallback} onChange={(weatherFallback) => updateProject({ logistics: { ...l, weatherFallback } })} />
+            <EditableArea label={tScope("wm.orga.parking")} value={l.parking} onChange={(parking) => updateProject({ logistics: { ...l, parking } })} />
+            <EditableArea label={tScope("wm.orga.accessibility")} value={l.accessibility} onChange={(accessibility) => updateProject({ logistics: { ...l, accessibility } })} />
+            <EditableArea label={tScope("wm.orga.weather")} value={l.weatherFallback} onChange={(weatherFallback) => updateProject({ logistics: { ...l, weatherFallback } })} />
             <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
               <div className="flex justify-between items-center mb-3">
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40">À emporter</p>
-                <AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, packing: [...l.packing, { id: newId(), label: "Nouvel élément", done: false }] } })} />
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.orga.packing")}</p>
+                <AddBar label={tScope("wm.orga.add")} onAdd={() => updateProject({ logistics: { ...l, packing: [...l.packing, { id: newId(), label: tScope("wm.orga.newItem"), done: false }] } })} />
               </div>
-              {l.packing.length === 0 ? <Empty>La liste est vide.</Empty> : l.packing.map((item) => (
+              {l.packing.length === 0 ? <Empty>{tScope("wm.orga.emptyList")}</Empty> : l.packing.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0">
                   <button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, done: !x.done } : x)) } })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3" />}</button>
                   <input value={item.label} onChange={(e) => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, label: e.target.value } : x)) } })} className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")} />
@@ -808,13 +807,13 @@ export function WeddingModulesPanel({
             </div>
             <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] uppercase tracking-widest text-foreground/40">Contacts d'urgence</p>
-                <AddBar label="Ajouter" onAdd={() => updateProject({ logistics: { ...l, emergencyContacts: [...l.emergencyContacts, { id: newId(), name: "Nouveau contact", phone: "", role: "À préciser" }] } })} />
+                <p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.orga.emergency")}</p>
+                <AddBar label={tScope("wm.orga.add")} onAdd={() => updateProject({ logistics: { ...l, emergencyContacts: [...l.emergencyContacts, { id: newId(), name: tScope("wm.orga.newContact"), phone: "", role: tScope("wm.orga.toSpecify") }] } })} />
               </div>
               {l.emergencyContacts.map((contact) => (
                 <div key={contact.id} className="grid grid-cols-3 gap-2 border-b border-foreground/5 py-2 last:border-0">
                   <input value={contact.name} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, name: e.target.value } : x)) } })} className="bg-transparent text-sm outline-none" />
-                  <input value={contact.phone} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, phone: e.target.value } : x)) } })} placeholder="Téléphone" className="bg-transparent text-xs outline-none" />
+                  <input value={contact.phone} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, phone: e.target.value } : x)) } })} placeholder={tScope("wm.orga.phonePlaceholder")} className="bg-transparent text-xs outline-none" />
                   <input value={contact.role} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, role: e.target.value } : x)) } })} className="bg-transparent text-xs text-foreground/50 outline-none" />
                 </div>
               ))}
@@ -824,19 +823,19 @@ export function WeddingModulesPanel({
 
         {orgaTab==="team" && (
           <div className="space-y-4">
-            <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">Ancien panneau Team fusionné ici. Gérez rôles, missions, contacts jour J.</div>
+            <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">{tScope("wm.orga.teamNote")}</div>
             <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">
-              <div className="flex justify-between items-center mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">Équipe & rôles</p><AddBar label="Rôle" onAdd={()=>updateProject({ team: [...project.team, { id:newId(), name:"Nouveau rôle", role:"Nouveau rôle", responsibilities:[], person:"À assigner", tasks:[] }] })} /></div>
-              {project.team.length===0 ? <Empty>Aucun rôle défini.</Empty> : project.team.map((member)=>(
+              <div className="flex justify-between items-center mb-3"><p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.orga.teamHeading")}</p><AddBar label={tScope("wm.orga.addRole")} onAdd={()=>updateProject({ team: [...project.team, { id:newId(), name:tScope("wm.orga.newRole"), role:tScope("wm.orga.newRole"), responsibilities:[], person:tScope("wm.orga.assigneePlaceholder"), tasks:[] }] })} /></div>
+              {project.team.length===0 ? <Empty>{tScope("wm.orga.noRoles")}</Empty> : project.team.map((member)=>(
                 <details key={member.id} className="group border-b border-foreground/5 py-3 last:border-0">
                   <summary className="flex items-center justify-between cursor-pointer list-none">
-                    <div><p className="text-sm">{member.role} <span className="text-foreground/40">· {member.person}</span></p><p className="text-xs text-foreground/40">{(member.tasks ?? []).length} tâche(s)</p></div>
+                    <div><p className="text-sm">{member.role} <span className="text-foreground/40">· {member.person}</span></p><p className="text-xs text-foreground/40">{tScope("wm.orga.taskCount", { n: (member.tasks ?? []).length })}</p></div>
                     <span className="text-[10px] uppercase tracking-widest text-foreground/30 group-open:rotate-180 transition">▼</span>
                   </summary>
                   <div className="mt-3 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      <input value={member.role} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, role:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder="Rôle" />
-                      <input value={member.person} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, person:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder="Personne" />
+                      <input value={member.role} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, role:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder={tScope("wm.orga.rolePlaceholder")} />
+                      <input value={member.person} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, person:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder={tScope("wm.orga.personPlaceholder")} />
                     </div>
                     {(member.tasks ?? []).map((t,i)=>(
                       <div key={`${member.id}-${i}`} className="flex items-center gap-2">
@@ -844,7 +843,7 @@ export function WeddingModulesPanel({
                         <button onClick={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:(x.tasks ?? []).filter((_,j)=>j!==i)}:x) })} className="text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>
                       </div>
                     ))}
-                    <div className="flex gap-2"><AddBar label="Tâche" onAdd={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:[...(x.tasks ?? []), "Nouvelle tâche"]}:x) })} /><button onClick={()=>updateProject({ team: project.team.filter((x)=>x.id!==member.id) })} className="text-[10px] uppercase tracking-widest text-[#B42318]">Supprimer rôle</button></div>
+                    <div className="flex gap-2"><AddBar label={tScope("wm.orga.addTask")} onAdd={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:[...(x.tasks ?? []), tScope("wm.orga.newTask")]}:x) })} /><button onClick={()=>updateProject({ team: project.team.filter((x)=>x.id!==member.id) })} className="text-[10px] uppercase tracking-widest text-[#B42318]">{tScope("wm.orga.deleteRole")}</button></div>
                   </div>
                 </details>
               ))}
@@ -862,46 +861,46 @@ if (module === "messages") {
         <PersistenceState status={syncStatus} error={syncError} />
         {remoteError && <p className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 text-xs text-[#B42318]">{remoteError}</p>}
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">
-          Mode local-first: les messages sont conservés localement. L'envoi réel via Resend nécessite le backend api-server. Utilisez "Copier" pour coller dans votre client mail.
+          {tScope("wm.messages.localNote")}
         </div>
         <div className="flex items-center gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un modèle…"
+            placeholder={tScope("wm.messages.searchPlaceholder")}
             className="flex-1 rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30"
           />
-          {canManage && <AddBar label="Message libre" onAdd={() => setFreeOpen((v) => !v)} />}
-          {canManage && <AddBar label="Nouveau modèle" onAdd={() => addEntity("messageTemplates", { title: "Nouveau modèle", type: "pratique", body: "" })} />}
+          {canManage && <AddBar label={tScope("wm.messages.free")} onAdd={() => setFreeOpen((v) => !v)} />}
+          {canManage && <AddBar label={tScope("wm.messages.newTemplate")} onAdd={() => addEntity("messageTemplates", { title: tScope("wm.messages.newTemplate"), type: "pratique", body: "" })} />}
         </div>
         {canManage && freeOpen && (
           <div className="space-y-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4" data-testid="messages-free-composer">
             <label className="block">
-              <span className="text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</span>
+              <span className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.messages.recipients")}</span>
               <input
                 value={freeRecipients}
                 onChange={(event) => setFreeRecipients(event.target.value)}
-                placeholder="adresses séparées par des virgules"
+                placeholder={tScope("wm.messages.recipientsPlaceholder")}
                 className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30"
               />
             </label>
             <label className="block">
-              <span className="text-[10px] uppercase tracking-widest text-foreground/40">Objet</span>
+              <span className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.messages.subject")}</span>
               <input value={freeSubject} onChange={(event) => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" />
             </label>
             <label className="block">
-              <span className="text-[10px] uppercase tracking-widest text-foreground/40">Message</span>
+              <span className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.messages.message")}</span>
               <textarea
                 value={freeBody}
                 onChange={(event) => setFreeBody(event.target.value)}
                 rows={4}
-                placeholder="Écrire le message…"
+                placeholder={tScope("wm.messages.writePlaceholder")}
                 className="mt-1 w-full resize-none rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs leading-relaxed outline-none focus:border-foreground/30"
               />
             </label>
             <div className="flex gap-2">
               <button disabled={busy} onClick={() => setFreeOpen(false)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">
-                Annuler
+                {tScope("wm.messages.cancel")}
               </button>
               <button
                 disabled={busy || !freeRecipients.trim() || !freeSubject.trim() || !freeBody.trim()}
@@ -910,7 +909,7 @@ if (module === "messages") {
               >
                 {busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
                 <Send className="h-3.5 w-3.5" />
-                Conserver localement
+                {tScope("wm.messages.keepLocal")}
               </button>
             </div>
           </div>
@@ -935,7 +934,7 @@ if (module === "messages") {
                 disabled={!canManage}
                 value={template.body}
                 onChange={(event) => updateEntity("messageTemplates", template.id, { body: event.target.value })}
-                placeholder="Écrire le message…"
+                placeholder={tScope("wm.messages.writePlaceholder")}
                 rows={3}
                 className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none"
               />
@@ -946,22 +945,22 @@ if (module === "messages") {
                   className="mt-3 inline-flex items-center gap-2 text-xs text-foreground/70 hover:text-foreground disabled:opacity-30"
                 >
                   <Send className="h-3.5 w-3.5" />
-                  Préparer
+                  {tScope("wm.messages.prepare")}
                 </button>
               )}
               {selectedTemplateId === template.id && (
                 <div className="mt-4 space-y-3 border-t border-[var(--agency-hairline)] pt-4">
-                  <label className="block text-[10px] uppercase tracking-widest text-foreground/40">Destinataires</label>
+                  <label className="block text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.messages.recipients")}</label>
                   <input
                     autoFocus
                     value={recipients}
                     onChange={(event) => setRecipients(event.target.value)}
-                    placeholder="adresses séparées par des virgules"
+                    placeholder={tScope("wm.messages.recipientsPlaceholder")}
                     className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30"
                   />
                   <div className="flex gap-2">
                     <button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">
-                      Annuler
+                      {tScope("wm.messages.cancel")}
                     </button>
                     <button
                       disabled={busy || !recipients.trim()}
@@ -969,7 +968,7 @@ if (module === "messages") {
                       className="inline-flex items-center gap-2 rounded-full bg-[var(--agency-ink)] px-3 py-2 text-xs font-medium text-[var(--agency-paper)] disabled:opacity-30"
                     >
                       {busy && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
-                      Conserver
+                      {tScope("wm.messages.keep")}
                     </button>
                   </div>
                 </div>
@@ -978,9 +977,9 @@ if (module === "messages") {
           ))}
         </div>
         <div>
-          <p className="mb-3 text-[10px] uppercase tracking-widest text-foreground/40">Journal local</p>
+          <p className="mb-3 text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.messages.logHeading")}</p>
           {messages.length === 0 && project.messageLogs.length === 0 ? (
-            <Empty>Aucun message conservé.</Empty>
+            <Empty>{tScope("wm.messages.noMessages")}</Empty>
           ) : (
             <>
               {messages.map((message) => (
@@ -990,14 +989,14 @@ if (module === "messages") {
                       <p className="truncate">{message.subject}</p>
                       <p className="mt-1 truncate text-xs text-foreground/35">{message.recipients.join(", ")}</p>
                     </div>
-                    <span className="text-xs text-foreground/60">{new Date(message.createdAt).toLocaleString("fr-FR")} · {message.status}</span>
+                    <span className="text-xs text-foreground/60">{new Date(message.createdAt).toLocaleString(dateLocale)} · {message.status}</span>
                   </div>
                 </div>
               ))}
               {project.messageLogs.map((log) => (
                 <div key={log.id} className="border-b border-foreground/5 py-3 text-sm">
                   <p className="truncate">{log.recipient}</p>
-                  <p className="mt-1 text-xs text-foreground/40">{new Date(log.sentAt).toLocaleString("fr-FR")} · {log.status} · {log.note?.slice(0, 80)}</p>
+                  <p className="mt-1 text-xs text-foreground/40">{new Date(log.sentAt).toLocaleString(dateLocale)} · {log.status} · {log.note?.slice(0, 80)}</p>
                 </div>
               ))}
             </>
@@ -1011,8 +1010,8 @@ if (module === "messages") {
     return (
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
-          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Contributions fusionné dans Galerie</p>
-          <p className="mt-2">Ce contenu est maintenant dans <strong>Documents → Galerie unifiée</strong> (images, vidéos, docs, souvenirs).</p>
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">{tScope("wm.contributions.eyebrow")}</p>
+          <p className="mt-2">{tScope("wm.movedTo")} <strong>{tScope("wm.docs.galleryRef")}</strong> {tScope("wm.contributions.detail")}.</p>
         </div>
       </div>
     );
@@ -1022,8 +1021,8 @@ if (module === "messages") {
     return (
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
-          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Thanks fusionné dans Galerie</p>
-          <p className="mt-2">Ce contenu est maintenant dans <strong>Documents → Galerie unifiée</strong> (images, vidéos, docs, souvenirs).</p>
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">{tScope("wm.thanks.eyebrow")}</p>
+          <p className="mt-2">{tScope("wm.movedTo")} <strong>{tScope("wm.docs.galleryRef")}</strong> {tScope("wm.contributions.detail")}.</p>
         </div>
       </div>
     );
@@ -1033,8 +1032,8 @@ if (module === "messages") {
     return (
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
-          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Film fusionné dans Galerie</p>
-          <p className="mt-2">Ce contenu est maintenant dans <strong>Documents → Galerie unifiée</strong> (images, vidéos, docs, souvenirs).</p>
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">{tScope("wm.film.eyebrow")}</p>
+          <p className="mt-2">{tScope("wm.movedTo")} <strong>{tScope("wm.docs.galleryRef")}</strong> {tScope("wm.contributions.detail")}.</p>
         </div>
       </div>
     );
@@ -1047,8 +1046,8 @@ if (module === "messages") {
     return (
       <div className="mx-auto max-w-4xl space-y-5">
         <div>
-          <h4 className="text-sm font-medium">Actualités du voyage de noces</h4>
-          <p className="mt-1 text-xs leading-relaxed text-foreground/45">Chaque actualité devient un Moment Après destiné à l'audience.</p>
+          <h4 className="text-sm font-medium">{tScope("wm.honeymoon.title")}</h4>
+          <p className="mt-1 text-xs leading-relaxed text-foreground/45">{tScope("wm.honeymoon.desc")}</p>
         </div>
         {canManage && (
           <button
@@ -1057,8 +1056,8 @@ if (module === "messages") {
                 time: Date.now(),
                 durationMinutes: 0,
                 kind: "souvenir",
-                title: "Nouvelle du voyage",
-                detail: "À compléter avant de partager.",
+                title: tScope("wm.honeymoon.newTitle"),
+                detail: tScope("wm.honeymoon.newDetail"),
                 status: "a_valider",
                 confidence: "confirme",
                 phase: "apres",
@@ -1073,17 +1072,17 @@ if (module === "messages") {
             className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/70"
           >
             <Plus className="h-3.5 w-3.5" />
-            Préparer une actualité privée
+            {tScope("wm.honeymoon.preparePrivate")}
           </button>
         )}
         {posts.length === 0 ? (
-          <Empty>Aucune actualité n’est partagée avec les invités.</Empty>
+          <Empty>{tScope("wm.honeymoon.empty")}</Empty>
         ) : (
           <div className="space-y-3">
             {posts.map((post) => (
               <article key={post.id} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
                 <p className="text-[10px] uppercase tracking-widest text-foreground/35">
-                  {new Date(post.time).toLocaleDateString("fr-FR")}
+                  {new Date(post.time).toLocaleDateString(dateLocale)}
                   {post.location ? ` · ${post.location}` : ""}
                 </p>
                 <h5 className="mt-2 text-sm font-medium">{post.title}</h5>
@@ -1100,8 +1099,8 @@ if (module === "messages") {
     return (
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
-          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Équipe fusionnée dans Organisation</p>
-          <p className="mt-2">Retrouvez les rôles dans <strong>Organisation → Équipe</strong>.</p>
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">{tScope("wm.team.eyebrow")}</p>
+          <p className="mt-2">{tScope("wm.team.text")}</p>
         </div>
       </div>
     );
@@ -1109,8 +1108,8 @@ if (module === "messages") {
     return (
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-sm">
-          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Souvenirs fusionnés dans Galerie</p>
-          <p className="mt-2">Checklist souvenirs + images locales sont dans <strong>Documents → Galerie unifiée</strong>.</p>
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">{tScope("wm.memories.eyebrow")}</p>
+          <p className="mt-2">{tScope("wm.memories.text")}</p>
         </div>
       </div>
     );
@@ -1131,6 +1130,7 @@ function formatTrackDuration(durationMs?: number) {
 }
 
 function TrackArtwork({ track, size = "md" }: { track: Pick<MusicTrack, "external">; size?: "sm" | "md" }) {
+  const { t } = useI18n();
   const artwork = track.external?.artworkUrl;
   const className = size === "sm" ? "h-12 w-12 rounded-lg" : "h-16 w-16 rounded-xl";
   return artwork ? (
@@ -1139,19 +1139,20 @@ function TrackArtwork({ track, size = "md" }: { track: Pick<MusicTrack, "externa
     <div
       className={`${className} flex shrink-0 items-center justify-center border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-1 text-center text-[9px] uppercase leading-tight tracking-wider text-foreground/35`}
     >
-      Cover indisponible
+      {t("wm.music.coverMissing")}
     </div>
   );
 }
 
 function MusicSearchResultRow({ result, disabled, onSelect }: { result: MusicSearchResult; disabled: boolean; onSelect: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3">
       {result.artworkUrl ? (
         <img src={result.artworkUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
       ) : (
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[var(--agency-hairline)] text-[9px] uppercase leading-tight tracking-wider text-foreground/35">
-          Cover indisponible
+          {t("wm.music.coverMissing")}
         </div>
       )}
       <div className="min-w-[160px] flex-1">
@@ -1161,13 +1162,13 @@ function MusicSearchResultRow({ result, disabled, onSelect }: { result: MusicSea
           {result.collectionName ? ` · ${result.collectionName}` : ""}
         </p>
         <p className="mt-1 text-[10px] text-foreground/55">
-          Métadonnées vérifiées · {formatTrackDuration(result.durationMs) || "durée indisponible"}
-          {result.previewUrl ? " · aperçu disponible" : " · aperçu indisponible"}
+          {t("wm.music.verifiedMeta")} {formatTrackDuration(result.durationMs) || t("wm.music.durationUnknown")}
+          {result.previewUrl ? ` · ${t("wm.music.previewAvailable")}` : ` · ${t("wm.music.previewUnavailable")}`}
         </p>
       </div>
-      {result.previewUrl && <audio controls preload="none" src={result.previewUrl} className="h-8 max-w-[190px]" aria-label={`Écouter un aperçu de ${result.title}`} />}
+      {result.previewUrl && <audio controls preload="none" src={result.previewUrl} className="h-8 max-w-[190px]" aria-label={t("wm.music.listenAria", { title: result.title })} />}
       {result.trackUrl && (
-        <a href={result.trackUrl} target="_blank" rel="noreferrer" aria-label={`Ouvrir ${result.title} dans ${MUSIC_SOURCE}`} className="p-2 text-foreground/40 hover:text-foreground">
+        <a href={result.trackUrl} target="_blank" rel="noreferrer" aria-label={t("wm.music.openAria", { title: result.title, source: MUSIC_SOURCE })} className="p-2 text-foreground/40 hover:text-foreground">
           <ExternalLink className="h-4 w-4" />
         </a>
       )}
@@ -1177,7 +1178,7 @@ function MusicSearchResultRow({ result, disabled, onSelect }: { result: MusicSea
         onClick={onSelect}
         className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/70 transition hover:border-foreground/40 hover:text-foreground disabled:opacity-35"
       >
-        Relier
+        {t("wm.music.linkBtn")}
       </button>
     </div>
   );
@@ -1198,6 +1199,7 @@ function MusicTrackRow({
   onUpdate: (updates: Partial<MusicTrack>) => void;
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
   const verified = Boolean(track.external);
   const duration = formatTrackDuration(track.external?.durationMs);
   return (
@@ -1207,7 +1209,7 @@ function MusicTrackRow({
         <button
           type="button"
           onClick={() => onUpdate({ status: track.status === "valide" ? "a_choisir" : "valide" })}
-          aria-label={track.status === "valide" ? `Marquer ${track.title} à choisir` : `Valider ${track.title}`}
+          aria-label={track.status === "valide" ? t("wm.music.markToChooseAria", { title: track.title }) : t("wm.music.validateAria", { title: track.title })}
           className={cn(
             "mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border",
             track.status === "valide" ? "border-brand-accent text-brand-accent" : "border-[var(--agency-hairline)] text-foreground/30",
@@ -1218,51 +1220,51 @@ function MusicTrackRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className={cn("rounded-full border px-2 py-1 text-[10px]", verified ? "border-foreground/25 text-foreground/60" : "border-brand-accent/40 text-brand-accent")}>
-              {verified ? `Métadonnées vérifiées · ${MUSIC_SOURCE}` : "Saisie manuelle · non vérifiée"}
+              {verified ? t("wm.music.verified", { source: MUSIC_SOURCE }) : t("wm.music.manualUnverified")}
             </span>
-            {track.provenance === "demo" && <span className="text-[10px] text-foreground/35">Exemple initial</span>}
+            {track.provenance === "demo" && <span className="text-[10px] text-foreground/35">{t("wm.music.initialExample")}</span>}
           </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <input value={track.moment} onChange={(event) => onUpdate({ moment: event.target.value })} placeholder="Moment" className="bg-transparent text-xs text-foreground/55 outline-none" />
+            <input value={track.moment} onChange={(event) => onUpdate({ moment: event.target.value })} placeholder={t("wm.music.momentPlaceholder")} className="bg-transparent text-xs text-foreground/55 outline-none" />
             <input value={track.title} disabled={verified} onChange={(event) => onUpdate({ title: event.target.value })} className="bg-transparent text-sm outline-none disabled:text-foreground/80" />
             <input
               value={track.artist}
               disabled={verified}
               onChange={(event) => onUpdate({ artist: event.target.value })}
-              placeholder="Artiste"
+              placeholder={t("wm.music.artistPlaceholder")}
               className="bg-transparent text-sm text-foreground/60 outline-none placeholder:text-foreground/25 disabled:text-foreground/60"
             />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
             {duration && <span>{duration}</span>}
             {verified && track.external?.previewUrl ? (
-              <audio controls preload="none" src={track.external.previewUrl} className="h-8 max-w-[220px]" aria-label={`Écouter un aperçu de ${track.title}`} />
+              <audio controls preload="none" src={track.external.previewUrl} className="h-8 max-w-[220px]" aria-label={t("wm.music.listenAria", { title: track.title })} />
             ) : (
               <span className={cn(verified ? "text-foreground/55" : "text-foreground/35")}>
-                {verified ? "Lecture indisponible pour ce titre" : "Aucun aperçu : morceau saisi manuellement"}
+                {verified ? t("wm.music.playUnavailable") : t("wm.music.noPreviewManual")}
               </span>
             )}
             {verified && track.external?.trackUrl && (
               <a href={track.external.trackUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-foreground">
                 <ExternalLink className="h-3.5 w-3.5" />
-                Ouvrir dans Apple Music
+                {t("wm.music.openInApple")}
               </a>
             )}
           </div>
         </div>
-        <button type="button" onClick={onDelete} aria-label={`Supprimer ${track.title}`} className="text-foreground/30 hover:text-brand-accent">
+        <button type="button" onClick={onDelete} aria-label={t("wm.music.deleteAria", { title: track.title })} className="text-foreground/30 hover:text-brand-accent">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
       <div className="mt-4 border-t border-[var(--agency-hairline)] pt-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[10px] uppercase tracking-widest text-foreground/40">Moments de la Timeline</p>
+          <p className="text-[10px] uppercase tracking-widest text-foreground/40">{t("wm.music.momentsHeading")}</p>
           <span className="text-[10px] text-foreground/35">
-            {linkedEventIds.length} lié{linkedEventIds.length > 1 ? "s" : ""}
+            {t("wm.music.linkedCount", { n: linkedEventIds.length })}
           </span>
         </div>
         {timelineEvents.length === 0 ? (
-          <p className="mt-2 text-xs text-foreground/35">Aucun événement disponible.</p>
+          <p className="mt-2 text-xs text-foreground/35">{t("wm.music.noEvents")}</p>
         ) : (
           <div className="mt-2 grid max-h-44 gap-1 overflow-y-auto pr-1 sm:grid-cols-2">
             {timelineEvents.map((event) => (
@@ -1280,6 +1282,7 @@ function MusicTrackRow({
 
 
 function EditableArea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const { t } = useI18n();
   return (
     <label className="block rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5">
       <span className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">{label}</span>
@@ -1288,7 +1291,7 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
         onChange={(e) => onChange(e.target.value)}
         rows={3}
         className="mt-3 w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-[var(--agency-eyebrow)] text-[var(--agency-ink)]"
-        placeholder="À compléter…"
+        placeholder={t("wm.orga.toComplete")}
       />
     </label>
   );
@@ -1296,16 +1299,17 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
 
 
 function PersistenceState({ status, error }: { status: "local" | "loading" | "saving" | "saved" | "error" | "conflict"; error?: string }) {
+  const { t } = useI18n();
   const state =
     status === "saving" || status === "loading"
-      ? { label: "Enregistrement en cours…", tone: "border-[var(--agency-hairline)] bg-[var(--agency-paper)] text-[var(--agency-body)]" }
+      ? { label: t("wm.persist.saving"), tone: "border-[var(--agency-hairline)] bg-[var(--agency-paper)] text-[var(--agency-body)]" }
       : status === "saved"
-        ? { label: "Modifications enregistrées dans le Monde", tone: "border-[#A9E5C3] bg-[#ECFDF5] text-[#065F46]" }
+        ? { label: t("wm.persist.saved"), tone: "border-[#A9E5C3] bg-[#ECFDF5] text-[#065F46]" }
         : status === "conflict"
-          ? { label: "Une autre version doit être vérifiée avant d’enregistrer", tone: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]" }
+          ? { label: t("wm.persist.conflict"), tone: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]" }
           : status === "error"
-            ? { label: error || "Modifications non enregistrées en ligne", tone: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]" }
-            : { label: "Conservé sur cet appareil", tone: "border-[var(--agency-hairline)] bg-[var(--agency-paper)] text-[var(--agency-eyebrow)]" };
+            ? { label: error || t("wm.persist.error"), tone: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]" }
+            : { label: t("wm.persist.local"), tone: "border-[var(--agency-hairline)] bg-[var(--agency-paper)] text-[var(--agency-eyebrow)]" };
   return (
     <p role="status" aria-live="polite" className={cn("rounded-full border px-4 py-2 text-xs", state.tone)}>
       {state.label}

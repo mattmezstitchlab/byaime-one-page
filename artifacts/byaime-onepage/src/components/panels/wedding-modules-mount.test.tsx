@@ -7,6 +7,7 @@ import { createInitialProject, parseIntention } from "@/lib/parser";
 import { normalizeProject } from "@/lib/project-migration";
 import type { WorldProject } from "@/lib/types";
 import type { WeddingModule } from "@/lib/wedding-navigation";
+import { I18nProvider } from "@/lib/i18n";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -81,7 +82,7 @@ async function mountModule(module: WeddingModule) {
   root = createRoot(container);
   let error: unknown = null;
   try {
-    act(() => { root!.render(<Harness />); });
+    act(() => { root!.render(<I18nProvider initialLocale="fr"><Harness /></I18nProvider>); });
   } catch (caught) {
     error = caught;
   }
