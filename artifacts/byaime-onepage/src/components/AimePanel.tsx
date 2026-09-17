@@ -430,7 +430,7 @@ export function AimePanel() {
 
                   {searchEntities.length > 0 && (
                     <div data-testid="aime-panel-search-elements">
-                      <p className={cn(EYEBROW, "px-2")}>Éléments</p>
+                      <p className={cn(EYEBROW, "px-2")}>{t("aime.panel.elements")}</p>
                       <div className="mt-2 flex flex-col gap-1">
                         {searchEntities.map(entity => {
                           const panel = PANEL_FOR_KIND[entity.kind];
