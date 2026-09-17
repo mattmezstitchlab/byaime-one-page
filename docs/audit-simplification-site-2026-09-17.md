@@ -257,11 +257,10 @@ fermer, contenu) — le test `data-panel` reste, le dessin change.
    *Ouvrir le panneau AIME → « Ouvrir le menu AIME »*, *Régie & retards → « Horaires & retards »*,
    *Ma Timeline est prête → « Votre mariage est prêt »*.
 7. ✅ « wedding architect » → « votre organisateur » (BilanPage, page publique).
-   ⏳ `AdminSommaire.tsx` reste en français durci (page privée, à intégrer au dictionnaire
-   seulement si l'EN est conservé).
-8. ⏳ **Décision FR/EN en attente** — le nettoyage a été fait dans les deux langues pour
-   ne rien casser ; si la décision est « FR seul », on retire `en` + toggle dans un
-   prochain passage (~600 lignes en moins).
+   ✅ `AdminSommaire.tsx` est au dictionnaire FR/EN (P5) ; son titre est devenu
+   « Le guide » (P6, aligné sur le bouton « Le guide : tout le site expliqué » de ME).
+8. ✅ **Décision FR/EN tranchée (17/09) : les deux langues sont conservées** — « faut
+   garder l'anglais et français ». L'option « FR seul » est annulée.
 9. ✅ Boutons de navigation 9 px MAJUSCULES → 12 px casse normale : rangée du cockpit
    (`ProjectStage`), sélecteur de période et boutons du hero, page publique invités
    (`ProfileFeed`, `ProfileFil`). Les micro-légendes décoratives (unités du compte à
@@ -361,7 +360,49 @@ build OK après chaque lot.
     verts (74 fichiers)**, typecheck et build OK.
     Reste hors i18n : les pages publiques non visées par cette passe
     (RSVP/profil public/bilan sont déjà traduits sur la porte d'entrée) et les
-    libellés de `professionalConfig` (domaine agence, hors espace mariage).
+    libellés de `professionalConfig` (domaine agence, hors espace mariage —
+    **hors périmètre par décision du 17/09 : « on oublie le domaine agence »**).
+
+### P6 — Passage final : jargon + lisibilité — ✅ FAIT (17/09)
+
+22. ✅ **Périmètre (décision utilisateur, 17/09)** : « le but c'est que n'importe
+    qui comprenne l'app et puisse s'en servir » ; le domaine agence est hors
+    périmètre. Jargon résiduel retiré du dictionnaire FR/EN (~24 familles de clés) :
+    *Date pivot* → « La date du mariage » (kind, calendrier, éditeur),
+    *Échéance* → « À faire », *Régie · en direct* → « Le déroulé · en direct »,
+    *Projection sonore* → « La musique », *Revenir au Moment pivot* /
+    *Choisir comme date pivot* → date du mariage, *Portfolio* → « Voir leur
+    travail », *Run of show* → « The schedule » (EN), /admin *Back-office ·
+    Rétroplanning* → « Tout le site expliqué · Le guide » (aligné sur le bouton
+    ME), notices « serveur mort » *local-first / Galerie unifiée / dataURL /
+    100% offline* → « Le serveur ne répond pas : … est noté/conservé sur cet
+    appareil », rôle invité *lecture de la projection destinée à l'audience* →
+    « voit le contenu public du Monde ».
+23. ✅ **`EntityEditor` (472 lignes, 100 % durci FR avant, 0 appel `t()`)** :
+    migration FR/EN complète via ~75 clés `ed.*` — eyebrows simples (« Modifier le
+    Moment / le document / le paiement / l'invité / le prestataire / le souvenir »),
+    « Date pivot du Monde » → « La date du mariage », « Libellé » → « Nom »,
+    « URL (Lien externe) » → « Lien », 13 catégories de prestataires traduites et
+    majuscules, rôles d'invités (5) et étapes de prestataire (5).
+24. ✅ **`DayRunTimeline` (la page Jour J, durcie FR)** : migration FR/EN complète
+    via ~25 clés `world.dayrun.*` — états (« Terminé / En cours / À terminer /
+    Suivant / Prévu »), boutons de retard (+5/15/30 min, annulation), « Terminer ce
+    Moment », « Suivre le direct », compte à rebours, pied de page.
+    `formatRelativeDayDelay` reçoit maintenant un `locale` (défaut FR : les tests du
+    moteur restent verts) ; la catégorie des vignettes prestataires est traduite
+    (repli sur la valeur brute si inconnue, données anciennes).
+25. ✅ **Les chaînes FR verrouillées par les tests sont gardées à l'identique**
+    (« Retard +5 min », « Terminer ce Moment », « Suivre le direct », « Le Jour J »,
+    « dans 12 min »…) ; quatre assertions suivent la nouvelle rédaction : le titre
+    /admin est « Le guide », la vignette affiche la catégorie « Musique », le rôle
+    invité « voit le contenu public du Monde » et l'action Moment « Voir leur
+    travail ».
+26. ✅ **530 tests frontend verts (74 fichiers)**, typecheck et build OK.
+    **Reste durci FR (prochaine passe)** : les pages principales du cockpit —
+    `UniversalTimeline`, `WeddingModulesPanel`, `AvantOverview`, `DayOfPanel`,
+    `PlayMode`, `GuestPanel`, `UniversalCardForm`, `CarteImport`, et la coquille
+    `AimePanel` (partiel) — plus la page publique (`ProfileFeed`, `FilTrack`,
+    `card-blocks`). Le domaine agence (`professionalConfig`) est hors périmètre.
 
 ---
 
@@ -389,8 +430,9 @@ build OK après chaque lot.
 | Composant mort hors UI | 1 supprimé (`RoleChoice.tsx`, 124 lignes) |
 | Backend « AIME local bridge » | ~1 000 lignes supprimées (routes + helpers + zod + db + spec + client + scripts) |
 | Bloc P6 (onboarding dupliqué) | ~26 lignes supprimées (jargon dev) |
-| Libellés de jargon retravaillés | ~20 familles de clés i18n (FR + EN) + 5 composants durcis + registry |
-| Chaînes durcies FR hors i18n restantes | Espace privé : plus rien après P5 (~120 clés FR/EN) ; reste les libellés `professionalConfig` (domaine agence) |
+| Libellés de jargon retravaillés | ~20 familles de clés i18n (FR + EN) + 5 composants durcis + registry (P2) |
+| Jargon retiré + composants traduits (P6) | ~24 familles de clés + ~75 clés `ed.*` + ~25 clés `world.dayrun.*` (FR + EN) ; `EntityEditor` (472 lg) et `DayRunTimeline` migrés |
+| Chaînes durcies FR hors i18n restantes | Après P6 : les pages principales du cockpit (UniversalTimeline, WeddingModulesPanel, AvantOverview, DayOfPanel, PlayMode, GuestPanel, UniversalCardForm, CarteImport) et la page publique (ProfileFeed, FilTrack) ; domaine agence hors périmètre |
 | Modèles de navigation superposés | 3 (dossiers / items de phase / rail) — P3 |
 | Surfaces de navigation absorbées (P4) | Phase 1 : `CommandBar.tsx` (236 lg) + `BottomDock.tsx` (309 lg). Phase 2 : `WorldTopMenu.tsx` + `WorldSearch.tsx` + `WeddingFolders.tsx` + `admin-plan.ts` (top menu, rangée, loupe). Phase 3 : `PortalControls.tsx` (1 198 lg) + `GlobalCreateCenter.tsx` (90 lg) → le tout dans `AimePanel.tsx` unique |
 | Portes d'entrée vers les mêmes 7 dossiers | 3 écrans + l'orbe — P3 |

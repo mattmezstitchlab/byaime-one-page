@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 export function DayOfPanel() {
   const { project, updateProject, updateEntity, addEntity, removeEntity, canEdit, currentRole } = useProject();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [pending, setPending] = useState<{ id: string; patch: Partial<TimelineEvent> }>();
   const [notice, setNotice] = useState("");
   /* Horloge de la régie : le compte à rebours doit bouger tout seul. */
@@ -160,7 +160,7 @@ export function DayOfPanel() {
                     <p className="mt-2 truncate text-sm font-medium text-[var(--agency-ink)]">{event.title}</p>
                     <p className="mt-1 text-xs tabular-nums text-[var(--agency-body)]">
                       {formatClock(event.time)}
-                      {event.delayMinutes ? ` · ${formatRelativeDayDelay(-event.delayMinutes * 60_000)}` : ""}
+                      {event.delayMinutes ? ` · ${formatRelativeDayDelay(-event.delayMinutes * 60_000, locale)}` : ""}
                     </p>
                   </>
                 ) : (

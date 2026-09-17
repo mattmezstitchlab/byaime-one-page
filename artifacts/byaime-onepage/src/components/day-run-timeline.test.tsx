@@ -48,9 +48,9 @@ describe("DayRunTimeline (régie du Jour J)", () => {
     expect(markup).toContain("Suivant");
     expect(markup).toContain("Terminé");
 
-    // La vignette ronde du prestataire relié au Vin d'honneur.
+    // La vignette ronde du prestataire relié au Vin d'honneur (catégorie traduite).
     expect(markup).toContain("DJ Nova");
-    expect(markup).toContain("musique");
+    expect(markup).toContain("Musique");
   });
 
   it("annonce le début du Jour J quand rien n'a encore commencé", () => {

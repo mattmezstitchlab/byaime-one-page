@@ -60,11 +60,11 @@ describe("/dossiers — lien profond vers la section « Le Monde »", () => {
 });
 
 describe("/admin — lien profond vers le panneau", () => {
-  it("le rétroplanning garde son titre et ouvre le panneau", () => {
+  it("le guide garde son titre et ouvre le panneau", () => {
     const markup = render(<AdminSommairePage />, "/admin");
 
     expect(markup).toContain('data-testid="admin-page"');
-    expect(markup).toContain("Le rétroplanning");
+    expect(markup).toContain("Le guide");
     expect(markup).toContain(renderable("Ouvrir le panneau AIME"));
     expect(markup).toContain('data-testid="admin-open-panel"');
   });

@@ -1,4 +1,5 @@
 import type { TimelineEvent, WorldProject } from "./types";
+import { translate, type Locale } from "./i18n-dictionary";
 
 /*
  * Le moteur du Jour J : tout ce qui se calcule sans React — fin d'un Moment,
@@ -88,14 +89,15 @@ export function formatClock(time: number): string {
 }
 
 /** « il y a 12 min », « dans 3 min », « dans 2 h 05 » : le recul humain. */
-export function formatRelativeDayDelay(delayMs: number): string {
+/** `locale` absent = FR (les tests du moteur s'appuient sur ce défaut). */
+export function formatRelativeDayDelay(delayMs: number, locale: Locale = "fr"): string {
   const future = delayMs >= 0;
   const totalMinutes = Math.round(Math.abs(delayMs) / 60_000);
-  if (totalMinutes < 1) return "maintenant";
+  if (totalMinutes < 1) return translate(locale, "world.dayrun.rel.now");
   const body = totalMinutes >= 60
     ? `${Math.floor(totalMinutes / 60)} h ${pad2(totalMinutes % 60)}`
     : `${totalMinutes} min`;
-  return future ? `dans ${body}` : `il y a ${body}`;
+  return translate(locale, future ? "world.dayrun.rel.future" : "world.dayrun.rel.past", { x: body });
 }
 
 export type DayDelayResult = { project: WorldProject; affectedIds: string[] };

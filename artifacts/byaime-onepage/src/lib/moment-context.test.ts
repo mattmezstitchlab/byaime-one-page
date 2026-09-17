@@ -108,7 +108,7 @@ describe("buildMomentContext — le contexte et ses actions", () => {
 
     expect(context.primaryCount).toBe(MOMENT_PRIMARY_COUNT);
     expect(context.actions.length).toBeGreaterThan(MOMENT_PRIMARY_COUNT);
-    expect(primary.map(action => action.label)).toEqual(["Rechercher", "Professionnels", "Portfolio", "Contacter"]);
+    expect(primary.map(action => action.label)).toEqual(["Rechercher", "Professionnels", "Voir leur travail", "Contacter"]);
     /* Chaque action vise une surface qui existe déjà. */
     for (const action of context.actions) {
       expect(["panel", "view", "route"]).toContain(action.destination.kind);
