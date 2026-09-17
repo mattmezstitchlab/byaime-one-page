@@ -84,9 +84,9 @@ export function DayOfPanel() {
       <div className={cn(CARD, "p-6")}>
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className={EYEBROW}>Jour J</p>
-            <h3 className={cn(TITLE, "mt-2 text-2xl")}>Le déroulé du Jour J</h3>
-            <p className={cn(LEAD, "mt-2 text-sm")}>Les changements structurants sont prévisualisés avant application.</p>
+            <p className={EYEBROW}>{t("dayof.eyebrow")}</p>
+            <h3 className={cn(TITLE, "mt-2 text-2xl")}>{t("dayof.title")}</h3>
+            <p className={cn(LEAD, "mt-2 text-sm")}>{t("dayof.previewNote")}</p>
           </div>
           {canEdit && (
             <button
@@ -95,7 +95,7 @@ export function DayOfPanel() {
                   time: project.pivot.value,
                   durationMinutes: 60,
                   kind: "evenement",
-                  title: "Nouveau temps fort",
+                  title: t("dayof.newMoment"),
                   status: "prepare",
                   confidence: "confirme",
                   phase: "pendant",
@@ -110,7 +110,7 @@ export function DayOfPanel() {
               className={cn(PILL_SMALL, "bg-[var(--agency-ink)] text-[var(--agency-paper)] hover:opacity-85")}
             >
               <Plus className="h-3.5 w-3.5" />
-              Ajouter
+              {t("dayof.add")}
             </button>
           )}
         </div>
@@ -197,7 +197,7 @@ export function DayOfPanel() {
                     time: project.pivot.value,
                     durationMinutes: 60,
                     kind: "evenement",
-                    title: "Nouveau temps fort",
+                    title: t("dayof.newMoment"),
                     status: "prepare",
                     confidence: "confirme",
                     phase: "pendant",
@@ -238,14 +238,14 @@ export function DayOfPanel() {
         practicalReady={practicalReady}
         onPublish={() => {
           updateProject({ publicProfile: { ...project.publicProfile, published: true } });
-          setNotice("Mini-site publié — enregistrement en cours");
+          setNotice(t("dayof.notice.published"));
         }}
         onHide={() => {
           updateProject({ publicProfile: { ...project.publicProfile, published: false } });
-          setNotice("Mini-site masqué — enregistrement en cours");
+          setNotice(t("dayof.notice.hidden"));
         }}
         onCopy={() => {
-          void navigator.clipboard.writeText(`${window.location.origin}${basePrefix}/profil/${project.id}`).then(() => setNotice("Lien du mini-site copié"));
+          void navigator.clipboard.writeText(`${window.location.origin}${basePrefix}/profil/${project.id}`).then(() => setNotice(t("dayof.notice.linkCopied")));
         }}
         onEditPractical={() => focusWorld({ route: "/user-portal", panel: "logistics" })}
       />
@@ -285,7 +285,7 @@ export function DayOfPanel() {
                 disabled={!canEdit}
                 value={event.location || ""}
                 onChange={e => propose(event.id, { location: e.target.value })}
-                placeholder="Lieu"
+                placeholder={t("dayof.location")}
                 className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)]"
               />
               <input
@@ -302,17 +302,17 @@ export function DayOfPanel() {
                 onChange={e => updateEntity("timeline", event.id, { status: e.target.value })}
                 className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none"
               >
-                <option value="prepare">À préparer</option>
-                <option value="execute">Terminé</option>
-                <option value="bloque">Bloqué</option>
+                <option value="prepare">{t("dayof.status.prepare")}</option>
+                <option value="execute">{t("dayof.status.execute")}</option>
+                <option value="bloque">{t("dayof.status.bloque")}</option>
               </select>
             </div>
           </div>
         ))}
       </div>
 
-      <section className={cn(CARD, "p-6")} aria-label="Les invités du Jour J">
-        <p className={EYEBROW}>Les invités · une carte, une fiche</p>
+      <section className={cn(CARD, "p-6")} aria-label={t("dayof.guests.aria")}>
+        <p className={EYEBROW}>{t("dayof.guests.eyebrow")}</p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {project.guests.map(guest => (
             <button
@@ -326,7 +326,7 @@ export function DayOfPanel() {
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-[var(--agency-ink)]">{guest.name}</span>
                 <span className="block text-[10px] uppercase tracking-[0.14em] text-[var(--agency-eyebrow)]">
-                  {guest.rsvp === "confirme" ? "Confirmé" : guest.rsvp === "decline" ? "Décliné" : "En attente"}
+                  {guest.rsvp === "confirme" ? t("dayof.guests.confirmed") : guest.rsvp === "decline" ? t("dayof.guests.declined") : t("dayof.guests.pending")}
                 </span>
               </span>
             </button>
@@ -334,8 +334,8 @@ export function DayOfPanel() {
         </div>
       </section>
 
-      <section className={cn(CARD, "p-6")} aria-label="Les prestataires du Jour J">
-        <p className={EYEBROW}>Les prestataires · une carte, une fiche</p>
+      <section className={cn(CARD, "p-6")} aria-label={t("dayof.providers.aria")}>
+        <p className={EYEBROW}>{t("dayof.providers.eyebrow")}</p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {project.providers.map(provider => (
             <button
@@ -350,14 +350,14 @@ export function DayOfPanel() {
                 <span className="block truncate text-sm font-medium text-[var(--agency-ink)]">{provider.name || provider.role}</span>
                 <span className="block text-[10px] uppercase tracking-[0.14em] text-[var(--agency-eyebrow)]">
                   {provider.status === "reserve"
-                    ? "Réservé"
+                    ? t("dayof.providers.reserve")
                     : provider.status === "devis"
-                      ? "Devis reçu"
+                      ? t("dayof.providers.devis")
                       : provider.status === "rencontre"
-                        ? "Rencontré"
+                        ? t("dayof.providers.rencontre")
                         : provider.status === "contacte"
-                          ? "Contacté"
-                          : "En recherche"}
+                          ? t("dayof.providers.contacte")
+                          : t("dayof.providers.searching")}
                 </span>
               </span>
             </button>
@@ -369,10 +369,10 @@ export function DayOfPanel() {
         <div className="fixed inset-x-4 bottom-24 z-50 mx-auto max-w-xl rounded-[22px] border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 shadow-[0_24px_60px_-20px_rgba(23,20,16,0.3)]">
           <p className="flex items-center gap-2 text-sm font-medium text-[var(--agency-ink)]">
             <AlertTriangle className="h-4 w-4" />
-            Prévisualisation requise
+            {t("dayof.preview.title")}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-[var(--agency-body)]">
-            {impact.changed.join(", ")} · {impact.relations.length} entité(s) liée(s) · {impact.dependents.length} dépendance(s)
+            {t("dayof.preview.summary", { changed: impact.changed.join(", "), entities: impact.relations.length, dependents: impact.dependents.length })}
           </p>
           {impact.conflicts.map(conflict => (
             <p key={conflict.message} className="mt-1 text-xs text-[#B42318]">
@@ -380,7 +380,7 @@ export function DayOfPanel() {
             </p>
           ))}
           <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[var(--agency-eyebrow)]">
-            Les entités liées et dépendances ne seront jamais déplacées silencieusement.
+            {t("dayof.preview.safety")}
           </p>
           <div className="mt-4 flex gap-2">
             <button
@@ -393,13 +393,13 @@ export function DayOfPanel() {
               }}
               className="rounded-full bg-[var(--agency-ink)] px-4 py-2 text-xs font-medium text-[var(--agency-paper)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40"
             >
-              Appliquer à l’événement seul
+              {t("dayof.preview.apply")}
             </button>
             <button
               onClick={() => setPending(undefined)}
               className="rounded-full border border-[var(--agency-hairline)] px-4 py-2 text-xs text-[var(--agency-body)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40"
             >
-              Annuler
+              {t("dayof.preview.cancel")}
             </button>
           </div>
         </div>
