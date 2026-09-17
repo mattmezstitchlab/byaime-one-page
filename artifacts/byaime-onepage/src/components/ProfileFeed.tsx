@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS, fr } from "date-fns/locale";
+import { useI18n } from "@/lib/i18n";
 import {
   Play, MapPin, Lock, Globe2, Users, Users2, ArrowRight, ArrowLeft, Wallet, ExternalLink
 } from "lucide-react";
@@ -110,15 +111,17 @@ const SlideBackground = ({ event, isActive }: { event: FeedEvent, isActive: bool
 };
 
 const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isActive: boolean, onSelect: () => void }) => {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "en" ? enUS : fr;
   return (
-    <button type="button" className="relative w-full h-full flex flex-col justify-end p-8 md:p-16 overflow-hidden bg-[#FFFFFF] text-left text-[#171410] group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white" onClick={onSelect} aria-label={`Ouvrir le Moment ${event.title}`}>
+    <button type="button" className="relative w-full h-full flex flex-col justify-end p-8 md:p-16 overflow-hidden bg-[#FFFFFF] text-left text-[#171410] group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white" onClick={onSelect} aria-label={t("fil.openMoment", { title: event.title })}>
        <SlideBackground event={event} isActive={isActive} />
 
        <div className="relative z-10 max-w-4xl transition-transform duration-500 group-hover:-translate-y-2">
          <div className="flex items-center gap-3 mb-4 text-[10px] md:text-xs font-medium tracking-[0.2em] uppercase text-[#171410]/60">
             <span className="flex items-center gap-1.5"><Globe2 className="w-3.5 h-3.5"/> {event.universe}</span>
             <span className="w-1 h-1 rounded-full bg-[#171410]/30" />
-            <span>{format(event.time, "d MMM yyyy", { locale: fr })}</span>
+            <span>{format(event.time, "d MMM yyyy", { locale: dateLocale })}</span>
             {event.location && (
               <>
                 <span className="w-1 h-1 rounded-full bg-[#171410]/30" />
@@ -158,7 +161,7 @@ const CinematicSlide = ({ event, isActive, onSelect }: { event: FeedEvent, isAct
                 event.visibility === 'equipe' ? <Users className="w-3.5 h-3.5 text-[#171410]/60" /> : 
                 <Globe2 className="w-3.5 h-3.5 text-[#171410]/60" />}
                <span className="text-[10px] uppercase tracking-widest text-[#171410]/80">
-                 {event.visibility === "prive" ? "Privé" : event.visibility === "equipe" ? "Réseau" : "Public"}
+                 {event.visibility === "prive" ? t("feed.visibility.private") : event.visibility === "equipe" ? t("feed.visibility.team") : t("feed.visibility.public")}
                </span>
             </div>
 
@@ -192,6 +195,7 @@ export function ProfileFeed({
   onSelect: (e: ProfileTimelineEvent) => void 
 }) {
   const prefersReducedMotion = useReducedMotion();
+  const { t } = useI18n();
   const allEvents = useMemo(() => {
     return events.map(e => {
       let category: FeedEvent["category"] = "monde";
@@ -294,7 +298,7 @@ export function ProfileFeed({
         ) : (
            <div className="absolute inset-0 flex flex-col items-center justify-center text-[#171410]/40 text-sm">
              <Globe2 className="w-12 h-12 text-[#171410]/20 mb-4" />
-             Aucun événement dans cette vue.
+             {t("tl.empty")}
            </div>
         )}
       </AnimatePresence>
@@ -302,11 +306,11 @@ export function ProfileFeed({
       <div className="absolute top-0 left-0 w-full p-6 md:p-8 z-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pointer-events-none">
          <div className="flex flex-wrap gap-2 pointer-events-auto">
            {[
-             { id: "tout", label: "Tout" },
-             { id: "image", label: "Images" },
-             { id: "son", label: "Sons" },
-             { id: "finance", label: "Finance" },
-             { id: "monde", label: "Mondes" },
+             { id: "tout", label: t("feed.filter.all") },
+             { id: "image", label: t("feed.filter.image") },
+             { id: "son", label: t("feed.filter.son") },
+             { id: "finance", label: t("feed.filter.finance") },
+             { id: "monde", label: t("feed.filter.monde") },
            ].map(f => (
              <button 
                key={f.id}
@@ -329,7 +333,7 @@ export function ProfileFeed({
                 mode === "maintenant" ? "bg-[#171410] text-[#FFFFFF] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
               )}
             >
-              Maintenant
+              {t("feed.now")}
             </button>
             <button 
               onClick={() => setMode("replay")}
@@ -338,7 +342,7 @@ export function ProfileFeed({
                 mode === "replay" ? "bg-[#171410] text-[#FFFFFF] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
               )}
             >
-              <Play className="w-3 h-3" /> Replay
+              <Play className="w-3 h-3" /> {t("feed.replay")}
             </button>
          </div>
       </div>
@@ -351,7 +355,7 @@ export function ProfileFeed({
                setMode("maintenant");
                setCurrentIndex(i => (i - 1 + filteredEvents.length) % filteredEvents.length);
              }}
-              aria-label="Moment précédent"
+              aria-label={t("feed.prev")}
              className="w-14 h-14 rounded-full bg-[#FFFFFF]/20 backdrop-blur-xl flex items-center justify-center text-[#171410] hover:bg-[#171410]/10 transition-colors border border-[#171410]/10 hover:scale-105"
            >
              <ArrowLeft className="w-5 h-5" />
@@ -362,7 +366,7 @@ export function ProfileFeed({
                setMode("maintenant");
                setCurrentIndex(i => (i + 1) % filteredEvents.length);
              }}
-              aria-label="Moment suivant"
+              aria-label={t("feed.next")}
              className="w-14 h-14 rounded-full bg-[#FFFFFF]/20 backdrop-blur-xl flex items-center justify-center text-[#171410] hover:bg-[#171410]/10 transition-colors border border-[#171410]/10 hover:scale-105"
            >
              <ArrowRight className="w-5 h-5" />

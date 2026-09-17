@@ -404,7 +404,7 @@ build OK après chaque lot.
     `AimePanel` (partiel) — plus la page publique (`ProfileFeed`, `FilTrack`,
     `card-blocks`). Le domaine agence (`professionalConfig`) est hors périmètre.
 
-### P7 — FR/EN sur les pages principales du cockpit + cohérence visuelle —  EN COURS (17/09)
+### P7 — FR/EN sur les pages principales du cockpit + cohérence visuelle — ✅ FAIT (17/09)
 
 27. ✅ **`UniversalTimeline` (la Timeline verticale) — i18n FR/EN (~90 clés
     `tl.*`) + fin des visuels en doublon (décision utilisateur)** : le bandeau de
@@ -431,12 +431,49 @@ build OK après chaque lot.
     identité reste courte, par section, dans le même noir que le 1er bloc (format
     du bloc « Créer ma carte »). Le flux est inchangé : les 18 tests de flux
     Oneboarding restent verts.
-30. 🚧 **Reste à traduire (prochain lot)** : `AvantOverview`, `DayOfPanel`,
-    `PlayMode`, `GuestPanel`, `UniversalCardForm`, `CarteImport`, coquille
-    `AimePanel` (partiel) et la page publique (`ProfileFeed`, `FilTrack`,
-    `card-blocks`).
-    Vérification : **530 tests frontend verts (74 fichiers)** après chaque lot,
-    typecheck et build OK.
+30. ✅ **« Avant » (`AvantOverview`) — 32 clés `avant.*`** : compte à rebours
+    (J-n / C'est aujourd'hui / Le Jour J est passé), prochain jalon, cartes
+    Tâches / Prestataires / Argent / Invités. Chaînes FR verrouillées à
+    l'identique (J-30, 2 tâches en cours dont 1 en retard, 1 à réserver · 1
+    réservé, 1 paiement dû, 1 confirmé · 2 en attente, Ouvrir le planning…).
+31. ✅ **« Invités » (`GuestPanel`) — 52 clés `gp.*`** : en-tête (lien RSVP
+    personnel, invite à collaborer), compteurs, recherche, cartes invités
+    (présence / régime / table, états de réponse, créer/copier/révoquer le
+    lien), programme par personne, Plan de table fusionné. Jargon retiré :
+    « backend », « one-page hors-ligne », « api-server », « assignation locale
+    sans serveur ».
+32. ✅ **« Jour J » (`DayOfPanel` + `DayOfGuestEntry`) — 39 + 13 clés** :
+    en-tête, Moment par défaut, statuts, cartes invités/prestataires, modal de
+    prévisualisation d'impact, entrées mini-site (état En ligne/Masqué,
+    publier/masquer, copier, infos pratiques). Verrous tests conservés
+    (>En ligne<, >Masqué<, Lieu, accès et plan B sont publiés…).
+33. ✅ **PlayMode (Lecture de la Timeline + régie plein écran) — 19 clés
+    `pm.*`** : diaporama (aria, date locale-aware), régie (barre horloge,
+    états via `world.dayrun.*` existants, retards, terminer, suivre le
+    direct, déroulé latéral, pied de page). Jargon « Régie » retiré de la
+    barre/aria.
+34. ✅ **« Ma carte » (`UniversalCardForm`) — ~85 clés `ucf.*`** : les cinq
+    étapes, parcours en 4 lignes, brouillon signé / signé-out, activités
+    (facultatif), mariages (rejoindre/créer/ouvrir), erreurs de validation,
+    confirmations d'abandon. Verrou « Carte enregistrée » conservé ;
+    `/ma-carte` monté sous `I18nProvider initialLocale=fr`. Note technique :
+    le parser TSX refuse « ?? appel(…) » suivi de « ))} » dans un conteneur
+    d'expression — parenthèse interne levée (même précédence), reprod
+    minimal.
+35. ✅ **Coquille `AimePanel`** : dernière chaîne durcie (récapitulatif de
+    recherche « Éléments ») au dictionnaire. Le toggle de langue garde son
+    aria indiquant la langue cible (comportement voulu).
+36. ✅ **Pages publiques du couple** : `FilTrack` (4 clés `fil.*` — aria des
+    repères, statuts RSVP, date en date-fns fr/enUS), `ProfileFeed` (12 clés
+    `feed.*` + réutilisation de `tl.empty` — visibilité Privé/Réseau/Public,
+    filtres, Maintenant/Replay, navigation), `card-blocks` (~60 clés `cb.*` —
+    Identité, Ma musique, rôles en menu dépliant, Présence, créneaux). Les
+    groupes de rôles et les moments de présence (Cérémonie, Cocktail…) restent
+    du contenu de domaine (`ROLE_GROUPS`, `PRESENCE_MOMENTS`), comme les
+    titres de chapitres. Verrous Oneboarding (« Prénom », « Nom », « Ma
+    musique ») conservés à l'identique — tests déjà sous `I18nProvider fr`.
+    Vérification : **530 tests frontend verts (74 fichiers)** après chaque
+    lot, typecheck et build OK.
 
 ---
 
@@ -468,7 +505,7 @@ build OK après chaque lot.
 | Bloc P6 (onboarding dupliqué) | ~26 lignes supprimées (jargon dev) |
 | Libellés de jargon retravaillés | ~20 familles de clés i18n (FR + EN) + 5 composants durcis + registry (P2) |
 | Jargon retiré + composants traduits (P6) | ~24 familles de clés + ~75 clés `ed.*` + ~25 clés `world.dayrun.*` (FR + EN) ; `EntityEditor` (472 lg) et `DayRunTimeline` migrés |
-| Chaînes durcies FR hors i18n restantes | Après P7 (partiel) : AvantOverview, DayOfPanel, PlayMode, GuestPanel, UniversalCardForm, CarteImport, coquille AimePanel (partiel) et la page publique (ProfileFeed, FilTrack, card-blocks) ; domaine agence hors périmètre |
+| Chaînes durcies FR hors i18n restantes | Après P7 : plus aucune page du cockpit ni publique — restent les chaînes de lib FR assumées (messages de conflits `timeline-graph`, libellés de confiance `confidence`, messages `api-messages`, contenu de domaine `ROLE_GROUPS`/`PRESENCE_MOMENTS`/chapitres) ; domaine agence hors périmètre |
 | Modèles de navigation superposés | 3 (dossiers / items de phase / rail) — P3 |
 | Surfaces de navigation absorbées (P4) | Phase 1 : `CommandBar.tsx` (236 lg) + `BottomDock.tsx` (309 lg). Phase 2 : `WorldTopMenu.tsx` + `WorldSearch.tsx` + `WeddingFolders.tsx` + `admin-plan.ts` (top menu, rangée, loupe). Phase 3 : `PortalControls.tsx` (1 198 lg) + `GlobalCreateCenter.tsx` (90 lg) → le tout dans `AimePanel.tsx` unique |
 | Portes d'entrée vers les mêmes 7 dossiers | 3 écrans + l'orbe — P3 |
