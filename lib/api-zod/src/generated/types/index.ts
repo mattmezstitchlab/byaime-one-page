@@ -6,26 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from './aimeLocalBridgeSession';
-export * from './aimeLocalBridgeStatus';
-export * from './aimeLocalEntityMap';
-export * from './aimeLocalFolders';
-export * from './aimeLocalImportJob';
-export * from './aimeLocalImportJobStatus';
-export * from './aimeLocalImportRequested';
-export * from './aimeLocalImportRequestedStatus';
-export * from './aimeLocalLatestScanResponse';
-export * from './aimeLocalPairingToken';
-export * from './aimeLocalPairInput';
-export * from './aimeLocalReference';
-export * from './aimeLocalReferenceInput';
-export * from './aimeLocalReferenceInputMetadata';
-export * from './aimeLocalReferenceState';
-export * from './aimeLocalScanFile';
-export * from './aimeLocalScanJob';
-export * from './aimeLocalScanJobStatus';
-export * from './aimeLocalSuggestion';
-export * from './aimeLocalSuggestionActionsItem';
 export * from './deleteConfirmation';
 export * from './healthStatus';
 export * from './invitationInput';

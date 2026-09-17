@@ -24,11 +24,6 @@ import { createRequire } from "node:module";
 const TABLES_ATTENDUES = [
   "aime_files",
   "aime_invitations",
-  "aime_local_bridge_sessions",
-  "aime_local_import_jobs",
-  "aime_local_pairing_tokens",
-  "aime_local_references",
-  "aime_local_scan_jobs",
   "aime_memberships",
   "aime_messages",
   "aime_professional_assignments",

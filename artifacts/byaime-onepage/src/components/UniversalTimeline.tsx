@@ -359,7 +359,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => { onClose(); window.dispatchEvent(new CustomEvent("aime:focus-world", { detail: { route: "/user-portal", graph: true } })); }} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-[10px] uppercase tracking-[.14em] text-foreground/65 hover:bg-foreground/5">
-              <Waypoints className="h-3.5 w-3.5" /> Graphe de visibilité
+              <Waypoints className="h-3.5 w-3.5" /> Ce que chacun voit
             </button>
           </div>
 

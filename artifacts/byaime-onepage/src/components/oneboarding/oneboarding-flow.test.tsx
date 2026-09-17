@@ -153,31 +153,26 @@ const label = (name: string) => {
   return (found?.querySelector("input, select, textarea") ?? null) as HTMLElement | null;
 };
 
-/** Coche une case par son libellé, dans la liste demandée (`role` ou `activité`). */
-const checkLabelled = async (name: string, occurrence: number) => {
-  const boxes = Array.from(container!.querySelectorAll("label"))
-    .filter((l) => l.textContent?.trim() === name)
-    .map((l) => l.querySelector("input[type=checkbox]") as HTMLInputElement | null)
-    .filter((b): b is HTMLInputElement => Boolean(b));
-  const box = boxes[occurrence];
-  if (!box) throw new Error(`case introuvable : ${name} (#${occurrence})`);
+/* Les rôles et les activités se choisissent dans un menu dépliant, pas dans
+   un bloc de cases : le helper ouvre le panneau (s'il est fermé) et coche
+   l'option. Le panneau reste ouvert pendant le multi-choix, comme à l'écran. */
+async function pick(prefix: string, name: string) {
+  if (!byTestId(`${prefix}-panel`)) await click(byTestId(`${prefix}-trigger`));
+  const option = byTestId(`${prefix}-option-${name}`);
+  if (!option) throw new Error(`option introuvable : ${name} (${prefix})`);
+  const box = option.querySelector("input[type=checkbox]") as HTMLInputElement;
   await act(async () => {
     box.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
   });
   await settle();
-};
-const labelled = (name: string, occurrence: number): HTMLInputElement => {
-  const boxes = Array.from(container!.querySelectorAll("label"))
-    .filter((l) => l.textContent?.trim() === name)
-    .map((l) => l.querySelector("input[type=checkbox]") as HTMLInputElement | null)
-    .filter((b): b is HTMLInputElement => Boolean(b));
-  const box = boxes[occurrence];
-  if (!box) throw new Error(`case introuvable : ${name} (#${occurrence})`);
-  return box;
-};
-/** Le rôle dans ce mariage est listé en premier, l'activité personnelle ensuite. */
-const checkRole = (role: string) => checkLabelled(role, 0);
-const checkActivity = (activity: string) => checkLabelled(activity, 1);
+}
+/** Le rôle dans ce mariage — le premier menu de l'étape. */
+const checkRole = (role: string) => pick("role-picker", role);
+/** L'activité personnelle sur la carte — le second menu de l'étape. */
+const checkActivity = (activity: string) => pick("activities-picker", activity);
+/** La sélection d'un menu, sans rouvrir la liste (pastilles). */
+const selectedOf = (prefix: string) =>
+  byTestId(`${prefix}-selected`)?.textContent ?? "";
 
 const stepNumber = () => byTestId("oneboarding")?.querySelector('[role="progressbar"]')?.getAttribute("aria-valuenow");
 const submit = () => click(byTestId("oneboarding-submit"));
@@ -387,7 +382,7 @@ describe("le tunnel suit le rôle, le repère ne bouge pas", () => {
     await submit();
     expect(stepNumber()).toBe("5");
     expect(byTestId("oneboarding-step-confirm")).not.toBeNull();
-    expect(text()).toContain("Ma Timeline est prête");
+    expect(text()).toContain("Votre mariage est prêt");
   });
 
   it("wedding planner : le fonctionnement, puis créer le mariage du client", async () => {
@@ -476,13 +471,14 @@ describe("le tunnel suit le rôle, le repère ne bouge pas", () => {
     expect(proposal!.textContent).toContain("Saxophoniste");
     /* La proposition nomme ce mariage, jamais tous les mariages. */
     expect(proposal!.textContent).toContain("ce mariage");
-    const roleBox = labelled("Saxophoniste", 0);
-    expect(roleBox.checked).toBe(true);
+    /* Le rôle est pré-coché : visible sur la pastille, sans rouvrir la liste. */
+    expect(selectedOf("role-picker")).toContain("Saxophoniste");
+    expect(selectedOf("activities-picker")).toContain("Saxophoniste");
 
-    /* La personne reste libre : décocher le rôle ne retire pas l'activité. */
-    await checkRole("Saxophoniste");
-    expect(labelled("Saxophoniste", 0).checked).toBe(false);
-    expect(labelled("Saxophoniste", 1).checked).toBe(true);
+    /* La personne reste libre : retirer le rôle ne retire pas l'activité. */
+    await click(byTestId("role-picker-remove-Saxophoniste"));
+    expect(selectedOf("role-picker")).not.toContain("Saxophoniste");
+    expect(selectedOf("activities-picker")).toContain("Saxophoniste");
   });
 
   it("n’affiche aucun concept technique, à aucune étape", async () => {
@@ -532,18 +528,8 @@ describe("le tunnel suit le rôle, le repère ne bouge pas", () => {
     await checkRole("Photographe");
     await checkRole("Saxophoniste");
     /* Les activités sont choisies séparément des rôles de ce mariage. */
-    const activityBoxes = Array.from(container!.querySelectorAll("label")).filter((l) =>
-      ["Photographe", "Saxophoniste"].includes(l.textContent?.trim() ?? ""),
-    );
-    for (const box of activityBoxes) {
-      const input = box.querySelector("input[type=checkbox]") as HTMLInputElement;
-      if (!input.checked) {
-        await act(async () => {
-          input.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-        });
-      }
-    }
-    await settle();
+    await checkActivity("Photographe");
+    await checkActivity("Saxophoniste");
     await submit();
 
     expect(byTestId("oneboarding-step-functioning")).not.toBeNull();

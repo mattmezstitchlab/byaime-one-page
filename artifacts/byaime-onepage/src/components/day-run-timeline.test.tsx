@@ -36,7 +36,7 @@ describe("DayRunTimeline (régie du Jour J)", () => {
     // Bandeau du direct : le Moment en cours, son compte à rebours, les retards.
     expect(markup).toContain('data-testid="day-countdown"');
     expect(markup).toContain("Vin d&#x27;honneur");
-    expect(markup).toContain("Régie du Jour J");
+    expect(markup).toContain("Le Jour J");
     expect(markup).toContain("Retard +5 min");
     expect(markup).toContain("Retard +15 min");
     expect(markup).toContain("Terminer ce Moment");

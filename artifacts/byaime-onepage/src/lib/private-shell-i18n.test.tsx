@@ -26,10 +26,10 @@ const render = (node: ReactNode, locale: "fr" | "en") =>
 describe("coque privée rendue dans les deux langues", () => {
   it("traduit le bouton orbe unique", () => {
     const fr = render(<OrbButton />, "fr");
-    expect(fr).toContain('aria-label="Ouvrir le panneau AIME"');
+    expect(fr).toContain('aria-label="Ouvrir le menu AIME"');
 
     const en = render(<OrbButton />, "en");
-    expect(en).toContain('aria-label="Open the AIME panel"');
+    expect(en).toContain('aria-label="Open the AIME menu"');
     expect(en).not.toContain("Ouvrir");
   });
 

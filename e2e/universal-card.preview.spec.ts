@@ -260,10 +260,12 @@ test("Jean Dupont — une carte, Photographe + DJ, calendriers et rôles sociaux
     .getByRole("combobox", { name: "Mariage concerné", exact: true })
     .selectOption(b.id);
   await page.getByRole("button", { name: "Préparer ma participation" }).click();
+  /* Le rôle se choisit dans le menu dépliant : on ouvre la liste groupée. */
+  await page.getByRole("button", { name: /Choisir un rôle/ }).click();
   await expect(
-    page.getByLabel("Photographe", { exact: true }),
+    page.getByRole("checkbox", { name: "Photographe", exact: true }),
   ).not.toBeChecked();
-  await page.getByLabel("Invité", { exact: true }).check();
+  await page.getByRole("checkbox", { name: "Invité", exact: true }).check();
   await page.getByRole("button", { name: "Continuer", exact: true }).click();
   await expect(page.getByLabel("Arrivée", { exact: true })).toHaveValue("");
   await expect(page.getByLabel("Allergènes", { exact: true })).toHaveValue("");
@@ -372,7 +374,11 @@ test("Jean Dupont — une carte, Photographe + DJ, calendriers et rôles sociaux
   await expect(page.getByTestId("participation-summary")).toBeVisible();
   await expect(page.getByLabel("Prénom", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Modifier mon rôle" }).click();
-  await page.getByLabel("Témoin", { exact: true }).check();
+  /* Le rôle se choisit dans le menu dépliant : on ouvre la liste groupée. */
+  await page
+    .getByRole("button", { name: /Choisir un rôle|Modifier la sélection/ })
+    .click();
+  await page.getByRole("checkbox", { name: "Témoin", exact: true }).check();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "← Retour", exact: true }).click();
   await expect(page.getByTestId("participation-summary")).toBeVisible();
@@ -381,10 +387,17 @@ test("Jean Dupont — une carte, Photographe + DJ, calendriers et rôles sociaux
   );
   await page.getByRole("button", { name: "Modifier mon rôle" }).click();
 
-  await expect(page.getByLabel("Invité", { exact: true })).toBeChecked();
-  await expect(page.getByLabel("Témoin", { exact: true })).not.toBeChecked();
-  await page.getByLabel("DJ", { exact: true }).check();
-  await page.getByLabel("Frère", { exact: true }).check();
+  await page
+    .getByRole("button", { name: /Choisir un rôle|Modifier la sélection/ })
+    .click();
+  await expect(
+    page.getByRole("checkbox", { name: "Invité", exact: true }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("checkbox", { name: "Témoin", exact: true }),
+  ).not.toBeChecked();
+  await page.getByRole("checkbox", { name: "DJ", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Frère", exact: true }).check();
   await page.getByRole("button", { name: "Continuer", exact: true }).click();
   await page
     .getByRole("combobox", { name: "RSVP", exact: true })
@@ -569,7 +582,9 @@ test("RSVP — validation puis consentement, sans redemander l’identité ni re
     .click();
   await expect(page.getByRole("heading", { name: "Votre rôle" })).toBeVisible();
   expect(writes).toBe(1);
-  await expect(page.getByLabel("Invité", { exact: true })).toBeChecked();
+  /* Le rôle issu de l'invitation est pré-coché : visible sur la pastille,
+     sans rouvrir la liste. */
+  await expect(page.getByTestId("role-picker-selected")).toContainText("Invité");
   await page.getByRole("button", { name: "Continuer", exact: true }).click();
   await expect(
     page.getByRole("combobox", { name: "RSVP", exact: true }),
@@ -677,7 +692,10 @@ test("Première visite — je me présente, puis je crée mon mariage", async ({
   const role = page.getByTestId("oneboarding-step-role");
   await expect(role.getByRole("heading", { name: "Votre rôle" })).toBeVisible();
   await expect(role).toContainText("Ce choix concerne ce mariage, pas votre carte");
+  /* Le rôle se choisit dans le menu dépliant : on ouvre la liste groupée. */
+  await role.getByTestId("role-picker-trigger").click();
   await role.getByRole("checkbox", { name: "Mariée", exact: true }).check();
+  await expect(role.getByTestId("role-picker-selected")).toContainText("Mariée");
   await page.getByTestId("oneboarding-submit").click();
 
   /* ---- Question 3 sur 5 : le mariage. Créer, ou rejoindre. ---- */
@@ -705,10 +723,10 @@ test("Première visite — je me présente, puis je crée mon mariage", async ({
   await expect(step(page, 5)).toBeVisible();
   const confirm = page.getByTestId("oneboarding-step-confirm");
   await expect(
-    confirm.getByRole("heading", { name: "Ma Timeline est prête" }),
+    confirm.getByRole("heading", { name: "Votre mariage est prêt" }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Ouvrir ma Timeline", exact: true })
+    .getByRole("button", { name: "Ouvrir mon mariage", exact: true })
     .click();
   await page.waitForURL("**/user-portal**");
 

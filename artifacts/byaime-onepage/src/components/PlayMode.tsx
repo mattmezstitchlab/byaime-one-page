@@ -234,7 +234,7 @@ function DayConductor({ events, onClose }: { events: TimelineEvent[]; onClose: (
       className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-[#FFFFFF] text-[#171410]"
       role="dialog"
       aria-modal="true"
-      aria-label="Régie du Jour J"
+      aria-label="Le Jour J"
     >
       <div className="flex items-center justify-between gap-4 p-5 sm:px-8">
         <p className="text-xs uppercase tracking-[.22em] text-[#171410]/55">

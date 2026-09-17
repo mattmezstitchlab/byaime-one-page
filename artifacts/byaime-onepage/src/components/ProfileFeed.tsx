@@ -312,7 +312,7 @@ export function ProfileFeed({
                key={f.id}
                onClick={() => { setFilter(f.id as any); setCurrentIndex(0); }}
                className={cn(
-                 "px-4 py-2 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors backdrop-blur-md border",
+                 "px-4 py-2 rounded-full text-xs tracking-wide transition-colors backdrop-blur-md border",
                  filter === f.id ? "bg-[#171410] text-[#FFFFFF] font-semibold border-white" : "bg-[#FFFFFF]/20 text-[#171410] hover:bg-[#171410]/10 border-[#171410]/10"
                )}
              >
@@ -325,7 +325,7 @@ export function ProfileFeed({
             <button 
               onClick={setMaintenant}
               className={cn(
-                "flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors",
+                "flex items-center gap-2 px-5 py-2.5 rounded-full text-xs tracking-wide transition-colors",
                 mode === "maintenant" ? "bg-[#171410] text-[#FFFFFF] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
               )}
             >
@@ -334,7 +334,7 @@ export function ProfileFeed({
             <button 
               onClick={() => setMode("replay")}
               className={cn(
-                "flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] md:text-[10px] uppercase tracking-widest transition-colors",
+                "flex items-center gap-2 px-5 py-2.5 rounded-full text-xs tracking-wide transition-colors",
                 mode === "replay" ? "bg-[#171410] text-[#FFFFFF] font-semibold" : "text-[#171410]/60 hover:text-[#171410]"
               )}
             >

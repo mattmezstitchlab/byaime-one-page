@@ -227,7 +227,7 @@ describe("aucune étape n'invente un niveau", () => {
       "Votre rôle",
       "Mon fonctionnement",
       "Le mariage",
-      "Ma Timeline est prête",
+      "Votre mariage est prêt",
     ]);
   });
 
@@ -243,7 +243,7 @@ describe("aucune étape n'invente un niveau", () => {
       "Your role",
       "How I work",
       "The wedding",
-      "Your Timeline is ready",
+      "Your wedding is ready",
     ]);
     /* Chaque étape a bien ses deux clés dans les deux langues. */
     for (const locale of ["fr", "en"] as const) {

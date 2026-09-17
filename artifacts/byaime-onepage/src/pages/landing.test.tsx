@@ -90,8 +90,10 @@ describe("Landing (accueil)", () => {
     expect(markup).toContain("un seul espace privé");
     expect(markup).toContain('aria-label="AIME — accueil"');
     expect(markup).toContain('href="/"');
-    expect(markup).toContain('data-testid="landing-admin"');
-    expect(markup).toContain('returnTo=%2Fadmin');
+    /* 17/09 : le lien « Admin » n'est plus dans la navigation publique — il vit
+       dans le menu ME (connecté uniquement), pour ne pas perdre les visiteurs. */
+    expect(markup).not.toContain('data-testid="landing-admin"');
+    expect(markup).not.toContain('returnTo=%2Fadmin');
   });
 
   it("propose l'accès à l'espace aux personnes déjà connectées, sans redirection automatique", () => {

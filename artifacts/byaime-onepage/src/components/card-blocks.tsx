@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
 import { PRESENCE_MOMENTS, ROLE_GROUPS, type CardMusic, type Participation, type UniversalCard } from "@workspace/aime-domain";
 import { searchAppleMusic } from "@/lib/music-search";
+import { cn } from "@/lib/utils";
 import type { MusicSearchResult } from "@/lib/types";
 
 /*
@@ -420,47 +422,200 @@ export function MusicCard({ music }: { music: CardMusic }) {
 /**
  * Les rôles pour CE mariage — les 25 valeurs du modèle, en quatre groupes.
  * Multi-choix : une personne peut être à la fois photographe et saxophoniste.
+ *
+ * Présentation : un **menu dépliant**, pas un bloc vertical de cases à cocher.
+ * Le bouton affiche la sélection (pastilles retirables) ; le panneau déroule
+ * la liste groupée, avec une recherche. Noir comme le reste du Oneboarding.
+ *
+ * Le composant reste la seule implémentation du choix des rôles : le
+ * Oneboarding et `/ma-carte` le partagent, et les deux écrans restent
+ * cohérents d'eux-mêmes.
  */
 export function RolesPicker({
   roles,
   onChange,
   groups = Object.entries(ROLE_GROUPS) as [string, readonly string[]][],
+  /** Libellé du bouton fermé ; par défaut « Choisir un rôle ». */
+  placeholder = "Choisir un rôle",
+  /** Préfixe des `data-testid` (`roles-picker` par défaut). */
+  testIdPrefix = "roles-picker",
 }: {
   roles: string[];
   onChange: (roles: string[]) => void;
-  groups?: [string, readonly string[]][];
+  groups?: [string | null, readonly string[]][];
+  placeholder?: string;
+  testIdPrefix?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  /* Fermeture au clavier (Échap, retour du focus sur le bouton) et au clic
+     hors du composant ; le panneau reste ouvert pendant le multi-choix. */
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    searchRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
+  const toggle = (role: string) =>
+    onChange(
+      roles.includes(role)
+        ? roles.filter((r) => r !== role)
+        : [...roles, role],
+    );
+
+  const term = query.trim().toLocaleLowerCase("fr-FR");
+  const visibleGroups = useMemo(
+    () =>
+      groups
+        .map(([group, options]) => [
+          group,
+          options.filter(
+            (option) => !term || option.toLocaleLowerCase("fr-FR").includes(term),
+          ),
+        ] as const)
+        .filter(([, options]) => options.length > 0),
+    [groups, term],
+  );
+
   return (
-    <>
-      {groups.map(([group, options]) => (
-        <fieldset key={group}>
-          <legend className="mb-2 text-xs uppercase tracking-wider text-white/60">
-            {group}
-          </legend>
-          <div className="flex flex-wrap gap-2">
-            {options.map((role) => (
-              <label
-                key={role}
-                className="flex min-h-11 items-center gap-2 rounded-xl border border-white/20 px-3 text-sm"
+    <div ref={rootRef} className="relative">
+      {roles.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5" data-testid={`${testIdPrefix}-selected`}>
+          {roles.map((role) => (
+            <span
+              key={role}
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-white/25 bg-white/10 py-1 pl-3 pr-1.5 text-[13px] text-white/90"
+            >
+              {role}
+              <button
+                type="button"
+                data-testid={`${testIdPrefix}-remove-${role}`}
+                aria-label={`Retirer ${role}`}
+                onClick={() => toggle(role)}
+                className="grid h-6 w-6 place-items-center rounded-full text-white/55 transition hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                <input
-                  type="checkbox"
-                  checked={roles.includes(role)}
-                  onChange={(e) =>
-                    onChange(
-                      e.target.checked
-                        ? [...roles, role]
-                        : roles.filter((r) => r !== role),
-                    )
-                  }
-                />
-                {role}
-              </label>
-            ))}
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        ref={triggerRef}
+        data-testid={`${testIdPrefix}-trigger`}
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          "flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 py-2 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+          open
+            ? "border-white/50 bg-[#262320]"
+            : "border-white/25 bg-[#262320] hover:border-white/45",
+        )}
+      >
+        <span className={cn(!roles.length && "text-white/50")}>
+          {roles.length
+            ? `Modifier la sélection (${roles.length})`
+            : placeholder}
+        </span>
+        <ChevronDown
+          aria-hidden
+          className={cn(
+            "h-4 w-4 shrink-0 text-white/55 transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+
+      {open && (
+        <div
+          data-testid={`${testIdPrefix}-panel`}
+          className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-white/20 bg-[#171410] shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)]"
+        >
+          <div className="relative border-b border-white/10">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+            />
+            <input
+              ref={searchRef}
+              data-testid={`${testIdPrefix}-search`}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher…"
+              aria-label="Rechercher dans la liste"
+              className="min-h-11 w-full bg-transparent pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
+            />
           </div>
-        </fieldset>
-      ))}
-    </>
+          <div className="max-h-72 overflow-y-auto p-2">
+            {visibleGroups.length ? (
+              visibleGroups.map(([group, options]) => (
+                <fieldset key={group ?? "options"} className="mb-2 last:mb-0">
+                  {group ? (
+                    <legend className="mb-1 px-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                      {group}
+                    </legend>
+                  ) : null}
+                  <div className="grid gap-0.5 sm:grid-cols-2">
+                    {options.map((role) => {
+                      const checked = roles.includes(role);
+                      return (
+                        <label
+                          key={role}
+                          data-testid={`${testIdPrefix}-option-${role}`}
+                          className={cn(
+                            "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-2.5 text-[13.5px] transition",
+                            checked
+                              ? "bg-white/12 text-white"
+                              : "text-white/75 hover:bg-white/[0.07]",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggle(role)}
+                            className="h-4 w-4 shrink-0 accent-white"
+                          />
+                          {role}
+                          {checked ? (
+                            <Check aria-hidden className="ml-auto h-3.5 w-3.5 text-white/60" />
+                          ) : null}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              ))
+            ) : (
+              <p className="px-3 py-4 text-[13px] text-white/50">
+                Aucun résultat pour « {query.trim()} ».
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

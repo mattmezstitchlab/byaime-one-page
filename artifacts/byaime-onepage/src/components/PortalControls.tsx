@@ -413,6 +413,7 @@ export function PortalControls({
                     <button type="button" onClick={() => setMeSection("security")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Gérer ma sécurité</button>
                     <button type="button" onClick={() => setMeSection("worlds")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Voir mes Mondes</button>
                     <button type="button" onClick={() => setMeSection("sensitive")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Actions sensibles</button>
+                    <Link href="/admin" className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Le guide : tout le site expliqué</Link>
                   </div>
                   {projects.length === 0 && (
                     <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">

@@ -57,7 +57,7 @@ export function BilanPage() {
             Ce bilan n&rsquo;est pas partagé.
           </h1>
           <p className={cn(LEAD, "mt-5 max-w-md text-sm", BODY)}>
-            Votre wedding architect n&rsquo;a pas encore ouvert cette page.
+            Votre organisateur n&rsquo;a pas encore ouvert cette page.
             Rien de ce mariage n&rsquo;est visible ici.
           </p>
         </div>

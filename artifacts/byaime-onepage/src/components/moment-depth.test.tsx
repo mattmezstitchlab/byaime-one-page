@@ -91,6 +91,7 @@ function newProject() {
 
 async function mountWorld() {
   const { ProjectStage } = await import("./ProjectStage");
+  const { AimePanel } = await import("./AimePanel");
   function Harness() {
     useSyncExternalStore(
       subscribe => { listeners.add(subscribe); return () => listeners.delete(subscribe); },
@@ -106,6 +107,9 @@ async function mountWorld() {
       <Router hook={() => ["/user-portal", () => undefined] as const}>
         <I18nProvider initialLocale="fr">
           <Harness />
+          {/* Le Panneau AIME est monté dans PrivateLayout en production ;
+              ici on le monte à côté du Monde, comme elle le fait. */}
+          <AimePanel />
         </I18nProvider>
       </Router>,
     );
@@ -210,9 +214,12 @@ describe("les Moments portent leur contexte et leurs actions", () => {
     act(() => document.querySelector<HTMLElement>('[data-testid="world-phase-pendant"]')!.click());
     expect(document.querySelector('[data-testid="day-run"]'), "la régie ne s'affiche pas").not.toBeNull();
 
-    /* Le menu aplati ne contient plus la Régie : elle s'ouvre depuis le Jour J. */
-    act(() => document.querySelector<HTMLElement>('[data-testid="world-top-menu-button"]')!.click());
-    expect(document.querySelector('[data-testid="world-top-menu-item-dayof"]')).toBeNull();
+    /* La Régie n'est pas une entrée de menu dédiée : elle s'ouvre depuis le
+       Jour J. La colonne du panneau n'en propose pas. */
+    act(() => window.dispatchEvent(new Event("aime:open-ai")));
+    const column = document.querySelector('[data-testid="aime-panel"]');
+    expect(column, "le panneau ne s'ouvre pas").not.toBeNull();
+    expect(column!.textContent).not.toContain("Régie du Jour J");
     act(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
 
     click(document.querySelector('[data-testid="day-run-regie"]'), "entrée Régie du Jour J");

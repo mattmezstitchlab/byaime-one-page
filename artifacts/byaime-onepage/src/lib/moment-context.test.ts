@@ -14,7 +14,7 @@ import {
   type MomentCapabilities,
 } from "./moment-context";
 import type { TimelineEvent, WorldProject } from "./types";
-import { buildWorldMenu } from "./admin-plan";
+import { getAimePanelItems, getAimePanelMenu } from "./panel-navigation";
 import { normalizePanelId } from "./wedding-navigation";
 
 const INTENTION = "Notre mariage le 5 août 2027, près de Lille, 90 invités.";
@@ -188,11 +188,10 @@ describe("audit de navigation — rien ne vit seulement dans un menu", () => {
   };
 
   it("chaque panneau du menu est aussi atteignable depuis un Moment", () => {
+    /* Le menu du Monde, c'est la colonne du Panneau AIME (source unique). */
     const menuPanels = new Set<string>();
-    for (const phase of ["avant", "pendant", "apres"] as const) {
-      for (const item of buildWorldMenu("owner", phase, "fr")) {
-        if (item.destination.kind === "panel") menuPanels.add(normalizePanelId(item.destination.panel));
-      }
+    for (const item of getAimePanelItems(getAimePanelMenu({ role: "owner", locale: "fr", project }))) {
+      if (item.destination.kind === "panel") menuPanels.add(normalizePanelId(item.destination.panel));
     }
     expect(menuPanels.size).toBeGreaterThan(0);
 

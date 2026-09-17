@@ -94,7 +94,18 @@ function Empty({ children }: { children: ReactNode }) {
 }
 
 
-export function WeddingModulesPanel({ module, momentId = null }: { module: WeddingModule; momentId?: string | null }) {
+import type { OrgaSection } from "./MondePanel";
+
+export function WeddingModulesPanel({
+  module,
+  momentId = null,
+  orgaSection,
+}: {
+  module: WeddingModule;
+  momentId?: string | null;
+  /** Onglet initial de l'Organisation unifiée (Cérémonie / Logistique / Équipe). */
+  orgaSection?: OrgaSection;
+}) {
   const {
     project,
     currentRole,
@@ -128,7 +139,12 @@ export function WeddingModulesPanel({ module, momentId = null }: { module: Weddi
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video" | "doc">("all");
   const [galleryLightboxUrl, setGalleryLightboxUrl] = useState<string | null>(null);
   const [galleryLightboxType, setGalleryLightboxType] = useState<"image" | "video" | null>(null);
-  const [orgaSection, setOrgaSection] = useState<"ceremony"|"logistics"|"team">("ceremony");
+  const [orgaTab, setOrgaTab] = useState<OrgaSection>(orgaSection ?? "ceremony");
+  /* Le panneau demandé change (ex. Cérémonie → Équipe dans la colonne du
+     Panneau AIME) : l'onglet suit, sans remonter l'état dans chaque module. */
+  useEffect(() => {
+    if (orgaSection) setOrgaTab(orgaSection);
+  }, [orgaSection]);
   /* Ancrage sur un Moment : la Galerie et la Musique peuvent se restreindre à
      ce que le Moment relie vraiment — mêmes relations que les repères de la
      scène. `null` = pas d'ancrage, tout le périmètre du panneau. */
@@ -730,12 +746,12 @@ export function WeddingModulesPanel({ module, momentId = null }: { module: Weddi
           <p className="mt-2 text-xs leading-relaxed text-[var(--agency-body)]">Fusion des anciens panneaux Ceremony / Logistics / Team. Tout éditable local-first.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {(["ceremony","logistics","team"] as const).map((s)=>(
-              <button key={s} onClick={()=>setOrgaSection(s)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", orgaSection===s ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{s==="ceremony"?"Cérémonie":s==="logistics"?"Logistique":"Équipe"}</button>
+              <button key={s} onClick={()=>setOrgaTab(s)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", orgaTab===s ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{s==="ceremony"?"Cérémonie":s==="logistics"?"Logistique":"Équipe"}</button>
             ))}
           </div>
         </div>
 
-        {orgaSection==="ceremony" && (
+        {orgaTab==="ceremony" && (
           <div className="space-y-4">
             <EditableArea label="Intention et notes de cérémonie" value={c.notes} onChange={(notes) => updateProject({ ceremony: { ...c, notes } })} />
             <div className="grid gap-3 sm:grid-cols-2">
@@ -772,7 +788,7 @@ export function WeddingModulesPanel({ module, momentId = null }: { module: Weddi
           </div>
         )}
 
-        {orgaSection==="logistics" && (
+        {orgaTab==="logistics" && (
           <div className="space-y-4">
             <EditableArea label="Parking" value={l.parking} onChange={(parking) => updateProject({ logistics: { ...l, parking } })} />
             <EditableArea label="Accessibilité" value={l.accessibility} onChange={(accessibility) => updateProject({ logistics: { ...l, accessibility } })} />
@@ -806,7 +822,7 @@ export function WeddingModulesPanel({ module, momentId = null }: { module: Weddi
           </div>
         )}
 
-        {orgaSection==="team" && (
+        {orgaTab==="team" && (
           <div className="space-y-4">
             <div className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4 text-xs leading-relaxed text-[var(--agency-body)]">Ancien panneau Team fusionné ici. Gérez rôles, missions, contacts jour J.</div>
             <div className="rounded-3xl border border-[var(--agency-hairline)] p-4">

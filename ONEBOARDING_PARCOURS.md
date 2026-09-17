@@ -78,13 +78,40 @@ En fin d'étape : **« Enregistré — Votre carte est enregistrée. »**
 pas votre carte. »*
 Puis « Quelles activités exercez-vous ? » → rien : le couple n'exerce rien ici.
 
+*Présentation.* Les deux choix sont des **menus déroulants**, pas un bloc
+vertical de cases : un bouton (« Choisir un rôle (ou plusieurs) » /
+« Choisir une activité (facultatif) ») déroule la liste groupée
+(Couple, Famille, Entourage, Professionnels), avec une recherche ; la
+sélection reste visible en pastilles retirables hors du panneau. Noir comme le
+reste du Oneboarding. C'est le même bloc (`RolesPicker`, `card-blocks.tsx`)
+que `/ma-carte` : une seule implémentation, deux écrans cohérents.
+
 **Question 3 sur 5 — « Le mariage »**
 « Que souhaitez-vous faire ? » → **[ Créer un mariage ]**. **NOUVEAU**,
 **DEMANDÉ**. Les cinq questions existantes sont absorbées : date, lieu, invités,
-budget (+ devise), ambiance.
+budget (+ devise), ambiance. Une réponse suffit : l'aperçu
+(`composeIntention`, la même phrase que le sous-titre du Monde) se lit en bas
+du formulaire, et « Une seule réponse suffit » le dit.
 Le bouton devient **« Créer ce mariage »** : les réponses structurées partent au
 serveur, et l'étape n'avance qu'une fois la création confirmée. Aucune phrase à
 reparser n'est utilisée comme transport de données.
+
+L'étape a **quatre sous-états**, et chacun n'affiche que sa chose :
+
+| État | Affichage |
+|---|---|
+| Rien choisi | Les deux portes (« Créer » / « Rejoindre »), la suggestion du plan. |
+| `créer`, pas encore créé | Le formulaire des cinq réponses + l'aperçu. |
+| `rejoindre`, pas encore choisi | **Le choix du mariage** : la liste des mariages déjà ouverts, ou l'invitation. Rien d'autre. |
+| Un mariage est choisi | Le récapitulatif, avec le bon verbe : **« Votre mariage est ouvert : »** si on l'a créé, **« Vous rejoignez : »** si on y entre — et « Changer de mariage », qui retourne aux deux portes. |
+
+*La correction.* Avant, « Rejoindre un mariage » déroulait immédiatement le
+panneau **« Vous rejoignez : Votre mariage »** — un mariage « choisi » qui
+n'existait pas — et « Continuer » sans choix renvoyait le bandeau **« Non
+enregistré »** : un choix manquant était présenté comme un échec
+d'enregistrement. Les deux sont corrigés et verrouillés par test
+(`oneboarding/oneboarding-real-flow.test.tsx`), qui monte le parcours avec le
+vrai store et les vrais schémas du serveur, comme l'aperçu local.
 
 **Question 4 sur 5 — « Mon organisation »**
 Moments et horaires du couple. **NOUVEAU**, **DEMANDÉ**, **CONTEXTUEL**.
@@ -334,8 +361,10 @@ fonctionne et son récapitulatif n'affiche aucune ligne vide (vérifié par test
 
 ## État de vérification
 
-- `corepack pnpm run test` → **domaine 33, api-server 86, frontend 76 fichiers /
-  514 tests**, tous verts.
+- `corepack pnpm run test` → **domaine 33, api-server 86, frontend 77 fichiers /
+  519 tests**, tous verts — dont `oneboarding/oneboarding-real-flow.test.tsx`
+  (5 tests : le vrai store face aux vrais schémas du serveur, comme l'aperçu
+  local) qui verrouille la correction de l'étape mariage et le menu dépliant.
 - `typecheck:libs`, `typecheck` (artefact), `typecheck:e2e` → propres.
 - `pnpm run build` → **réussit**.
 - Les tests e2e Playwright ont été **réécrits** pour le nouveau parcours et

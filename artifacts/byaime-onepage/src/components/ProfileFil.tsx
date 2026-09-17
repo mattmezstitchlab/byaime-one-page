@@ -81,7 +81,7 @@ export function ProfileFilCardView({ card, onAction }: { card: ProfileFilCard; o
           <button
             type="button"
             onClick={() => onAction(card.action)}
-            className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-[9px] font-semibold uppercase tracking-[.15em] text-background transition hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold tracking-wide text-background transition hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {card.action.label} <ArrowRight className="h-3.5 w-3.5" />
           </button>
@@ -112,7 +112,7 @@ export function ProfileFil({ projectId, onOpenMoment }: { projectId: string, onO
         <AlertCircle className="mb-5 h-8 w-8 text-brand-accent/75" />
         <h3 className="mb-2 text-xl font-light">Le Fil est momentanément indisponible</h3>
         <p className="max-w-md text-sm font-light leading-6 text-foreground/50">La Timeline reste accessible et aucune recommandation n’a été inventée.</p>
-        <button type="button" onClick={() => void refetch()} className="mt-6 inline-flex items-center gap-2 rounded-full border border-foreground/15 px-4 py-2.5 text-[9px] uppercase tracking-[.16em] text-foreground/65 hover:bg-foreground/5">
+        <button type="button" onClick={() => void refetch()} className="mt-6 inline-flex items-center gap-2 rounded-full border border-foreground/15 px-4 py-2.5 text-xs tracking-wide text-foreground/65 hover:bg-foreground/5">
           <RotateCcw className="h-3.5 w-3.5" /> Réessayer
         </button>
       </div>

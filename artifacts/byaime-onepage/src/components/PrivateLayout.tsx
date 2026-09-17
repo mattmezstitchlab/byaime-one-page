@@ -3,7 +3,7 @@ import { useProject } from "@/store/project-store";
 import { type ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
-import { CommandBar } from '@/components/CommandBar';
+import { AimePanel } from '@/components/AimePanel';
 import { GlobalCreateCenter } from '@/components/GlobalCreateCenter';
 import { PortalControls } from '@/components/PortalControls';
 import {
@@ -38,11 +38,11 @@ export function PrivateHomeLink({
 }
 
 /*
- * L'orbe unique, en bas au centre, sur mobile comme sur ordinateur : un seul
- * bouton d'action pour tout l'espace privé. Il ouvre le panneau unifié
- * (CommandBar) — compositeur, dossiers, fichier, création, ME, Monde et
- * réglages — ce qui a permis de retirer la barre latérale gauche et le tiroir
- * mobile. Le logo AIME et les contrôles ME restent dans l'en-tête.
+ * L'orbe unique, en bas au centre, sur mobile comme sur ordinateur : la
+ * seule porte d'entrée de l'espace privé (17/09). Elle ouvre le Panneau AIME
+ * — une colonne (Le Monde, les outils, l'aide) et une zone de contenu — qui
+ * regroupe tout : les sept dossiers, la création, les réglages, l'aide. Le
+ * logo AIME et les contrôles ME restent dans l'en-tête.
  */
 export function OrbButton() {
   const { t } = useI18n();
@@ -102,7 +102,8 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
         {/* L'orbe unique : tout l'espace privé tient dans son panneau. */}
         {location !== '/ma-carte' && <OrbButton />}
-        <CommandBar context={activeDestination} onOpenMe={openMe} />
+        {/* Le Panneau AIME — la seule fenêtre de l'espace privé. */}
+        <AimePanel onOpenMe={openMe} />
         <GlobalCreateCenter destination={activeDestination} />
       </div>
     </div>

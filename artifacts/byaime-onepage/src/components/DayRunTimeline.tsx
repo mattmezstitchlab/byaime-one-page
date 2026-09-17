@@ -100,7 +100,7 @@ export function DayRunTimeline({
     return (
       <div data-testid="day-run" className="mx-auto w-full max-w-4xl px-4 pb-16 sm:px-6">
         <section data-testid="day-run-empty" className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-6 text-center">
-          <p className="text-[10px] uppercase tracking-[.22em] text-foreground/45">Régie du Jour J</p>
+          <p className="text-[10px] uppercase tracking-[.22em] text-foreground/45">Le Jour J</p>
           <h3 className="aime-apple-title mt-2 text-xl text-[var(--agency-ink)]">Le déroulé du Jour J est vide</h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--agency-body)]">
             Aucun Moment n&apos;est encore posé le jour même. La Régie permet de construire le déroulé, minute par minute.
@@ -164,7 +164,7 @@ export function DayRunTimeline({
           <div className="flex min-w-0 items-start gap-3">
             <AimeOrb size={40} />
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[.22em] text-foreground/45">Régie du Jour J</p>
+              <p className="text-[10px] uppercase tracking-[.22em] text-foreground/45">Le Jour J</p>
               {allDone ? (
                 <>
                   <h3 className="mt-1 flex items-center gap-2 font-display text-2xl font-semibold"><Check className="h-5 w-5 text-brand-accent" /> Journée terminée</h3>
