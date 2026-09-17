@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Coins, CalendarDays, Check, MapPin, ScanLine, Sparkles, Users } from "lucide-react";
+import { ChevronDown, Coins, CalendarDays, Check, MapPin, Music4, ScanLine, Sparkles, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   emptyCard,
@@ -758,18 +758,33 @@ export function Oneboarding({
         {/* ---------------------------------------------------------- */}
         {step.id === "person" &&
           (showEditor ? (
-            <div className="mt-5 space-y-5">
+            /* L'étape reste courte par défaut : identité d'abord, « Ma
+               musique » repliée (facultatif) — on déplie si on en a envie. */
+            <div className="mt-5 space-y-4">
               <IdentityFields card={card} update={update} onError={setFieldError} />
-              <MusicPicker
-                music={card.music as CardMusic | undefined}
-                onSelect={(result) => update("music", result)}
-                onClear={() => update("music", undefined)}
-                onSkipped={() =>
-                  setNotice({
-                    kind: "idle",
-                  })
-                }
-              />
+              <details className="group rounded-2xl border border-white/15">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 p-4 text-[14px] text-white/85 transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 [&::-webkit-details-marker]:hidden">
+                  <span className="flex items-center gap-2.5">
+                    <Music4 className="h-4 w-4 text-white/50" aria-hidden />
+                    Ma musique
+                    <span className="text-[11px] text-white/40">(facultatif)</span>
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-white/40 transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <div className="border-t border-white/10 p-4 pt-3">
+                  <MusicPicker
+                    music={card.music as CardMusic | undefined}
+                    onSelect={(result) => update("music", result)}
+                    onClear={() => update("music", undefined)}
+                    onSkipped={() =>
+                      setNotice({
+                        kind: "idle",
+                      })
+                    }
+                    showTitle={false}
+                  />
+                </div>
+              </details>
             </div>
           ) : (
             <KnownSummary

@@ -2,15 +2,15 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Link2, MapPin, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints } from "lucide-react";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS, fr } from "date-fns/locale";
 import type { TimelineEntityKind, TimelineEvent, WorldProject } from "@/lib/types";
 import type { WorldFocusRequest } from "@/lib/world-focus";
 import { useProject } from "@/store/project-store";
-import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, ENTITY_KIND_LABELS, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
+import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, planEventPropagation, type PropagationPlan } from "@/lib/timeline-graph";
 import { getInitialWorldPhase, PANEL_FOR_KIND, type WorldPhase } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { getSubchapter } from "@/lib/timeline-chapters";
-import { chapterAmbientAsset, momentAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
+import { momentAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
 import { momentVisualOverlayAlpha, type WorldVisual } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
@@ -19,7 +19,7 @@ import { AvantOverview } from "@/components/AvantOverview";
 import { ApresOverview } from "@/components/ApresOverview";
 import { MomentActions, MomentFacts } from "@/components/MomentContext";
 import { buildMomentContext, type MomentAction, type MomentContextModel, type MomentCapabilities } from "@/lib/moment-context";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type I18nKey } from "@/lib/i18n";
 
 const kinds: TimelineEntityKind[] = ["guest", "table", "provider", "task", "payment", "document", "music", "team", "message", "logistics", "memory"];
 
@@ -62,33 +62,28 @@ const AmbientBackground = ({ visual, poster }: { visual: WorldVisual; poster?: s
   );
 };
 
-/** Le libellé court d'une zone, pour l'œillère d'une scène. */
-const ZONE_LABELS: Record<ReturnType<typeof momentVisualZone>, string> = {
-  ceremony: "Cérémonie",
-  table: "Table & saveurs",
-  guests: "Invités",
-  prep: "Préparatifs",
-  attire: "Tenues",
-  music: "Musique",
-  flowers: "Fleurs",
-  portrait: "Images",
-  film: "Film",
-  transport: "Transport",
-  reception: "Réception",
-  venue: "Lieu" };
+/** Le libellé court d'une zone, pour l'œillère d'une scène (clés `tl.zone.*`). */
+function zoneLabel(zone: ReturnType<typeof momentVisualZone>, t: (key: I18nKey, vars?: Record<string, string | number>) => string): string {
+  return t(`tl.zone.${zone}` as I18nKey);
+}
 
-function SubchapterTransition({ title, event }: { title: string; event?: TimelineEvent }) {
-  const asset = visualSourceUrl({ kind: "image", url: chapterAmbientAsset(title, event?.phase ?? "avant") });
+/*
+ * Le bandeau de chapitre : une respiration SANS visuel — une bande claire, le
+ * titre du chapitre au centre, rien d'autre. Seules les grandes zones (les
+ * scènes de Moment) portent un visuel : le chapitre ne duplique plus l'image
+ * de la scène qui suit, et la lecture reste calme sur mobile.
+ */
+function SubchapterTransition({ title }: { title: string }) {
   return (
     <div
       data-testid={`timeline-chapter-${title}`}
-      className="relative isolate flex w-full items-center justify-center overflow-hidden border-t border-[var(--agency-hairline)] py-24 text-[var(--agency-ink)]"
+      className="flex w-full flex-col items-center justify-center gap-3 bg-background px-6 py-12 sm:py-14"
     >
-      {/* Une zone de respiration a, elle aussi, son visuel : le chapitre annonce
-          ce qui vient (la cérémonie, le repas, la soirée…). */}
-      <img src={asset} alt="" className="absolute inset-0 z-0 h-full w-full object-cover" aria-hidden />
-      <div className="absolute inset-0 z-[1] bg-black/55" aria-hidden />
-      <h2 className="relative z-10 text-sm tracking-[0.4em] uppercase text-white/80">{title}</h2>
+      <span aria-hidden className="h-px w-12 bg-foreground/20" />
+      <h2 className="text-center text-xs font-medium uppercase tracking-[0.35em] text-foreground/75 sm:text-sm">
+        {title}
+      </h2>
+      <span aria-hidden className="h-px w-12 bg-foreground/20" />
     </div>
   );
 }
@@ -106,7 +101,8 @@ function EventScene({
   onClick: () => void;
   onAction: (action: MomentAction, event: TimelineEvent) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "en" ? enUS : fr;
   const visual = momentVisual(event, project);
   const zone = momentVisualZone(event, project);
   const isCustomVisual = Boolean(event.visual?.url);
@@ -136,7 +132,7 @@ function EventScene({
           >
             <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-white/70 font-medium">
               <CalendarDays className="w-4 h-4" />
-              <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: fr })}</span>
+              <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: dateLocale })}</span>
               {event.durationMinutes && (
                 <>
                   <span className="w-1 h-1 rounded-full bg-current opacity-30" />
@@ -161,7 +157,7 @@ function EventScene({
                   et sait qu'il peut le remplacer. */}
               <span data-testid="timeline-zone" className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
                 <Waves className="w-3 h-3" />
-                {isCustomVisual ? "Visuel importé" : ZONE_LABELS[zone]}
+                {isCustomVisual ? t("tl.customVisual") : zoneLabel(zone, t)}
               </span>
               {event.location && (
                 <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
@@ -172,7 +168,7 @@ function EventScene({
               {(event.relations?.length || 0) > 0 && (
                 <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
                   <Link2 className="w-3 h-3" />
-                  {event.relations!.length} liens
+                  {t("tl.links", { n: event.relations!.length })}
                 </span>
               )}
             </div>
@@ -215,7 +211,7 @@ export function UniversalTimeline({
   phase?: WorldPhase;
 }) {
   const { project, addEntity, updateEntity, updateProject, removeEntity, canEdit } = useProject();
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [selected, setSelected] = useState<string>();
   const [undoTimeline, setUndoTimeline] = useState<TimelineEvent[]>();
 
@@ -236,7 +232,7 @@ export function UniversalTimeline({
     // Le jalon naît dans la période courante (Avant / Jour J / Après) : sinon
     // il serait filtré de la vue immédiatement après sa création.
     const phase = getInitialWorldPhase(project.pivot.value);
-    const id = addEntity("timeline", { time: project.pivot.value, durationMinutes: 60, kind: "evenement", title: "Nouveau jalon", status: "prepare", confidence: "confirme", phase, universe: project.universe, provenance: "real", visibility: "equipe", relations: [], dependencyIds: [], resources: [], propagation: { state: "none" } });
+    const id = addEntity("timeline", { time: project.pivot.value, durationMinutes: 60, kind: "evenement", title: t("tl.newMilestone"), status: "prepare", confidence: "confirme", phase, universe: project.universe, provenance: "real", visibility: "equipe", relations: [], dependencyIds: [], resources: [], propagation: { state: "none" } });
     setSelected(id);
   };
   const addRef = useRef(add);
@@ -271,7 +267,7 @@ export function UniversalTimeline({
     <div className="w-full flex flex-col bg-background">
       {events.length === 0 && !isDayRun && (
         <div className="py-32 text-center text-sm text-foreground/40">
-          Aucun événement dans cette vue.
+          {t("tl.empty")}
         </div>
       )}
 
@@ -292,7 +288,7 @@ export function UniversalTimeline({
 
         return (
           <Fragment key={item.id}>
-            {isNewSubchapter && <SubchapterTransition title={subchapter} event={item} />}
+            {isNewSubchapter && <SubchapterTransition title={subchapter} />}
             <EventScene
               event={item}
               project={project}
@@ -306,7 +302,7 @@ export function UniversalTimeline({
 
       {!canEdit && (
         <div className="w-full py-20 flex justify-center bg-background border-t border-foreground/5">
-          <p className="text-xs text-foreground/40 tracking-widest uppercase">Lecture seule</p>
+          <p className="text-xs text-foreground/40 tracking-widest uppercase">{t("tl.readOnly")}</p>
         </div>
       )}
 
@@ -326,9 +322,9 @@ export function UniversalTimeline({
       )}
       {undoTimeline && (
         <div className="fixed bottom-24 left-4 z-[60] flex items-center gap-3 rounded-full border border-foreground/10 bg-background/90 py-2 pl-4 pr-2 text-xs text-foreground shadow-xl backdrop-blur sm:left-6">
-          <span>Changement appliqué</span>
+          <span>{t("tl.changeApplied")}</span>
           <button onClick={() => { updateProject({ timeline: undoTimeline }); setUndoTimeline(undefined); }} className="flex items-center gap-1.5 rounded-full bg-[var(--agency-ink)] px-3 py-2 font-medium text-[var(--agency-paper)]">
-            <Undo2 className="h-3.5 w-3.5" /> Annuler
+            <Undo2 className="h-3.5 w-3.5" /> {t("tl.undo")}
           </button>
         </div>
       )}
@@ -337,6 +333,8 @@ export function UniversalTimeline({
 }
 
 function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete, canEdit }: { event: TimelineEvent; project: NonNullable<ReturnType<typeof useProject>["project"]>; onClose: () => void; onEdit: (updates: Partial<TimelineEvent>) => void; onApplyRipple: (plan: PropagationPlan, dependentIds: string[]) => void; onDelete: () => void; canEdit: boolean }) {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "en" ? enUS : fr;
   const impact = analyzeEventImpact(project, event.id, {});
   const related = (event.relations || [])
     .map(relation => ({ relation, entity: buildTimelineIndex(project).entities.get(`${relation.kind}:${relation.id}`) }))
@@ -352,20 +350,20 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
   const select = "w-full appearance-none rounded-none border-b border-foreground/20 bg-background py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground disabled:opacity-50";
 
   return (
-    <ContextPanel eyebrow="Votre contexte" title="Moment du calendrier" onClose={onClose}>
+    <ContextPanel eyebrow={t("tl.drawer.eyebrow")} title={t("tl.drawer.title")} onClose={onClose}>
         <div className="space-y-8">
           <div>
-            <input disabled={!canEdit} className={cn(input, "text-2xl font-display font-medium")} value={event.title} onChange={e => onEdit({ title: e.target.value })} placeholder="Titre de l'événement" />
+            <input disabled={!canEdit} className={cn(input, "text-2xl font-display font-medium")} value={event.title} onChange={e => onEdit({ title: e.target.value })} placeholder={t("tl.drawer.titlePh")} />
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => { onClose(); window.dispatchEvent(new CustomEvent("aime:focus-world", { detail: { route: "/user-portal", graph: true } })); }} className="inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-2 text-[10px] uppercase tracking-[.14em] text-foreground/65 hover:bg-foreground/5">
-              <Waypoints className="h-3.5 w-3.5" /> Ce que chacun voit
+              <Waypoints className="h-3.5 w-3.5" /> {t("tl.drawer.visibilityLink")}
             </button>
           </div>
 
           {related.length > 0 && (
             <section className="rounded-2xl border border-foreground/10 p-4">
-              <p className="text-[10px] uppercase tracking-widest text-foreground/40">Relié à ce Moment</p>
+              <p className="text-[10px] uppercase tracking-widest text-foreground/40">{t("tl.drawer.related")}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {related.map(({ relation, entity }) => {
                   const panel = PANEL_FOR_KIND[relation.kind];
@@ -380,8 +378,8 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                       }}
                       className="group inline-flex items-center gap-2 rounded-full border border-foreground/15 px-3 py-1.5 text-xs text-foreground/70 transition hover:border-foreground/40 hover:text-foreground disabled:cursor-default disabled:opacity-40"
                     >
-                      <span className="text-[9px] uppercase tracking-wider text-foreground/40">{ENTITY_KIND_LABELS[relation.kind]}</span>
-                      <span>{entity?.label ?? "Introuvable"}</span>
+                      <span className="text-[9px] uppercase tracking-wider text-foreground/40">{t(`tl.kind.${relation.kind}` as I18nKey)}</span>
+                      <span>{entity?.label ?? t("tl.drawer.notFound")}</span>
                       {panel && <ChevronRight className="h-3 w-3 text-foreground/30 transition group-hover:translate-x-0.5" />}
                     </button>
                   );
@@ -392,11 +390,11 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Heure</label>
+              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">{t("tl.drawer.time")}</label>
               <input disabled={!canEdit} type="datetime-local" className={input} value={new Date(pendingTime - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setPendingTime(new Date(e.target.value).getTime())} />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Durée (min)</label>
+              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">{t("tl.drawer.duration")}</label>
               <input disabled={!canEdit} type="number" min="0" className={input} value={event.durationMinutes || 0} onChange={e => onEdit({ durationMinutes: Number(e.target.value) })} />
             </div>
           </div>
@@ -408,19 +406,19 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                   <Waves className="h-4 w-4 text-brand-accent" />
                 </span>
                 <div>
-                  <p className="text-sm font-medium">Onde de changement</p>
-                  <p className="mt-1 text-xs leading-relaxed text-foreground/50">AIME a regardé ce que ce nouvel horaire peut modifier.</p>
+                  <p className="text-sm font-medium">{t("tl.drawer.rippleTitle")}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/50">{t("tl.drawer.rippleText")}</p>
                 </div>
               </div>
               <div className="space-y-3 p-4">
                 <div className="rounded-xl bg-background/25 p-3 text-xs">
-                  <p className="text-foreground/40">Ce moment</p>
-                  <p className="mt-1 text-foreground/80">{format(event.time, "HH:mm", { locale: fr })} → {format(pendingTime, "HH:mm", { locale: fr })}</p>
+                  <p className="text-foreground/40">{t("tl.drawer.thisMoment")}</p>
+                  <p className="mt-1 text-foreground/80">{format(event.time, "HH:mm", { locale: dateLocale })} → {format(pendingTime, "HH:mm", { locale: dateLocale })}</p>
                 </div>
-                {impact.relations.length > 0 && <p className="text-xs text-foreground/55">{impact.relations.length} personne{impact.relations.length > 1 ? "s ou élément sont liés" : " ou élément est lié"} à ce moment.</p>}
+                {impact.relations.length > 0 && <p className="text-xs text-foreground/55">{impact.relations.length > 1 ? t("tl.drawer.linkedMany", { n: impact.relations.length }) : t("tl.drawer.linkedOne")}</p>}
                 {ripplePlan.dependentChanges.length > 0 && (
                   <div>
-                    <p className="mb-2 text-[10px] uppercase tracking-[.16em] text-foreground/35">Peut aussi être décalé</p>
+                    <p className="mb-2 text-[10px] uppercase tracking-[.16em] text-foreground/35">{t("tl.drawer.mayShift")}</p>
                     <div className="space-y-2">
                       {ripplePlan.dependentChanges.map(change => {
                         const checked = selectedDependents.includes(change.eventId);
@@ -428,7 +426,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                           <input type="checkbox" checked={checked} onChange={() => setSelectedDependents(value => checked ? value.filter(id => id !== change.eventId) : [...value, change.eventId])} className="mt-0.5 accent-white" />
                           <span className="min-w-0">
                             <span className="block text-xs text-foreground/80">{change.title}</span>
-                            <span className="mt-1 block text-[10px] text-foreground/40">{format(change.currentTime, "HH:mm", { locale: fr })} → {format(change.nextTime, "HH:mm", { locale: fr })}</span>
+                            <span className="mt-1 block text-[10px] text-foreground/40">{format(change.currentTime, "HH:mm", { locale: dateLocale })} → {format(change.nextTime, "HH:mm", { locale: dateLocale })}</span>
                           </span>
                         </label>;
                       })}
@@ -437,20 +435,20 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
                 )}
                 {ripplePlan.warnings.map(warning => <p key={warning} className="rounded-xl border border-brand-accent/20 bg-brand-accent/5 p-3 text-xs text-foreground/80">{warning}</p>)}
                 <div className="flex gap-2 pt-1">
-                  <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-foreground/15 px-3 py-2.5 text-xs text-foreground/60 hover:text-foreground">Garder l’ancien horaire</button>
-                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-[var(--agency-ink)] px-3 py-2.5 text-xs font-medium text-[var(--agency-paper)]">Appliquer {1 + selectedDependents.length} changement{selectedDependents.length ? "s" : ""}</button>
+                  <button onClick={() => setPendingTime(event.time)} className="flex-1 rounded-full border border-foreground/15 px-3 py-2.5 text-xs text-foreground/60 hover:text-foreground">{t("tl.drawer.keepOld")}</button>
+                  <button onClick={() => onApplyRipple(ripplePlan, selectedDependents)} className="flex-1 rounded-full bg-[var(--agency-ink)] px-3 py-2.5 text-xs font-medium text-[var(--agency-paper)]">{selectedDependents.length ? t("tl.drawer.applyMany", { n: 1 + selectedDependents.length }) : t("tl.drawer.applyOne")}</button>
                 </div>
               </div>
             </section>
           )}
 
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Lieu</label>
-            <input disabled={!canEdit} className={input} placeholder="Où cela se passe-t-il ?" value={event.location || ""} onChange={e => onEdit({ location: e.target.value })} />
+            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">{t("tl.drawer.place")}</label>
+            <input disabled={!canEdit} className={input} placeholder={t("tl.drawer.placePh")} value={event.location || ""} onChange={e => onEdit({ location: e.target.value })} />
           </div>
 
           <VisualImportControl
-            label="Visuel du Moment"
+            label={t("tl.drawer.visual")}
             value={event.visual}
             disabled={!canEdit}
             onChange={visual => onEdit({ visual })}
@@ -458,46 +456,46 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Statut</label>
+              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">{t("tl.drawer.status")}</label>
               <select disabled={!canEdit} className={select} value={event.status} onChange={e => onEdit({ status: e.target.value as TimelineEvent["status"] })}>
-                <option value="prepare">Prévu</option>
-                <option value="execute">Terminé</option>
-                <option value="a_valider">À valider</option>
-                <option value="bloque">Bloqué</option>
+                <option value="prepare">{t("tl.status.prepare")}</option>
+                <option value="execute">{t("tl.status.execute")}</option>
+                <option value="a_valider">{t("tl.status.a_valider")}</option>
+                <option value="bloque">{t("tl.status.bloque")}</option>
               </select>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Source</label>
+              <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">{t("tl.drawer.source")}</label>
               <select disabled={!canEdit} className={select} value={event.provenance || "real"} onChange={e => onEdit({ provenance: e.target.value as TimelineEvent["provenance"] })}>
-                <option value="real">Réel</option>
-                <option value="demo">Démo</option>
-                <option value="suggested">Suggéré</option>
-                <option value="integration">Intégration</option>
+                <option value="real">{t("tl.source.real")}</option>
+                <option value="demo">{t("tl.source.demo")}</option>
+                <option value="suggested">{t("tl.source.suggested")}</option>
+                <option value="integration">{t("tl.source.integration")}</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Visibilité</label>
+            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">{t("tl.drawer.visibility")}</label>
             <select disabled={!canEdit} className={select} value={event.visibility || "equipe"} onChange={e => onEdit({ visibility: e.target.value as TimelineEvent["visibility"] })}>
-              <option value="prive">Privé</option>
-              <option value="equipe">Équipe</option>
-              <option value="audience">Audience (métadonnée)</option>
+              <option value="prive">{t("tl.visib.prive")}</option>
+              <option value="equipe">{t("tl.visib.equipe")}</option>
+              <option value="audience">{t("tl.visib.audience")}</option>
             </select>
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Dépendances (IDs)</label>
-            <input disabled={!canEdit} className={input} placeholder="Ex: t1, t2" value={(event.dependencyIds || []).join(", ")} onChange={e => onEdit({ dependencyIds: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} />
+            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">{t("tl.drawer.deps")}</label>
+            <input disabled={!canEdit} className={input} placeholder={t("tl.drawer.depsPh")} value={(event.dependencyIds || []).join(", ")} onChange={e => onEdit({ dependencyIds: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} />
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">Ressources</label>
-            <input disabled={!canEdit} className={input} placeholder="Ex: Salle, Micro" value={(event.resources || []).join(", ")} onChange={e => onEdit({ resources: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} />
+            <label className="text-[10px] uppercase tracking-widest text-foreground/40 mb-1 block">{t("tl.drawer.resources")}</label>
+            <input disabled={!canEdit} className={input} placeholder={t("tl.drawer.resourcesPh")} value={(event.resources || []).join(", ")} onChange={e => onEdit({ resources: e.target.value.split(",").map(v => v.trim()).filter(Boolean) })} />
           </div>
 
           <div className="pt-4">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-4">Liens Natifs</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-foreground/40 mb-4">{t("tl.drawer.links")}</p>
             <div className="space-y-3">
               {(event.relations || []).map((relation, index) => (
                 <div key={`${relation.kind}-${relation.id}-${index}`} className="flex gap-3 items-end">
@@ -513,19 +511,19 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
             </div>
             {canEdit && (
               <button onClick={() => onEdit({ relations: [...(event.relations || []), { kind: "guest", id: "" }] })} className="mt-4 text-[11px] uppercase tracking-widest text-foreground/50 hover:text-foreground transition-colors">
-                + Ajouter un lien
+                {t("tl.drawer.addLink")}
               </button>
             )}
           </div>
 
           <div className="rounded-xl border border-foreground/5 bg-foreground/[0.02] p-4 text-[11px] leading-relaxed text-foreground/50">
-            {impact.relations.length} entité(s) résolue(s) · {impact.dependents.length} événement(s) dépendant(s).
+            {t("tl.drawer.impact", { entities: impact.relations.length, dependents: impact.dependents.length })}
           </div>
 
           {canEdit && (
             <div className="pt-8 border-t border-foreground/10">
               <button onClick={onDelete} className="w-full rounded-full border border-destructive/40 py-3 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/10 transition-colors">
-                Supprimer l'événement
+                {t("tl.drawer.delete")}
               </button>
             </div>
           )}

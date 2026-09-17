@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Search, X } from "lucide-react";
+import { Check, ChevronDown, Image as ImageIcon, ImagePlus, Search, X } from "lucide-react";
 import { PRESENCE_MOMENTS, ROLE_GROUPS, type CardMusic, type Participation, type UniversalCard } from "@workspace/aime-domain";
 import { searchAppleMusic } from "@/lib/music-search";
 import { cn } from "@/lib/utils";
@@ -71,41 +71,64 @@ export function IdentityFields({
       <p className="text-xs text-white/60">
         Photo, pseudo et ville sont facultatifs.
       </p>
-      <label className="block text-sm">
-        Photo de profil
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="mt-2 block w-full text-sm"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            if (
-              !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-              file.size > 500000
-            ) {
-              onError("Choisissez une photo JPEG, PNG ou WebP de moins de 500 Ko.");
-              return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => update("photoUrl", String(reader.result));
-            reader.onerror = () => onError("Lecture de photo impossible");
-            reader.readAsDataURL(file);
-          }}
-        />
-      </label>
-      {card.photoUrl && (
-        <div className="flex items-center gap-3">
-          <img
-            src={card.photoUrl}
-            alt="Votre photo de profil"
-            className="h-20 w-20 rounded-full object-cover"
-          />
-          <button type="button" onClick={() => update("photoUrl", "")}>
-            Retirer
-          </button>
+      {/* La photo : un bouton clair et visible sur le fond noir (l'input de
+          fichier brut s'y rendait invisible), aperçu rond, et « Retirer »
+          au même niveau. */}
+      <div>
+        <p className="text-sm">Photo de profil</p>
+        <div className="mt-2 flex items-center gap-4">
+          {card.photoUrl ? (
+            <img
+              src={card.photoUrl}
+              alt="Votre photo de profil"
+              className="h-16 w-16 shrink-0 rounded-full border-2 border-white/25 object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-dashed border-white/30 text-white/40"
+            >
+              <ImageIcon className="h-6 w-6" />
+            </span>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-white/[0.06] px-4 text-[13px] font-medium text-white transition hover:border-white/50 hover:bg-white/10 focus-within:outline-none focus-within:ring-2 focus-within:ring-white/60">
+              <ImagePlus className="h-4 w-4" aria-hidden />
+              {card.photoUrl ? "Changer la photo" : "Choisir une photo"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (
+                    !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+                    file.size > 500000
+                  ) {
+                    onError("Choisissez une photo JPEG, PNG ou WebP de moins de 500 Ko.");
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => update("photoUrl", String(reader.result));
+                  reader.onerror = () => onError("Lecture de photo impossible");
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {card.photoUrl && (
+              <button
+                type="button"
+                onClick={() => update("photoUrl", "")}
+                className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-4 text-[13px] text-white/60 transition hover:border-white/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                Retirer
+              </button>
+            )}
+          </div>
         </div>
-      )}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {(
           [
@@ -180,12 +203,15 @@ export function MusicPicker({
   onSelect,
   onClear,
   onSkipped,
+  showTitle = true,
 }: {
   /** Le morceau déjà sur la carte, quel que soit son fournisseur. */
   music?: CardMusic;
   onSelect: (result: MusicSearchResult) => void;
   onClear: () => void;
   onSkipped?: () => void;
+  /** À false quand un cadre parent fournit déjà le titre (Oneboarding). */
+  showTitle?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MusicSearchResult[]>([]);
@@ -226,7 +252,9 @@ export function MusicPicker({
 
   return (
     <>
-      <h3 className="border-t border-white/15 pt-5 text-lg">Ma musique</h3>
+      {showTitle && (
+        <h3 className="border-t border-white/15 pt-5 text-lg">Ma musique</h3>
+      )}
       <p className="text-xs text-white/60">
         Le morceau qui vous ressemble, directement sur votre carte.
       </p>
