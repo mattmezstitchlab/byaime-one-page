@@ -3,8 +3,11 @@ import type { TimelineView } from "./timeline-graph";
 import type { WorldProject } from "./types";
 import {
   getWeddingCapabilities,
+  getWeddingRailItems,
   isWeddingEntryAllowed,
+  WORLD_PHASE_IDS,
   type WeddingPanelId,
+  type WorldPhase,
 } from "./wedding-navigation";
 import { getFolderCount, getWeddingFolders, isFolderLocked } from "./wedding-folders";
 
@@ -25,7 +28,23 @@ import { getFolderCount, getWeddingFolders, isFolderLocked } from "./wedding-fol
  *   réglages du Monde.
  */
 
-export type AimePanelSectionId = "monde" | "outils" | "aide";
+export type AimePanelSectionId = "monde" | "outils" | "aide" | "modes";
+
+/*
+ * Les entrées qui n'existent que dans UN mode. Partout ailleurs, le socle est
+ * le même dans les trois périodes (Pilotage, Documents, Logistique, Musique,
+ * Invités, Budget, Contrats, Prestataires, Messages).
+ *
+ * Mesuré le 17/09 : la colonne était identique au caractère dans les trois
+ * modes, et cliquer une entrée d'un autre mode changeait le Monde en silence.
+ * Ici, elle est rangée sous « Autres modes », avec sa pastille — la colonne
+ * suit le mode courant, et rien ne bascule sans le dire.
+ */
+export const AIME_PANEL_MODE_ENTRIES: Record<string, WorldPhase> = {
+  "folder:program": "pendant", // Régie / déroulé du Jour J
+  "public-info": "pendant", // Les infos utiles aux invités, le Jour J
+  "folder:memories": "apres", // Photos & souvenirs : le mode Après rassemble
+};
 
 export type AimePanelActionId =
   | "ask"
@@ -54,6 +73,8 @@ export interface AimePanelItem {
   count?: number;
   /** Le rôle courant n'a pas accès : l'entrée n'est pas listée. */
   locked?: boolean;
+  /** Le mode auquel l'entrée appartient, quand elle n'existe pas dans les trois. */
+  phase?: WorldPhase;
 }
 
 export interface AimePanelSection {
@@ -72,6 +93,8 @@ export interface AimePanelMenuContext {
   project: WorldProject | null;
   /** Le rôle courant peut modifier le Monde (l'ouverture, les réglages). */
   canEdit?: boolean;
+  /** Le mode courant du Monde : la colonne le suit (17/09). */
+  phase?: WorldPhase;
 }
 
 const label = (locale: Locale, key: string) => translate(locale, key as never);
@@ -84,15 +107,30 @@ const label = (locale: Locale, key: string) => translate(locale, key as never);
 const allowed = (id: string, role: string): boolean =>
   isWeddingEntryAllowed({ id, label: "", description: "", destination: { kind: "view", view: "chronological" } }, getWeddingCapabilities(role));
 
-export function getAimePanelMenu({ role, locale = "fr", project, canEdit = false }: AimePanelMenuContext): AimePanelMenu {
-  /* ——— MONDE : le programme + les sept dossiers, les mêmes pour tout le mariage. ——— */
+export function getAimePanelMenu({
+  role,
+  locale = "fr",
+  project,
+  canEdit = false,
+  phase = "avant",
+}: AimePanelMenuContext): AimePanelMenu {
+  /*
+   * Le programme s'appelle selon le mode, comme dans la barre latérale du
+   * Monde : « Le programme » en Avant, « Le Jour J, en direct » le jour même,
+   * « Le Jour J, en revue » après. On RÉUTILISE `getWeddingRailItems`, déjà
+   * écrit et déjà testé — pas une seconde liste à maintenir.
+   */
+  const rail = getWeddingRailItems(phase, getWeddingCapabilities(role), locale);
+  const programEntry = rail.find(entry => entry.id === "timeline");
+  const musicEntry = rail.find(entry => entry.id === "music");
   const monde: AimePanelItem[] = [
     {
       id: "program",
       section: "monde",
-      label: label(locale, "world.item.timeline"),
-      description: label(locale, "world.item.timeline.desc"),
+      label: programEntry?.label ?? label(locale, "world.item.timeline"),
+      description: programEntry?.description ?? label(locale, "world.item.timeline.desc"),
       destination: { kind: "view", view: "chronological" },
+      phase,
     },
   ];
   for (const folder of getWeddingFolders(locale)) {
@@ -144,7 +182,7 @@ export function getAimePanelMenu({ role, locale = "fr", project, canEdit = false
     {
       id: "music",
       section: "outils",
-      label: label(locale, "world.item.music"),
+      label: musicEntry?.label ?? label(locale, "world.item.music"),
       description: label(locale, "world.item.music.desc"),
       destination: { kind: "view", view: "music" },
     },
@@ -227,13 +265,37 @@ export function getAimePanelMenu({ role, locale = "fr", project, canEdit = false
     },
   ];
 
-  return {
-    sections: [
-      { id: "monde", title: label(locale, "aime.panel.monde"), items: monde },
-      { id: "outils", title: label(locale, "aime.panel.outils"), items: outils },
-      { id: "aide", title: label(locale, "aime.panel.aide"), items: aide },
-    ],
-  };
+  /*
+   * Le socle (les trois modes) reste en place ; les entrées propres à un autre
+   * mode quittent leur section et se rangent sous « Autres modes », dans
+   * l'ordre des périodes. Elles restent atteignables — annoncées, jamais
+   * silencieuses.
+   */
+  const modes: AimePanelItem[] = [];
+  const inMode = (items: AimePanelItem[]) =>
+    items.filter(item => {
+      const mode = AIME_PANEL_MODE_ENTRIES[item.id];
+      if (!mode) return true;
+      item.phase = mode;
+      if (mode === phase) return true;
+      /* Il change de section pour de vrai : le tri de la colonne lit
+         `item.section`, un déplacement à moitié le laisserait dans le socle. */
+      item.section = "modes";
+      modes.push(item);
+      return false;
+    });
+  const sections: AimePanelSection[] = [
+    { id: "monde", title: label(locale, "aime.panel.monde"), items: inMode(monde) },
+    { id: "outils", title: label(locale, "aime.panel.outils"), items: inMode(outils) },
+    { id: "aide", title: label(locale, "aime.panel.aide"), items: inMode(aide) },
+  ];
+  if (modes.length) {
+    modes.sort(
+      (a, b) => WORLD_PHASE_IDS.indexOf(a.phase ?? phase) - WORLD_PHASE_IDS.indexOf(b.phase ?? phase),
+    );
+    sections.push({ id: "modes", title: label(locale, "aime.panel.otherModes"), items: modes });
+  }
+  return { sections };
 }
 
 /** Toutes les entrées, à plat (pour la recherche de la colonne). */

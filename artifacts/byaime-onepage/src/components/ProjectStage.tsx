@@ -7,7 +7,7 @@ import { enUS, fr } from 'date-fns/locale';
 import { useLocation } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
-import { requestAimePanelShow } from '@/lib/aime-panel-events';
+import { requestAimePanelFollow, requestAimePanelShow } from '@/lib/aime-panel-events';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ImagePlus, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
@@ -41,7 +41,7 @@ import { setWorldNavState } from '@/lib/world-nav-state';
 import { trackEvent } from '@/lib/analytics';
 import { useI18n } from '@/lib/i18n';
 import { heroVisualOverlayCss } from '@/lib/types';
-import { isCustomHeroVisual, resolveHeroVisual, visualSourceUrl, WORLD_VISUAL_CHOICES } from '@/lib/world-visuals';
+import { isCustomHeroVisual, resolveHeroVisual, setHeroVisualFor, visualSourceUrl, WORLD_VISUAL_CHOICES } from '@/lib/world-visuals';
 import { VisualImportControl } from '@/components/VisualImportControl';
 import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
 
@@ -238,10 +238,31 @@ export function ProjectStage() {
     }
     openPanelSafely(action.destination.panel, action.scoped && event ? event.id : null);
   };
+  /*
+   * Le panneau présenté n'existe plus dans le mode courant : on le DIT au
+   * Panneau AIME (qui garde sa fenêtre et se vide) quand c'est le mode qui a
+   * changé ; sinon, fermeture classique. Fermer toute la fenêtre parce qu'on
+   * a choisi un autre mode dans la colonne était la sortie de route du 17/09.
+   */
+  const lastPhaseRef = useRef(phase);
   useEffect(() => {
-    if (!activePanel) return;
-    if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) closePresentedPanel();
-  }, [activePanel, navigation, view, rail]);
+    if (!activePanel) {
+      lastPhaseRef.current = phase;
+      return;
+    }
+    if (isWeddingPanelAvailable(activePanel, navigation, view, rail)) {
+      lastPhaseRef.current = phase;
+      return;
+    }
+    const modeChanged = lastPhaseRef.current !== phase;
+    lastPhaseRef.current = phase;
+    if (modeChanged) {
+      requestAimePanelFollow({ panel: activePanel, phase });
+      setActivePanel(null);
+      return;
+    }
+    closePresentedPanel();
+  }, [activePanel, navigation, view, rail, phase]);
 
   const openPanelSafelyRef = useRef(openPanelSafely);
   openPanelSafelyRef.current = openPanelSafely;
@@ -430,9 +451,10 @@ export function ProjectStage() {
    * ce réglage, ou importé) retombait sur un fond blanc : le bouton « Visuel »
    * posé ici le remplace en un clic, sans passer par le panneau de l'orbe.
    */
-  const heroVisual = resolveHeroVisual(project);
+  const heroVisual = resolveHeroVisual(project, phase);
   const heroSrc = visualSourceUrl(heroVisual);
-  const heroIsCustom = isCustomHeroVisual(project);
+  const heroIsCustom = isCustomHeroVisual(project, phase);
+  const heroModeLabel = getWorldPhaseShortLabel(phase, locale);
   /* Les initiales de la semaine viennent de la locale : « L M M J V S D » en
      français, « M T W T F S S » en anglais, toujours à partir du lundi. */
   const weekdayInitials = eachDayOfInterval({
@@ -516,35 +538,46 @@ export function ProjectStage() {
            * invisible. Le sélecteur monte dans le hero.
            */}
           {!isPublicInfo && (
-            <motion.div
-              role="group"
-              aria-label={t("world.phase.group")}
-              data-testid="world-phase-switch"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
-              className="-mt-3 flex w-fit items-center gap-1 rounded-full border border-white/25 bg-white/10 p-1 backdrop-blur-md"
-            >
-              {getWorldPhases(locale).map(entry => {
-                const active = entry.id === phase;
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    data-testid={`world-phase-${entry.id}`}
-                    onClick={() => setPhase(entry.id)}
-                    aria-current={active ? "true" : undefined}
-                    title={entry.label}
-                    className={cn(
-                      "rounded-full px-4 py-1.5 text-xs tracking-wide transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                      active ? "bg-white text-black" : "text-white/80 hover:bg-white/15 hover:text-white",
-                    )}
-                  >
-                    {getWorldPhaseShortLabel(entry.id, locale)}
-                  </button>
-                );
-              })}
-            </motion.div>
+            <div data-testid="world-mode">
+              {/* Le mode est NOMMÉ et expliqué là où on le choisit : les trois
+                  pastilles restent l'unique sélecteur, mais on sait ce qu'on
+                  choisit (17/09). */}
+              <p data-testid="world-mode-label" className="text-xs uppercase tracking-[.14em] text-white/80">
+                {t(`world.mode.${phase}` as never)}
+              </p>
+              <p data-testid="world-mode-role" className="mt-1 text-xs text-white/55">
+                {t(`world.mode.${phase}.role` as never)}
+              </p>
+              <motion.div
+                role="group"
+                aria-label={t("world.phase.group")}
+                data-testid="world-phase-switch"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="mt-2 flex w-fit items-center gap-1 rounded-full border border-white/25 bg-white/10 p-1 backdrop-blur-md"
+              >
+                {getWorldPhases(locale).map(entry => {
+                  const active = entry.id === phase;
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      data-testid={`world-phase-${entry.id}`}
+                      onClick={() => setPhase(entry.id)}
+                      aria-current={active ? "true" : undefined}
+                      title={entry.label}
+                      className={cn(
+                        "rounded-full px-4 py-1.5 text-xs tracking-wide transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+                        active ? "bg-white text-black" : "text-white/80 hover:bg-white/15 hover:text-white",
+                      )}
+                    >
+                      {getWorldPhaseShortLabel(entry.id, locale)}
+                    </button>
+                  );
+                })}
+              </motion.div>
+            </div>
           )}
 
           {/* Le visuel du hero se change là où on le voit : import, URL, ou
@@ -559,7 +592,9 @@ export function ProjectStage() {
               className="-mt-3 flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs tracking-wide text-white/85 backdrop-blur-md transition hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ImagePlus className="h-3 w-3" />
-              {heroIsCustom ? t("world.hero.visual.change") : t("world.hero.visual.choose")}
+              {heroIsCustom
+                ? t("world.hero.visual.change.mode", { phase: heroModeLabel })
+                : t("world.hero.visual.choose.mode", { phase: heroModeLabel })}
             </motion.button>
           )}
 
@@ -842,7 +877,7 @@ export function ProjectStage() {
       {heroEditorOpen && (
         <CenteredBlock
           eyebrow={t("world.hero.visual.eyebrow")}
-          title={t("world.hero.visual.title")}
+          title={`${t("world.hero.visual.title")} · ${heroModeLabel}`}
           description={t("world.hero.visual.desc")}
           onClose={() => setHeroEditorOpen(false)}
           size="lg"
@@ -850,8 +885,13 @@ export function ProjectStage() {
         >
           <VisualImportControl
             label={t("world.hero.visual.field")}
-            value={project.heroVisual ?? heroVisual}
-            onChange={heroVisual => updateProject({ heroVisual })}
+            value={resolveHeroVisual(project, phase)}
+            onChange={visual => {
+              /* Le réglage vaut pour LE MODE courant : les deux autres modes
+                 gardent le visuel du Monde (repli doux, 17/09). */
+              const { heroVisuals } = setHeroVisualFor(project, phase);
+              updateProject({ heroVisuals: { ...heroVisuals, [phase]: visual } });
+            }}
             choices={WORLD_VISUAL_CHOICES}
             choicesLabel={t("world.hero.visual.choices")}
           />

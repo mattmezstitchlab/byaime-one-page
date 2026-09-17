@@ -195,9 +195,27 @@ export const DEFAULT_HERO_VISUAL: WorldVisual = {
   overlay: DEFAULT_VISUAL_OVERLAY,
 };
 
-/** Le visuel du hero : celui du couple s'il en a posé un, sinon celui d'AIME. */
-export function resolveHeroVisual(project: Pick<WorldProject, "heroVisual"> | null | undefined): WorldVisual {
+/**
+ * Le visuel du hero, POUR UN MODE : celui du mode s'il existe, sinon celui du
+ * Monde, sinon celui d'AIME. Un Monde réglé avant le 17/09 n'a que
+ * `heroVisual` : les trois modes l'affichent — rien ne casse.
+ */
+export function resolveHeroVisual(
+  project: Pick<WorldProject, "heroVisual" | "heroVisuals"> | null | undefined,
+  phase?: "avant" | "pendant" | "apres",
+): WorldVisual {
+  const mode = phase ? project?.heroVisuals?.[phase] : null;
+  if (mode?.url) return mode;
   return project?.heroVisual?.url ? project.heroVisual : DEFAULT_HERO_VISUAL;
+}
+
+/** Le visuel à écrire quand on règle le mode courant : jamais undefined. */
+export function setHeroVisualFor(
+  project: Pick<WorldProject, "heroVisual" | "heroVisuals"> | null | undefined,
+  phase: "avant" | "pendant" | "apres",
+): { heroVisuals: NonNullable<WorldProject["heroVisuals"]> } {
+  const visual = resolveHeroVisual(project, phase);
+  return { heroVisuals: { ...(project?.heroVisuals ?? {}), [phase]: visual } };
 }
 
 /**
@@ -205,8 +223,11 @@ export function resolveHeroVisual(project: Pick<WorldProject, "heroVisual"> | nu
  * dans le projet à la création : sans cette distinction, le bouton du hero
  * annoncerait « Changer le visuel » alors que personne n'a encore rien choisi.
  */
-export function isCustomHeroVisual(project: Pick<WorldProject, "heroVisual"> | null | undefined): boolean {
-  const url = project?.heroVisual?.url;
+export function isCustomHeroVisual(
+  project: Pick<WorldProject, "heroVisual" | "heroVisuals"> | null | undefined,
+  phase?: "avant" | "pendant" | "apres",
+): boolean {
+  const url = resolveHeroVisual(project, phase).url;
   return Boolean(url) && url !== DEFAULT_HERO_VISUAL.url;
 }
 

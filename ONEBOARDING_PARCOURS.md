@@ -103,7 +103,8 @@ L'étape a **quatre sous-états**, et chacun n'affiche que sa chose :
 | Rien choisi | Les deux portes (« Créer » / « Rejoindre »), la suggestion du plan. |
 | `créer`, pas encore créé | Le formulaire des cinq réponses + l'aperçu. |
 | `rejoindre`, pas encore choisi | **Le choix du mariage** : la liste des mariages déjà ouverts, ou l'invitation. Rien d'autre. |
-| Un mariage est choisi | Le récapitulatif, avec le bon verbe : **« Votre mariage est ouvert : »** si on l'a créé, **« Vous rejoignez : »** si on y entre — et « Changer de mariage », qui retourne aux deux portes. |
+| Un mariage est choisi | Le récapitulatif, avec le bon verbe : **« Votre mariage est ouvert : »** si on l'a créé, **« Vous rejoignez : »** si on y entre — et « Changer de mariage », qui revient **au choix de ce mode** (la liste pour « rejoindre », le formulaire pour « créer »), jamais aux deux portes. |
+| `rejoindre` → invitation | Le panneau d'invitation s'affiche **dans l'étape** (17/09) : « Question X sur 5 », « Retour » et « Continuer » restent visibles. Sans compte, il s'ouvre quand même et propose la connexion au lieu d'un bouton mort. |
 
 *La correction.* Avant, « Rejoindre un mariage » déroulait immédiatement le
 panneau **« Vous rejoignez : Votre mariage »** — un mariage « choisi » qui
@@ -113,13 +114,29 @@ d'enregistrement. Les deux sont corrigés et verrouillés par test
 (`oneboarding/oneboarding-real-flow.test.tsx`), qui monte le parcours avec le
 vrai store et les vrais schémas du serveur, comme l'aperçu local.
 
+*Le Monde actif nourrit le parcours (17/09).* Un mariage déjà ouvert n'est pas
+une question, c'est une réponse : à l'ouverture, le parcours lit le Monde actif
+(identifiant, rôle effectif) et la participation déjà enregistrée
+(`/projects/:id/my-participation`). L'étape mariage arrive donc avec le mariage
+sélectionné et le bon verbe, et un propriétaire ne se voit plus proposer de
+« rejoindre » son propre mariage — ni de le recréer par inadvertance. La
+personne reste maîtresse de changer (« Changer de mariage »).
+
+*Un seul formulaire par étape (17/09).* Le panneau d'invitation posait son
+propre `<form>` dans le formulaire de l'étape : un `<form>` imbriqué est
+invalide, et « Vérifier mon invitation » remontait au parcours en déclenchant la
+question du mariage (« Choisissez d'abord un mariage »). Le panneau est
+désormais « embarqué » : un bloc, un bouton, rien qui remonte.
+
 **Question 4 sur 5 — « Mon organisation »**
 Moments et horaires du couple. **NOUVEAU**, **DEMANDÉ**, **CONTEXTUEL**.
 Ce sont les mêmes données que la présence d'un invité, présentées du point de
 vue de qui organise.
 
 **Question 5 sur 5 — « Ma Timeline est prête »**
-Récapitulatif, puis **[ Ouvrir ma Timeline ]**. Rien n'y est redemandé.
+Récapitulatif, puis **[ Ouvrir ma Timeline ]** — ou **[ Rejoindre ce mariage ]**
+quand on entre dans le mariage d'un proche : on n'« ouvre » pas le mariage de
+quelqu'un d'autre (17/09). Rien n'y est redemandé.
 
 ---
 

@@ -25,10 +25,17 @@ import {
   normalizePanelId,
   PANEL_FOR_KIND,
   type WeddingPanelId,
+  type WorldPhase,
 } from "@/lib/wedding-navigation";
 import { focusWorldDestination, getWorldNavState, subscribeWorldNav, type WorldNavState } from "@/lib/world-nav-state";
 import { focusWorld } from "@/lib/world-focus";
-import { AIME_SHOW_PANEL_EVENT, takePendingAimePanelShow, type AimePanelShowRequest } from "@/lib/aime-panel-events";
+import {
+  AIME_PANEL_FOLLOW_EVENT,
+  AIME_SHOW_PANEL_EVENT,
+  takePendingAimePanelShow,
+  type AimePanelFollowRequest,
+  type AimePanelShowRequest,
+} from "@/lib/aime-panel-events";
 import { useI18n } from "@/lib/i18n";
 import { useProject } from "@/store/project-store";
 import { EYEBROW, TITLE, LEAD, PILL_SMALL } from "@/lib/site-design";
@@ -68,6 +75,9 @@ export function AimePanel() {
   /* Chaque demande d'invitation (dossier Invités, actions de l'assistant)
      incrémente : le contenu « Réglages du Monde » plonge dans l'invitation. */
   const [inviteSignal, setInviteSignal] = useState(0);
+  /* Ce que la bascule de mode vient de faire : dit dans la zone de contenu,
+     jamais en silence (17/09). */
+  const [modeNotice, setModeNotice] = useState<{ phase: WorldPhase; label?: string } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => subscribeWorldNav(setWorldNav), []);
@@ -101,6 +111,16 @@ export function AimePanel() {
       if (detail?.search) requestAnimationFrame(() => searchInputRef.current?.focus());
     };
     const showPanel = (event: Event) => applyShow((event as CustomEvent<AimePanelShowRequest>).detail);
+    /* Le mode a changé et le contenu n'existe plus ici : la fenêtre RESTE
+       ouverte, le contenu se vide, et la raison est écrite. */
+    const followMode = (event: Event) => {
+      const detail = (event as CustomEvent<AimePanelFollowRequest>).detail;
+      setPresented(null);
+      setModeNotice({
+        phase: detail?.phase ?? "avant",
+        label: detail?.panel ? getWeddingPanelLabels(locale)[detail.panel] : undefined,
+      });
+    };
     const closePanel = () => close("external");
     /* Les actions de l'assistant pointent vers des contenus du panneau :
        le panneau s'ouvre sur la section demandée (ex. « Ouvrir les réglages
@@ -127,6 +147,7 @@ export function AimePanel() {
     };
     window.addEventListener("aime:open-ai", openAI);
     window.addEventListener(AIME_SHOW_PANEL_EVENT, showPanel);
+    window.addEventListener(AIME_PANEL_FOLLOW_EVENT, followMode);
     window.addEventListener(CLOSE_PANEL_EVENT, closePanel);
     window.addEventListener("aime:open-world-settings", openSettings);
     window.addEventListener("aime:open-collaboration-invite", openInvite);
@@ -139,6 +160,7 @@ export function AimePanel() {
     return () => {
       window.removeEventListener("aime:open-ai", openAI);
       window.removeEventListener(AIME_SHOW_PANEL_EVENT, showPanel);
+      window.removeEventListener(AIME_PANEL_FOLLOW_EVENT, followMode);
       window.removeEventListener(CLOSE_PANEL_EVENT, closePanel);
       window.removeEventListener("aime:open-world-settings", openSettings);
       window.removeEventListener("aime:open-collaboration-invite", openInvite);
@@ -160,9 +182,10 @@ export function AimePanel() {
 
   /* Le rôle effectif : l'aperçu invité publie « viewer » dans world-nav-state. */
   const effectiveRole = (worldNav.active && worldNav.role) || currentRole;
+  const currentPhase = worldNav.active ? worldNav.phase : "avant";
   const menu = useMemo(
-    () => getAimePanelMenu({ role: effectiveRole, locale, project, canEdit }),
-    [effectiveRole, locale, project, canEdit],
+    () => getAimePanelMenu({ role: effectiveRole, locale, project, canEdit, phase: currentPhase }),
+    [effectiveRole, locale, project, canEdit, currentPhase],
   );
   const items = useMemo(() => getAimePanelItems(menu), [menu]);
 
@@ -210,6 +233,13 @@ export function AimePanel() {
 
   const selectItem = (item: AimePanelItem) => {
     setSelectedId(item.id);
+    /* Une entrée d'un autre mode : on l'annonce, la bascule se fait en le
+       disant — elle n'est plus un voyage silencieux. */
+    if (item.phase && item.phase !== currentPhase) {
+      setModeNotice({ phase: item.phase, label: item.label });
+    } else {
+      setModeNotice(null);
+    }
     const destination = item.destination;
     if (destination.kind === "panel") {
       if (item.id.startsWith("folder:")) trackEvent("folder_open", { folder: item.id.slice("folder:".length), from: "orb" });
@@ -460,6 +490,20 @@ export function AimePanel() {
               {worldNav.active && (
                 <div data-testid="aime-panel-phases">
                   <p className={cn(EYEBROW, "px-2")}>{t("world.phase.group")}</p>
+                  {/* Ce que le mode courant SERT, en tête de colonne : la même
+                      clarification que dans le héro (17/09). */}
+                  <p
+                    data-testid="aime-panel-mode-label"
+                    className="mt-1.5 px-2 text-[12px] font-medium text-[var(--agency-ink)]"
+                  >
+                    {t(`world.mode.${currentPhase}` as never)}
+                  </p>
+                  <p
+                    data-testid="aime-panel-mode-role"
+                    className="mt-1 px-2 text-[11px] leading-relaxed text-[var(--agency-body)]"
+                  >
+                    {t(`world.mode.${currentPhase}.role` as never)}
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {getWorldPhases(locale).map(entry => (
                       <button
@@ -489,6 +533,14 @@ export function AimePanel() {
                 return (
                   <div key={section.id} data-section={section.id}>
                     <p className={cn(EYEBROW, "px-2")}>{section.title}</p>
+                    {section.id === "modes" && (
+                      <p
+                        data-testid="aime-panel-modes-hint"
+                        className="mt-1.5 px-2 text-[11px] leading-relaxed text-[var(--agency-body)]"
+                      >
+                        {t("aime.panel.otherModes.hint")}
+                      </p>
+                    )}
                     <div className="mt-2 flex flex-col gap-1">
                       {sectionItems.map(item => {
                         const active = isItemActive(item);
@@ -509,6 +561,19 @@ export function AimePanel() {
                             )}
                           >
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                            {item.phase && item.phase !== currentPhase && (
+                              <span
+                                data-testid={`aime-panel-mode-${item.id}`}
+                                className={cn(
+                                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] tracking-wide",
+                                  active
+                                    ? "bg-[var(--agency-paper)]/20 text-[var(--agency-paper)]"
+                                    : "border border-[var(--agency-hairline)] text-[var(--agency-eyebrow)]",
+                                )}
+                              >
+                                {getWorldPhaseShortLabel(item.phase, locale)}
+                              </span>
+                            )}
                             {typeof item.count === "number" && (
                               <span
                                 data-testid={`aime-panel-count-${item.id}`}
@@ -552,6 +617,22 @@ export function AimePanel() {
 
             {/* Zone de contenu : les modules existants du Monde, inchangés. */}
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              {modeNotice && (
+                <p
+                  data-testid="aime-panel-mode-notice"
+                  className="shrink-0 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-7 py-3 text-[12.5px] leading-relaxed text-[var(--agency-body)] sm:px-10"
+                >
+                  {modeNotice.label
+                    ? t("aime.panel.modeNotice", {
+                        phase: getWorldPhaseShortLabel(modeNotice.phase, locale),
+                        label: modeNotice.label,
+                      })
+                    : t("aime.panel.modeLeft", {
+                        phase: getWorldPhaseShortLabel(modeNotice.phase, locale),
+                        label: t("world.item.timeline"),
+                      })}
+                </p>
+              )}
               {presented ? (
                 <>
                   <div className="shrink-0 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-7 py-7 sm:px-10 sm:py-8">

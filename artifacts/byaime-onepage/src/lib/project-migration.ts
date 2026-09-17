@@ -33,6 +33,13 @@ export function normalizeProject(value: WorldProject): WorldProject {
   return {
     ...value,
     heroVisual: normalizeWorldVisual(value.heroVisual),
+    heroVisuals: value.heroVisuals
+      ? {
+          avant: normalizeWorldVisual(value.heroVisuals.avant),
+          pendant: normalizeWorldVisual(value.heroVisuals.pendant),
+          apres: normalizeWorldVisual(value.heroVisuals.apres),
+        }
+      : value.heroVisuals,
     schemaVersion: TIMELINE_SCHEMA_VERSION,
     storyVersion: value.universe === "Mariage" ? 1 : value.storyVersion,
     timeline: enrichedTimeline.sort((a, b) => a.time - b.time),

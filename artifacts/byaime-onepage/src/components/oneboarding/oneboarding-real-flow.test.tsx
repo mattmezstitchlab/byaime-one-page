@@ -22,6 +22,9 @@ import type { ReactNode } from "react";
  *     de cases, et la sélection reste visible sans rouvrir la liste.
  */
 
+/* La session simulée est mutable : l'invitation doit s'ouvrir aussi sans compte. */
+const auth = vi.hoisted(() => ({ signedIn: true }));
+
 vi.mock("@clerk/react", () => {
   const passthrough = ({ children }: { children?: ReactNode }) => children ?? null;
   return {
@@ -30,8 +33,16 @@ vi.mock("@clerk/react", () => {
       when === "signed-in" ? (children ?? null) : null,
     SignIn: () => null,
     SignUp: () => null,
-    useAuth: () => ({ isLoaded: true, isSignedIn: true, userId: "user_test" }),
-    useUser: () => ({ isLoaded: true, isSignedIn: true, user: { id: "user_test" } }),
+    useAuth: () => ({
+      isLoaded: true,
+      isSignedIn: auth.signedIn,
+      userId: auth.signedIn ? "user_test" : null,
+    }),
+    useUser: () => ({
+      isLoaded: true,
+      isSignedIn: auth.signedIn,
+      user: auth.signedIn ? { id: "user_test" } : null,
+    }),
     useSession: () => ({ isLoaded: true, session: null }),
     useClerk: () => ({ addListener: () => () => {}, signOut: async () => {} }),
   };
@@ -53,12 +64,17 @@ import {
 } from "../../../../api-server/src/lib/universalCard";
 import {
   stripCardProjection,
+  emptyParticipation,
   type Participation,
   type ProfessionalFunctioning,
   type UniversalCard,
 } from "@workspace/aime-domain";
 
 type Row = { id: string; title: string; data: unknown; updatedAt: string };
+/* Le jeton d'invitation du test porte l'identifiant du mariage : le stub n'a
+   pas de table de jetons séparée — la vraie table vit côté serveur. */
+const invitations = new Map<string, string>();
+const bodyToken = (token: string) => invitations.get(token) ?? token;
 type ProfileRow = {
   id: string;
   cardUserId: string;
@@ -68,15 +84,18 @@ type ProfileRow = {
 };
 
 let rows: Map<string, Row>;
+let roles: Map<string, string>;
 let card: { userId: string; data: UniversalCard; updatedAt: string } | null;
 let participations: Map<string, Participation>;
+/** La participation telle qu'elle existe déjà pour un mariage. */
+const savedParticipation = (roles: string[]): Participation => ({ ...emptyParticipation(), roles });
 let profiles: Map<string, ProfileRow>;
 let calls: string[];
 
 const now = () => new Date().toISOString();
 const projected = (row: Row) => ({
   ...row,
-  role: "owner",
+  role: roles.get(row.id) ?? "owner",
   data: projectWithCards(
     row.data,
     card && participations.has(row.id)
@@ -197,6 +216,19 @@ vi.stubGlobal(
       }
       if (path.match(/^\/projects\/[^/]+\/rsvp-links$/) && method === "GET")
         return send(200, []);
+      const claimMatch = path.match(/^\/rsvp\/([^/]+)\/claim$/);
+      if (claimMatch && method === "GET") {
+        const row = rows.get(String(bodyToken(claimMatch[1])));
+        return row
+          ? send(200, { projectId: row.id, projectTitle: row.title, guestName: "Camille Martin", alreadyClaimed: false })
+          : send(404, { error: "Invitation invalide ou révoquée." });
+      }
+      if (claimMatch && method === "POST") {
+        const target = String(bodyToken(claimMatch[1]));
+        const row = rows.get(target);
+        if (!row) return send(404, { error: "Invitation invalide ou révoquée." });
+        return send(200, { projectId: row.id });
+      }
       return send(404, { error: `Endpoint non simulé dans l’aperçu local : ${method} ${path}` });
     } catch (e) {
       return send(500, { error: `API simulée en erreur : ${e}` });
@@ -207,7 +239,8 @@ vi.stubGlobal(
 let root: ReturnType<typeof createRoot> | null = null;
 let container: HTMLDivElement | null = null;
 
-async function mount() {
+async function mount(signedIn = true) {
+  auth.signedIn = signedIn;
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -216,7 +249,7 @@ async function mount() {
       <I18nProvider initialLocale="fr">
         <ProjectProvider>
           <Router>
-            <Oneboarding signedIn />
+            <Oneboarding signedIn={signedIn} />
           </Router>
         </ProjectProvider>
       </I18nProvider>,
@@ -268,6 +301,13 @@ const label = (name: string) => {
 
 const submit = () => click(byTestId("oneboarding-submit"));
 
+/** Le bouton dont le libellé contient ce texte (panneaux sans identifiant). */
+const buttonWith = (name: string) =>
+  [...container!.querySelectorAll("button")].find((b) => (b.textContent ?? "").includes(name)) ?? null;
+/** Le champ d'un bloc identifié. */
+const inputIn = (testId: string) =>
+  container!.querySelector(`[data-testid="${testId}"] input`) as HTMLInputElement | null;
+
 /** Ouvre un menu dépliant par son préfixe (s'il est fermé), puis coche l'option.
  * Le menu reste ouvert après un choix (multi-choix) : d'où le garde-fou. */
 async function pickInDropdown(prefix: string, option: string) {
@@ -288,6 +328,16 @@ async function removeChip(prefix: string, option: string) {
   await click(byTestId(`${prefix}-remove-${option}`));
 }
 
+/** Un jeton d'invitation qui mène à un mariage déjà déposé. */
+function invitationFor(id: string, token: string) {
+  invitations.set(token, id);
+}
+
+/** Le mariage compte la personne comme membre (rôle du catalogue). */
+function joinsAs(id: string, role: string) {
+  roles.set(id, role);
+}
+
 /** Dépose un mariage dans le catalogue, comme un mariage déjà ouvert. */
 function seedWedding(id: string, label: string) {
   rows.set(id, {
@@ -306,6 +356,9 @@ function seedWedding(id: string, label: string) {
 
 beforeEach(() => {
   rows = new Map();
+  roles = new Map();
+  invitations.clear();
+  auth.signedIn = true;
   card = null;
   participations = new Map();
   profiles = new Map();
@@ -402,17 +455,14 @@ describe("invité : rejoindre un mariage", () => {
     expect(byTestId("oneboarding-step-wedding")).not.toBeNull();
   });
 
-  it("choisit un mariage déjà ouvert, et la participation part au serveur", async () => {
+  it("le mariage du compte est déjà choisi, et la participation part au serveur", async () => {
+    withSavedCard();
     seedWedding("11111111-1111-4111-8111-111111111111", "Claire & Thomas");
+    joinsAs("11111111-1111-4111-8111-111111111111", "viewer");
     await mount();
-    await reachWeddingStep("Invité");
-    await click(byTestId("oneboarding-wedding-join"));
+    await skipToWeddingStep();
 
-    const select = byTestId("oneboarding-wedding-join-select") as HTMLSelectElement;
-    expect(select).not.toBeNull();
-    setValue(select, "11111111-1111-4111-8111-111111111111");
-    await settle();
-    /* Le mariage choisi est nommé — le panneau apparaît, avec le bon verbe. */
+    /* Le mariage est nommé d'office — le panneau apparaît, avec le bon verbe. */
     const selected = byTestId("oneboarding-wedding-selected")! as HTMLElement;
     expect(selected).not.toBeNull();
     expect(selected.textContent).toContain("Vous rejoignez :");
@@ -483,5 +533,204 @@ describe("le rôle, en menu dépliant", () => {
     await pickInDropdown("activities-picker", "Saxophoniste");
     expect(byTestId("oneboarding-role-proposal")).toBeNull();
     expect(byTestId("role-picker-selected")).toBeNull();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* 17/09 — ce que le parcours fait du Monde ACTIF, de l'invitation et  */
+/* du dernier bouton. Chaque test décrit le comportement attendu.      */
+/* ------------------------------------------------------------------ */
+
+const savedCard: UniversalCard = {
+  firstName: "Camille",
+  lastName: "Martin",
+  nickname: "",
+  city: "Lille",
+  profession: "",
+  photoUrl: "",
+  interests: [],
+};
+
+const OURS = "22222222-2222-4222-8222-222222222222";
+
+/** La carte est déjà enregistrée : l'étape 1 est « connue ». */
+function withSavedCard() {
+  card = { userId: "user_test", data: savedCard, updatedAt: now() };
+}
+
+/** Traverse les deux premières étapes sans rien re-saisir. */
+async function skipToWeddingStep() {
+  await click(byTestId("landing-create-primary"));
+  await submit();
+  expect(byTestId("oneboarding-step-role")).not.toBeNull();
+  await submit();
+  expect(byTestId("oneboarding-step-wedding")).not.toBeNull();
+}
+
+describe("le Oneboarding part du Monde actif", () => {
+  it("un propriétaire retrouve son mariage : ni « rejoindre », ni doublon", async () => {
+    withSavedCard();
+    seedWedding(OURS, "Camille & Alex");
+    joinsAs(OURS, "owner");
+    participations.set(OURS, savedParticipation(["Mariée"]));
+    await mount();
+
+    await click(byTestId("landing-create-primary"));
+    await submit();
+
+    /* Le rôle déjà enregistré est montré tel quel, jamais redemandé. */
+    const roleStep = byTestId("oneboarding-step-role")!;
+    expect(roleStep.textContent).toContain("Mariée");
+    expect(byTestId("known-summary-edit"), "le rôle connu est modifiable").not.toBeNull();
+
+    await submit();
+    const selected = byTestId("oneboarding-wedding-selected");
+    expect(selected, "le mariage déjà ouvert est sélectionné d'office").not.toBeNull();
+    expect(selected!.textContent).toContain("Camille & Alex");
+    expect(selected!.textContent).toContain("Votre mariage est ouvert :");
+    /* Les deux portes du doublon ne sont pas offertes. */
+    expect(byTestId("oneboarding-wedding-create")).toBeNull();
+    expect(byTestId("oneboarding-wedding-join")).toBeNull();
+    /* Et le tunnel reste celui d'un couple, pas d'un invité. */
+    await submit();
+    expect(byTestId("oneboarding-step-organize")).not.toBeNull();
+  });
+
+  it("un invité déjà associé retrouve le mariage qu'il a rejoint", async () => {
+    withSavedCard();
+    seedWedding(OURS, "Claire & Thomas");
+    joinsAs(OURS, "viewer");
+    participations.set(OURS, savedParticipation(["Invité"]));
+    await mount();
+
+    await skipToWeddingStep();
+    const selected = byTestId("oneboarding-wedding-selected");
+    expect(selected, "le mariage rejoint est sélectionné d'office").not.toBeNull();
+    expect(selected!.textContent).toContain("Vous rejoignez :");
+    expect(selected!.textContent).toContain("Claire & Thomas");
+    await submit();
+    expect(byTestId("oneboarding-step-presence")).not.toBeNull();
+  });
+});
+
+describe("l'invitation, dans le cadre des cinq questions", () => {
+  it("sans compte : le panneau s'ouvre et dit ce qu'il faut", async () => {
+    seedWedding(OURS, "Claire & Thomas");
+    await mount(false);
+    await reachWeddingStep("Invité");
+    await click(byTestId("oneboarding-wedding-join"));
+    await click(byTestId("oneboarding-wedding-invite"));
+
+    const panel = byTestId("rsvp-claim-panel");
+    expect(panel, "le bouton d'invitation ne fait plus rien").not.toBeNull();
+    expect(panel!.textContent).toContain("compte");
+    expect(byTestId("rsvp-claim-signin"), "la connexion est proposée").not.toBeNull();
+    /* Le cadre des cinq questions reste visible : on n'a pas quitté le parcours. */
+    expect(byTestId("oneboarding-step-wedding")).not.toBeNull();
+    expect(byTestId("oneboarding-submit")).not.toBeNull();
+  });
+
+  it("connecté : l'invitation s'ouvre DANS l'étape, repère et Continuer compris", async () => {
+    withSavedCard();
+    invitationFor(OURS, "44444444-4444-4444-8444-444444444444");
+    window.history.replaceState({}, "", "/?invitation=44444444-4444-4444-8444-444444444444");
+    await mount();
+    await skipToWeddingStep();
+    await click(byTestId("oneboarding-wedding-join"));
+    await click(byTestId("oneboarding-wedding-invite"));
+
+    expect(byTestId("rsvp-claim-panel")).not.toBeNull();
+    expect(byTestId("oneboarding-step-wedding"), "l'étape reste affichée").not.toBeNull();
+    expect(text()).toContain("Question 3 sur 5");
+    expect(byTestId("oneboarding-submit"), "Continuer reste disponible").not.toBeNull();
+    expect(byTestId("oneboarding-back"), "« Retour » aussi").not.toBeNull();
+    const tokenField = byTestId("rsvp-claim-panel")!.querySelector("input") as HTMLInputElement;
+    expect(tokenField.value, "le lien reçu est déjà là").toBe("44444444-4444-4444-8444-444444444444");
+
+    /*
+     * Le panneau vit DANS le formulaire de l'étape : s'il pose son propre
+     * <form>, le « submit » remonte jusqu'au parcours et déclenche une
+     * question qui n'a rien à voir (« Choisissez d'abord un mariage »).
+     * C'est l'erreur vue au choix du mariage.
+     */
+    expect(byTestId("rsvp-claim-panel")!.querySelector("form"), "aucun formulaire imbriqué").toBeNull();
+    const step = byTestId("oneboarding-step-wedding")!;
+    expect(step.tagName, "l'étape EST le formulaire du parcours").toBe("FORM");
+    expect(
+      step.querySelectorAll("form").length,
+      "rien d'autre ne pose de formulaire dedans",
+    ).toBe(0);
+  });
+
+  it("une invitation valide rattache le mariage, sans quitter le parcours", async () => {
+    withSavedCard();
+    invitationFor(OURS, "44444444-4444-4444-8444-444444444444");
+    window.history.replaceState({}, "", "/?invitation=44444444-4444-4444-8444-444444444444");
+    await mount();
+    await skipToWeddingStep();
+    /* Le mariage n'existe qu'au moment où l'invitation est vérifiée : c'est le
+       serveur qui le révèle, pas le catalogue. */
+    seedWedding(OURS, "Claire & Thomas");
+    joinsAs(OURS, "viewer");
+    await click(byTestId("oneboarding-wedding-join"));
+    await click(byTestId("oneboarding-wedding-invite"));
+    await click(buttonWith("Vérifier mon invitation"));
+    expect(text()).toContain("Adresse vérifiée");
+    await click(inputIn("rsvp-claim-confirm"));
+    await click(buttonWith("Associer cette invitation à ma carte"));
+    await settle(20);
+
+    const selected = byTestId("oneboarding-wedding-selected");
+    expect(selected, "le mariage de l'invitation est sélectionné").not.toBeNull();
+    expect(selected!.textContent).toContain("Claire & Thomas");
+    expect(byTestId("oneboarding-step-wedding")).not.toBeNull();
+  });
+});
+
+describe("la fin du parcours parle du mariage concerné", () => {
+  it("un invité qui rejoint lit « Rejoindre ce mariage »", async () => {
+    withSavedCard();
+    seedWedding(OURS, "Claire & Thomas");
+    joinsAs(OURS, "viewer");
+    await mount();
+    await skipToWeddingStep();
+    await submit();
+    await submit();
+
+    expect(byTestId("oneboarding-step-confirm")).not.toBeNull();
+    expect(byTestId("oneboarding-submit")!.textContent).toContain("Rejoindre ce mariage");
+    expect(byTestId("oneboarding-submit")!.textContent).not.toContain("Ouvrir mon mariage");
+  });
+
+  it("un propriétaire lit « Ouvrir ma Timeline »", async () => {
+    withSavedCard();
+    seedWedding(OURS, "Camille & Alex");
+    joinsAs(OURS, "owner");
+    participations.set(OURS, savedParticipation(["Mariée"]));
+    await mount();
+    await skipToWeddingStep();
+    await submit();
+    await submit();
+
+    expect(byTestId("oneboarding-step-confirm")).not.toBeNull();
+    expect(byTestId("oneboarding-submit")!.textContent).toContain("Ouvrir ma Timeline");
+  });
+
+  it("« Changer de mariage » revient au choix, pas aux deux portes", async () => {
+    withSavedCard();
+    seedWedding(OURS, "Claire & Thomas");
+    seedWedding("33333333-3333-4333-8333-333333333333", "Léa & Sam");
+    joinsAs(OURS, "viewer");
+    participations.set(OURS, savedParticipation(["Invité"]));
+    await mount();
+    await skipToWeddingStep();
+    await click(byTestId("oneboarding-wedding-change"));
+
+    expect(byTestId("oneboarding-wedding-join-choice"), "le choix des mariages revient").not.toBeNull();
+    expect(byTestId("oneboarding-wedding-create"), "pas les deux portes").toBeNull();
+    expect(byTestId("oneboarding-wedding-join"), "pas les deux portes").toBeNull();
+    const select = byTestId("oneboarding-wedding-join-select") as HTMLSelectElement;
+    expect(select).not.toBeNull();
+    expect([...select.options].map((option) => option.textContent).join(" | ")).toContain("Léa & Sam");
   });
 });

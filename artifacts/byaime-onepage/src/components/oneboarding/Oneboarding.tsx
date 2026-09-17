@@ -118,7 +118,8 @@ export function Oneboarding({
 }) {
   const [, navigate] = useLocation();
   const { t, locale } = useI18n();
-  const { projects = [], selectProject, project, createProjectOnServer } = useProject();
+  const { projects = [], selectProject, project, createProjectOnServer, currentRole } =
+    useProject();
 
   const [stage, setStage] = useState<"entry" | "flow" | "import">("entry");
   const [index, setIndex] = useState(0);
@@ -244,6 +245,49 @@ export function Oneboarding({
       active = false;
     };
   }, [signedIn, reloadToken]);
+
+  /* ------------------------------------------------------------------ */
+  /* Le Monde actif nourrit le parcours (17/09).                          */
+  /* ------------------------------------------------------------------ */
+  /*
+   * Un mariage déjà ouvert n'est pas une question, c'est une réponse.
+   *
+   * Sans cette lecture, le parcours repartait de zéro : une mariée à qui
+   * BYAIME proposait de « rejoindre » son propre mariage, un rôle déjà
+   * enregistré redemandé, et la porte « Créer un mariage » ouverte au même
+   * niveau — donc un second Monde possible par inadvertance. On lit donc le
+   * Monde actif (identifiant, rôle, participation) une fois, puis on laisse la
+   * personne maîtresse de changer (`oneboarding-wedding-change`).
+   */
+  const seededWorldRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!signedIn) return;
+    const id = project?.id;
+    if (!id || seededWorldRef.current === id) return;
+    seededWorldRef.current = id;
+    const owns = currentRole === "owner" || currentRole === "planner";
+    setProjectId(id);
+    setWeddingMode((mode) => mode ?? (owns ? "create" : "join"));
+    setContextReady(true);
+    let active = true;
+    void (async () => {
+      try {
+        const current = await api(`/projects/${id}/my-participation`);
+        if (!active || !current) return;
+        const { linkedRsvp: source, ...context } = current;
+        setPresence({ ...emptyParticipation(), ...context });
+        setWeddingRoles(Array.isArray(context.roles) ? context.roles : []);
+        setLinkedRsvp(source ?? null);
+        setHasSavedContext(true);
+      } catch {
+        /* Le mariage reste sélectionné : seule la participation manque. */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn, project?.id, currentRole]);
 
   /* ------------------------------------------------------------------ */
   /* Le plan : quoi demander, et dans quel ordre.                        */
@@ -652,20 +696,6 @@ export function Oneboarding({
       />
     );
 
-  if (joining && signedIn && version)
-    return (
-      <RsvpClaimPanel
-        initialToken={invitationToken.current}
-        onClose={() => setJoining(false)}
-        onJoined={async (id) => {
-          invitationToken.current = "";
-          setJoining(false);
-          setWeddingMode("join");
-          await selectWedding(id);
-        }}
-      />
-    );
-
   if (editingProfile)
     return (
       <ProfessionalProfileEditor
@@ -718,7 +748,13 @@ export function Oneboarding({
         submitTestId="oneboarding-submit"
         continueLabel={
           step.id === "confirm"
-            ? "Ouvrir mon mariage"
+            ? !projectId
+              ? "Ouvrir mon mariage"
+              : /* Le verbe suit le cas : on n'« ouvre » pas le mariage de
+                   quelqu'un d'autre, on le rejoint (17/09). */
+                weddingMode === "join"
+                ? "Rejoindre ce mariage"
+                : "Ouvrir ma Timeline"
             : step.id === "wedding" && weddingMode === "create" && !projectId
               ? "Créer ce mariage"
               : undefined
@@ -1032,7 +1068,27 @@ export function Oneboarding({
         {/* ---------------------------------------------------------- */}
         {step.id === "wedding" && (
           <div className="mt-5 space-y-5">
-            {projectId ? (
+            {joining ? (
+              /*
+               * L'invitation est une MODALITÉ de l'étape mariage, pas une
+               * sixième page (17/09) : elle s'affiche DANS le cadre, pour que
+               * le repère « Question X sur 5 » et « Continuer » restent sous
+               * les yeux. Elle s'ouvre aussi sans compte : le panneau dit
+               * alors, en une phrase, ce qu'il faut — au lieu d'un bouton mort.
+               */
+              <RsvpClaimPanel
+                signedIn={signedIn}
+                embedded
+                initialToken={invitationToken.current}
+                onClose={() => setJoining(false)}
+                onJoined={async (id) => {
+                  invitationToken.current = "";
+                  setJoining(false);
+                  setWeddingMode("join");
+                  await selectWedding(id);
+                }}
+              />
+            ) : projectId ? (
               /* Un mariage est choisi : récapitulatif avec le bon verbe —
                  « ouvert » si on l'a créé ici, « rejoignez » si on y entre.
                  C'est la SEULE chose affichée à cet état : plus de formulaire
@@ -1059,12 +1115,25 @@ export function Oneboarding({
                   data-testid="oneboarding-wedding-change"
                   className="min-h-11 text-[12.5px] underline text-white/60"
                   onClick={() => {
-                    setWeddingMode(null);
+                    /*
+                     * Revenir AU CHOIX, pas aux deux portes (17/09) : on garde
+                     * le mode (créer ou rejoindre) et on rouvre ce qu'il
+                     * propose — la liste des mariages pour « rejoindre », le
+                     * formulaire pour « créer ». Re-cliquer « Rejoindre »
+                     * n'était pas un choix, c'était une corvée.
+                     */
                     setProjectId("");
                     setContextReady(false);
                     setHasSavedContext(false);
                     setLinkedRsvp(null);
                     setPresence((prev) => ({ ...emptyParticipation(), roles: prev.roles }));
+                    setWeddingMode(
+                      (mode) =>
+                        mode ??
+                        (currentRole === "owner" || currentRole === "planner"
+                          ? "create"
+                          : "join"),
+                    );
                   }}
                 >
                   Changer de mariage
