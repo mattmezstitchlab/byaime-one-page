@@ -47,6 +47,18 @@ describe("getAimePanelMenu", () => {
     expect(aide.items.map(item => item.id)).toEqual(["ask", "share-doc", "create", "me", "world-settings"]);
   });
 
+  it("canEdit : « Modifier l'ouverture » apparaît dans l'aide, sinon pas", () => {
+    const withEdit = getAimePanelMenu({ role: "owner", locale: "fr", project, canEdit: true });
+    const aide = withEdit.sections.find(section => section.id === "aide")!;
+    expect(aide.items.map(item => item.id)).toContain("hero-editor");
+    const hero = aide.items.find(item => item.id === "hero-editor");
+    expect(hero?.destination).toEqual({ kind: "action", action: "hero-editor" });
+
+    const readOnly = getAimePanelMenu({ role: "owner", locale: "fr", project, canEdit: false });
+    const aideRO = readOnly.sections.find(section => section.id === "aide")!;
+    expect(aideRO.items.map(item => item.id)).not.toContain("hero-editor");
+  });
+
   it("viewer : ni budget, ni contrats, ni tâches, ni organisation", () => {
     const menu = getAimePanelMenu({ role: "viewer", locale: "fr", project });
     const ids = getAimePanelItems(menu).map(item => item.id);

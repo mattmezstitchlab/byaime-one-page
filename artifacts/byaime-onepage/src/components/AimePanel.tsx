@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { DocumentShare } from "./DocumentShare";
 import { MondePanel } from "./panels/MondePanel";
 import { AssistantChat } from "./AssistantChat";
+import { PortalContent, type PortalContentMode } from "./PortalContent";
 import { AimeOrb } from "./AimeOrb";
 import {
   getAimePanelItems,
@@ -55,15 +56,18 @@ import { trackEvent } from "@/lib/analytics";
 
 const CLOSE_PANEL_EVENT = "aime:close-world-panel";
 
-export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
+export function AimePanel() {
   const { t, locale, setLocale } = useI18n();
-  const { project, currentRole } = useProject();
+  const { project, currentRole, canEdit } = useProject();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [presented, setPresented] = useState<{ panel: WeddingPanelId; momentId: string | null } | null>(null);
   const [filter, setFilter] = useState("");
   const [worldNav, setWorldNav] = useState<WorldNavState>(() => getWorldNavState());
+  /* Chaque demande d'invitation (dossier Invités, actions de l'assistant)
+     incrémente : le contenu « Réglages du Monde » plonge dans l'invitation. */
+  const [inviteSignal, setInviteSignal] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => subscribeWorldNav(setWorldNav), []);
@@ -90,11 +94,31 @@ export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
     const openAI = (event: Event) => {
       const detail = (event as CustomEvent<{ item?: string; section?: string; search?: boolean }>).detail;
       setOpen(true);
-      if (detail?.item) setSelectedId(detail.item);
+      if (detail?.item) {
+        setSelectedId(detail.item);
+        setPresented(null);
+      }
       if (detail?.search) requestAnimationFrame(() => searchInputRef.current?.focus());
     };
     const showPanel = (event: Event) => applyShow((event as CustomEvent<AimePanelShowRequest>).detail);
     const closePanel = () => close("external");
+    /* Les actions de l'assistant pointent vers des contenus du panneau :
+       le panneau s'ouvre sur la section demandée (ex. « Ouvrir les réglages
+       du Monde », « Inviter en choisissant un rôle »). */
+    const openSettings = () => {
+      setOpen(true);
+      setPresented(null);
+      setSelectedId("world-settings");
+    };
+    const openInvite = () => {
+      setOpen(true);
+      setPresented(null);
+      setSelectedId("world-settings");
+      setInviteSignal(signal => signal + 1);
+    };
+    /* Le contenu « Créer » choisit un geste : le Monde l'exécute dans le
+       cockpit — le panneau se referme pour laisser la place. */
+    const createTarget = () => close("user");
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
@@ -104,6 +128,9 @@ export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
     window.addEventListener("aime:open-ai", openAI);
     window.addEventListener(AIME_SHOW_PANEL_EVENT, showPanel);
     window.addEventListener(CLOSE_PANEL_EVENT, closePanel);
+    window.addEventListener("aime:open-world-settings", openSettings);
+    window.addEventListener("aime:open-collaboration-invite", openInvite);
+    window.addEventListener("aime:open-create-target", createTarget);
     document.addEventListener("keydown", onKey);
     /* Premier chargement : une demande en file (le Monde a demandé un
        panneau avant ce montage) est reprise ici. */
@@ -113,6 +140,9 @@ export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
       window.removeEventListener("aime:open-ai", openAI);
       window.removeEventListener(AIME_SHOW_PANEL_EVENT, showPanel);
       window.removeEventListener(CLOSE_PANEL_EVENT, closePanel);
+      window.removeEventListener("aime:open-world-settings", openSettings);
+      window.removeEventListener("aime:open-collaboration-invite", openInvite);
+      window.removeEventListener("aime:open-create-target", createTarget);
       document.removeEventListener("keydown", onKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,8 +161,8 @@ export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
   /* Le rôle effectif : l'aperçu invité publie « viewer » dans world-nav-state. */
   const effectiveRole = (worldNav.active && worldNav.role) || currentRole;
   const menu = useMemo(
-    () => getAimePanelMenu({ role: effectiveRole, locale, project }),
-    [effectiveRole, locale, project],
+    () => getAimePanelMenu({ role: effectiveRole, locale, project, canEdit }),
+    [effectiveRole, locale, project, canEdit],
   );
   const items = useMemo(() => getAimePanelItems(menu), [menu]);
 
@@ -146,10 +176,16 @@ export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
   const selectedItem = selectedId ? items.find(item => item.id === selectedId) ?? null : null;
 
   /* Une entrée « contenu » : son action s'affiche DANS la zone de contenu
-     (question, document). Les autres actions exécutent et referment. */
+     (question, document, création, mon espace, réglages, ouverture). Les
+     autres actions exécutent et referment. */
   const isContentAction = (item: AimePanelItem | null | undefined): boolean =>
     !!item && item.destination.kind === "action" &&
-    (item.destination.action === "ask" || item.destination.action === "share-doc");
+    (item.destination.action === "ask" ||
+      item.destination.action === "share-doc" ||
+      item.destination.action === "create" ||
+      item.destination.action === "me" ||
+      item.destination.action === "world-settings" ||
+      item.destination.action === "hero-editor");
 
   /*
    * La recherche unifiée (17/09, phase 2) : la même case sert à TROIS gestes —
@@ -194,20 +230,14 @@ export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
     }
     switch (destination.action) {
       case "share-doc":
-        /* Contenu du panneau : on reste ouvert. */
-        return;
       case "create":
-        window.dispatchEvent(new Event("aime:open-create"));
-        close("user");
-        break;
       case "me":
-        onOpenMe?.();
-        close("user");
-        break;
       case "world-settings":
-        window.dispatchEvent(new Event("aime:open-world-settings"));
-        close("user");
-        break;
+      case "hero-editor":
+        /* Contenu du panneau : on reste ouvert, la zone de contenu change
+           (et un dossier présenté avant cède la place). */
+        setPresented(null);
+        return;
       case "guest-preview":
         window.dispatchEvent(new Event("aime:toggle-guest-preview"));
         close("user");
@@ -237,6 +267,45 @@ export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
   };
 
   const dateLocale = locale === "en" ? enUS : fr;
+
+  /* La zone de contenu porte, outre les panneaux du Monde (ci-dessus), les
+     six « contenus » du menu : question, document, création, mon espace,
+     réglages du Monde, ouverture. Chacun est un composable du panneau. */
+  const renderPanelContent = (item: AimePanelItem) => {
+    if (item.destination.kind !== "action") return null;
+    const action = item.destination.action;
+    switch (action) {
+      case "ask":
+        return (
+          <div className="mx-auto max-w-4xl" data-testid="aime-panel-ask">
+            <AssistantChat />
+          </div>
+        );
+      case "share-doc":
+        return (
+          <div className="mx-auto max-w-4xl" data-testid="aime-panel-share-doc">
+            <DocumentShare />
+          </div>
+        );
+      case "create":
+      case "me":
+      case "world-settings":
+      case "hero-editor":
+        return (
+          <div className="mx-auto max-w-4xl" data-testid={`aime-panel-${action}`}>
+            <PortalContent
+              key={action}
+              mode={action as PortalContentMode}
+              onMode={mode => setSelectedId(mode)}
+              inviteSignal={action === "world-settings" ? inviteSignal : 0}
+            />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   const moment = presented?.momentId ? project?.timeline.find(entry => entry.id === presented.momentId) : undefined;
   const completion = project?.tasks.length
     ? Math.round((project.tasks.filter(task => task.status === "termine").length / project.tasks.length) * 100)
@@ -547,15 +616,7 @@ export function AimePanel({ onOpenMe }: { onOpenMe?: () => void }) {
                     )}
                   </div>
                   <div className="min-h-0 flex-1 overflow-y-auto bg-[#fcfbfa] px-7 py-8 sm:px-10 sm:py-10">
-                    {selectedItem!.destination.kind === "action" && selectedItem!.destination.action === "ask" ? (
-                      <div className="mx-auto max-w-4xl" data-testid="aime-panel-ask">
-                        <AssistantChat />
-                      </div>
-                    ) : (
-                      <div className="mx-auto max-w-4xl" data-testid="aime-panel-share-doc">
-                        <DocumentShare />
-                      </div>
-                    )}
+                    {renderPanelContent(selectedItem!)}
                   </div>
                 </>
               ) : (

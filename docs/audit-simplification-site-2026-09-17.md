@@ -299,7 +299,7 @@ fermer, contenu) — le test `data-panel` reste, le dessin change.
 **525** (frontend, dont 6 nouveaux sur la navigation et l'accueil) verts, typecheck et
 build OK après chaque lot.
 
-### P4 — Le Panneau AIME unique — 🚧 EN COURS (plan `plan-panneau-unique-2026-09-17.md`)
+### P4 — Le Panneau AIME unique — ✅ FAIT, 3/3 phases (plan `plan-panneau-unique-2026-09-17.md`)
 
 16. 🔁 **Retour au principe d'origine (décision utilisateur, 17/09)** : l'orbe « + »
     est **l'unique porte d'entrée** de l'espace privé. P3 avait au contraire retiré
@@ -326,8 +326,20 @@ build OK après chaque lot.
     colonne : **trouver** (Moments → la Timeline), **demander** (AIME), **aller**
     (colonne filtrée) ; l'aperçu invité filtre la colonne. **526 tests frontend
     verts (75 fichiers)**, typecheck et build OK.
-19. ⏳ **Phase 3** : section MON COMPTE (PortalControls), bouton Créer direct
-    (remplace GlobalCreateCenter), cockpit = contenu seul.
+19. ✅ **Phase 3 (ME, création, cockpit épuré)** : `PortalControls.tsx`
+    (1 198 lg) et `GlobalCreateCenter.tsx` supprimés — leur contenu devient du
+    **contenu de panneau** via `PortalContent.tsx` (quatre modes : Créer, Mon
+    espace, Réglages du Monde, Modifier l'ouverture). « Mon espace » = profil,
+    Ma carte (plus de lien dans l'en-tête), Mes Mondes, préférences (apparence,
+    langue), déconnexion et suppression de compte confirmée. « Créer » = les
+    gestes dans le panneau, le choix referme sur le cockpit. « Modifier
+    l'ouverture » (ex bouton « Éditer » de l'en-tête, si rôle éditant) =
+    formulaire héro dans le panneau. L'en-tête mobile ne garde que le logo ;
+    les actions de l'assistant (« réglages », « inviter ») ouvrent le panneau
+    sur le bon contenu. E2E `aime.spec.ts` réécrite sur le flux orbe →
+    panneau. **529 tests frontend verts (74 fichiers)**, typecheck et build OK.
+    Dette assumée : le contenu « Mon espace » reste en français durci (à
+    traduire en P5).
 
 ---
 
@@ -358,7 +370,7 @@ build OK après chaque lot.
 | Libellés de jargon retravaillés | ~20 familles de clés i18n (FR + EN) + 5 composants durcis + registry |
 | Chaînes durcies FR hors i18n restantes | AdminSommaire (privé), BilanPage nettoyée |
 | Modèles de navigation superposés | 3 (dossiers / items de phase / rail) — P3 |
-| Surfaces de navigation absorbées (P4) | `CommandBar.tsx` (236 lg) + `BottomDock.tsx` (309 lg) → `AimePanel.tsx` unique — Phase 1 |
+| Surfaces de navigation absorbées (P4) | Phase 1 : `CommandBar.tsx` (236 lg) + `BottomDock.tsx` (309 lg). Phase 2 : `WorldTopMenu.tsx` + `WorldSearch.tsx` + `WeddingFolders.tsx` + `admin-plan.ts` (top menu, rangée, loupe). Phase 3 : `PortalControls.tsx` (1 198 lg) + `GlobalCreateCenter.tsx` (90 lg) → le tout dans `AimePanel.tsx` unique |
 | Portes d'entrée vers les mêmes 7 dossiers | 3 écrans + l'orbe — P3 |
 
 Voir la section P3 pour le bilan complet des trois lots.

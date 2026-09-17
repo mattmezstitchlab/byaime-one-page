@@ -24,9 +24,17 @@ class IntersectionObserverStub {
 }
 (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver ??= IntersectionObserverStub;
 
+/* Le compte simulé : configurable par test (le contenu « Mon espace » le lit). */
+let mockClerkUser: {
+  fullName?: string;
+  firstName?: string;
+  primaryEmailAddress?: { emailAddress?: string; verification?: { status?: string } };
+  externalAccounts?: { id: string; provider: string }[];
+  createdAt?: string;
+} | null = null;
 vi.mock("@clerk/react", () => ({
   useClerk: () => ({ openUserProfile: vi.fn(), signOut: vi.fn() }),
-  useUser: () => ({ user: null }),
+  useUser: () => ({ user: mockClerkUser }),
   useAuth: () => ({ isSignedIn: true, isLoaded: true, userId: "user_1" }),
 }));
 
@@ -90,6 +98,7 @@ afterEach(() => {
   root = null;
   container = null;
   window.sessionStorage.clear();
+  mockClerkUser = null;
 });
 
 /** Le Monde + le Panneau AIME monté à côté, comme PrivateLayout le fait. */
@@ -221,16 +230,88 @@ describe("le Panneau AIME, la seule porte d'entrée", () => {
     expect(panel.textContent).toContain("Rien ne correspond");
   });
 
-  it("« Créer » diffuse l'événement de création et referme le panneau", async () => {
+  it("« Créer » : les gestes de création s'affichent DANS le panneau, le choix referme", async () => {
     newProject();
     await mountWorld();
-    const created = vi.fn();
-    window.addEventListener("aime:open-create", created);
+    const target = vi.fn();
+    window.addEventListener("aime:open-create-target", target);
     openPanel();
     click('[data-testid="aime-panel-item-create"]');
-    expect(created, "l'événement de création part au centre existant").toHaveBeenCalled();
+    /* Le panneau reste ouvert : la création est du contenu, pas une fenêtre. */
+    const panel = document.querySelector('[data-testid="aime-panel"]');
+    expect(panel, "le panneau reste ouvert sur le contenu Création").not.toBeNull();
+    expect(document.querySelector('[data-testid="portal-create"]'), "le contenu Créer est là").not.toBeNull();
+    expect(document.querySelector('[data-testid="portal-create"]')!.textContent).toContain("Personne ou organisation");
+    expect(document.querySelector('[data-testid="portal-create"]')!.textContent).toContain("Moment");
+    /* Choisir un geste : le Monde l'exécute dans le cockpit, le panneau se referme. */
+    const person = [...document.querySelectorAll<HTMLElement>('[data-testid="portal-create"] button')].find(button => button.textContent?.includes("Personne ou organisation"))!;
+    act(() => person.click());
+    expect(target, "le Monde reçoit le geste de création").toHaveBeenCalledWith(expect.anything());
     expect(document.querySelector('[data-testid="aime-panel"]'), "le panneau se referme").toBeNull();
-    window.removeEventListener("aime:open-create", created);
+    window.removeEventListener("aime:open-create-target", target);
+  });
+
+  it("« Mon espace » : le compte s'affiche DANS le panneau (profil, Ma carte, Mondes, déconnexion)", async () => {
+    mockClerkUser = {
+      fullName: "Camille Dupont",
+      primaryEmailAddress: { emailAddress: "camille@exemple.fr", verification: { status: "verified" } },
+      createdAt: "2026-01-10T09:00:00.000Z",
+    };
+    newProject();
+    await mountWorld();
+    openPanel();
+    click('[data-testid="aime-panel-item-me"]');
+    const me = document.querySelector('[data-testid="portal-me"]');
+    expect(me, "le contenu Mon espace est dans le panneau").not.toBeNull();
+    expect(me!.textContent).toContain("Camille Dupont");
+    expect(me!.textContent).toContain("camille@exemple.fr");
+    /* Ma carte vit ici (plus de lien dans l'en-tête). */
+    expect(me!.querySelector('[data-testid="me-open-card"]'), "Ma carte est une entrée de l'espace").not.toBeNull();
+    /* Les sous-sections s'ouvrent dans le même contenu. */
+    const sensitive = [...me!.querySelectorAll("button")].find(button => button.textContent === "Zone sensible")!;
+    act(() => sensitive.click());
+    expect(me!.textContent).toContain("Se déconnecter");
+    expect(me!.textContent).toContain("Supprimer mon compte");
+    const worlds = [...me!.querySelectorAll("button")].find(button => button.textContent === "Mes Mondes")!;
+    act(() => worlds.click());
+    expect(me!.textContent).toContain("Mondes accessibles");
+    expect(document.querySelector('[data-testid="aime-panel"]'), "le panneau reste ouvert").not.toBeNull();
+  });
+
+  it("« Réglages du Monde » : les réglages s'affichent DANS le panneau, l'invitation y plonge", async () => {
+    newProject();
+    await mountWorld();
+    openPanel();
+    click('[data-testid="aime-panel-item-world-settings"]');
+    const settings = document.querySelector('[data-testid="portal-world-settings"]');
+    expect(settings, "le contenu Réglages est dans le panneau").not.toBeNull();
+    expect(settings!.textContent).toContain("Rôle actuel : owner");
+    expect(settings!.textContent).toContain("Inviter à collaborer");
+    expect(settings!.textContent).toContain("Confidentialité & conservation");
+    /* L'invitation est une sous-section du même contenu, pas une fenêtre. */
+    const invite = [...settings!.querySelectorAll("button")].find(button => button.textContent === "Inviter à collaborer")!;
+    act(() => invite.click());
+    expect(settings!.textContent).toContain("Envoyer l’invitation");
+    /* Une demande d'invitation de l'extérieur (assistant, dossier Invités)
+       ouvre le panneau sur la même sous-section. */
+    act(() => window.dispatchEvent(new Event("aime:open-collaboration-invite")));
+    expect(document.querySelector('[data-testid="aime-panel"]'), "le panneau s'ouvre").not.toBeNull();
+    expect(document.querySelector('[data-testid="portal-world-settings"]')!.textContent).toContain("Envoyer l’invitation");
+  });
+
+  it("« Modifier l'ouverture » : l'éditeur du héro est un contenu du panneau", async () => {
+    newProject("Notre mariage le 5 août 2027, près de Lille, 90 invités.");
+    await mountWorld();
+    openPanel();
+    const heroItem = document.querySelector('[data-testid="aime-panel-item-hero-editor"]');
+    expect(heroItem, "l'owner voit « Modifier l'ouverture » dans la colonne").not.toBeNull();
+    click('[data-testid="aime-panel-item-hero-editor"]');
+    const editor = document.querySelector('[data-testid="portal-hero-editor"]');
+    expect(editor, "le formulaire d'ouverture est dans le panneau").not.toBeNull();
+    const title = editor!.querySelector<HTMLInputElement>('input[name="title"]');
+    expect(title, "le titre se modifie ici").not.toBeNull();
+    expect(editor!.querySelector('input[type="date"]'), "la date se modifie ici").not.toBeNull();
+    expect(document.querySelector('[data-testid="aime-panel"]'), "le panneau reste ouvert").not.toBeNull();
   });
 
   it("« Poser une question » ouvre le chat AIME dans la zone de contenu", async () => {

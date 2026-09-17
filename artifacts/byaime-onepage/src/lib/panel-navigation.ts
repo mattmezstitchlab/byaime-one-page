@@ -32,6 +32,7 @@ export type AimePanelActionId =
   | "share-doc"
   | "create"
   | "me"
+  | "hero-editor"
   | "world-settings"
   | "guest-preview"
   | "overview"
@@ -69,6 +70,8 @@ export interface AimePanelMenuContext {
   role: string;
   locale?: Locale;
   project: WorldProject | null;
+  /** Le rôle courant peut modifier le Monde (l'ouverture, les réglages). */
+  canEdit?: boolean;
 }
 
 const label = (locale: Locale, key: string) => translate(locale, key as never);
@@ -81,7 +84,7 @@ const label = (locale: Locale, key: string) => translate(locale, key as never);
 const allowed = (id: string, role: string): boolean =>
   isWeddingEntryAllowed({ id, label: "", description: "", destination: { kind: "view", view: "chronological" } }, getWeddingCapabilities(role));
 
-export function getAimePanelMenu({ role, locale = "fr", project }: AimePanelMenuContext): AimePanelMenu {
+export function getAimePanelMenu({ role, locale = "fr", project, canEdit = false }: AimePanelMenuContext): AimePanelMenu {
   /* ——— MONDE : le programme + les sept dossiers, les mêmes pour tout le mariage. ——— */
   const monde: AimePanelItem[] = [
     {
@@ -175,6 +178,16 @@ export function getAimePanelMenu({ role, locale = "fr", project }: AimePanelMenu
   }
 
   /* ——— AIDE : les gestes simples, en langage clair. ——— */
+  /* L'ouverture se modifie seulement si le rôle courant peut éditer le Monde.
+     Typé explicitement : un spread conditionnel casse le typage contextuel
+     du tableau sinon. */
+  const heroEditorItem: AimePanelItem = {
+    id: "hero-editor",
+    section: "aide",
+    label: label(locale, "aime.panel.editHero"),
+    description: label(locale, "aime.panel.editHero.desc"),
+    destination: { kind: "action", action: "hero-editor" },
+  };
   const aide: AimePanelItem[] = [
     {
       id: "ask",
@@ -197,6 +210,7 @@ export function getAimePanelMenu({ role, locale = "fr", project }: AimePanelMenu
       description: label(locale, "aime.panel.create.desc"),
       destination: { kind: "action", action: "create" },
     },
+    ...(canEdit ? [heroEditorItem] : []),
     {
       id: "me",
       section: "aide",

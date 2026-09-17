@@ -237,13 +237,39 @@ nouveaux (chat en panneau, recherche unifiée, curseur de recherche par
 deep-link, filtre aperçu invité) : **526 tests frontend verts (75 fichiers)**,
 typecheck et build OK.
 
-### Phase 3 — ME, création, cockpit épuré (~1,5 j)
+### Phase 3 — ME, création, cockpit épuré (~1,5 j) — ✅ FAIT
 9. Section MON COMPTE : profil, ma carte, mes Mondes, réglages, langue, déconnexion
    (le contenu de PortalControls devient du contenu de panneau).
 10. `GlobalCreateCenter` → bouton Créer de la section AIDE.
 11. Cockpit = contenu seul (héro + timeline + périodes + accueil Monde neuf).
 12. `PortalControls` réduit à son contenu (plus de modale propre) ; tests E2E mis à
     jour (onboarding → premier invité via le panneau).
+
+**Bilan Phase 3** : tout l'espace privé tient dans le panneau, sans aucune
+fenêtre en dehors de lui (hors confirmations de bas de route) :
+- `PortalControls.tsx` (1 198 lg) et `GlobalCreateCenter.tsx` supprimés ; leur
+  contenu vit dans `PortalContent.tsx` (quatre modes : Créer, Mon espace,
+  Réglages du Monde, Modifier l'ouverture) que la zone de contenu du panneau
+  rend à la place du Monde.
+- « Mon espace » = profil, Ma carte (plus de lien dans l'en-tête), Mes Mondes
+  (WorldSwitcher), préférences (apparence, langue), zone sensible (export,
+  déconnexion, suppression de compte confirmée).
+- « Créer » = les gestes de création dans le panneau ; le choix diffuse
+  `aime:open-create-target` au Monde et referme le panneau sur le cockpit.
+- « Modifier l'ouverture » (ex bouton « Éditer » de l'en-tête, visible si le
+  rôle peut éditer) = formulaire héro dans le panneau ; l'enregistrement
+  bascule sur les Réglages du Monde.
+- L'en-tête mobile ne garde que le logo ; le cockpit = héro + bandeau
+  participants + timeline.
+- Les actions de l'assistant (« Ouvrir les réglages du Monde », « Inviter en
+  choisissant un rôle ») ouvrent le panneau sur le bon contenu ; l'invitation
+  est une sous-section des réglages.
+- E2E `aime.spec.ts` réécrite sur le flux orbe → panneau (ME, réglages,
+  Monde actif). 4 tests nouveaux (création en panneau, Mon espace, Réglages +
+  invitation, éditeur d'ouverture) + 1 test de menu (`canEdit`) :
+  **529 tests frontend verts (74 fichiers)**, typecheck et build OK.
+- Dette assumée (comme avant le déménagement) : le contenu « Mon espace »
+  reste en français durci — à traduire dans le dictionnaire FR/EN en P5.
 
 **Total : ~5 jours.** Chaque phase laisse le site utilisable et les tests verts
 (525 tests frontend actuels + ceux convertis).
