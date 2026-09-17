@@ -109,7 +109,7 @@ export function VisibilityGraph({ onOpenPanel }: { onOpenPanel?: (panel: Wedding
       </ul>
 
       <div className="overflow-x-auto rounded-2xl border border-foreground/10 bg-background">
-        <svg viewBox={`0 0 900 ${height}`} className="min-w-[760px] w-full" role="img" aria-label={`Graphe de visibilité vu comme ${ROLE_LABELS[role]}`}>
+        <svg viewBox={`0 0 900 ${height}`} className="min-w-[760px] w-full" role="img" aria-label={`Ce que chacun voit, vu comme ${ROLE_LABELS[role]}`}>
           {/* edges */}
           {model.edges.map((edge, i) => {
             const from = events.findIndex(node => node.key === edge.from);

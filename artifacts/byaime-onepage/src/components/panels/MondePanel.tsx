@@ -82,6 +82,15 @@ export function PilotagePanel({ initial, momentId }: { initial?: PilotageTab; mo
   );
 }
 
+/** L'onglet initial de l'Organisation unifiée, d'après le panneau demandé. */
+export type OrgaSection = "ceremony" | "logistics" | "team";
+
+const ORGA_SECTION_FOR_PANEL: Partial<Record<WeddingPanelId, OrgaSection>> = {
+  ceremony: "ceremony",
+  logistics: "logistics",
+  team: "team",
+};
+
 /** Le contenu de la fenêtre unique, pour un panneau donné. */
 export function MondePanel({ panel, momentId = null }: { panel: WeddingPanelId; momentId?: string | null }) {
   const normalized = normalizePanelId(panel);
@@ -91,5 +100,11 @@ export function MondePanel({ panel, momentId = null }: { panel: WeddingPanelId; 
   if (normalized === "planning") return <PlanningPanel />;
   if (normalized === "guests") return <GuestPanel momentId={momentId} />;
   if (normalized === "providers") return <ProviderPanel momentId={momentId} />;
-  return <WeddingModulesPanel module={normalized as WeddingModule} momentId={momentId} />;
+  return (
+    <WeddingModulesPanel
+      module={normalized as WeddingModule}
+      momentId={momentId}
+      orgaSection={normalized === "logistics" ? ORGA_SECTION_FOR_PANEL[panel] ?? "ceremony" : undefined}
+    />
+  );
 }

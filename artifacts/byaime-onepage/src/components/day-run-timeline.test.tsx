@@ -36,7 +36,7 @@ describe("DayRunTimeline (régie du Jour J)", () => {
     // Bandeau du direct : le Moment en cours, son compte à rebours, les retards.
     expect(markup).toContain('data-testid="day-countdown"');
     expect(markup).toContain("Vin d&#x27;honneur");
-    expect(markup).toContain("Régie du Jour J");
+    expect(markup).toContain("Le Jour J");
     expect(markup).toContain("Retard +5 min");
     expect(markup).toContain("Retard +15 min");
     expect(markup).toContain("Terminer ce Moment");
@@ -48,9 +48,9 @@ describe("DayRunTimeline (régie du Jour J)", () => {
     expect(markup).toContain("Suivant");
     expect(markup).toContain("Terminé");
 
-    // La vignette ronde du prestataire relié au Vin d'honneur.
+    // La vignette ronde du prestataire relié au Vin d'honneur (catégorie traduite).
     expect(markup).toContain("DJ Nova");
-    expect(markup).toContain("musique");
+    expect(markup).toContain("Musique");
   });
 
   it("annonce le début du Jour J quand rien n'a encore commencé", () => {

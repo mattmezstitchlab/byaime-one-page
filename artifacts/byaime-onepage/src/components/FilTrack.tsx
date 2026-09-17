@@ -1,10 +1,11 @@
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { enUS, fr } from "date-fns/locale";
 import { Calendar, FileText, Folder, ImageIcon, Users, Wallet } from "lucide-react";
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import type { TimelineMarkerLayout } from "@/lib/timeline-layout";
 import { cn } from "@/lib/utils";
 import { confidenceLabel } from "@/lib/confidence";
+import { useI18n } from "@/lib/i18n";
 
 export function EventIcon({ kind, className }: { kind?: string, className?: string }) {
   const classes = cn("w-5 h-5", className);
@@ -108,6 +109,8 @@ export function FilTrack({
   onOpenMoment: (event: ProfileTimelineEvent) => void;
   onOpenArrival: (arrival: FilArrival) => void;
 }) {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "en" ? enUS : fr;
   return (
     <>
       {events.map(event => {
@@ -131,7 +134,7 @@ export function FilTrack({
             <button
               type="button"
               onClick={() => onOpenMoment(event)}
-              aria-label={`Ouvrir le Moment ${event.title}`}
+              aria-label={t("fil.openMoment", { title: event.title })}
               title={[
                 event.title,
                 momentTimeLabel(event),
@@ -178,7 +181,7 @@ export function FilTrack({
                       demandée, et il est dérivé de données réelles. */}
                   <span data-testid={`fil-hours-${event.id}`}>{momentTimeLabel(event)}</span>
                   <span aria-hidden>·</span>
-                  <span>{format(event.time, "d MMM yyyy", { locale: fr })}</span>
+                  <span>{format(event.time, "d MMM yyyy", { locale: dateLocale })}</span>
                 </span>
                 {event.relations && event.relations.length > 0 && (
                   <div className="flex gap-1 mt-2">
@@ -205,13 +208,13 @@ export function FilTrack({
       {arrivals.map(arrival => {
         const marker = markers.get(arrival.id);
         if (!marker) return null;
-        const status = arrival.status === "confirmed" ? "Arrivée confirmée" : "Réponse reçue";
+        const status = arrival.status === "confirmed" ? t("fil.arrivalConfirmed") : t("fil.arrivalReceived");
         return (
           <div key={arrival.id} data-testid={`fil-rsvp-${arrival.guestId}`} className="absolute top-1/2" style={{ left: `${marker.x}px` }}>
             <button
               type="button"
               onClick={() => onOpenArrival(arrival)}
-              aria-label={`Ouvrir l’arrivée de ${arrival.guestName}`}
+              aria-label={t("fil.openArrival", { name: arrival.guestName })}
               title={`${arrival.guestName} · ${status}`}
               className="group absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 p-2 focus-visible:outline-none"
             >

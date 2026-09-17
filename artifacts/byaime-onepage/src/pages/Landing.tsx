@@ -62,13 +62,6 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
                 la page unique du site, il n'y a plus de seconde page publique à
                 nommer dans cette barre. */}
             <LocaleToggle locale={locale} setLocale={setLocale} />
-            <Link
-              data-testid="landing-admin"
-              href={signedIn ? "/admin" : "/connexion?returnTo=%2Fadmin"}
-              className="inline-flex h-8 items-center rounded-full border border-[var(--agency-ink)]/25 px-4 text-xs text-[var(--agency-ink)]/80 transition hover:bg-[var(--agency-ink)]/10 hover:text-[var(--agency-ink)]"
-            >
-              Admin
-            </Link>
             {signedIn ? (
               <Link
                 data-testid="landing-open-space"

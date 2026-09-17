@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Coins, CalendarDays, Check, MapPin, ScanLine, Sparkles, Users } from "lucide-react";
+import { ChevronDown, Coins, CalendarDays, Check, MapPin, Music4, ScanLine, Sparkles, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   emptyCard,
   emptyFunctioning,
   emptyParticipation,
   PRESENCE_MOMENTS,
-  ROLE_GROUPS,
   type CardMusic,
   type Participation,
   type ProfessionalFunctioning,
@@ -79,12 +78,13 @@ import {
 const ACTIVITIES_DRAFT_KEY = "aime-oneboarding-activities-v1";
 const WEDDING_ANSWERS_KEY = "aime-oneboarding-wedding-answers-v1";
 
-const PROFESSIONAL_ROLES: readonly string[] = ROLE_GROUPS.Professionnels;
-const NON_PROFESSIONAL_GROUPS: [string, readonly string[]][] = [
-  ["Couple", ROLE_GROUPS.Couple],
-  ["Famille", ROLE_GROUPS.Famille],
-  ["Entourage", ROLE_GROUPS.Entourage],
-];
+/**
+ * Un choix manquant n'est pas un échec d'enregistrement : rien n'a été envoyé.
+ * Le message s'affiche donc en ligne près de la question, sans le bandeau
+ * « Non enregistré » ni « Réessayer » — ce qui présentait l'absence de choix
+ * comme un défaut de persistance (l'erreur vécue à l'étape mariage).
+ */
+class ChoiceRequiredError extends Error {}
 
 const WEDDING_FIELD_ICON: Record<WeddingFieldKey, typeof CalendarDays> = {
   date: CalendarDays,
@@ -509,7 +509,10 @@ export function Oneboarding({
       } else if (step.id === "functioning") {
         next = await saveFunctioningNow();
       } else if (step.id === "wedding") {
-        if (!weddingMode) throw new Error("Créez un mariage, ou rejoignez le vôtre.");
+        if (!weddingMode)
+          throw new ChoiceRequiredError(
+            "Choisissez d’abord un mariage : créez le vôtre, ou rejoignez celui d’un proche.",
+          );
         let weddingId = projectId;
         if (weddingMode === "create" && !projectId) {
           const created = await createWeddingNow();
@@ -524,7 +527,11 @@ export function Oneboarding({
           await selectProject(created.id);
           setContextReady(true);
         } else if (!projectId) {
-          throw new Error("Choisissez le mariage que vous rejoignez.");
+          throw new ChoiceRequiredError(
+            weddingMode === "join"
+              ? "Choisissez le mariage que vous rejoignez, ou collez le lien de l’invitation."
+              : "Choisissez d’abord un mariage.",
+          );
         } else if (!contextReady) {
           throw new Error("Chargez le mariage avant d’enregistrer votre association.");
         }
@@ -533,6 +540,10 @@ export function Oneboarding({
         setPresence(payload);
         next = await saveParticipationTo(weddingId, payload);
       } else if (step.id === "presence" || step.id === "organize") {
+        if (!projectId)
+          throw new ChoiceRequiredError(
+            "Choisissez d’abord le mariage concerné à l’étape précédente.",
+          );
         const payload = participationPayload();
         setPresence(payload);
         next = await saveParticipationTo(projectId, payload);
@@ -542,6 +553,11 @@ export function Oneboarding({
       if (index < plan.steps.length - 1) setIndex((i) => i + 1);
       else trackEvent("oneboarding_completed", { profile: plan.profile });
     } catch (e) {
+      if (e instanceof ChoiceRequiredError) {
+        /* Un choix manquant : en ligne, jamais « Non enregistré ». */
+        setFieldError(e.message);
+        return;
+      }
       const message = failureMessage(e, "Enregistrement impossible");
       const requestId = (e as any)?.requestId as string | undefined;
       const idFromMessage = message.match(/\(id:\s*([^)]+)\)/)?.[1];
@@ -702,7 +718,7 @@ export function Oneboarding({
         submitTestId="oneboarding-submit"
         continueLabel={
           step.id === "confirm"
-            ? "Ouvrir ma Timeline"
+            ? "Ouvrir mon mariage"
             : step.id === "wedding" && weddingMode === "create" && !projectId
               ? "Créer ce mariage"
               : undefined
@@ -731,21 +747,44 @@ export function Oneboarding({
         <h2 className="mt-6 text-[22px] font-medium leading-snug">{t(step.titleKey)}</h2>
         <p className="mt-2 text-[13px] leading-relaxed text-white/60">{t(step.descriptionKey)}</p>
 
+        {/* Une erreur de saisie se lit près de la question, jamais au fond
+            de l'étape. */}
+        {fieldError && notice.kind !== "failure" && (
+          <p role="alert" className="mt-4 rounded-xl border border-red-300/40 p-3 text-sm text-red-200">
+            {fieldError}
+          </p>
+        )}
+
         {/* ---------------------------------------------------------- */}
         {step.id === "person" &&
           (showEditor ? (
-            <div className="mt-5 space-y-5">
+            /* L'étape reste courte par défaut : identité d'abord, « Ma
+               musique » repliée (facultatif) — on déplie si on en a envie. */
+            <div className="mt-5 space-y-4">
               <IdentityFields card={card} update={update} onError={setFieldError} />
-              <MusicPicker
-                music={card.music as CardMusic | undefined}
-                onSelect={(result) => update("music", result)}
-                onClear={() => update("music", undefined)}
-                onSkipped={() =>
-                  setNotice({
-                    kind: "idle",
-                  })
-                }
-              />
+              <details className="group rounded-2xl border border-white/15">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 p-4 text-[14px] text-white/85 transition hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 [&::-webkit-details-marker]:hidden">
+                  <span className="flex items-center gap-2.5">
+                    <Music4 className="h-4 w-4 text-white/50" aria-hidden />
+                    Ma musique
+                    <span className="text-[11px] text-white/40">(facultatif)</span>
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-white/40 transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <div className="border-t border-white/10 p-4 pt-3">
+                  <MusicPicker
+                    music={card.music as CardMusic | undefined}
+                    onSelect={(result) => update("music", result)}
+                    onClear={() => update("music", undefined)}
+                    onSkipped={() =>
+                      setNotice({
+                        kind: "idle",
+                      })
+                    }
+                    showTitle={false}
+                  />
+                </div>
+              </details>
             </div>
           ) : (
             <KnownSummary
@@ -771,26 +810,17 @@ export function Oneboarding({
                   Vous pouvez en choisir plusieurs. Ce choix concerne ce mariage,
                   pas votre carte.
                 </p>
-                <div className="mt-4 space-y-5">
+                {/*
+                  Un seul menu dépliant, les 25 rôles groupés : plus de bloc
+                  vertical de cases. La liste est groupée (Couple, Famille,
+                  Entourage, Professionnels) et se parcourt à la recherche.
+                */}
+                <div className="mt-4" data-testid="oneboarding-role-picker">
                   <RolesPicker
-                    groups={NON_PROFESSIONAL_GROUPS}
-                    roles={weddingRoles.filter((r) => !PROFESSIONAL_ROLES.includes(r))}
-                    onChange={(picked) =>
-                      setWeddingRoles([
-                        ...picked,
-                        ...weddingRoles.filter((r) => PROFESSIONAL_ROLES.includes(r)),
-                      ])
-                    }
-                  />
-                  <RolesPicker
-                    groups={[["Professionnels", PROFESSIONAL_ROLES]]}
-                    roles={weddingRoles.filter((r) => PROFESSIONAL_ROLES.includes(r))}
-                    onChange={(picked) =>
-                      setWeddingRoles([
-                        ...weddingRoles.filter((r) => !PROFESSIONAL_ROLES.includes(r)),
-                        ...picked,
-                      ])
-                    }
+                    roles={weddingRoles}
+                    placeholder="Choisir un rôle (ou plusieurs)"
+                    testIdPrefix="role-picker"
+                    onChange={(picked) => setWeddingRoles(picked)}
                   />
                 </div>
               </div>
@@ -803,48 +833,59 @@ export function Oneboarding({
                   vous concerne pour chaque mariage — un photographe peut aussi
                   être saxophoniste.
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {activityOptions(
-                    profiles.map((p) => p.profession),
-                    selectedActivities,
-                  ).map((activity) => (
-                    <label
-                      key={activity}
-                      className="flex min-h-11 items-center gap-2 rounded-xl border border-white/20 px-3 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedActivities.includes(activity)}
-                        onChange={(e) => {
-                          const on = e.target.checked;
-                          setSelectedActivities((current) =>
-                            on
-                              ? [...current, activity]
-                              : current.filter((a) => a !== activity),
-                          );
-                          /*
-                           * La règle « une activité qui est aussi un rôle du
-                           * modèle peut être proposée » vit dans le plan, pas
-                           * ici : `suggestRolesFromActivities` est la seule
-                           * source. La recopier ici finirait par diverger.
-                           */
-                          const isRole = suggestRolesFromActivities([activity]).length > 0;
-                          if (on && isRole && !weddingRoles.includes(activity)) {
-                            setWeddingRoles((current) => [...current, activity]);
-                            setProposedRoles((current) =>
-                              current.includes(activity) ? current : [...current, activity],
-                            );
-                          } else if (!on && isRole && proposedRoles.includes(activity)) {
-                            /* Retirer l'activité retire la proposition — mais jamais
-                               un rôle que la personne a coché elle-même. */
-                            setWeddingRoles((current) => current.filter((r) => r !== activity));
-                            setProposedRoles((current) => current.filter((r) => r !== activity));
-                          }
-                        }}
-                      />
-                      {activity}
-                    </label>
-                  ))}
+                <div className="mt-3" data-testid="oneboarding-activities-picker">
+                  <RolesPicker
+                    roles={selectedActivities}
+                    placeholder="Choisir une activité (facultatif)"
+                    testIdPrefix="activities-picker"
+                    groups={[
+                      [
+                        null,
+                        activityOptions(
+                          profiles.map((p) => p.profession),
+                          selectedActivities,
+                        ),
+                      ],
+                    ]}
+                    onChange={(picked) => {
+                      const previous = selectedActivities;
+                      const added = picked.filter((a) => !previous.includes(a));
+                      const removed = previous.filter((a) => !picked.includes(a));
+                      /*
+                       * La règle « une activité qui est aussi un rôle du modèle
+                       * peut être proposée » vit dans le plan, pas ici :
+                       * `suggestRolesFromActivities` est la seule source. La
+                       * recopier ici finirait par diverger.
+                       */
+                      const suggested = added.filter(
+                        (a) => suggestRolesFromActivities([a]).length > 0,
+                      );
+                      if (suggested.length) {
+                        setWeddingRoles((current) => [
+                          ...current,
+                          ...suggested.filter((a) => !current.includes(a)),
+                        ]);
+                        setProposedRoles((current) => [
+                          ...current,
+                          ...suggested.filter((a) => !current.includes(a)),
+                        ]);
+                      }
+                      const withdrawn = removed.filter((a) =>
+                        proposedRoles.includes(a),
+                      );
+                      if (withdrawn.length) {
+                        /* Retirer l'activité retire la proposition — mais jamais
+                           un rôle que la personne a coché elle-même. */
+                        setProposedRoles((current) =>
+                          current.filter((a) => !withdrawn.includes(a)),
+                        );
+                        setWeddingRoles((current) =>
+                          current.filter((r) => !withdrawn.includes(r)),
+                        );
+                      }
+                      setSelectedActivities(picked);
+                    }}
+                  />
                 </div>
                 {proposedRoles.length > 0 && (
                   <p
@@ -991,7 +1032,64 @@ export function Oneboarding({
         {/* ---------------------------------------------------------- */}
         {step.id === "wedding" && (
           <div className="mt-5 space-y-5">
-            {!weddingMode ? (
+            {projectId ? (
+              /* Un mariage est choisi : récapitulatif avec le bon verbe —
+                 « ouvert » si on l'a créé ici, « rejoignez » si on y entre.
+                 C'est la SEULE chose affichée à cet état : plus de formulaire
+                 de création ni de panneau « Vous rejoignez » prématuré. */
+              <div className="space-y-4" data-testid="oneboarding-wedding-selected">
+                <div className="rounded-2xl border border-white/20 bg-white/5 p-4">
+                  <p className="text-xs text-white/60">
+                    {weddingMode === "create"
+                      ? "Votre mariage est ouvert :"
+                      : "Vous rejoignez :"}
+                  </p>
+                  <p className="mt-1 font-medium">{labelFor(projectId)}</p>
+                  <p className="mt-2 text-sm text-white/65">
+                    {card.firstName} {card.lastName} · votre carte est déjà
+                    renseignée.
+                  </p>
+                  <p className="mt-2 text-xs text-white/50">
+                    Votre présence et vos besoins restent dans ce mariage, jamais
+                    sur votre fiche publique.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  data-testid="oneboarding-wedding-change"
+                  className="min-h-11 text-[12.5px] underline text-white/60"
+                  onClick={() => {
+                    setWeddingMode(null);
+                    setProjectId("");
+                    setContextReady(false);
+                    setHasSavedContext(false);
+                    setLinkedRsvp(null);
+                    setPresence((prev) => ({ ...emptyParticipation(), roles: prev.roles }));
+                  }}
+                >
+                  Changer de mariage
+                </button>
+
+                {/* Activité choisie → rôle proposé → confirmé → intervention
+                    possible. La règle serveur reste la source de vérité : on
+                    évite seulement la double saisie. */}
+                {plan.profile === "professional" && (
+                  <ProfessionalAssignmentsEditor
+                    arrival={presence.arrival}
+                    departure={presence.departure}
+                    profiles={profiles.filter((p) => selectedActivities.includes(p.profession))}
+                    roles={presence.roles}
+                    assignments={presence.assignments ?? []}
+                    events={
+                      project?.id === projectId
+                        ? project.timeline.filter((e) => e.phase === "pendant")
+                        : []
+                    }
+                    onChange={(assignments) => contextual("assignments", assignments)}
+                  />
+                )}
+              </div>
+            ) : !weddingMode ? (
               <div>
                 <h3 className="text-lg">Que souhaitez-vous faire ?</h3>
                 {/*
@@ -1058,7 +1156,7 @@ export function Oneboarding({
                   </button>
                 </div>
               </div>
-            ) : weddingMode === "create" && !projectId ? (
+            ) : weddingMode === "create" ? (
               <div className="space-y-4">
                 <h3 className="text-lg">Votre mariage</h3>
                 {WEDDING_FIELDS.map((key) => {
@@ -1128,56 +1226,42 @@ export function Oneboarding({
                     Monde.
                   </p>
                 )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-white/20 bg-white/5 p-4">
-                  <p className="text-xs text-white/60">Vous rejoignez :</p>
-                  <p className="mt-1 font-medium">{labelFor(projectId)}</p>
-                  <p className="mt-2 text-sm text-white/65">
-                    {card.firstName} {card.lastName} · votre carte est déjà
-                    renseignée.
+                {/* L'aperçu tel que BYAIME l'entend — la même phrase que le
+                    sous-titre du Monde, jamais une donnée en plus. */}
+                {answeredFields(answers).length > 0 && (
+                  <p
+                    data-testid="oneboarding-wedding-preview"
+                    className="rounded-xl border border-white/15 bg-white/[0.04] p-3 text-[13px] italic text-white/70"
+                  >
+                    {composeIntention(answers, { persona: "couple", currency, locale })}
                   </p>
-                  <p className="mt-2 text-xs text-white/50">
-                    Votre présence et vos besoins restent dans ce mariage, jamais
-                    sur votre fiche publique.
-                  </p>
-                </div>
+                )}
                 <button
                   type="button"
                   className="min-h-11 text-[12.5px] underline text-white/60"
                   onClick={() => setWeddingMode(null)}
                 >
-                  Changer de mariage
+                  Choisir l’autre option
                 </button>
-
-                {/* Activité choisie → rôle proposé → confirmé → intervention
-                    possible. La règle serveur reste la source de vérité : on
-                    évite seulement la double saisie. */}
-                {plan.profile === "professional" && (
-                  <ProfessionalAssignmentsEditor
-                    arrival={presence.arrival}
-                    departure={presence.departure}
-                    profiles={profiles.filter((p) => selectedActivities.includes(p.profession))}
-                    roles={presence.roles}
-                    assignments={presence.assignments ?? []}
-                    events={
-                      project?.id === projectId
-                        ? project.timeline.filter((e) => e.phase === "pendant")
-                        : []
-                    }
-                    onChange={(assignments) => contextual("assignments", assignments)}
-                  />
-                )}
               </div>
-            )}
-
-            {weddingMode === "join" && !projectId && (
-              <div className="space-y-3">
-                {projects.length > 0 && (
+            ) : (
+              /* Rejoindre : le choix du mariage, et rien d'autre. Le panneau
+                 « Vous rejoignez » n'apparaît qu'une fois le mariage choisi —
+                 avant, afficher un mariage « choisi » qui n'existe pas était
+                 l'erreur vécue à cette étape. */
+              <div className="space-y-4" data-testid="oneboarding-wedding-join-choice">
+                <div>
+                  <h3 className="text-lg">Le mariage que vous rejoignez</h3>
+                  <p className="mt-1 text-xs text-white/60">
+                    Choisissez celui qui vous concerne, ou collez le lien de
+                    l’invitation reçu.
+                  </p>
+                </div>
+                {projects.length > 0 ? (
                   <label className="block text-sm">
                     Mariage concerné
                     <select
+                      data-testid="oneboarding-wedding-join-select"
                       className={cardInputStyle}
                       value={projectId}
                       disabled={busy}
@@ -1191,16 +1275,30 @@ export function Oneboarding({
                       ))}
                     </select>
                   </label>
+                ) : (
+                  <p className="text-xs text-white/50">
+                    Aucun mariage n’est encore ouvert sur votre compte : rejoignez
+                    par l’invitation.
+                  </p>
                 )}
                 <button
                   type="button"
+                  data-testid="oneboarding-wedding-invite"
                   className={cardButtonStyle}
                   onClick={() => setJoining(true)}
                 >
                   Rejoindre avec une invitation
                 </button>
+                <button
+                  type="button"
+                  className="min-h-11 text-[12.5px] underline text-white/60"
+                  onClick={() => setWeddingMode(null)}
+                >
+                  Choisir l’autre option
+                </button>
               </div>
             )}
+
           </div>
         )}
 
@@ -1286,11 +1384,6 @@ export function Oneboarding({
         )}
 
         <SaveNoticeBanner notice={notice} onRetry={() => void runStep()} />
-        {fieldError && notice.kind !== "failure" && (
-          <p role="alert" className="mt-4 rounded-xl border border-red-300/40 p-3 text-sm text-red-200">
-            {fieldError}
-          </p>
-        )}
       </StepFlow>
     </section>
   );

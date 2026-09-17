@@ -38,7 +38,7 @@ describe("wedding navigation", () => {
       const capabilities = getWeddingCapabilities(role);
       /* P3 : Personnes + Prestataires + Tâches = un seul panneau « Pilotage ». */
       expect(getWeddingRailItems("avant", capabilities).map(item => item.label)).toEqual([
-        "Timeline", "Pilotage", "Documents", "Logistique", "Musique",
+        "Le programme", "L’organisation", "Documents", "Logistique", "Musique",
       ]);
       expect(getWeddingNavigation("avant", capabilities).primary.map(item => item.label)).toEqual([
         "Messages",
@@ -100,7 +100,7 @@ describe("wedding navigation", () => {
 
     const providers = getPanelContextGroup("providers", rail, navigation, "chronological");
     expect(providers.id).toBe("rail");
-    expect(providers.label).toBe("Socle commun");
+    expect(providers.label).toBe("Les essentiels");
     // Les voisins incluent les autres catégories communes, pas les outils du mode.
     expect(providers.items.map(item => item.id)).toContain("documents");
     expect(providers.items.map(item => item.id)).not.toContain("ceremony");
@@ -117,7 +117,7 @@ describe("wedding navigation", () => {
 
     const dayof = getPanelContextGroup("dayof", rail, navigation, "chronological");
     expect(dayof.id).toBe("phase");
-    expect(dayof.label).toBe("Outils du mode");
+    expect(dayof.label).toBe("Outils de la période");
     expect(dayof.items.map(item => item.id)).toContain("messages");
     expect(dayof.items.map(item => item.id)).not.toContain("finances");
   });

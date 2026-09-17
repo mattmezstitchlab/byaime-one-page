@@ -1,14 +1,9 @@
 import { WeddingCardParticipants } from "./WeddingCardParticipants";
 import { useProject } from "@/store/project-store";
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
-import { CommandBar } from '@/components/CommandBar';
-import { GlobalCreateCenter } from '@/components/GlobalCreateCenter';
-import { PortalControls } from '@/components/PortalControls';
-import {
-  getPrivateDestinationId,
-} from '@/lib/private-navigation';
+import { AimePanel } from '@/components/AimePanel';
 import { initAppearance } from '@/lib/appearance';
 import { AimeOrb } from '@/components/AimeOrb';
 import { useI18n } from '@/lib/i18n';
@@ -38,11 +33,11 @@ export function PrivateHomeLink({
 }
 
 /*
- * L'orbe unique, en bas au centre, sur mobile comme sur ordinateur : un seul
- * bouton d'action pour tout l'espace privé. Il ouvre le panneau unifié
- * (CommandBar) — compositeur, dossiers, fichier, création, ME, Monde et
- * réglages — ce qui a permis de retirer la barre latérale gauche et le tiroir
- * mobile. Le logo AIME et les contrôles ME restent dans l'en-tête.
+ * L'orbe unique, en bas au centre, sur mobile comme sur ordinateur : la
+ * seule porte d'entrée de l'espace privé (17/09). Elle ouvre le Panneau AIME
+ * — une colonne (Le Monde, les outils, l'aide) et une zone de contenu — qui
+ * regroupe tout : les sept dossiers, la création, les réglages, l'aide. Le
+ * logo AIME et les contrôles ME restent dans l'en-tête.
  */
 export function OrbButton() {
   const { t } = useI18n();
@@ -63,15 +58,10 @@ export function OrbButton() {
 export function PrivateLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { project } = useProject();
-  const [openMeSignal, setOpenMeSignal] = useState(0);
-
-  const activeDestination = getPrivateDestinationId(location);
 
   useEffect(() => {
     initAppearance();
   }, []);
-
-  const openMe = () => setOpenMeSignal(signal => signal + 1);
 
   return (
     <div data-testid="private-layout" className="flex h-[100dvh] w-full overflow-hidden bg-[var(--agency-paper)] text-[var(--agency-ink)]">
@@ -82,16 +72,12 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content Area */}
       <div className="relative flex h-full min-w-0 flex-1 flex-col">
-        {/* Header - Mobile only visual, completely empty on desktop */}
-        <header className="z-[60] grid h-14 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)]/95 px-3 backdrop-blur-xl sm:px-4 md:border-none md:bg-transparent">
+        {/* En-tête mobile : juste le logo. Tout le reste vit dans le Panneau
+            AIME (l'orbe) — « mon espace » y comprend Ma carte, les réglages,
+            la création, l'ouverture. (17/09, phase 3.) */}
+        <header className="z-[60] grid h-14 shrink-0 grid-cols-[auto_1fr] items-center gap-2 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)]/95 px-3 backdrop-blur-xl sm:px-4 md:border-none md:bg-transparent">
           <PrivateHomeLink className="md:hidden" textClassName="text-lg" />
-
           <div className="flex-1" />
-
-          <div className="flex items-center justify-end gap-1.5">
-            <Link href="/ma-carte" className="inline-flex min-h-11 items-center rounded-full px-3 text-xs font-medium">Ma carte</Link>
-            {location !== '/ma-carte' && <PortalControls embedded openMeSignal={openMeSignal} />}
-          </div>
         </header>
 
         {/* Scrollable Content */}
@@ -102,8 +88,8 @@ export function PrivateLayout({ children }: { children: ReactNode }) {
 
         {/* L'orbe unique : tout l'espace privé tient dans son panneau. */}
         {location !== '/ma-carte' && <OrbButton />}
-        <CommandBar context={activeDestination} onOpenMe={openMe} />
-        <GlobalCreateCenter destination={activeDestination} />
+        {/* Le Panneau AIME — la seule fenêtre de l'espace privé. */}
+        <AimePanel />
       </div>
     </div>
   );

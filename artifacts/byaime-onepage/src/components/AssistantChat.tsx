@@ -38,7 +38,7 @@ export function AssistantChat() {
   const suggestions = assistantSuggestions(locale);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    bottomRef.current?.scrollIntoView?.({ behavior: "smooth", block: "end" });
   }, [messages.length, pending]);
 
   const send = async (raw: string, viaSuggestion = false) => {

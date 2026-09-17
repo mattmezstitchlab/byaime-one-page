@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorldFocusRequest } from "@/lib/world-focus";
+import { I18nProvider } from "@/lib/i18n";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -44,7 +45,7 @@ async function mount() {
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
-    root!.render(<AvantOverview />);
+    root!.render(<I18nProvider initialLocale="fr"><AvantOverview /></I18nProvider>);
   });
   return container!;
 }

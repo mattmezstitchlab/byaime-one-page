@@ -91,7 +91,7 @@ describe("registre d'architecture d'AIME", () => {
       const title = WEDDING_PANEL_LABELS[panel];
       expect(findAimeScreenByLabel(title)?.id).toBe(`panel:${panel}`);
     }
-    expect(findAimeScreenByLabel("Régie du Jour J")?.id).toBe("panel:dayof");
+    expect(findAimeScreenByLabel("Le déroulé du Jour J")?.id).toBe("panel:dayof");
     expect(findAimeScreenByLabel("Panneau inventé par un cauchemar")).toBeUndefined();
     expect(findAimeScreenByLabel("")).toBeUndefined();
   });

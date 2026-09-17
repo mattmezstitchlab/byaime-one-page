@@ -67,6 +67,7 @@ afterEach(() => {
 
 async function mountWorld() {
   const { ProjectStage } = await import("./ProjectStage");
+  const { AimePanel } = await import("./AimePanel");
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -75,6 +76,9 @@ async function mountWorld() {
       <Router hook={() => ["/user-portal", () => undefined] as const}>
         <I18nProvider initialLocale="fr">
           <ProjectStage />
+          {/* Le Panneau AIME est monté dans PrivateLayout en production ;
+              ici on le monte à côté du Monde, comme elle le fait. */}
+          <AimePanel />
         </I18nProvider>
       </Router>,
     );

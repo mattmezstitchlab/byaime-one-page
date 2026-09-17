@@ -8,8 +8,6 @@ import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { LegalPage } from '@/pages/Legal';
 import { LandingPage } from '@/pages/Landing';
@@ -389,7 +387,7 @@ function Providers() {
     <QueryClientProvider client={queryClient}>
       <CacheInvalidator />
       <ProjectProvider>
-        <TooltipProvider><Routes /><Toaster /></TooltipProvider>
+        <Routes />
       </ProjectProvider>
     </QueryClientProvider>
   </ClerkProvider>;

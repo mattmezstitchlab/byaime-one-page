@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
+import { I18nProvider } from "@/lib/i18n";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -112,7 +113,7 @@ async function mountMaCarte() {
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
-    root!.render(<App />);
+    root!.render(<I18nProvider initialLocale="fr"><App /></I18nProvider>);
   });
   // Laisse la garde de session passer et le chargement de la carte aboutir.
   for (let i = 0; i < 40; i++) {

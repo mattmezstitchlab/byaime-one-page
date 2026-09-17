@@ -415,7 +415,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
   },
   "view:chronological": {
     id: "view:chronological",
-    label: "Timeline",
+    label: "Le programme",
     where: "Tous les Moments du mariage, dans leur ordre vivant.",
     purpose: "La colonne vertébrale du Monde : chaque Moment porte horaires, visibilité et relations.",
     does: [
@@ -426,7 +426,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     mistakes: ["Créer un Moment par invité : on relie les personnes à un Moment, on ne duplique pas le Moment.", "Écrire une information dans deux Moments différents : préférez le Moment parent, la projection suffira."],
     actions: [
       { label: "Revenir à la Timeline", detail: "La vue complète du Monde.", focus: { view: "chronological" } },
-      { label: "Graphe de visibilité", detail: "Qui voit quoi, Moment par Moment.", focus: { graph: true } },
+      { label: "Ce que chacun voit", detail: "Qui voit quoi, Moment par Moment.", focus: { graph: true } },
     ],
     related: ["view:day-of", "panel:guests", "panel:ceremony"],
     keywords: ["timeline", "moments", "programme", "déroulé", "horaires", "calendrier"],
@@ -450,7 +450,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
   },
   "view:day-of": {
     id: "view:day-of",
-    label: "Timeline en direct",
+    label: "Le Jour J, en direct",
     where: "Le Jour J, au fil de la journée.",
     purpose: "Savoir ce qui se passe maintenant et ce qui vient.",
     does: [
@@ -544,7 +544,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
    */
   "panel:pilotage": {
     id: "panel:pilotage",
-    label: "Pilotage",
+    label: "L’organisation",
     where: "La fenêtre unique du quotidien : invités, prestataires et tâches.",
     purpose: "Piloter la préparation sans changer de fenêtre : qui vient, qui est engagé, ce qu'il reste à faire.",
     does: [
@@ -652,7 +652,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     mistakes: ["Payer un acompte sans l'enregistrer : l'engagé reste faux.", "Confier les finances à un rôle qui n'y a pas accès : la visibilité se vérifie dans le graphe."],
     actions: [
       { label: "Ouvrir les finances", detail: "Enveloppe, engagé, payé, à venir.", focus: { panel: "budget" } },
-      { label: "Vérifier qui voit les finances", detail: "Graphe de visibilité par rôle.", focus: { graph: true } },
+      { label: "Vérifier qui voit les finances", detail: "Ce que chacun voit, par rôle.", focus: { graph: true } },
     ],
     related: ["panel:providers", "panel:documents", "panel:contributions"],
     keywords: ["budget", "argent", "dépenses", "paiement", "acompte", "devis", "coût", "échéance", "finances"],
@@ -707,7 +707,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
   },
   "panel:dayof": {
     id: "panel:dayof",
-    label: "Régie du Jour J",
+    label: "Le déroulé du Jour J",
     where: "Le programme opérationnel du mariage, en direct.",
     purpose: "Que chacun sache quoi faire, quand, et qui prévenir si ça glisse.",
     does: [
@@ -715,9 +715,9 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
       "Décaler un Moment propose l'application aux dépendances et prépare le message aux personnes concernées.",
       "Les responsabilités de l'équipe et les contacts d'urgence sont à portée de main.",
     ],
-    mistakes: ["Décaler sans prévenir : la proposition liste qui est concerné, envoyez le message.", "Charger la régie d'informations personnelles : ce qui est privé reste privé."],
+    mistakes: ["Décaler sans prévenir : la proposition liste qui est concerné, envoyez le message.", "Charger le déroulé d'informations personnelles : ce qui est privé reste privé."],
     actions: [
-      { label: "Ouvrir la régie", detail: "Le jour, minute par minute.", focus: { panel: "dayof" } },
+      { label: "Ouvrir le déroulé", detail: "Le jour, minute par minute.", focus: { panel: "dayof" } },
       { label: "Voir les conflits d'horaires", detail: "Alertes de la synthèse du Monde.", focus: { overview: true } },
     ],
     related: ["phase:pendant", "view:day-of", "panel:team", "panel:logistics"],

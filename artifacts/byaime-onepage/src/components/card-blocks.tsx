@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, Image as ImageIcon, ImagePlus, Search, X } from "lucide-react";
 import { PRESENCE_MOMENTS, ROLE_GROUPS, type CardMusic, type Participation, type UniversalCard } from "@workspace/aime-domain";
 import { searchAppleMusic } from "@/lib/music-search";
+import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import type { MusicSearchResult } from "@/lib/types";
 
 /*
@@ -63,54 +66,78 @@ export function IdentityFields({
   update: <K extends keyof UniversalCard>(key: K, value: UniversalCard[K]) => void;
   onError: (message: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <>
-      <h3 className="text-lg">Identité</h3>
+      <h3 className="text-lg">{t("cb.identity.title")}</h3>
       <p className="text-xs text-white/60">
-        Photo, pseudo et ville sont facultatifs.
+        {t("cb.identity.hint")}
       </p>
-      <label className="block text-sm">
-        Photo de profil
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="mt-2 block w-full text-sm"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            if (
-              !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-              file.size > 500000
-            ) {
-              onError("Choisissez une photo JPEG, PNG ou WebP de moins de 500 Ko.");
-              return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => update("photoUrl", String(reader.result));
-            reader.onerror = () => onError("Lecture de photo impossible");
-            reader.readAsDataURL(file);
-          }}
-        />
-      </label>
-      {card.photoUrl && (
-        <div className="flex items-center gap-3">
-          <img
-            src={card.photoUrl}
-            alt="Votre photo de profil"
-            className="h-20 w-20 rounded-full object-cover"
-          />
-          <button type="button" onClick={() => update("photoUrl", "")}>
-            Retirer
-          </button>
+      {/* La photo : un bouton clair et visible sur le fond noir (l'input de
+          fichier brut s'y rendait invisible), aperçu rond, et « Retirer »
+          au même niveau. */}
+      <div>
+        <p className="text-sm">{t("cb.identity.photoLabel")}</p>
+        <div className="mt-2 flex items-center gap-4">
+          {card.photoUrl ? (
+            <img
+              src={card.photoUrl}
+              alt={t("cb.identity.photoAlt")}
+              className="h-16 w-16 shrink-0 rounded-full border-2 border-white/25 object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-dashed border-white/30 text-white/40"
+            >
+              <ImageIcon className="h-6 w-6" />
+            </span>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-white/[0.06] px-4 text-[13px] font-medium text-white transition hover:border-white/50 hover:bg-white/10 focus-within:outline-none focus-within:ring-2 focus-within:ring-white/60">
+              <ImagePlus className="h-4 w-4" aria-hidden />
+              {card.photoUrl ? t("cb.identity.photoChange") : t("cb.identity.photoChoose")}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (
+                    !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+                    file.size > 500000
+                  ) {
+                    onError(t("cb.identity.photoError"));
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = () => update("photoUrl", String(reader.result));
+                  reader.onerror = () => onError(t("cb.identity.photoReadError"));
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {card.photoUrl && (
+              <button
+                type="button"
+                onClick={() => update("photoUrl", "")}
+                className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-4 text-[13px] text-white/60 transition hover:border-white/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                {t("cb.identity.remove")}
+              </button>
+            )}
+          </div>
         </div>
-      )}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {(
           [
-            ["firstName", "Prénom"],
-            ["lastName", "Nom"],
-            ["nickname", "Pseudo"],
-            ["city", "Ville"],
+            ["firstName", t("cb.field.firstName")],
+            ["lastName", t("cb.field.lastName")],
+            ["nickname", t("cb.field.nickname")],
+            ["city", t("cb.field.city")],
           ] as const
         ).map(([key, label]) => (
           <label key={key} className="block text-sm">
@@ -125,23 +152,22 @@ export function IdentityFields({
           </label>
         ))}
       </div>
-      <h3 className="border-t border-white/15 pt-5 text-lg">Moi</h3>
+      <h3 className="border-t border-white/15 pt-5 text-lg">{t("cb.identity.me")}</h3>
       <label className="block text-sm">
-        Métier
+        {t("cb.identity.profession")}
         <input
           className={cardInputStyle}
           maxLength={100}
           value={card.profession}
           onChange={(e) => update("profession", e.target.value)}
-          placeholder="Photographe, DJ… (facultatif)"
+          placeholder={t("cb.identity.professionPlaceholder")}
         />
       </label>
       <p className="text-xs text-white/60">
-        Quelques mots pour vous présenter. Vous pourrez préciser votre façon de
-        travailler ensuite, si vous le souhaitez.
+        {t("cb.identity.interestsIntro")}
       </p>
       <label className="block text-sm">
-        Centres d’intérêt (séparés par des virgules)
+        {t("cb.identity.interests")}
         <input
           className={cardInputStyle}
           value={card.interests.join(", ")}
@@ -178,13 +204,17 @@ export function MusicPicker({
   onSelect,
   onClear,
   onSkipped,
+  showTitle = true,
 }: {
   /** Le morceau déjà sur la carte, quel que soit son fournisseur. */
   music?: CardMusic;
   onSelect: (result: MusicSearchResult) => void;
   onClear: () => void;
   onSkipped?: () => void;
+  /** À false quand un cadre parent fournit déjà le titre (Oneboarding). */
+  showTitle?: boolean;
 }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MusicSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -216,7 +246,7 @@ export function MusicPicker({
       }
     } catch {
       if (!controller.signal.aborted)
-        setMusicError("La recherche musicale est momentanément indisponible.");
+        setMusicError(t("cb.music.error"));
     } finally {
       if (!controller.signal.aborted) setSearching(false);
     }
@@ -224,17 +254,19 @@ export function MusicPicker({
 
   return (
     <>
-      <h3 className="border-t border-white/15 pt-5 text-lg">Ma musique</h3>
+      {showTitle && (
+        <h3 className="border-t border-white/15 pt-5 text-lg">{t("cb.music.title")}</h3>
+      )}
       <p className="text-xs text-white/60">
-        Le morceau qui vous ressemble, directement sur votre carte.
+        {t("cb.music.hint")}
       </p>
       <div>
         <label className="block text-sm">
-          Votre musique
+          {t("cb.music.label")}
           <input
             className={cardInputStyle}
             value={query}
-            placeholder="Titre ou artiste"
+            placeholder={t("cb.music.placeholder")}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -250,12 +282,12 @@ export function MusicPicker({
           disabled={searching || query.trim().length < 2}
           onClick={() => void search()}
         >
-          {searching ? "Recherche…" : "Rechercher un morceau"}
+          {searching ? t("cb.music.searching") : t("cb.music.search")}
         </button>
         {musicError && (
           <div className="mt-3 rounded-xl border border-amber-200/30 p-4">
             <p role="alert" className="text-sm text-amber-100">
-              {musicError} Vous pouvez réessayer ou continuer sans musique.
+              {musicError}{t("cb.music.errorSuffix")}
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <button
@@ -264,7 +296,7 @@ export function MusicPicker({
                 disabled={searching || query.trim().length < 2}
                 onClick={() => void search()}
               >
-                Réessayer
+                {t("cb.music.retry")}
               </button>
               <button
                 type="button"
@@ -279,14 +311,14 @@ export function MusicPicker({
                   onSkipped?.();
                 }}
               >
-                Continuer sans musique
+                {t("cb.music.skip")}
               </button>
             </div>
           </div>
         )}
         {searched && !musicError && !searching && !results.length && (
           <p role="status" className="mt-2 text-sm text-white/60">
-            Aucun résultat affiché. Essayez une autre recherche.
+            {t("cb.music.noResults")}
           </p>
         )}
         {results.length > 0 && (
@@ -327,7 +359,7 @@ export function MusicPicker({
           {music.artworkUrl && (
             <img
               src={music.artworkUrl}
-              alt="Pochette du morceau"
+              alt={t("cb.music.artworkAlt")}
               className="mb-3 h-20 w-20 rounded-lg"
             />
           )}
@@ -337,10 +369,10 @@ export function MusicPicker({
           {music.previewUrl ? (
             <>
               <span className="mt-2 block text-xs text-white/60">
-                ▶ PLAY — extrait du catalogue
+                {t("cb.music.play")}
               </span>
               <audio
-                aria-label={`Écouter ${music.title}`}
+                aria-label={t("cb.music.listen", { title: music.title })}
                 className="mt-2 w-full"
                 controls
                 preload="none"
@@ -348,7 +380,7 @@ export function MusicPicker({
               />
             </>
           ) : (
-            <p className="text-sm text-white/60">Aucun extrait disponible.</p>
+            <p className="text-sm text-white/60">{t("cb.music.noPreview")}</p>
           )}
           {music.trackUrl && (
             <a
@@ -357,7 +389,7 @@ export function MusicPicker({
               target="_blank"
               rel="noreferrer"
             >
-              Ouvrir dans Apple Music
+              {t("cb.music.openApple")}
             </a>
           )}
           <button
@@ -365,7 +397,7 @@ export function MusicPicker({
             className="mt-3 text-sm underline"
             onClick={onClear}
           >
-            Retirer ce morceau
+            {t("cb.music.remove")}
           </button>
         </div>
       )}
@@ -375,12 +407,13 @@ export function MusicPicker({
 
 /** Le morceau choisi, en lecture seule — pochette et extrait. */
 export function MusicCard({ music }: { music: CardMusic }) {
+  const { t } = useI18n();
   return (
     <div className="rounded-2xl border border-white/20 p-4">
       {music.artworkUrl && (
         <img
           src={music.artworkUrl}
-          alt="Pochette du morceau"
+          alt={t("cb.music.artworkAlt")}
           className="mb-3 h-20 w-20 rounded-lg"
         />
       )}
@@ -390,10 +423,10 @@ export function MusicCard({ music }: { music: CardMusic }) {
       {music.previewUrl ? (
         <>
           <span className="mt-2 block text-xs text-white/60">
-            ▶ PLAY — extrait du catalogue
+            {t("cb.music.play")}
           </span>
           <audio
-            aria-label={`Écouter ${music.title}`}
+            aria-label={t("cb.music.listen", { title: music.title })}
             className="mt-2 w-full"
             controls
             preload="none"
@@ -401,7 +434,7 @@ export function MusicCard({ music }: { music: CardMusic }) {
           />
         </>
       ) : (
-        <p className="text-sm text-white/60">Aucun extrait disponible.</p>
+        <p className="text-sm text-white/60">{t("cb.music.noPreview")}</p>
       )}
       {music.trackUrl && (
         <a
@@ -410,7 +443,7 @@ export function MusicCard({ music }: { music: CardMusic }) {
           target="_blank"
           rel="noreferrer"
         >
-          Ouvrir dans Apple Music
+          {t("cb.music.openApple")}
         </a>
       )}
     </div>
@@ -420,47 +453,201 @@ export function MusicCard({ music }: { music: CardMusic }) {
 /**
  * Les rôles pour CE mariage — les 25 valeurs du modèle, en quatre groupes.
  * Multi-choix : une personne peut être à la fois photographe et saxophoniste.
+ *
+ * Présentation : un **menu dépliant**, pas un bloc vertical de cases à cocher.
+ * Le bouton affiche la sélection (pastilles retirables) ; le panneau déroule
+ * la liste groupée, avec une recherche. Noir comme le reste du Oneboarding.
+ *
+ * Le composant reste la seule implémentation du choix des rôles : le
+ * Oneboarding et `/ma-carte` le partagent, et les deux écrans restent
+ * cohérents d'eux-mêmes.
  */
 export function RolesPicker({
   roles,
   onChange,
   groups = Object.entries(ROLE_GROUPS) as [string, readonly string[]][],
+  /** Libellé du bouton fermé ; par défaut « Choisir un rôle ». */
+  placeholder,
+  /** Préfixe des `data-testid` (`roles-picker` par défaut). */
+  testIdPrefix = "roles-picker",
 }: {
   roles: string[];
   onChange: (roles: string[]) => void;
-  groups?: [string, readonly string[]][];
+  groups?: [string | null, readonly string[]][];
+  placeholder?: string;
+  testIdPrefix?: string;
 }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  /* Fermeture au clavier (Échap, retour du focus sur le bouton) et au clic
+     hors du composant ; le panneau reste ouvert pendant le multi-choix. */
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    searchRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
+  const toggle = (role: string) =>
+    onChange(
+      roles.includes(role)
+        ? roles.filter((r) => r !== role)
+        : [...roles, role],
+    );
+
+  const term = query.trim().toLocaleLowerCase("fr-FR");
+  const visibleGroups = useMemo(
+    () =>
+      groups
+        .map(([group, options]) => [
+          group,
+          options.filter(
+            (option) => !term || option.toLocaleLowerCase("fr-FR").includes(term),
+          ),
+        ] as const)
+        .filter(([, options]) => options.length > 0),
+    [groups, term],
+  );
+
   return (
-    <>
-      {groups.map(([group, options]) => (
-        <fieldset key={group}>
-          <legend className="mb-2 text-xs uppercase tracking-wider text-white/60">
-            {group}
-          </legend>
-          <div className="flex flex-wrap gap-2">
-            {options.map((role) => (
-              <label
-                key={role}
-                className="flex min-h-11 items-center gap-2 rounded-xl border border-white/20 px-3 text-sm"
+    <div ref={rootRef} className="relative">
+      {roles.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5" data-testid={`${testIdPrefix}-selected`}>
+          {roles.map((role) => (
+            <span
+              key={role}
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-white/25 bg-white/10 py-1 pl-3 pr-1.5 text-[13px] text-white/90"
+            >
+              {role}
+              <button
+                type="button"
+                data-testid={`${testIdPrefix}-remove-${role}`}
+                aria-label={t("cb.roles.remove", { role })}
+                onClick={() => toggle(role)}
+                className="grid h-6 w-6 place-items-center rounded-full text-white/55 transition hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
-                <input
-                  type="checkbox"
-                  checked={roles.includes(role)}
-                  onChange={(e) =>
-                    onChange(
-                      e.target.checked
-                        ? [...roles, role]
-                        : roles.filter((r) => r !== role),
-                    )
-                  }
-                />
-                {role}
-              </label>
-            ))}
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        ref={triggerRef}
+        data-testid={`${testIdPrefix}-trigger`}
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          "flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border px-3.5 py-2 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+          open
+            ? "border-white/50 bg-[#262320]"
+            : "border-white/25 bg-[#262320] hover:border-white/45",
+        )}
+      >
+        <span className={cn(!roles.length && "text-white/50")}>
+          {roles.length
+            ? t("cb.roles.modify", { n: roles.length })
+            : placeholder ?? t("cb.roles.placeholder")}
+        </span>
+        <ChevronDown
+          aria-hidden
+          className={cn(
+            "h-4 w-4 shrink-0 text-white/55 transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+
+      {open && (
+        <div
+          data-testid={`${testIdPrefix}-panel`}
+          className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-white/20 bg-[#171410] shadow-[0_24px_48px_-16px_rgba(0,0,0,0.8)]"
+        >
+          <div className="relative border-b border-white/10">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+            />
+            <input
+              ref={searchRef}
+              data-testid={`${testIdPrefix}-search`}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("cb.roles.searchPlaceholder")}
+              aria-label={t("cb.roles.searchAria")}
+              className="min-h-11 w-full bg-transparent pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
+            />
           </div>
-        </fieldset>
-      ))}
-    </>
+          <div className="max-h-72 overflow-y-auto p-2">
+            {visibleGroups.length ? (
+              visibleGroups.map(([group, options]) => (
+                <fieldset key={group ?? "options"} className="mb-2 last:mb-0">
+                  {group ? (
+                    <legend className="mb-1 px-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+                      {group}
+                    </legend>
+                  ) : null}
+                  <div className="grid gap-0.5 sm:grid-cols-2">
+                    {options.map((role) => {
+                      const checked = roles.includes(role);
+                      return (
+                        <label
+                          key={role}
+                          data-testid={`${testIdPrefix}-option-${role}`}
+                          className={cn(
+                            "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-2.5 text-[13.5px] transition",
+                            checked
+                              ? "bg-white/12 text-white"
+                              : "text-white/75 hover:bg-white/[0.07]",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggle(role)}
+                            className="h-4 w-4 shrink-0 accent-white"
+                          />
+                          {role}
+                          {checked ? (
+                            <Check aria-hidden className="ml-auto h-3.5 w-3.5 text-white/60" />
+                          ) : null}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              ))
+            ) : (
+              <p className="px-3 py-4 text-[13px] text-white/50">
+                {t("cb.roles.noResults", { query: query.trim() })}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -478,32 +665,31 @@ export function PresenceFields({
   contextual: <K extends keyof Participation>(key: K, value: Participation[K]) => void;
   linkedRsvp: { token: string; revoked: boolean } | null;
 }) {
+  const { t } = useI18n();
   return (
     <>
       {linkedRsvp && (
         <div className="rounded-2xl border border-white/20 bg-white/5 p-4 text-sm">
-          <strong>Vos réponses viennent de votre invitation RSVP.</strong>
+          <strong>{t("cb.presence.rsvpLink.title")}</strong>
           <p className="mt-2 text-white/70">
-            Vous avez déjà répondu à l’invitation. Retrouvez votre réponse
-            ci-dessous ; utilisez le lien pour la modifier. Vos autres
-            informations concernent uniquement ce mariage.
+            {t("cb.presence.rsvpLink.text")}
           </p>
           {linkedRsvp.revoked ? (
             <p className="mt-2">
-              Lien révoqué : contactez l’organisateur pour le réémettre.
+              {t("cb.presence.rsvpLink.revoked")}
             </p>
           ) : (
             <a
               className="mt-2 inline-block min-h-11 py-3 underline"
               href={`/rsvp/${linkedRsvp.token}`}
             >
-              Modifier mes réponses RSVP
+              {t("cb.presence.rsvpLink.edit")}
             </a>
           )}
         </div>
       )}
       <label className="block text-sm">
-        RSVP
+        {t("cb.presence.rsvp")}
         <select
           className={cardInputStyle}
           disabled={Boolean(linkedRsvp)}
@@ -512,14 +698,14 @@ export function PresenceFields({
             contextual("rsvp", e.target.value as Participation["rsvp"])
           }
         >
-          <option value="en_attente">À confirmer</option>
-          <option value="present">Présent</option>
-          <option value="absent">Absent</option>
-          <option value="peut_etre">Peut-être</option>
+          <option value="en_attente">{t("cb.presence.toConfirm")}</option>
+          <option value="present">{t("cb.presence.present")}</option>
+          <option value="absent">{t("cb.presence.absent")}</option>
+          <option value="peut_etre">{t("cb.presence.maybe")}</option>
         </select>
       </label>
       <label className="block text-sm">
-        Nombre d’accompagnants
+        {t("cb.presence.companions")}
         <input
           className={cardInputStyle}
           type="number"
@@ -531,7 +717,7 @@ export function PresenceFields({
         />
       </label>
       <fieldset>
-        <legend className="mb-2 text-sm">Moments de présence</legend>
+        <legend className="mb-2 text-sm">{t("cb.presence.moments")}</legend>
         <div className="flex flex-wrap gap-3">
           {PRESENCE_MOMENTS.map((moment) => (
             <label
@@ -560,27 +746,26 @@ export function PresenceFields({
         </div>
       </fieldset>
       <p className="text-xs text-white/60">
-        Dates et heures dans votre fuseau local. Pour une fin après minuit,
-        choisissez le lendemain.
+        {t("cb.presence.datesHint")}
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <DateField
-          label="Arrivée"
+          label={t("cb.presence.arrival")}
           value={presence.arrival}
           onChange={(v) => contextual("arrival", v)}
         />
         <DateField
-          label="Départ"
+          label={t("cb.presence.departure")}
           value={presence.departure}
           onChange={(v) => contextual("departure", v)}
         />
       </div>
       {(
         [
-          ["allergens", "Allergènes"],
-          ["dietary", "Contraintes alimentaires"],
-          ["needs", "Besoins particuliers"],
-          ["notes", "Informations utiles"],
+          ["allergens", t("cb.presence.allergens")],
+          ["dietary", t("cb.presence.dietary")],
+          ["needs", t("cb.presence.needs")],
+          ["notes", t("cb.presence.notes")],
         ] as const
       ).map(([key, label]) => (
         <label key={key} className="block text-sm">
@@ -606,22 +791,23 @@ export function SlotsEditor({
   slots: Participation["slots"];
   onChange: (slots: Participation["slots"]) => void;
 }) {
+  const { t } = useI18n();
   return (
     <details>
       <summary className="min-h-11 cursor-pointer text-sm">
-        Ajouter des horaires particuliers (facultatif)
+        {t("cb.slots.summary")}
       </summary>
       <fieldset>
-        <legend className="sr-only">Créneaux pour ce mariage (facultatifs)</legend>
+        <legend className="sr-only">{t("cb.slots.legend")}</legend>
         {slots.map((slot, i) => (
           <div className="mt-3 space-y-3 rounded-xl border border-white/20 p-3" key={i}>
             <label className="text-sm">
-              Moment
+              {t("cb.slots.moment")}
               <input
                 required
                 className={cardInputStyle}
                 value={slot.label}
-                placeholder="Cocktail, cérémonie…"
+                placeholder={t("cb.slots.momentPlaceholder")}
                 onChange={(e) =>
                   onChange(
                     slots.map((s, n) => (n === i ? { ...s, label: e.target.value } : s)),
@@ -630,14 +816,14 @@ export function SlotsEditor({
               />
             </label>
             <DateField
-              label="Début"
+              label={t("cb.slots.start")}
               value={slot.start}
               onChange={(v) =>
                 onChange(slots.map((s, n) => (n === i ? { ...s, start: v } : s)))
               }
             />
             <DateField
-              label="Fin"
+              label={t("cb.slots.end")}
               value={slot.end}
               onChange={(v) =>
                 onChange(slots.map((s, n) => (n === i ? { ...s, end: v } : s)))
@@ -647,7 +833,7 @@ export function SlotsEditor({
               type="button"
               onClick={() => onChange(slots.filter((_, n) => n !== i))}
             >
-              Retirer
+              {t("cb.slots.remove")}
             </button>
           </div>
         ))}
@@ -656,7 +842,7 @@ export function SlotsEditor({
           type="button"
           onClick={() => onChange([...slots, { label: "", start: "", end: "" }])}
         >
-          + Ajouter un créneau
+          {t("cb.slots.add")}
         </button>
       </fieldset>
     </details>

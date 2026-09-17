@@ -4,14 +4,14 @@ import { motion } from 'framer-motion';
 import { useProject } from '@/store/project-store';
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
 import { enUS, fr } from 'date-fns/locale';
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
 import { TimelinePlayback } from './TimelinePlayback';
-import { BottomDock } from './BottomDock';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Eye, ImagePlus, Search, Waves } from 'lucide-react';
+import { requestAimePanelShow } from '@/lib/aime-panel-events';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ImagePlus, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterTimeline, type TimelineView } from '@/lib/timeline-graph';
-import { WorldTopMenu } from '@/components/WorldTopMenu';
+import { isFolderLocked } from '@/lib/wedding-folders';
 import { consumeWorldFocus, type WorldFocusRequest } from '@/lib/world-focus';
 import { CenteredBlock } from './CenteredBlock';
 import { EntityEditor } from './EntityEditor';
@@ -21,13 +21,11 @@ import { WorldOverview } from './WorldOverview';
 import { PersonSpotlight } from './PersonSpotlight';
 import { MESSAGE_TO_EVENT } from '@/lib/person-spotlight-bus';
 import { VisibilityGraph } from './VisibilityGraph';
-import { WorldSearch } from './WorldSearch';
 import { WorldSwitcher } from './WorldSwitcher';
 import type { Guest, TimelineEvent } from '@/lib/types';
 import type { MomentAction } from '@/lib/moment-context';
 import {
   normalizePanelId,
-  isWeddingDestinationActive,
   getWeddingCapabilities,
   getWeddingNavigation,
   getWeddingRailItems,
@@ -38,7 +36,6 @@ import {
   getWorldPhaseShortLabel,
   type WorldPhase,
   type WeddingRole,
-  type WeddingDestination,
   type WeddingPanelId } from '@/lib/wedding-navigation';
 import { setWorldNavState } from '@/lib/world-nav-state';
 import { trackEvent } from '@/lib/analytics';
@@ -99,15 +96,6 @@ export function ProjectStage() {
   const [heroEditorOpen, setHeroEditorOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<WeddingPanelId | null>(null);
   /*
-   * Le Moment d'où vient le panneau ouvert. La Timeline organise le produit :
-   * une action de Moment (« Documents », « Invités », « Playlist »…) ouvre le
-   * panneau détaillé ANCRÉ sur ce Moment — filtre et surbrillance viennent des
-   * mêmes relations que les repères affichés sur la scène. `null` = panneau
-   * ouvert par le menu : comportement historique, rien n'est filtré.
-   */
-  const [panelMomentId, setPanelMomentId] = useState<string | null>(null);
-
-  /*
    * Ce qui est réellement regardé. Jusqu'ici les 22 événements mesurés étaient
    * tous transactionnels (création, RSVP, fichier, partage) : aucun ne disait si
    * une vue ou un panneau était seulement ouvert. Ces deux événements répondent
@@ -122,7 +110,6 @@ export function ProjectStage() {
   const [countdownsOpen, setCountdownsOpen] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [spotlight, setSpotlight] = useState<{ kind: "guest" | "provider"; id: string } | null>(null);
   /* La fiche d'une entité, ouverte depuis n'importe quel écran (mini-carte personne,
      relations du portail, recherche) via `entityKind` + `entityId`. */
@@ -175,18 +162,32 @@ export function ProjectStage() {
    * le bon onglet du menu de gauche (`MondePanel` la refait de son côté).
    */
   /*
+   * Présenter un panneau = l'actif dans le Monde (état, phase, analytics) +
+   * le montrer dans le Panneau AIME unique (monté dans PrivateLayout). C'est
+   * le seul chemin d'ouverture : rangée, menu, Moments, deep-links, création.
+   */
+  const presentPanel = (panel: WeddingPanelId, momentId: string | null = null) => {
+    setActivePanel(panel);
+    requestAimePanelShow({ panel, momentId });
+  };
+  const closePresentedPanel = () => {
+    setActivePanel(null);
+    window.dispatchEvent(new Event("aime:close-world-panel"));
+  };
+
+  /*
    * Ouverture de panneau « sûre » : si le panneau demandé n'existe pas dans la
    * phase courante (ex. « Régie du Jour J » appelée depuis la phase Avant, ou
    * « Souvenirs » en Avant), on bascule d'abord vers la phase qui le porte, au
    * lieu de le voir se refermer aussitôt.
    */
-  const openPanelSafely = (panel: WeddingPanelId) => {
+  const openPanelSafely = (panel: WeddingPanelId, momentId: string | null = null) => {
     const normalized = normalizePanelId(panel);
     const role = previewRole ?? currentRole;
     const effectiveView: TimelineView = normalized === "music" ? "music" : view;
     if (normalized === "music") setView("music");
     if (isWeddingPanelAvailable(normalized, navigation, effectiveView, rail)) {
-      setActivePanel(panel);
+      presentPanel(panel, momentId);
       return;
     }
     const targetPhase = findPhaseForPanel(normalized, role, effectiveView);
@@ -194,24 +195,28 @@ export function ProjectStage() {
       setPhase(targetPhase);
       if (view === "public-info" && targetPhase === "avant") setView("chronological");
     }
-    setActivePanel(panel);
+    presentPanel(panel, momentId);
   };
 
   /*
-   * Toute ouverture de panneau passe par ici — menu de gauche, menu du haut,
-   * raccourcis du hero, deep-links. `null` ferme la fenêtre.
+   * Accueil d'un Monde neuf (17/09) : quatre dossiers, dans l'ordre où on en a
+   * besoin, en langage clair — le style de la page « Le rétroplanning », pas
+   * un second onboarding. La liste respecte le rôle : le budget ne s'offre
+   * pas à qui ne doit pas le voir.
    */
-  const setActivePanelFromMenu = (panel: WeddingPanelId | null) => {
-    if (panel === null) {
-      setActivePanel(null);
-      setPanelMomentId(null);
-      return;
+  const gettingStartedRows = useMemo(() => {
+    if (!project || !(project.timeline.length === 0 && project.guests.length === 0 && project.providers.length === 0)) return null;
+    const role = previewRole ?? currentRole;
+    const rows: Array<{ panel: WeddingPanelId; label: string; description: string }> = [
+      { panel: "guests", label: t("world.start.guests"), description: t("world.start.guests.desc") },
+    ];
+    if (!isFolderLocked({ capability: "finances" }, role)) {
+      rows.push({ panel: "budget", label: t("world.start.budget"), description: t("world.start.budget.desc") });
     }
-    /* Ouverture par le menu / le rail : pas de Moment d'origine, le panneau
-       détaillé montre tout son périmètre. */
-    setPanelMomentId(null);
-    openPanelSafely(panel);
-  };
+    rows.push({ panel: "dayof", label: t("world.start.program"), description: t("world.start.program.desc") });
+    rows.push({ panel: "providers", label: t("world.start.providers"), description: t("world.start.providers.desc") });
+    return rows;
+  }, [project, previewRole, currentRole, t]);
 
   /*
    * UNE ACTION DE MOMENT = LE CHEMIN LE PLUS COURT.
@@ -227,17 +232,15 @@ export function ProjectStage() {
       return;
     }
     if (action.destination.kind === "view") {
-      setActivePanel(null);
-      setPanelMomentId(null);
+      closePresentedPanel();
       setView(action.destination.view);
       return;
     }
-    setPanelMomentId(action.scoped && event ? event.id : null);
-    openPanelSafely(action.destination.panel);
+    openPanelSafely(action.destination.panel, action.scoped && event ? event.id : null);
   };
   useEffect(() => {
     if (!activePanel) return;
-    if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) setActivePanel(null);
+    if (!isWeddingPanelAvailable(activePanel, navigation, view, rail)) closePresentedPanel();
   }, [activePanel, navigation, view, rail]);
 
   const openPanelSafelyRef = useRef(openPanelSafely);
@@ -261,7 +264,7 @@ export function ProjectStage() {
       if (!action) return;
       if (action === MOMENT_CREATE_ACTION) {
         // Un Moment se crée dans la Timeline, pas dans un panneau.
-        setActivePanel(null);
+        closePresentedPanel();
         setView("chronological");
         window.dispatchEvent(new Event("aime:new-moment"));
         return;
@@ -270,11 +273,17 @@ export function ProjectStage() {
       if (panel) openPanelSafelyRef.current(panel);
     };
     const listener = (event: Event) => openCreateTarget((event as CustomEvent<UniversalCreateActionId>).detail);
-    const closeWorldPanel = () => setActivePanel(null);
+    /* Fermeture demandée par l'extérieur (Panneau AIME, autres écrans) :
+       reset d'état SANS rediffusion — pas de boucle d'événements. */
+    const closeWorldPanel = () => {
+      setActivePanel(null);
+      };
     const openMessagePanel = () => openPanelSafelyRef.current("messages");
+    const toggleGuestPreview = () => setPreviewRole(role => (role ? null : "viewer"));
     window.addEventListener("aime:open-create-target", listener);
     window.addEventListener("aime:close-world-panel", closeWorldPanel);
     window.addEventListener(MESSAGE_TO_EVENT, openMessagePanel);
+    window.addEventListener("aime:toggle-guest-preview", toggleGuestPreview);
     const requestedAction = new URLSearchParams(window.location.search).get("create") as UniversalCreateActionId | null;
     if (requestedAction && (requestedAction === MOMENT_CREATE_ACTION || CREATE_PANEL_TARGETS[requestedAction])) {
       openCreateTarget(requestedAction);
@@ -284,6 +293,7 @@ export function ProjectStage() {
       window.removeEventListener("aime:open-create-target", listener);
       window.removeEventListener("aime:close-world-panel", closeWorldPanel);
       window.removeEventListener(MESSAGE_TO_EVENT, openMessagePanel);
+      window.removeEventListener("aime:toggle-guest-preview", toggleGuestPreview);
     };
   }, []);
 
@@ -307,19 +317,31 @@ export function ProjectStage() {
       if (request.view) setView(request.view as TimelineView);
       if (request.panel) {
         if (explicitPhase) {
-          setActivePanel(request.panel as WeddingPanelId);
+          presentPanel(request.panel as WeddingPanelId);
         } else {
           // Pas de phase demandée : ouvrir la phase qui porte réellement ce panneau.
           openPanelSafelyRef.current(request.panel as WeddingPanelId);
         }
       } else if (request.view) {
         /* Une destination de vue (Timeline, Musique) referme le panneau ouvert. */
-        setActivePanel(null);
+        closePresentedPanel();
       }
       if (request.entityKind && request.entityId) openEntityFicheRef.current(request.entityKind, request.entityId);
-      if (request.graph) setGraphOpen(true);
-      if (request.overview) setOverviewOpen(true);
-      if (request.search) setSearchOpen(true);
+      if (request.graph) {
+        /* La fenêtre unique cède la place à la modale demandée. */
+        closePresentedPanel();
+        setGraphOpen(true);
+      }
+      if (request.overview) {
+        closePresentedPanel();
+        setOverviewOpen(true);
+      }
+      if (request.search) {
+        /* La recherche unifiée vit dans le Panneau AIME (colonne) : on l'ouvre
+           avec le curseur déjà dans la case, au lieu d'une modale séparée. */
+        closePresentedPanel();
+        window.dispatchEvent(new CustomEvent("aime:open-ai", { detail: { search: true } }));
+      }
     };
     const pending = consumeWorldFocus();
     if (pending) {
@@ -437,112 +459,22 @@ export function ProjectStage() {
         ? `${hours} ${t("world.unit.h")} · ${minutes} ${t("world.unit.min")}`
         : `${minutes} ${t("world.unit.min")}`;
   };
-  const openWeddingDestination = (destination: WeddingDestination) => {
-    /* Passe par l'ouverture sûre : « Régie du Jour J » appelé depuis la phase
-       Avant doit basculer la phase, sinon la fenêtre se referme aussitôt. */
-    if (destination.kind === "panel") {
-      setActivePanelFromMenu(destination.panel);
-      return;
-    }
-    if (destination.kind === "view") {
-      setActivePanel(null);
-      setView(destination.view);
-    }
-  };
-
   return (
     <div className="aime-world-surface relative min-h-screen bg-background text-foreground selection:bg-foreground/20 pb-32">
-      <nav aria-label={t("world.nav.main")} className="sticky top-0 z-40 border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)]/95 backdrop-blur-xl">
-        <WorldTopMenu
-          role={previewRole ?? currentRole}
-          locale={locale}
-          phase={phase}
-          onOpen={openWeddingDestination}
-        />
-
-        <div className="mx-auto grid max-w-5xl grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-2 px-3 py-2.5 sm:px-6">
-          {/* Toutes les entrées de la phase en accès direct, centrées sous la capsule temporelle : la colonne vide à gauche répond aux icônes fixes à droite. */}
-          <span aria-hidden className="min-w-0" />
-          <div className="flex min-w-0 items-center gap-2 overflow-x-auto hide-scrollbar">
-            {[...navigation.primary, ...navigation.secondary].map(item => item.destination.kind === "route" ? (
-              <Link
-                key={item.id}
-                href={item.destination.href}
-                title={item.description}
-                className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => openWeddingDestination(item.destination)}
-                aria-current={isWeddingDestinationActive(item.destination, view, activePanel) ? "page" : undefined}
-                aria-label={t("world.nav.item.aria", { label: item.label, description: item.description })}
-                className={cn(
-                  "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isWeddingDestinationActive(item.destination, view, activePanel)
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground"
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-            {/* La synthèse est la salle de contrôle de la préparation : elle n'a de sens qu'en Avant. */}
-            {phase === "avant" && (
-              <button type="button" onClick={() => setOverviewOpen(true)} className="shrink-0 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {t("world.nav.overview")}
-              </button>
-            )}
-            <span className="mx-1 h-5 w-px shrink-0 bg-border" />
-            <button type="button" onClick={() => setPreviewRole(role => role ? null : "viewer")} aria-pressed={previewRole === "viewer"} className={cn("flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[9px] uppercase tracking-[.13em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", previewRole === "viewer" ? "border-foreground bg-foreground text-background" : "border-foreground/10 text-foreground/65 hover:border-foreground/30 hover:text-foreground")}>
-              {previewRole === "viewer" ? t("world.nav.preview.active") : t("world.nav.preview")}
-            </button>
-            {/* Ce que voient les invités : le mini-site public, en aperçu privé. */}
-            <Link
-              href={`/profil/${project.id}?apercu=1`}
-              data-testid="world-mini-site-preview"
-              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-foreground/10 px-4 py-2 text-[9px] uppercase tracking-[.13em] text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {t("world.nav.miniSite")}
-            </Link>
-            <TimelinePlayback events={visibleEvents} />
-          </div>
-          {/* Le graphe (commun à tout le mariage) et la recherche : deux icônes fixes, en haut à droite. */}
-          <div className="flex min-w-0 items-center justify-end gap-1.5">
-            <button
-              type="button"
-              onClick={() => setGraphOpen(true)}
-              aria-label={t("world.nav.graph")}
-              title={t("world.nav.graph")}
-              data-testid="world-graph-button"
-              className="grid h-9 w-9 place-items-center rounded-full border border-foreground/10 text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              aria-label={t("world.nav.search")}
-              title={t("world.nav.search")}
-              data-testid="world-search-button"
-              className="grid h-9 w-9 place-items-center rounded-full border border-foreground/10 text-foreground/65 transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </div>
+      {/*
+       * Phase 2 (17/09) : le menu du haut, la rangée permanente et les icônes
+       * ont disparu — la navigation de l'espace privé vit dans le Panneau AIME
+       * (l'orbe). L'écran ne garde que le contenu : héro, périodes, timeline.
+       * La notification d'aperçu invité reste, c'est un état, pas une porte.
+       */}
+      {previewRole && (
+        <div className="sticky top-0 z-40 border-b border-border bg-brand-accent/10 px-3 py-2 text-center text-[10px] uppercase tracking-[.14em] text-foreground/70 sm:px-6">
+          {t("world.preview.notice")}{" "}
+          <button type="button" onClick={() => setPreviewRole(null)} className="underline underline-offset-2 transition hover:text-foreground">{t("world.preview.exit")}</button>
         </div>
-        {previewRole && (
-          <div className="border-t border-border bg-brand-accent/10 px-3 py-2 text-center text-[10px] uppercase tracking-[.14em] text-foreground/70 sm:px-6">
-            {t("world.preview.notice")}{" "}
-            <button type="button" onClick={() => setPreviewRole(null)} className="underline underline-offset-2 transition hover:text-foreground">{t("world.preview.exit")}</button>
-          </div>
-        )}
-      </nav>
+      )}
       {/* Hero immersif — toujours un grand visuel, éditable sur place. */}
-      <header data-testid="world-hero" className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden bg-[var(--agency-ink)] px-6 pb-24 pt-32 sm:pt-40 md:px-12">
+      <header data-testid="world-hero" className="relative isolate flex min-h-[75vh] w-full flex-col justify-start overflow-hidden bg-[var(--agency-ink)] px-6 pb-24 pt-24 sm:pt-32 md:px-12 md:pt-40">
         {heroVisual.kind === "video" ? (
           <video
             src={heroSrc}
@@ -567,7 +499,7 @@ export function ProjectStage() {
             onClick={() => setWorldMenuOpen(true)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white backdrop-blur-md transition hover:bg-white hover:text-black"
+            className="flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/15 px-4 py-1.5 text-xs tracking-wide text-white backdrop-blur-md transition hover:bg-white hover:text-black"
             aria-label={t("world.hero.chooseWorld")}
           >
             {heroCopy.eyebrow}
@@ -604,7 +536,7 @@ export function ProjectStage() {
                     aria-current={active ? "true" : undefined}
                     title={entry.label}
                     className={cn(
-                      "rounded-full px-4 py-1.5 text-[11px] uppercase tracking-[0.16em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+                      "rounded-full px-4 py-1.5 text-xs tracking-wide transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
                       active ? "bg-white text-black" : "text-white/80 hover:bg-white/15 hover:text-white",
                     )}
                   >
@@ -624,7 +556,7 @@ export function ProjectStage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               data-testid="world-hero-edit-visual"
-              className="-mt-3 flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-[11px] uppercase tracking-[0.2em] text-white/85 backdrop-blur-md transition hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="-mt-3 flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs tracking-wide text-white/85 backdrop-blur-md transition hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ImagePlus className="h-3 w-3" />
               {heroIsCustom ? t("world.hero.visual.change") : t("world.hero.visual.choose")}
@@ -772,29 +704,28 @@ export function ProjectStage() {
         </div>
       </header>
 
-      {/* Onboarding first-time — P6 */}
-      {project.timeline.length === 0 && project.guests.length === 0 && project.providers.length === 0 && (
-        <section className="border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-10">
-          <div className="mx-auto max-w-5xl">
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">Bienvenue dans votre Monde · 3 étapes pour commencer</p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <button onClick={() => setActivePanel("planning")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">1</span>
-                <p className="mt-3 text-sm font-medium">Ajoutez votre date</p>
-                <p className="mt-1 text-xs text-[var(--agency-body)]">Créez votre premier Moment dans la Timeline.</p>
-              </button>
-              <button onClick={() => setActivePanel("guests")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">2</span>
-                <p className="mt-3 text-sm font-medium">Invités + plan de table</p>
-                <p className="mt-1 text-xs text-[var(--agency-body)]">Ajoutez 2 invités, créez une table, assignez-les.</p>
-              </button>
-              <button onClick={() => setActivePanel("providers")} className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5 text-left hover:border-[var(--agency-ink)]/20 transition">
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--agency-ink)] text-[var(--agency-paper)] text-xs">3</span>
-                <p className="mt-3 text-sm font-medium">Prestataires + budget</p>
-                <p className="mt-1 text-xs text-[var(--agency-body)]">Ajoutez un prestataire, son budget, un paiement.</p>
-              </button>
-            </div>
-            <p className="mt-4 text-xs text-[var(--agency-eyebrow)]">Tout est local-first : images en dataURL, export .byaime.json, PWA installable. Aucun serveur requis.</p>
+      {/* Accueil d'un Monde neuf : quatre dossiers, dans l'ordre, langage clair. */}
+      {!isPublicInfo && gettingStartedRows && (
+        <section data-testid="world-getting-started" className="border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-10">
+          <div className="mx-auto max-w-3xl">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--agency-eyebrow)]">{t("world.start.eyebrow")}</p>
+            <h2 className="mt-3 text-2xl font-medium tracking-tight text-[var(--agency-ink)]">{t("world.start.title")}</h2>
+            <p className="mt-2 text-sm text-[var(--agency-body)]">{t("world.start.lead")}</p>
+            <ul className="mt-6 space-y-3">
+              {gettingStartedRows.map(row => (
+                <li key={row.panel}>
+                  <button
+                    type="button"
+                    data-testid={`world-start-${row.panel}`}
+                    onClick={() => openPanelSafely(row.panel)}
+                    className="flex w-full items-baseline gap-4 rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-5 py-4 text-left transition hover:border-[var(--agency-ink)]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40"
+                  >
+                    <span className="shrink-0 text-sm font-medium text-[var(--agency-ink)]">{row.label}</span>
+                    <span className="ml-auto max-w-[55%] text-right text-xs leading-relaxed text-[var(--agency-body)]">{row.description}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       )}
@@ -843,6 +774,11 @@ export function ProjectStage() {
             </div>
           </section>
         )}
+        {/* La lecture de la Timeline reste à la place où on la regarde :
+            au-dessus du déroulé, plus dans une barre de navigation. */}
+        <div className="flex justify-end border-b border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-6 py-2.5 sm:px-10">
+          <TimelinePlayback events={visibleEvents} />
+        </div>
         <UniversalTimeline
           events={visibleEvents}
           capabilities={momentCapabilities}
@@ -851,26 +787,6 @@ export function ProjectStage() {
         />
       </main>
 
-      <BottomDock
-        phase={phase}
-        view={view}
-        activePanel={activePanel}
-        navigation={navigation}
-        rail={rail}
-        momentId={panelMomentId}
-        onBackToMoment={() => {
-          const momentId = panelMomentId;
-          setActivePanel(null);
-          setPanelMomentId(null);
-          if (momentId) window.dispatchEvent(new CustomEvent("aime:focus-world", { detail: { momentId } }));
-        }}
-        onPanelChange={setActivePanelFromMenu} onPhaseChange={nextPhase => {
-        setPhase(nextPhase);
-        if (view === "public-info") setView("chronological");
-      }} onViewChange={nextView => {
-        setView(nextView);
-        setActivePanel(null);
-      }} />
       {spotlight && <PersonSpotlight person={spotlight} onClose={() => setSpotlight(null)} />}
       {tasksOpen && (
         <CenteredBlock
@@ -1033,11 +949,6 @@ export function ProjectStage() {
           currentRole={currentRole}
           canEdit={canEdit}
         />
-      )}
-      {searchOpen && (
-        <CenteredBlock eyebrow={t("world.search.eyebrow")} title={t("world.search.title")} description={t("world.search.desc")} onClose={() => setSearchOpen(false)} size="lg">
-          <WorldSearch onClose={() => setSearchOpen(false)} onOpenPanel={panel => { setSearchOpen(false); openPanelSafely(panel); }} />
-        </CenteredBlock>
       )}
     </div>
   );

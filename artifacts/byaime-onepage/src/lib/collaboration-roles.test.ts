@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   COLLABORATION_ROLE_POLICY,
-  INVITATION_ROLE_OPTIONS,
+  getInvitationRoleOptions,
 } from "./collaboration-roles";
 
 describe("collaboration role descriptions", () => {
@@ -29,13 +29,13 @@ describe("collaboration role descriptions", () => {
 
   it("does not present editable roles as read-only or viewers as RSVP-only", () => {
     const labels = Object.fromEntries(
-      INVITATION_ROLE_OPTIONS.map((option) => [option.value, option.label]),
+      getInvitationRoleOptions("fr").map((option) => [option.value, option.label]),
     );
     expect(labels.family).toContain("peut modifier le contenu partagé");
     expect(labels.planner).toContain("gérer les accès et les documents");
     expect(labels.planner).toContain("consulter les finances");
     expect(labels.planner).toContain("publication et suppression restent réservées au propriétaire");
-    expect(labels.viewer).toContain("projection destinée à l’audience");
+    expect(labels.viewer).toContain("voit le contenu public du Monde");
     expect(labels.viewer).not.toContain("prestataires");
     expect(labels.family).not.toContain("lecture seule");
     expect(labels.viewer).not.toContain("sa propre participation");

@@ -19,7 +19,7 @@ describe("private shell controls", () => {
     );
 
     expect(markup).toContain('data-testid="orb-button"');
-    expect(markup).toContain('aria-label="Ouvrir le panneau AIME"');
+    expect(markup).toContain('aria-label="Ouvrir le menu AIME"');
   });
 
   it("keeps Timeline playback reachable from a World with visible Moments", () => {

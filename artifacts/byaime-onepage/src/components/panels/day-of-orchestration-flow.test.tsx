@@ -87,6 +87,7 @@ const dayEvents = () => current.timeline.filter(e => e.phase === "pendant").sort
 /** Ouvre le Monde en Jour J, puis la Régie depuis un Moment du Jour J. */
 async function openRunOfShow() {
   const { ProjectStage } = await import("@/components/ProjectStage");
+  const { AimePanel } = await import("@/components/AimePanel");
   function Harness() {
     useSyncExternalStore(
       subscribe => { listeners.add(subscribe); return () => listeners.delete(subscribe); },
@@ -102,6 +103,9 @@ async function openRunOfShow() {
       <Router hook={() => ["/user-portal", () => undefined] as const}>
         <I18nProvider initialLocale="fr">
           <Harness />
+          {/* Le Panneau AIME est monté dans PrivateLayout en production ;
+              ici on le monte à côté du Monde, comme elle le fait. */}
+          <AimePanel />
         </I18nProvider>
       </Router>,
     );

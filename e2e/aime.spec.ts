@@ -78,11 +78,16 @@ test.describe("mariage complet AIME", () => {
     }
     await page.reload();
     await expect(page.getByTestId("portal")).toBeVisible();
-    await page.getByLabel("Ouvrir mon espace ME").click();
-    await expect(page.getByTestId("settings-panel")).toBeVisible();
+    /* Le Panneau AIME est la seule porte d'entrée (17/09) : « Mon espace »
+       s'y ouvre, le compte s'y lit, la suppression de compte s'y confirme. */
+    await page.getByTestId("orb-button").click();
+    await expect(page.getByTestId("aime-panel")).toBeVisible();
+    await page.getByTestId("aime-panel-item-me").click();
+    await expect(page.getByTestId("portal-me")).toBeVisible();
     await expect(
       page.getByText("Aucun Monde pour le moment. Votre compte reste accessible."),
     ).toBeVisible();
+    await page.getByRole("button", { name: "Zone sensible" }).click();
     await page.getByRole("button", { name: "Supprimer mon compte" }).click();
     const accountDeleteSubmit = page.getByTestId("account-delete-submit");
     await expect(accountDeleteSubmit).toBeDisabled();
@@ -91,23 +96,26 @@ test.describe("mariage complet AIME", () => {
       .fill("SUPPRIMER MON COMPTE");
     await expect(accountDeleteSubmit).toBeEnabled();
     await page.getByRole("button", { name: "Annuler" }).click();
-    await page.getByLabel("Fermer").click();
+    await page.getByTestId("aime-panel-close").click();
     await expect(page.getByTestId("demo-project")).toBeVisible();
     await page.getByTestId("demo-project").click();
-    await expect(page.getByTestId("settings-open")).toBeVisible();
-    await expect(page.getByTestId("sync-status")).toHaveAttribute(
-      "data-sync-status",
-      "saved",
-      { timeout: 20_000 },
-    );
+    await expect(page.getByTestId("orb-button")).toBeVisible();
 
-    await page.getByTestId("sync-status").click();
-    await page.getByTestId("me-open").click();
-    await expect(page.getByTestId("settings-panel")).toBeVisible();
-    const projectId = await page
-      .getByTestId("active-project-select")
-      .inputValue();
+    /* Le Monde est bien créé : le panneau en ouvre les réglages, et
+       l'identifiant lu dans le cache local est un UUID. */
+    await page.getByTestId("orb-button").click();
+    await expect(page.getByTestId("aime-panel")).toBeVisible();
+    await page.getByTestId("aime-panel-item-world-settings").click();
+    await expect(page.getByTestId("portal-world-settings")).toBeVisible();
+    const projectId = await page.evaluate(() => {
+      const key = Object.keys(localStorage).find((item) =>
+        item.startsWith("aime-project:"),
+      );
+      const value = key ? localStorage.getItem(key) : null;
+      return value ? JSON.parse(value).id : null;
+    });
     expect(projectId).toMatch(/^[0-9a-f-]{36}$/i);
+    await page.getByTestId("aime-panel-close").click();
     // A fresh context models a browser reconnect while preserving Clerk's saved session.
     const reconnected = await browser.newContext({
       storageState: process.env.AIME_E2E_OWNER_STATE,
@@ -118,11 +126,15 @@ test.describe("mariage complet AIME", () => {
     await setupClerkTestingToken({ page: reconnectedPage });
     await reconnectedPage.goto("/user-portal");
     await expect(reconnectedPage.getByTestId("portal")).toBeVisible();
-    await reconnectedPage.getByTestId("sync-status").click();
-    await reconnectedPage.getByTestId("me-open").click();
+    /* La reconnexion retrouve le même Monde actif : le panneau l'affiche
+       dans « Mes Mondes », marqué comme Monde actif. */
+    await reconnectedPage.getByTestId("orb-button").click();
+    await expect(reconnectedPage.getByTestId("aime-panel")).toBeVisible();
+    await reconnectedPage.getByTestId("aime-panel-item-me").click();
+    await reconnectedPage.getByRole("button", { name: "Mes Mondes" }).click();
     await expect(
-      reconnectedPage.getByTestId("active-project-select"),
-    ).toHaveValue(projectId);
+      reconnectedPage.getByTestId("world-switcher").locator("button[aria-current='page']"),
+    ).toHaveText(new RegExp(projectTitle));
     await reconnected.close();
 
     let project = (await api("/projects")).body.find(
@@ -247,7 +259,7 @@ test.describe("mariage complet AIME", () => {
     const isolatedProject = await isolatedProjectResponse.json();
     await switchingPage.goto("/user-portal");
     await expect(switchingPage.getByTestId("portal")).toBeVisible();
-    await expect(switchingPage.getByTestId("settings-open")).toBeVisible();
+    await expect(switchingPage.getByTestId("orb-button")).toBeVisible();
     await expect(
       switchingPage.getByRole("heading", {
         name: isolatedProjectTitle,
