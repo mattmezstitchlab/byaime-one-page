@@ -15,6 +15,7 @@ import {
   type Participation,
 } from "@workspace/aime-domain";
 import { useProject } from "@/store/project-store";
+import { useI18n } from "@/lib/i18n";
 import { failureMessage } from "@/lib/api-messages";
 import { CARD_DRAFT_KEY } from "@/lib/intention-draft";
 import { apiCall, jsonPut } from "@/lib/api-call";
@@ -50,6 +51,8 @@ export function UniversalCardForm({
   onCreateWedding?: () => void;
 }) {
   const [, navigate] = useLocation();
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "en" ? "en-US" : "fr-FR";
   const { projects = [], selectProject, project, syncStatus } = useProject();
   const [card, setCard] = useState<UniversalCard>(emptyCard);
   const [presence, setPresence] = useState<Participation>(emptyParticipation);
@@ -149,7 +152,7 @@ export function UniversalCardForm({
         /* Le service peut être momentanément injoignable : la page reste
            utilisable — saisie locale, brouillon retrouvé — et le dit, au lieu
            de se remplacer par un message technique. */
-        setLoadError(failureMessage(e, "Chargement de votre carte impossible"));
+        setLoadError(failureMessage(e, t("ucf.err.loadCard")));
         restoreDraft();
       } finally {
         /* Toujours rendre le formulaire : un échec de chargement est une
@@ -207,21 +210,19 @@ export function UniversalCardForm({
     setNotice("");
     try {
       if (step > 0 && step < 4 && !contextReady)
-        throw new Error(
-          "Chargez le mariage avant de configurer votre association.",
-        );
+        throw new Error(t("ucf.err.loadWeddingFirst"));
       if (
         (step === 0 || (step === 4 && !version)) &&
         (!card.firstName.trim() || !card.lastName.trim())
       )
-        throw new Error("Renseignez votre prénom et votre nom.");
+        throw new Error(t("ucf.err.identityRequired"));
       if (
         step === 2 &&
         (!!presence.arrival !== !!presence.departure ||
           (presence.arrival &&
             Date.parse(presence.departure) <= Date.parse(presence.arrival)))
       )
-        throw new Error("La fin de présence doit suivre le début.");
+        throw new Error(t("ucf.err.presenceOrder"));
       if (
         step === 3 &&
         presence.slots.some(
@@ -232,9 +233,7 @@ export function UniversalCardForm({
             Date.parse(s.end) <= Date.parse(s.start),
         )
       )
-        throw new Error(
-          "Complétez chaque créneau avec un début et une fin cohérents.",
-        );
+        throw new Error(t("ucf.err.slotsIncomplete"));
       if (step === 0 || (step === 4 && !version)) {
         await saveCard();
         setStep(4); // Creation is complete. No wedding or role is required.
@@ -249,15 +248,13 @@ export function UniversalCardForm({
           ))
       ) {
         if (!signedIn || !projectId)
-          throw new Error(
-            "Choisissez un mariage avant d’enregistrer cette association.",
-          );
+          throw new Error(t("ucf.err.weddingRequired"));
         await associate();
         return;
       }
       setStep((s) => s + 1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Enregistrement impossible");
+      setError(e instanceof Error ? e.message : t("ucf.err.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -270,17 +267,13 @@ export function UniversalCardForm({
       if (cardUserId)
         sessionStorage.removeItem(`aime-card-context-draft:${cardUserId}`);
       if (!(await selectProject(projectId)))
-        throw new Error(
-          "Participation enregistrée, mais le mariage n’a pas pu être rechargé. Réessayez son ouverture.",
-        );
-      setNotice(
-        "C’est enregistré. BYAIME organise votre Timeline avec ces informations.",
-      );
+        throw new Error(t("ucf.err.reloadWedding"));
+      setNotice(t("ucf.notice.saved"));
       savedPresence.current = structuredClone(presence);
       setHasSavedContext(true);
       setStep(4);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Association impossible");
+      setError(e instanceof Error ? e.message : t("ucf.err.associateFailed"));
     } finally {
       setBusy(false);
     }
@@ -301,18 +294,18 @@ export function UniversalCardForm({
     try {
       const current = await api(`/projects/${id}/my-participation`);
       if (!(await selectProject(id)))
-        throw new Error("Impossible de charger ce mariage.");
+        throw new Error(t("ucf.err.loadWedding"));
       if (current) {
         const { linkedRsvp: source, ...context } = current;
         setPresence(context);
         savedPresence.current = structuredClone(context);
         setHasSavedContext(true);
         setLinkedRsvp(source ?? null);
-        setNotice("Vos réponses pour ce mariage ont été récupérées.");
+        setNotice(t("ucf.notice.restored"));
       }
       setContextReady(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Chargement impossible");
+      setError(e instanceof Error ? e.message : t("ucf.err.loadFailed"));
     } finally {
       setBusy(false);
     }
@@ -325,19 +318,19 @@ export function UniversalCardForm({
         data-testid="universal-card-loading"
         className="rounded-[2rem] bg-[#171410] p-8 text-white"
       >
-        <p role="status">Chargement de votre carte…</p>
+        <p role="status">{t("ucf.loading")}</p>
       </section>
     );
   const contextSelector = (
     <label className="block text-sm">
-      Mariage concerné
+      {t("ucf.weddingLabel")}
       <select
         className={inputStyle}
         value={projectId}
         disabled={busy}
         onChange={(e) => void selectContext(e.target.value)}
       >
-        <option value="">À choisir plus tard</option>
+        <option value="">{t("ucf.later")}</option>
         {projects.map((p) => (
           <option key={p.id} value={p.id}>
             {p.displayLabel ?? p.title}
@@ -395,7 +388,7 @@ export function UniversalCardForm({
                       JSON.stringify(presence) ===
                         JSON.stringify(savedPresence.current) ||
                       window.confirm(
-                        "Abandonner les modifications non enregistrées pour ce mariage ?",
+                        t("ucf.confirmDiscardWedding"),
                       )
                     ) {
                       setPresence(structuredClone(savedPresence.current));
@@ -410,7 +403,7 @@ export function UniversalCardForm({
                           JSON.stringify(card) ===
                             JSON.stringify(savedIdentity.current) ||
                           window.confirm(
-                            "Abandonner les modifications non enregistrées de votre identité ?",
+                            t("ucf.confirmDiscardIdentity"),
                           )
                         ) {
                           setCard(savedIdentity.current!);
@@ -424,48 +417,48 @@ export function UniversalCardForm({
         >
           {step === 4
             ? version
-              ? "Modifier ma carte"
-              : "Modifier mon brouillon"
-            : "← Retour"}
+              ? t("ucf.editCard")
+              : t("ucf.editDraft")
+            : t("ucf.back")}
         </button>
         <span className="text-xs text-white/60">
           {step === 0 || step === 4
             ? version
-              ? "Carte enregistrée"
+              ? t("ucf.saved")
               : step === 4
-                ? "Brouillon · non enregistré"
-                : "En cours de création"
+                ? t("ucf.draft")
+                : t("ucf.creating")
             : step === 5
-              ? "Votre mariage"
-              : `Votre mariage · ${step} / 3`}
+              ? t("ucf.yourWedding")
+              : t("ucf.weddingStep", { step })}
         </span>
       </div>
       <h2 className="mt-3 text-2xl font-medium">
         {
           [
-            version ? "Modifier ma carte" : "Créer ma carte",
-            "Votre rôle",
-            "Votre présence",
-            "BYAIME organise",
+            version ? t("ucf.editCard") : t("ucf.step.create"),
+            t("ucf.step.role"),
+            t("ucf.step.presence"),
+            t("ucf.step.organize"),
             version
               ? justSavedCard
-                ? "Ma carte est prête"
-                : "Ma carte"
-              : "Mon brouillon est prêt",
-            "Tout est déjà là",
+                ? t("ucf.step.cardReady")
+                : t("ucf.step.card")
+              : t("ucf.step.draftReady"),
+            t("ucf.step.allThere"),
           ][step]
         }
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-white/60">
         {step === 0
-          ? "Votre identité BYAIME, une seule fois. Pour commencer, seuls votre prénom et votre nom sont nécessaires."
+          ? t("ucf.desc.identity")
           : step === 1
-            ? "Quel sera votre rôle ? Vous pouvez en choisir plusieurs."
+            ? t("ucf.desc.role")
             : step === 2
-              ? "Quand serez-vous là ? Ces informations concernent uniquement ce mariage."
+              ? t("ucf.desc.presence")
               : step === 3
-                ? "Retrouvez vos réglages habituels. Changez seulement ce qui est différent cette fois-ci."
-                : "Je me présente une fois. Je dis ce que je fais. Je choisis où je vais. BYAIME sait déjà le reste."}
+                ? t("ucf.desc.slots")
+                : t("ucf.desc.ready")}
       </p>
       {loadError && (
         <div
@@ -476,9 +469,7 @@ export function UniversalCardForm({
             {loadError}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-amber-100/70">
-            Votre carte n’a pas pu être relue depuis votre compte. Vous pouvez
-            continuer ici : rien n’est enregistré tant que l’enregistrement n’a
-            pas abouti.
+            {t("ucf.loadError.hint")}
           </p>
           <button
             type="button"
@@ -486,20 +477,20 @@ export function UniversalCardForm({
             disabled={busy}
             onClick={() => setReloadToken((token) => token + 1)}
           >
-            {busy ? "Chargement…" : "Recharger ma carte"}
+            {busy ? t("ucf.loadingShort") : t("ucf.reload")}
           </button>
         </div>
       )}
       {step === 4 && (
         <ol
-          aria-label="Votre parcours BYAIME"
+          aria-label={t("ucf.journey.aria")}
           className="mt-6 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4"
         >
           {[
-            "Je me présente",
-            "Je dis ce que je fais",
-            "Je choisis où je vais",
-            "BYAIME organise",
+            t("ucf.journey.intro"),
+            t("ucf.journey.work"),
+            t("ucf.journey.where"),
+            t("ucf.journey.organize"),
           ].map((label, i) => (
             <li key={label} className="rounded-xl border border-white/15 p-3">
               <span className="mb-2 block text-white/40">
@@ -513,20 +504,19 @@ export function UniversalCardForm({
       )}
       {step > 0 && step !== 4 && (
         <div className="mt-5 rounded-2xl border border-white/20 bg-white/5 p-4">
-          <p className="text-xs text-white/60">Vous rejoignez :</p>
+          <p className="text-xs text-white/60">{t("ucf.joining")}</p>
           <p className="mt-1 font-medium">
             {projects.find((p) => p.id === projectId)?.displayLabel ??
               (project?.id === projectId
                 ? weddingDisplayLabel(project.title, project)
-                : (projects.find((p) => p.id === projectId)?.title ??
-                  "Votre mariage"))}
+                : projects.find((p) => p.id === projectId)?.title ??
+                  t("ucf.yourWedding"))}
           </p>
           <p className="mt-2 text-sm text-white/65">
-            {card.firstName} {card.lastName} · Votre carte est déjà renseignée.
+            {t("ucf.cardFilled", { name: `${card.firstName} ${card.lastName}` })}
           </p>
           <p className="mt-2 text-xs text-white/50">
-            Votre présence et vos besoins restent dans ce mariage, jamais sur
-            votre fiche publique.
+            {t("ucf.contextPrivate")}
           </p>
         </div>
       )}
@@ -546,9 +536,7 @@ export function UniversalCardForm({
                 onSelect={(result) => update("music", result)}
                 onClear={() => update("music", undefined)}
                 onSkipped={() => {
-                  setNotice(
-                    "Vous pourrez ajouter un morceau plus tard. Vous pouvez maintenant terminer votre carte.",
-                  );
+                  setNotice(t("ucf.notice.musicLater"));
                   document.getElementById("card-save")?.focus();
                 }}
               />
@@ -582,42 +570,41 @@ export function UniversalCardForm({
           {step === 5 && (
             <div className="space-y-5" data-testid="participation-summary">
               <p className="text-sm text-white/70">
-                Vos informations sont déjà enregistrées. Rien à remplir de
-                nouveau.
+                {t("ucf.summary.ready")}
               </p>
               <div className="rounded-xl border border-white/20 p-4">
-                <h3 className="font-medium">Votre rôle</h3>
+                <h3 className="font-medium">{t("ucf.step.role")}</h3>
                 <p className="mt-2 text-sm">
-                  {presence.roles.join(" · ") || "À préciser"}
+                  {presence.roles.join(" · ") || t("ucf.toDefine")}
                 </p>
                 <button
                   type="button"
                   className="mt-2 min-h-11 text-sm underline"
                   onClick={() => setStep(1)}
                 >
-                  Modifier mon rôle
+                  {t("ucf.editRole")}
                 </button>
               </div>
               <div className="rounded-xl border border-white/20 p-4">
-                <h3 className="font-medium">Votre présence</h3>
+                <h3 className="font-medium">{t("ucf.step.presence")}</h3>
                 <p className="mt-2 text-sm">
                   {
                     {
-                      present: "Présent",
-                      absent: "Absent",
-                      peut_etre: "Peut-être",
-                      en_attente: "À confirmer",
+                      present: t("ucf.rsvp.present"),
+                      absent: t("ucf.rsvp.absent"),
+                      peut_etre: t("ucf.rsvp.maybe"),
+                      en_attente: t("ucf.rsvp.waiting"),
                     }[presence.rsvp]
                   }{" "}
-                  · {presence.companions} accompagnant(s)
+                  · {t("ucf.companions", { n: presence.companions })}
                 </p>
                 <p className="mt-2 text-sm">{presence.moments.join(" · ")}</p>
                 <p className="mt-2 text-sm">
                   {presence.arrival
-                    ? new Date(presence.arrival).toLocaleString("fr-FR")
-                    : "Arrivée à préciser"}
+                    ? new Date(presence.arrival).toLocaleString(dateLocale)
+                    : t("ucf.arrivalTBD")}
                   {presence.departure
-                    ? ` → ${new Date(presence.departure).toLocaleString("fr-FR")}`
+                    ? ` → ${new Date(presence.departure).toLocaleString(dateLocale)}`
                     : ""}
                 </p>
                 <button
@@ -625,21 +612,20 @@ export function UniversalCardForm({
                   className="mt-2 min-h-11 text-sm underline"
                   onClick={() => setStep(2)}
                 >
-                  Modifier ma présence ou mes besoins
+                  {t("ucf.editPresence")}
                 </button>
               </div>
               <div className="rounded-xl border border-white/20 p-4">
-                <h3 className="font-medium">BYAIME organise</h3>
+                <h3 className="font-medium">{t("ucf.step.organize")}</h3>
                 <p className="mt-2 text-sm text-white/70">
-                  Vos horaires et réglages validés sont repris automatiquement
-                  dans la Timeline.
+                  {t("ucf.organizeAuto")}
                 </p>
                 <button
                   type="button"
                   className="mt-2 min-h-11 text-sm underline"
                   onClick={() => setStep(3)}
                 >
-                  Voir mes réglages pour ce mariage
+                  {t("ucf.viewSettings")}
                 </button>
               </div>
               <button
@@ -647,7 +633,7 @@ export function UniversalCardForm({
                 className={buttonStyle}
                 onClick={() => navigate("/user-portal")}
               >
-                Ouvrir mon mariage
+                {t("ucf.openWedding")}
               </button>
             </div>
           )}
@@ -673,7 +659,7 @@ export function UniversalCardForm({
                 className="min-h-11 text-sm underline text-white/60"
                 onClick={() => setStep(3)}
               >
-                Ajouter des horaires particuliers
+                {t("ucf.addSlots")}
               </button>
             )}
           {step === 3 && (
@@ -705,8 +691,8 @@ export function UniversalCardForm({
                 <>
                   <p className="text-sm">
                     {signedIn
-                      ? "Vous êtes connecté. Votre brouillon a été conservé : enregistrez-le pour terminer votre carte, sans ressaisir vos informations."
-                      : "Votre brouillon est prêt, mais pas encore enregistré dans votre compte. Connectez-vous ou créez un compte pour le conserver et le retrouver dans vos mariages."}
+                      ? t("ucf.draft.saved")
+                      : t("ucf.draft.signedOut")}
                   </p>
                   <button
                     type="button"
@@ -720,31 +706,29 @@ export function UniversalCardForm({
                         sessionStorage.setItem(CARD_DRAFT_KEY, JSON.stringify({ card }));
                         navigate("/creation?returnTo=%2Fma-carte");
                       } catch {
-                        setError(
-                          "Stockage indisponible. Ne fermez pas cette page.",
-                        );
+                        setError(t("ucf.storageError"));
                       }
                     }}
                   >
                     {signedIn
-                      ? "Enregistrer ma carte"
-                      : "Enregistrer ma carte avec mon compte"}
+                      ? t("ucf.saveCard")
+                      : t("ucf.saveCardWithAccount")}
                   </button>
                 </>
               ) : (
                 <>
                   <section
                     className="rounded-2xl border border-white/15 p-5"
-                    aria-label="Mes activités"
+                    aria-label={t("ucf.activities.aria")}
                   >
                     <p className="text-[11px] uppercase tracking-[.16em] text-white/50">
-                      02 · Mon fonctionnement · Facultatif
+                      {t("ucf.activities.eyebrow")}
                     </p>
-                    <h3 className="mt-2 text-lg">Ma façon de travailler</h3>
+                    <h3 className="mt-2 text-lg">{t("ucf.activities.title")}</h3>
                     <p className="mt-2 text-sm text-white/65">
                       {card.profession
-                        ? `${card.profession} : voulez-vous configurer votre façon de travailler ?`
-                        : "Vous exercez une activité ? Retrouvez vos durées et vos disponibilités sans les ressaisir à chaque mariage."}
+                        ? t("ucf.activities.question", { profession: card.profession })
+                        : t("ucf.activities.generic")}
                     </p>
                     {profiles.length > 0 && (
                       <ul className="mt-4 space-y-2">
@@ -759,7 +743,7 @@ export function UniversalCardForm({
                               }}
                             >
                               <span>{p.profession}</span>
-                              <span className="text-white/55">Modifier →</span>
+                              <span className="text-white/55">{t("ucf.editArrow")}</span>
                             </button>
                           </li>
                         ))}
@@ -774,22 +758,21 @@ export function UniversalCardForm({
                       }}
                     >
                       {profiles.length
-                        ? "Ajouter une activité"
-                        : "Configurer mon fonctionnement"}
+                        ? t("ucf.addActivity")
+                        : t("ucf.configureActivity")}
                     </button>
                     <p className="mt-3 text-xs text-white/50">
-                      Invité, proche ou témoin ? Passez directement à votre
-                      mariage.
+                      {t("ucf.guestHint")}
                     </p>
                   </section>
                   <section
                     className="space-y-4 rounded-2xl border border-white/15 p-5"
-                    aria-label="Mes mariages"
+                    aria-label={t("ucf.weddings.aria")}
                   >
                     <p className="text-[11px] uppercase tracking-[.16em] text-white/50">
-                      03 · Mes mariages
+                      {t("ucf.weddings.eyebrow")}
                     </p>
-                    <h3 className="text-lg">Où allez-vous ?</h3>
+                    <h3 className="text-lg">{t("ucf.weddings.title")}</h3>
                     {projects.length ? (
                       <>
                         {contextSelector}
@@ -800,15 +783,13 @@ export function UniversalCardForm({
                           onClick={() => setStep(hasSavedContext ? 5 : 1)}
                         >
                           {hasSavedContext
-                            ? "Voir mes informations"
-                            : "Préparer ma participation"}
+                            ? t("ucf.viewInfos")
+                            : t("ucf.prepareParticipation")}
                         </button>
                       </>
                     ) : (
                       <p className="text-sm text-white/65">
-                        Vous n’avez encore rejoint aucun mariage. Utilisez une
-                        invitation ou créez votre propre mariage ; votre
-                        identité est déjà prête.
+                        {t("ucf.noWedding")}
                       </p>
                     )}
                     <button
@@ -816,7 +797,7 @@ export function UniversalCardForm({
                       className="min-h-11 rounded-full border border-white/30 px-5 text-sm"
                       onClick={() => setJoining(true)}
                     >
-                      Rejoindre un mariage
+                      {t("ucf.joinWedding")}
                     </button>
                   </section>
                   <div className="flex flex-wrap gap-3">
@@ -829,7 +810,7 @@ export function UniversalCardForm({
                           : navigate("/?creer=mariage")
                       }
                     >
-                      Créer un mariage
+                      {t("ucf.createWedding")}
                     </button>
                     {project && (
                       <button
@@ -837,7 +818,7 @@ export function UniversalCardForm({
                         className="min-h-11 underline"
                         onClick={() => navigate("/user-portal")}
                       >
-                        Ouvrir mon mariage
+                        {t("ucf.openWedding")}
                       </button>
                     )}
                     <button
@@ -845,7 +826,7 @@ export function UniversalCardForm({
                       className="min-h-11 underline"
                       onClick={() => navigate("/")}
                     >
-                      Découvrir
+                      {t("ucf.discover")}
                     </button>
                   </div>
                 </>
@@ -873,13 +854,13 @@ export function UniversalCardForm({
               type="submit"
             >
               {busy
-                ? "Enregistrement…"
+                ? t("ucf.saving")
                 : step === 0
                   ? version
-                    ? "Enregistrer mes modifications"
+                    ? t("ucf.saveChanges")
                     : signedIn
-                      ? "Enregistrer ma carte"
-                      : "Préparer ma carte"
+                      ? t("ucf.saveCard")
+                      : t("ucf.prepareCard")
                   : step === 3 ||
                       (step === 2 &&
                         !presence.roles.some((role) =>
@@ -887,15 +868,15 @@ export function UniversalCardForm({
                             ROLE_GROUPS.Professionnels as readonly string[]
                           ).includes(role),
                         ))
-                    ? "Valider ma participation"
-                    : "Continuer"}
+                    ? t("ucf.validateParticipation")
+                    : t("ucf.continue")}
             </button>
           )}
           {step === 0 && (
             <p className="text-xs text-white/50">
               {signedIn
-                ? "La visibilité de votre carte suit vos règles de partage. Vos horaires et besoins pour un mariage ne figurent jamais sur votre fiche publique."
-                : "Sans compte, votre saisie reste un brouillon dans cette session du navigateur."}
+                ? t("ucf.footer.signedIn")
+                : t("ucf.footer.signedOut")}
             </p>
           )}
         </fieldset>
