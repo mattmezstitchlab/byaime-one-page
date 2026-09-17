@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 export type SwitchableWorld = {
   id: string;
@@ -23,13 +24,14 @@ export function WorldSwitcher({
   onSelect: (projectId: string) => void;
   testId?: string;
 }) {
+  const { t } = useI18n();
   if (projects.length === 0) {
     return (
       <p
         data-testid={testId}
         className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55"
       >
-        Aucun Monde pour le moment. Votre compte reste accessible.
+        {t("worldSwitcher.empty")}
       </p>
     );
   }
@@ -56,7 +58,7 @@ export function WorldSwitcher({
                 {item.title}
               </span>
               <span className="mt-1 block text-[9px] uppercase tracking-[.18em] text-foreground/50">
-                {active ? "Mariage · Monde actif" : item.role}
+                {active ? t("worldSwitcher.active") : item.role}
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-foreground/20 transition group-hover:translate-x-1 group-hover:text-foreground/60" />

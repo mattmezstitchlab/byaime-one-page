@@ -341,6 +341,28 @@ build OK après chaque lot.
     Dette assumée : le contenu « Mon espace » reste en français durci (à
     traduire en P5).
 
+### P5 — FR/EN en parallèle sur le reste de l'espace privé — ✅ FAIT
+
+20. ✅ **Le contenu « Mon espace » et le reste de l'espace privé passent au
+    dictionnaire FR/EN** (~120 nouvelles clés, FR + EN en miroir) : `PortalContent`
+    (Mon espace, Réglages du Monde, Modifier l'ouverture, Créer), les gestes de
+    création (`create-actions.ts` → `getUniversalCreateActions(locale)`),
+    `WorldSwitcher`, le bandeau des cartes liées (`WeddingCardParticipants`),
+    la page `/admin` (`AdminSommaire`), les rôles d'invitation
+    (`collaboration-roles.ts` → `getInvitationRoleOptions(locale)`) et les notices
+    d'enregistrement (`pending-save-notice.ts` reçoit la langue).
+21. ✅ **Les rôles sortent du jargon** : « Rôle actuel : owner » devient
+    « Rôle actuel : Propriétaire » (`roleDisplayName`, mots simples FR/EN).
+    Le suivi de l'enregistrement passe d'une lecture du texte FR (« en cours
+    d'enregistrement ») à un drapeau : la notice peut être FR ou EN, le
+    comportement ne change pas.
+    Verrouillé par un test de parallélisme (le contenu suit la bascule de langue
+    du panneau, FR → EN, sur Mon espace et les Réglages) : **530 tests frontend
+    verts (74 fichiers)**, typecheck et build OK.
+    Reste hors i18n : les pages publiques non visées par cette passe
+    (RSVP/profil public/bilan sont déjà traduits sur la porte d'entrée) et les
+    libellés de `professionalConfig` (domaine agence, hors espace mariage).
+
 ---
 
 ## 5. Ce qu'il ne faut PAS toucher
@@ -368,7 +390,7 @@ build OK après chaque lot.
 | Backend « AIME local bridge » | ~1 000 lignes supprimées (routes + helpers + zod + db + spec + client + scripts) |
 | Bloc P6 (onboarding dupliqué) | ~26 lignes supprimées (jargon dev) |
 | Libellés de jargon retravaillés | ~20 familles de clés i18n (FR + EN) + 5 composants durcis + registry |
-| Chaînes durcies FR hors i18n restantes | AdminSommaire (privé), BilanPage nettoyée |
+| Chaînes durcies FR hors i18n restantes | Espace privé : plus rien après P5 (~120 clés FR/EN) ; reste les libellés `professionalConfig` (domaine agence) |
 | Modèles de navigation superposés | 3 (dossiers / items de phase / rail) — P3 |
 | Surfaces de navigation absorbées (P4) | Phase 1 : `CommandBar.tsx` (236 lg) + `BottomDock.tsx` (309 lg). Phase 2 : `WorldTopMenu.tsx` + `WorldSearch.tsx` + `WeddingFolders.tsx` + `admin-plan.ts` (top menu, rangée, loupe). Phase 3 : `PortalControls.tsx` (1 198 lg) + `GlobalCreateCenter.tsx` (90 lg) → le tout dans `AimePanel.tsx` unique |
 | Portes d'entrée vers les mêmes 7 dossiers | 3 écrans + l'orbe — P3 |

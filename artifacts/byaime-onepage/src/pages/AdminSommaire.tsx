@@ -9,11 +9,11 @@ import { useRouteMeta } from "@/lib/page-meta";
  * panneau, sans plus de duplication.
  */
 export function AdminSommairePage() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   useRouteMeta({
-    title: locale === "en" ? "AIME · Back-office" : "AIME · Rétroplanning",
-    description: locale === "en" ? "The whole wedding, in order — inside the AIME panel." : "Tout le mariage, remis dans l'ordre — dans le panneau AIME.",
+    title: t("admin.page.metaTitle"),
+    description: t("admin.page.metaDesc"),
   });
 
   useEffect(() => {
@@ -23,10 +23,10 @@ export function AdminSommairePage() {
   return (
     <main data-testid="admin-page" className="grid min-h-[70vh] place-items-center bg-[var(--agency-paper)] px-6 text-[var(--agency-ink)]">
       <div className="max-w-md text-center">
-        <p className="text-[11px] uppercase tracking-[0.38em] text-[var(--agency-eyebrow)]">Back-office</p>
-        <h1 className="agency-serif mt-6 text-4xl leading-tight sm:text-5xl">Le rétroplanning</h1>
+        <p className="text-[11px] uppercase tracking-[0.38em] text-[var(--agency-eyebrow)]">{t("admin.page.eyebrow")}</p>
+        <h1 className="agency-serif mt-6 text-4xl leading-tight sm:text-5xl">{t("admin.page.title")}</h1>
         <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-[var(--agency-body)]">
-          Tout le mariage, remis dans l&rsquo;ordre — chaque ligne ouvre la bonne vue du Monde.
+          {t("admin.page.lead")}
         </p>
         <button
           type="button"

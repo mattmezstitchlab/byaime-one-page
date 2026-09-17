@@ -1,3 +1,5 @@
+import { translate, type Locale } from "../i18n-dictionary";
+
 export type UniversalCreateActionId =
   | "person"
   | "place"
@@ -16,61 +18,28 @@ export type UniversalCreateAction = {
   availableInCurrentProject: boolean;
 };
 
-export const UNIVERSAL_CREATE_ACTIONS: UniversalCreateAction[] = [
-  {
-    id: "person",
-    label: "Personne ou organisation",
-    description: "Ajouter quelqu’un, un groupe ou une structure",
-    creates: "card",
-    capability: "card.create",
-    availableInCurrentProject: true,
-  },
-  {
-    id: "place",
-    label: "Lieu",
-    description: "Ajouter une adresse, un espace ou un endroit virtuel",
-    creates: "place",
-    capability: "place.create",
-    availableInCurrentProject: false,
-  },
-  {
-    id: "moment",
-    label: "Moment",
-    description: "Ajouter une date, une étape ou un événement",
-    creates: "moment",
-    capability: "moment.create",
-    availableInCurrentProject: true,
-  },
-  {
-    id: "task",
-    label: "Tâche",
-    description: "Ajouter quelque chose à faire ou à suivre",
-    creates: "moment",
-    capability: "moment.create",
-    availableInCurrentProject: true,
-  },
-  {
-    id: "document-media",
-    label: "Document ou média",
-    description: "Ajouter un fichier, une image, un son ou une vidéo",
-    creates: "document-media",
-    capability: "document.upload",
-    availableInCurrentProject: true,
-  },
-  {
-    id: "resource",
-    label: "Ressource ou besoin",
-    description: "Proposer ou rechercher du matériel, un service ou une aide",
-    creates: "resource",
-    capability: "resource.request",
-    availableInCurrentProject: false,
-  },
-  {
-    id: "relation",
-    label: "Relier des éléments",
-    description: "Créer un lien clair entre deux éléments",
-    creates: "relation",
-    capability: "relation.create",
-    availableInCurrentProject: false,
-  },
+type CreateActionBase = Omit<UniversalCreateAction, "label" | "description">;
+
+const CREATE_ACTIONS_BASE: CreateActionBase[] = [
+  { id: "person", creates: "card", capability: "card.create", availableInCurrentProject: true },
+  { id: "place", creates: "place", capability: "place.create", availableInCurrentProject: false },
+  { id: "moment", creates: "moment", capability: "moment.create", availableInCurrentProject: true },
+  { id: "task", creates: "moment", capability: "moment.create", availableInCurrentProject: true },
+  { id: "document-media", creates: "document-media", capability: "document.upload", availableInCurrentProject: true },
+  { id: "resource", creates: "resource", capability: "resource.request", availableInCurrentProject: false },
+  { id: "relation", creates: "relation", capability: "relation.create", availableInCurrentProject: false },
 ];
+
+/**
+ * Les gestes de création, traduits dans la langue courante (FR/EN). Les
+ * libellés vivent dans le dictionnaire (`create.action.*`) ; cette liste ne
+ * porte que la structure (ce que le geste crée, la capacité requise, la
+ * disponibilité dans le projet courant).
+ */
+export function getUniversalCreateActions(locale: Locale): UniversalCreateAction[] {
+  return CREATE_ACTIONS_BASE.map((base) => ({
+    ...base,
+    label: translate(locale, `create.action.${base.id}.label`),
+    description: translate(locale, `create.action.${base.id}.desc`),
+  }));
+}

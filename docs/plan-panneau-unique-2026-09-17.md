@@ -269,7 +269,8 @@ fenêtre en dehors de lui (hors confirmations de bas de route) :
   invitation, éditeur d'ouverture) + 1 test de menu (`canEdit`) :
   **529 tests frontend verts (74 fichiers)**, typecheck et build OK.
 - Dette assumée (comme avant le déménagement) : le contenu « Mon espace »
-  reste en français durci — à traduire dans le dictionnaire FR/EN en P5.
+  restait en français durci — depuis lors traduit dans le dictionnaire FR/EN
+  (P5 de l'audit, ~120 clés) : le contenu du panneau suit la bascule de langue.
 
 **Total : ~5 jours.** Chaque phase laisse le site utilisable et les tests verts
 (525 tests frontend actuels + ceux convertis).

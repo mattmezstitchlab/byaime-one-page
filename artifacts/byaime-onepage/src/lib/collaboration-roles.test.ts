@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   COLLABORATION_ROLE_POLICY,
-  INVITATION_ROLE_OPTIONS,
+  getInvitationRoleOptions,
 } from "./collaboration-roles";
 
 describe("collaboration role descriptions", () => {
@@ -29,7 +29,7 @@ describe("collaboration role descriptions", () => {
 
   it("does not present editable roles as read-only or viewers as RSVP-only", () => {
     const labels = Object.fromEntries(
-      INVITATION_ROLE_OPTIONS.map((option) => [option.value, option.label]),
+      getInvitationRoleOptions("fr").map((option) => [option.value, option.label]),
     );
     expect(labels.family).toContain("peut modifier le contenu partagé");
     expect(labels.planner).toContain("gérer les accès et les documents");

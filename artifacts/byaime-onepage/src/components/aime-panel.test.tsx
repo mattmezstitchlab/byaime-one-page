@@ -285,7 +285,8 @@ describe("le Panneau AIME, la seule porte d'entrée", () => {
     click('[data-testid="aime-panel-item-world-settings"]');
     const settings = document.querySelector('[data-testid="portal-world-settings"]');
     expect(settings, "le contenu Réglages est dans le panneau").not.toBeNull();
-    expect(settings!.textContent).toContain("Rôle actuel : owner");
+    /* Le rôle en mot simple, pas le jargon technique « owner ». */
+    expect(settings!.textContent).toContain("Rôle actuel : Propriétaire");
     expect(settings!.textContent).toContain("Inviter à collaborer");
     expect(settings!.textContent).toContain("Confidentialité & conservation");
     /* L'invitation est une sous-section du même contenu, pas une fenêtre. */
@@ -297,6 +298,35 @@ describe("le Panneau AIME, la seule porte d'entrée", () => {
     act(() => window.dispatchEvent(new Event("aime:open-collaboration-invite")));
     expect(document.querySelector('[data-testid="aime-panel"]'), "le panneau s'ouvre").not.toBeNull();
     expect(document.querySelector('[data-testid="portal-world-settings"]')!.textContent).toContain("Envoyer l’invitation");
+  });
+
+  it("le contenu du panneau suit la langue : FR et EN en parallèle (P5)", async () => {
+    mockClerkUser = { fullName: "Camille Dupont" };
+    newProject();
+    await mountWorld();
+    openPanel();
+    click('[data-testid="aime-panel-item-me"]');
+    const me = document.querySelector('[data-testid="portal-me"]');
+    expect(me!.textContent, "d'abord en français").toContain("Ma carte");
+    const sensitive = [...me!.querySelectorAll("button")].find(button => button.textContent === "Zone sensible")!;
+    act(() => sensitive.click());
+    expect(me!.textContent).toContain("Se déconnecter");
+    /* La bascule de langue du panneau traduit le contenu en place
+       (même sous-section, maintenant en anglais). */
+    click('[data-testid="aime-panel-locale"]');
+    const meEn = document.querySelector('[data-testid="portal-me"]');
+    expect(meEn!.textContent, "puis en anglais, sans français résiduel").toContain("Sign out");
+    expect(meEn!.textContent).toContain("Sensitive area");
+    expect(meEn!.textContent).toContain("Delete my account");
+    /* Revenir à la vue d'ensemble : tout y est aussi en anglais. */
+    const overviewEn = [...meEn!.querySelectorAll("button")].find(button => button.textContent === "Overview")!;
+    act(() => overviewEn.click());
+    expect(meEn!.textContent).toContain("My card");
+    /* Même pour les réglages : le rôle reste en mot simple. */
+    click('[data-testid="aime-panel-item-world-settings"]');
+    const settingsEn = document.querySelector('[data-testid="portal-world-settings"]');
+    expect(settingsEn!.textContent).toContain("Current role: Owner");
+    expect(settingsEn!.textContent).toContain("Privacy & retention");
   });
 
   it("« Modifier l'ouverture » : l'éditeur du héro est un contenu du panneau", async () => {

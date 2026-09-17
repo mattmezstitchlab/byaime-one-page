@@ -1,3 +1,5 @@
+import { translate, type Locale } from "./i18n-dictionary";
+
 export type CollaborationRole = "owner" | "planner" | "family" | "viewer";
 export type InvitationRole = Exclude<CollaborationRole, "owner">;
 
@@ -42,23 +44,30 @@ export const COLLABORATION_ROLE_POLICY = {
   projection: string;
 }>;
 
-export const INVITATION_ROLE_OPTIONS: ReadonlyArray<{
+const INVITATION_ROLE_OPTIONS_BASE: ReadonlyArray<{
+  value: InvitationRole;
+  labelKey: `role.option.${InvitationRole}`;
+}> = [
+  { value: "planner", labelKey: "role.option.planner" },
+  { value: "family", labelKey: "role.option.family" },
+  { value: "viewer", labelKey: "role.option.viewer" },
+];
+
+/** Les rôles d'invitation, traduits dans la langue courante (FR/EN). */
+export function getInvitationRoleOptions(locale: Locale): ReadonlyArray<{
   value: InvitationRole;
   label: string;
-}> = [
-  {
-    value: "planner",
-    label:
-      "Planificateur — peut modifier, gérer les accès et les documents, et consulter les finances ; publication et suppression restent réservées au propriétaire",
-  },
-  {
-    value: "family",
-    label:
-      "Proche — peut modifier le contenu partagé ; finances, documents et Moments privés restent masqués, sans gestion des accès",
-  },
-  {
-    value: "viewer",
-    label:
-      "Invité — lecture de la projection destinée à l’audience ; aucune modification, et sans finances ni documents privés",
-  },
-];
+}> {
+  return INVITATION_ROLE_OPTIONS_BASE.map(option => ({
+    value: option.value,
+    label: translate(locale, option.labelKey),
+  }));
+}
+
+/** Le rôle effectif, en mot simple (plus « owner » dans l'interface). */
+export function roleDisplayName(role: string, locale: Locale): string {
+  if (role === "owner" || role === "planner" || role === "family" || role === "viewer") {
+    return translate(locale, `roleName.${role}` as `roleName.${CollaborationRole}`);
+  }
+  return role;
+}

@@ -7,7 +7,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useProject } from "@/store/project-store";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Translate } from "@/lib/i18n";
 import { trackEvent } from "@/lib/analytics";
 import { Link, useLocation } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
@@ -16,14 +16,12 @@ import { WorldSwitcher } from "./WorldSwitcher";
 import { cn } from "@/lib/utils";
 import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
 import {
-  INVITATION_ROLE_OPTIONS,
+  getInvitationRoleOptions,
+  roleDisplayName,
   type InvitationRole,
 } from "@/lib/collaboration-roles";
 import { pendingSaveOutcomeNotice } from "@/lib/pending-save-notice";
-import {
-  UNIVERSAL_CREATE_ACTIONS,
-  type UniversalCreateActionId,
-} from "@/lib/universal/create-actions";
+import { getUniversalCreateActions, type UniversalCreateActionId } from "@/lib/universal/create-actions";
 import { CalendarDays, ClipboardList, FileText, Users } from "lucide-react";
 
 /*
@@ -37,6 +35,9 @@ import { CalendarDays, ClipboardList, FileText, Users } from "lucide-react";
  * bas de route (invitation, suppression de fichier / Monde / compte) restent
  * des fenêtres posées sur le contenu : ce sont des gestes, pas de la
  * navigation.
+ *
+ * P5 (17/09) : chaque chaîne passe par le dictionnaire FR/EN — plus de
+ * français durci dans l'espace privé.
  */
 
 export type PortalContentMode = "create" | "me" | "world-settings" | "hero-editor";
@@ -57,7 +58,12 @@ const createActionIcons = {
   "document-media": FileText,
 } satisfies Partial<Record<UniversalCreateActionId, typeof Users>>;
 
-function putFile(uploadURL: string, file: File, onProgress: (progress: number) => void): Promise<void> {
+function putFile(
+  uploadURL: string,
+  file: File,
+  onProgress: (progress: number) => void,
+  t: Translate,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("PUT", uploadURL);
@@ -67,10 +73,10 @@ function putFile(uploadURL: string, file: File, onProgress: (progress: number) =
     });
     request.addEventListener("load", () => {
       if (request.status >= 200 && request.status < 300) resolve();
-      else reject(new Error("Échec du transfert vers l’espace privé"));
+      else reject(new Error(t("upload.failedServer")));
     });
-    request.addEventListener("error", () => reject(new Error("Le transfert a été interrompu par le réseau")));
-    request.addEventListener("abort", () => reject(new Error("Le transfert a été annulé")));
+    request.addEventListener("error", () => reject(new Error(t("upload.networkStopped"))));
+    request.addEventListener("abort", () => reject(new Error(t("upload.aborted"))));
     request.send(file);
   });
 }
@@ -119,7 +125,7 @@ export function PortalContent({
     importBackup,
     clearProject,
   } = useProject();
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const [, navigate] = useLocation();
   type WorldSettingsSub = "settings" | "invite" | "delete-file" | "delete-project";
   const [wsSub, setWsSub] = useState<WorldSettingsSub>("settings");
@@ -153,8 +159,21 @@ export function PortalContent({
    * « Ouvrir local » au lieu d'« Aperçu ».
    */
   const [apiAvailable, setApiAvailable] = useState(true);
+  /*
+   * Suivi de l'enregistrement : quand une notice « enregistrement en cours »
+   * est posée (drapeau ci-dessous), le passage du store saving →
+   * saved/error/conflict est remplacé par le sort réel. Un drapeau plutôt
+   * qu'une lecture du texte : la notice est FR ou EN, le suivi ne dépend pas
+   * de la langue.
+   */
+  const pendingSaveActiveRef = useRef(false);
   const pendingSaveSeenRef = useRef(false);
   const pendingSaveSuccessNoticeRef = useRef<string | null>(null);
+  const markPendingSave = (noticeText: string) => {
+    pendingSaveActiveRef.current = true;
+    pendingSaveSeenRef.current = false;
+    setNotice(noticeText);
+  };
   const canManage = currentRole === "owner" || currentRole === "planner";
   const basePath = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
@@ -178,7 +197,7 @@ export function PortalContent({
         response.status === 204 ? null : await response.json().catch(() => ({}));
       if (!response.ok)
         throw new Error(
-          body?.error || body?.providerError || `Erreur ${response.status}`,
+          body?.error || body?.providerError || t("upload.errorStatus", { status: response.status }),
         );
       return body;
     } catch (err) {
@@ -189,31 +208,29 @@ export function PortalContent({
     }
   };
   useEffect(() => {
-    if (!notice.includes("enregistrement en cours")) {
-      pendingSaveSeenRef.current = false;
-      pendingSaveSuccessNoticeRef.current = null;
-      return;
-    }
+    if (!pendingSaveActiveRef.current) return;
     if (syncStatus === "saving") pendingSaveSeenRef.current = true;
     if (!pendingSaveSeenRef.current) return;
     if (syncStatus === "saved") {
-      pendingSaveSeenRef.current = false;
+      pendingSaveActiveRef.current = false;
       setNotice(
         pendingSaveOutcomeNotice(
           "saved",
           pendingSaveSuccessNoticeRef.current ?? undefined,
+          undefined,
+          locale,
         ),
       );
     }
     if (syncStatus === "error") {
-      pendingSaveSeenRef.current = false;
-      setNotice(pendingSaveOutcomeNotice("error", undefined, syncError));
+      pendingSaveActiveRef.current = false;
+      setNotice(pendingSaveOutcomeNotice("error", undefined, syncError, locale));
     }
     if (syncStatus === "conflict") {
-      pendingSaveSeenRef.current = false;
-      setNotice(pendingSaveOutcomeNotice("conflict"));
+      pendingSaveActiveRef.current = false;
+      setNotice(pendingSaveOutcomeNotice("conflict", undefined, undefined, locale));
     }
-  }, [notice, syncError, syncStatus]);
+  }, [syncError, syncStatus, locale]);
   useEffect(() => {
     if (mode !== "world-settings" || wsSub !== "settings" || !project) return;
     void api(`/projects/${project.id}/files`)
@@ -222,7 +239,7 @@ export function PortalContent({
         setApiAvailable(false);
         const local = (project.documents || []).map((d) => ({ id: d.id, name: d.title, size: 0, createdAt: new Date(d.at || Date.now()).toISOString() }));
         setFiles(local);
-        setNotice("Mode local-first : documents depuis Galerie unifiée (pas de serveur).");
+        setNotice(t("ws.localDocs"));
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, wsSub, project?.id, project?.documents]);
@@ -260,7 +277,7 @@ export function PortalContent({
     const email = inviteEmail.trim();
     try {
       if (!apiAvailable) {
-        setNotice(`Mode local-first : invitation pour ${email} (${inviteRole}) notée localement. Partagez le lien manuellement.`);
+        setNotice(t("ws.inviteLocal", { email, role: roleDisplayName(inviteRole, locale) }));
         setInviteEmail("");
         setWsSub("settings");
         return;
@@ -270,13 +287,16 @@ export function PortalContent({
         body: JSON.stringify({ email, role: inviteRole }),
       });
       trackEvent("collaborator_invitation_sent");
-      setNotice(`Invitation créée et e-mail envoyé à ${email}`);
+      setNotice(t("ws.inviteSent", { email }));
       setInviteEmail("");
       setWsSub("settings");
     } catch (error) {
       setApiAvailable(false);
       setNotice(
-        `Mode local-first : invitation pour ${email} notée localement (pas de serveur). Erreur: ${error instanceof Error ? error.message : "erreur inconnue"}`,
+        t("ws.inviteLocalError", {
+          email,
+          error: error instanceof Error ? error.message : "—",
+        }),
       );
       setWsSub("settings");
     } finally {
@@ -287,13 +307,13 @@ export function PortalContent({
     if (!project) return;
     setSubmitting(true);
     setUploadProgress(0);
-    setNotice(`Transfert de ${file.name} en cours…`);
+    setNotice(t("upload.inProgress", { name: file.name }));
     try {
       if (!apiAvailable) {
         const reader = new FileReader();
         const dataUrl: string = await new Promise((resolve, reject) => {
           reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(new Error("Lecture impossible"));
+          reader.onerror = () => reject(new Error(t("upload.readFailed")));
           reader.readAsDataURL(file);
         });
         const newDoc = { id: Math.random().toString(36).slice(2), title: file.name, kind: "autre" as const, url: dataUrl, at: Date.now() };
@@ -301,7 +321,7 @@ export function PortalContent({
         updateProject({ documents: [...(project.documents || []), newDoc] });
         setFiles((prev: any) => [...prev, { id: newDoc.id, name: newDoc.title, size: file.size, createdAt: new Date().toISOString() }]);
         trackEvent("file_added");
-        setNotice(`${file.name} ajouté localement dans Galerie unifiée (mode local-first)`);
+        setNotice(t("upload.addedLocal", { name: file.name }));
         return;
       }
       const request = await api("/storage/uploads/request-url", {
@@ -313,7 +333,7 @@ export function PortalContent({
           contentType: file.type,
         }),
       });
-      await putFile(request.uploadURL, file, setUploadProgress);
+      await putFile(request.uploadURL, file, setUploadProgress, t);
       await api("/storage/files", {
         method: "POST",
         body: JSON.stringify({
@@ -327,12 +347,12 @@ export function PortalContent({
       });
       setFiles(await api(`/projects/${project.id}/files`));
       trackEvent("file_added");
-      setNotice(`${file.name} est enregistré dans l’espace privé`);
+      setNotice(t("upload.saved", { name: file.name }));
     } catch (err) {
       if (!apiAvailable) {
         // handled
       } else {
-        setNotice(err instanceof Error ? err.message : "Upload impossible — passage en mode local");
+        setNotice(err instanceof Error ? err.message : t("upload.failed"));
         setApiAvailable(false);
       }
     } finally {
@@ -344,7 +364,7 @@ export function PortalContent({
 
   /* ——— CRÉER (ex GlobalCreateCenter) : la création vit dans le panneau. ——— */
   if (mode === "create") {
-    const availableActions = UNIVERSAL_CREATE_ACTIONS.filter(
+    const availableActions = getUniversalCreateActions(locale).filter(
       action => action.availableInCurrentProject && action.id in createActionIcons,
     );
     return (
@@ -357,14 +377,14 @@ export function PortalContent({
             }}
             className="w-full rounded-2xl bg-foreground px-5 py-4 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Commencer un Monde
+            {t("create.startWorld")}
           </button>
         ) : (
           <>
             <p className="rounded-xl border border-foreground/10 bg-foreground/[.035] p-4 text-xs leading-relaxed text-foreground/55">
-              {`Ajoutez une information dans ${project.title}. AIME ouvre directement l’espace opérationnel qui peut réellement l’enregistrer.`}
+              {t("create.hint", { title: project.title })}
             </p>
-            {!canEdit && <p className="rounded-xl border border-foreground/10 bg-foreground/[.035] p-4 text-xs leading-relaxed text-foreground/55">Votre rôle actuel permet de consulter ce Monde, mais pas d’y créer de nouvelles informations.</p>}
+            {!canEdit && <p className="rounded-xl border border-foreground/10 bg-foreground/[.035] p-4 text-xs leading-relaxed text-foreground/55">{t("create.readOnly")}</p>}
             <div className="grid gap-3 sm:grid-cols-2">
               {availableActions.map(action => {
                 const Icon = createActionIcons[action.id as keyof typeof createActionIcons];
@@ -391,7 +411,7 @@ export function PortalContent({
                 );
               })}
             </div>
-            <p className="text-[10px] uppercase tracking-[.15em] text-foreground/35">Ces actions ne publient rien automatiquement et respectent vos droits dans ce Monde.</p>
+            <p className="text-[10px] uppercase tracking-[.15em] text-foreground/35">{t("create.footnote")}</p>
           </>
         )}
       </div>
@@ -403,7 +423,7 @@ export function PortalContent({
     if (!project) {
       return (
         <p className="text-sm text-foreground/55">
-          Créez d’abord un Monde : l’ouverture (titre, date, lieu, visuel) se modifie une fois le Monde créé.
+          {t("heroEdit.noProject")}
         </p>
       );
     }
@@ -433,25 +453,25 @@ export function PortalContent({
                 : project.pivot.value,
             },
           });
-          setNotice("Ouverture modifiée — enregistrement en cours");
+          markPendingSave(t("heroEdit.saved"));
           onMode("world-settings");
         }}
       >
-        <Field label="Titre">
+        <Field label={t("heroEdit.title")}>
           <input name="title" required defaultValue={project.title} className="field" />
         </Field>
-        <Field label="Sous-titre">
+        <Field label={t("heroEdit.subtitle")}>
           <input name="subtitle" defaultValue={project.subtitle || ""} className="field" />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Ville">
+          <Field label={t("heroEdit.city")}>
             <input name="city" defaultValue={project.city.value || ""} className="field" />
           </Field>
-          <Field label="Lieu">
+          <Field label={t("heroEdit.venue")}>
             <input name="venue" defaultValue={project.venue.value || ""} className="field" />
           </Field>
         </div>
-        <Field label="Date">
+        <Field label={t("heroEdit.date")}>
           <input
             name="date"
             type="date"
@@ -466,19 +486,19 @@ export function PortalContent({
         </Field>
         <div>
           <span className="mb-2 block text-[10px] uppercase tracking-[.25em] text-foreground/45">
-            Visuel du héro
+            {t("heroEdit.visualLabel")}
           </span>
           <VisualImportControl
-            label="Image ou vidéo de l’ouverture"
+            label={t("heroEdit.visualField")}
             value={project.heroVisual}
             onChange={heroVisual => {
               updateProject({ heroVisual });
-              setNotice("Visuel du hero modifié — enregistrement en cours");
+              markPendingSave(t("heroEdit.visualSaved"));
             }}
           />
         </div>
         <button className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          Enregistrer l’ouverture
+          {t("heroEdit.save")}
         </button>
       </form>
     );
@@ -489,7 +509,7 @@ export function PortalContent({
     if (!project) {
       return (
         <p className="text-sm text-foreground/55">
-          Créez d’abord un Monde : les réglages (invitations, fichiers, conservation) existent une fois le Monde créé.
+          {t("ws.noProject")}
         </p>
       );
     }
@@ -497,7 +517,7 @@ export function PortalContent({
       <div data-testid="portal-world-settings">
         {wsSub === "settings" && (
           <>
-            <p className="mb-4 text-xs text-foreground/50" data-testid="world-settings-role">Rôle actuel : {currentRole}</p>
+            <p className="mb-4 text-xs text-foreground/50" data-testid="world-settings-role">{t("ws.role", { role: roleDisplayName(currentRole, locale) })}</p>
             {notice && (
               <p className="mb-5 border-l border-foreground/30 py-1 pl-3 text-sm text-foreground/60">
                 {notice}
@@ -505,13 +525,13 @@ export function PortalContent({
             )}
             {project.persona === "pro" && (
               <p data-testid="world-settings-persona" className="mb-5 rounded-xl border border-border bg-card px-4 py-3 text-xs text-foreground/60">
-                Espace professionnel : ce Monde suit un mariage que vous accompagnez. Chaque Monde reste cloisonné, avec ses invités, son budget et ses rôles.
+                {t("ws.personaPro")}
               </p>
             )}
             {uploadProgress !== null && (
               <div role="status" aria-live="polite" className="mb-5 rounded-xl border border-border bg-card p-3">
                 <div className="flex justify-between text-xs text-foreground/60">
-                  <span>Transfert vers l’espace privé</span>
+                  <span>{t("ws.uploadTitle")}</span>
                   <span>{uploadProgress}%</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/10">
@@ -525,7 +545,7 @@ export function PortalContent({
                   onClick={() => setWsSub("invite")}
                   className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  Inviter à collaborer
+                  {t("ws.invite")}
                 </button>
               )}
               {canManage && (
@@ -535,7 +555,7 @@ export function PortalContent({
                   className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Upload className="h-4 w-4" />{" "}
-                  {submitting ? "Opération en cours…" : "Ajouter un fichier"}
+                  {submitting ? t("ws.busy") : t("ws.addFile")}
                 </button>
               )}
               <input
@@ -559,7 +579,7 @@ export function PortalContent({
                     }
                     className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <Download className="h-4 w-4" /> Sauvegarde serveur
+                    <Download className="h-4 w-4" /> {t("ws.serverBackup")}
                   </a>
                   <button
                     onClick={() => {
@@ -572,11 +592,11 @@ export function PortalContent({
                       a.click();
                       URL.revokeObjectURL(url);
                       trackEvent("project_exported", { format: "byaime-local" });
-                      setNotice("Export local .byaime.json téléchargé — inclut images dataURL, 100% offline");
+                      setNotice(t("ws.localExportDone"));
                     }}
                     className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <Download className="h-4 w-4" /> Exporter .byaime local
+                    <Download className="h-4 w-4" /> {t("ws.localExport")}
                   </button>
                 </>
               )}
@@ -584,19 +604,19 @@ export function PortalContent({
                 onClick={exportCsv}
                 className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Invités CSV
+                {t("ws.csv")}
               </button>
               <button
                 onClick={() => window.print()}
                 className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Imprimer Jour J / tables
+                {t("ws.print")}
               </button>
               <button
                 onClick={() => document.getElementById("backup-input")?.click()}
                 className="action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Importer JSON
+                {t("ws.importJson")}
               </button>
               <input
                 id="backup-input"
@@ -608,10 +628,10 @@ export function PortalContent({
                   if (!file) return;
                   try {
                     importBackup(JSON.parse(await file.text()));
-                    setNotice("Sauvegarde importée — enregistrement en cours");
+                    markPendingSave(t("ws.imported"));
                   } catch (err) {
                     setNotice(
-                      err instanceof Error ? err.message : "Import impossible",
+                      err instanceof Error ? err.message : t("ws.importFailed"),
                     );
                   }
                 }}
@@ -619,7 +639,7 @@ export function PortalContent({
             </div>
             {files.length > 0 && (
               <div className="mt-8 border-t border-border pt-6">
-                <h3 className="font-medium mb-3">Documents & médias privés</h3>
+                <h3 className="font-medium mb-3">{t("ws.filesTitle")}</h3>
                 <div className="space-y-2">
                   {files.map((file) => {
                     const localDoc = (project?.documents || []).find((d: any) => d.id === file.id);
@@ -638,14 +658,14 @@ export function PortalContent({
                         download={!apiAvailable ? file.name : undefined}
                         className="text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                       >
-                        {apiAvailable ? "Aperçu" : "Ouvrir local"}
+                        {apiAvailable ? t("ws.preview") : t("ws.openLocal")}
                       </a>
                       <a
                         href={dlHref}
                         download={file.name}
                         className="text-foreground/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                       >
-                        Télécharger
+                        {t("ws.download")}
                       </a>
                       {canManage && (
                         <button
@@ -655,7 +675,7 @@ export function PortalContent({
                             setWsSub("delete-file");
                           }}
                         >
-                          Supprimer
+                          {t("ws.delete")}
                         </button>
                       )}
                     </div>
@@ -665,11 +685,9 @@ export function PortalContent({
               </div>
             )}
             <div className="mt-8 border-t border-border pt-6">
-              <h3 className="font-medium mb-2">Confidentialité & conservation</h3>
+              <h3 className="font-medium mb-2">{t("ws.privacyTitle")}</h3>
               <p className="text-xs text-foreground/50 mb-3">
-                Les documents restent privés. Choisissez la durée souhaitée.
-                Pendant le pilote, aucune suppression automatique n’a lieu sans
-                avertissement.
+                {t("ws.privacyText")}
               </p>
               {currentRole === "owner" && (
                 <select
@@ -677,7 +695,7 @@ export function PortalContent({
                   onChange={(e) => {
                     const days = Number(e.target.value);
                     if (!apiAvailable) {
-                      setNotice(`Mode local-first : rétention ${days}j notée localement`);
+                      setNotice(t("ws.retentionLocal", { days }));
                       return;
                     }
                     void api(`/projects/${project.id}/privacy`, {
@@ -686,22 +704,22 @@ export function PortalContent({
                         retentionDays: days,
                       }),
                     })
-                      .then(() => setNotice("Préférence enregistrée"))
+                      .then(() => setNotice(t("ws.prefSaved")))
                       .catch(() => {
                         setApiAvailable(false);
-                        setNotice(`Mode local : rétention ${days}j (pas de serveur)`);
+                        setNotice(t("ws.retentionLocalMode", { days }));
                       });
                   }}
                   className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option className="bg-background text-foreground" value="180">
-                    6 mois
+                    {t("ws.retention180")}
                   </option>
                   <option className="bg-background text-foreground" value="365">
-                    1 an
+                    {t("ws.retention365")}
                   </option>
                   <option className="bg-background text-foreground" value="1095">
-                    3 ans
+                    {t("ws.retention1095")}
                   </option>
                 </select>
               )}
@@ -709,11 +727,9 @@ export function PortalContent({
                 <div className="mt-6 border-t border-border pt-6">
                   <label className="flex items-start justify-between gap-5">
                     <span>
-                      <span className="block text-sm">Profil public</span>
+                      <span className="block text-sm">{t("ws.publicTitle")}</span>
                       <span className="mt-1 block text-xs font-light leading-relaxed text-foreground/50">
-                        Seuls les Moments marqués « Public » seront visibles. Les
-                        invités, messages, documents et informations
-                        personnelles restent privés.
+                        {t("ws.publicText")}
                       </span>
                     </span>
                     <input
@@ -724,17 +740,15 @@ export function PortalContent({
                         const enabled = e.target.checked;
                         pendingSaveSuccessNoticeRef.current =
                           enabled
-                            ? "Profil public activé"
-                            : "Profil masqué au public";
+                            ? t("ws.publicEnabled")
+                            : t("ws.publicDisabled");
                         updateProject({
                           publicProfile: {
                             ...project.publicProfile,
                             published: enabled,
                           },
                         });
-                        setNotice(
-                          "Publication modifiée — enregistrement en cours",
-                        );
+                        markPendingSave(t("ws.publicChanged"));
                       }}
                     />
                   </label>
@@ -745,7 +759,7 @@ export function PortalContent({
                         href={`/profil/${project.id}`}
                         className="flex-1 rounded-full border border-foreground/15 px-4 py-2.5 text-center text-xs transition hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        Voir le profil
+                        {t("ws.viewProfile")}
                       </Link>
                       <button
                         type="button"
@@ -754,11 +768,11 @@ export function PortalContent({
                           const prefix = basePath === "/" ? "" : basePath;
                           void navigator.clipboard
                             .writeText(`${window.location.origin}${prefix}/profil/${project.id}`)
-                            .then(() => setNotice("Lien du profil copié"));
+                            .then(() => setNotice(t("ws.linkCopied")));
                         }}
                         className="flex-1 rounded-full bg-foreground px-4 py-2.5 text-xs font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        Copier le lien
+                        {t("ws.copyLink")}
                       </button>
                     </div>
                   )}
@@ -770,10 +784,10 @@ export function PortalContent({
                     onClick={() => setWsSub("delete-project")}
                     className="text-sm text-destructive transition hover:text-destructive/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                   >
-                    Supprimer ce Monde
+                    {t("ws.deleteProject")}
                   </button>
                   <p className="mt-2 text-xs font-light text-foreground/50">
-                    Cette action est définitive et concerne uniquement ce Monde.
+                    {t("ws.deleteProjectNote")}
                   </p>
                 </div>
               )}
@@ -782,7 +796,7 @@ export function PortalContent({
         )}
         {wsSub === "invite" && (
           <div className="space-y-5">
-            <Field label="E-mail">
+            <Field label={t("ws.inviteEmail")}>
               <input
                 type="email"
                 value={inviteEmail}
@@ -792,7 +806,7 @@ export function PortalContent({
                 disabled={submitting}
               />
             </Field>
-            <Field label="Rôle">
+            <Field label={t("ws.inviteRole")}>
               <select
                 value={inviteRole}
                 onChange={(e) =>
@@ -801,7 +815,7 @@ export function PortalContent({
                 className="w-full rounded-xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 disabled={submitting}
               >
-                {INVITATION_ROLE_OPTIONS.map((option) => (
+                {getInvitationRoleOptions(locale).map((option) => (
                   <option
                     key={option.value}
                     className="bg-background text-foreground"
@@ -817,21 +831,21 @@ export function PortalContent({
               disabled={submitting || !inviteEmail.trim()}
               className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
-              {submitting ? "Envoi en cours…" : "Envoyer l’invitation"}
+              {submitting ? t("ws.sending") : t("ws.sendInvite")}
             </button>
             <button
               type="button"
               onClick={() => setWsSub("settings")}
               className="w-full rounded-full border border-border bg-card px-5 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              Retour aux réglages
+              {t("ws.backSettings")}
             </button>
           </div>
         )}
         {wsSub === "delete-file" && selectedFile && (
           <div className="space-y-5">
             <p className="text-sm text-foreground/70">
-              Vous êtes sur le point de supprimer définitivement le fichier « {selectedFile.name} ». Cette action est irréversible.
+              {t("ws.deleteFileText", { name: selectedFile.name })}
             </p>
             <div className="flex gap-3">
               <button
@@ -846,7 +860,7 @@ export function PortalContent({
                       // @ts-ignore
                       updateProject({ documents: (project?.documents || []).filter((d: any) => d.id !== selectedFile.id) });
                       setFiles((prev) => prev.filter((f) => f.id !== selectedFile.id));
-                      setNotice(`Fichier ${selectedFile.name} supprimé localement.`);
+                      setNotice(t("ws.fileDeletedLocal", { name: selectedFile.name }));
                       setWsSub("settings");
                       trackEvent("file_deleted");
                       return;
@@ -857,7 +871,7 @@ export function PortalContent({
                     setFiles((prev) =>
                       prev.filter((f) => f.id !== selectedFile.id),
                     );
-                    setNotice(`Fichier ${selectedFile.name} supprimé.`);
+                    setNotice(t("ws.fileDeleted", { name: selectedFile.name }));
                     setWsSub("settings");
                     trackEvent("file_deleted");
                   } catch (err) {
@@ -865,7 +879,7 @@ export function PortalContent({
                     // @ts-ignore
                     updateProject({ documents: (project?.documents || []).filter((d: any) => d.id !== selectedFile.id) });
                     setFiles((prev) => prev.filter((f) => f.id !== selectedFile.id));
-                    setNotice(`Fichier ${selectedFile.name} supprimé localement (mode local).`);
+                    setNotice(t("ws.fileDeletedLocalMode", { name: selectedFile.name }));
                     setWsSub("settings");
                   } finally {
                     setSubmitting(false);
@@ -873,13 +887,13 @@ export function PortalContent({
                 }}
                 className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {submitting ? "Suppression…" : "Supprimer"}
+                {submitting ? t("ws.deleting") : t("ws.delete")}
               </button>
               <button
                 onClick={() => setWsSub("settings")}
                 className="flex-1 rounded-full border border-border bg-card px-5 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Annuler
+                {t("ws.cancel")}
               </button>
             </div>
           </div>
@@ -887,13 +901,13 @@ export function PortalContent({
         {wsSub === "delete-project" && (
           <div className="space-y-5">
             <p className="text-sm text-foreground/70">
-              Cette action est définitive et détruira toutes les données (invités, tâches, budget, documents) liées à ce Monde.
+              {t("ws.deleteProjectText")}
             </p>
-            <Field label="Confirmation">
+            <Field label={t("ws.confirmLabel")}>
               <input
                 value={deleteConfirmation}
                 onChange={(e) => setDeleteConfirmation(e.target.value)}
-                placeholder="Tapez SUPPRIMER pour confirmer"
+                placeholder={t("ws.typeToDelete")}
                 className="field"
               />
             </Field>
@@ -928,7 +942,7 @@ export function PortalContent({
                 }}
                 className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {submitting ? "Suppression…" : "Détruire"}
+                {submitting ? t("ws.deleting") : t("ws.destroy")}
               </button>
               <button
                 onClick={() => {
@@ -937,7 +951,7 @@ export function PortalContent({
                 }}
                 className="flex-1 rounded-full border border-border bg-card px-5 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Annuler
+                {t("ws.cancel")}
               </button>
             </div>
           </div>
@@ -947,22 +961,23 @@ export function PortalContent({
   }
 
   /* ——— MON ESPACE (ex modale ME) : profil, ma carte, mes Mondes, préférences, déconnexion. ——— */
+  const meSections: [MeSection, string][] = [
+    ["overview", t("me.overview")],
+    ["profile", t("me.profile")],
+    ["security", t("me.security")],
+    ["privacy", t("me.privacy")],
+    ["preferences", t("me.preferences")],
+    ["worlds", t("me.worlds")],
+    ["sensitive", t("me.sensitive")],
+  ];
   return (
     <div data-testid="portal-me" className="grid gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
       <aside className="space-y-1 rounded-2xl border border-border bg-card p-2">
-        {[
-          ["overview", "Vue d’ensemble"],
-          ["profile", "Profil personnel"],
-          ["security", "Connexion et sécurité"],
-          ["privacy", "Confidentialité"],
-          ["preferences", "Préférences"],
-          ["worlds", "Mes Mondes"],
-          ["sensitive", "Zone sensible"],
-        ].map(([id, label]) => (
+        {meSections.map(([id, label]) => (
           <button
             key={id}
             type="button"
-            onClick={() => setMeSection(id as MeSection)}
+            onClick={() => setMeSection(id)}
             className={cn(
               "w-full rounded-xl px-3 py-2 text-left text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               meSection === id
@@ -987,21 +1002,21 @@ export function PortalContent({
                 </span>
               )}
               <div className="min-w-0">
-                <p className="text-lg font-display font-medium">{user?.fullName || user?.firstName || "Utilisateur"}</p>
+                <p className="text-lg font-display font-medium">{user?.fullName || user?.firstName || t("me.user")}</p>
                 <p className="truncate text-sm text-foreground/55">{user?.primaryEmailAddress?.emailAddress}</p>
               </div>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              <button type="button" onClick={() => setMeSection("profile")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Modifier mon profil</button>
-              <button type="button" onClick={() => setMeSection("security")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Gérer ma sécurité</button>
-              <button type="button" onClick={() => setMeSection("worlds")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Voir mes Mondes</button>
-              <button type="button" onClick={() => setMeSection("sensitive")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Actions sensibles</button>
-              <button type="button" onClick={() => navigate("/ma-carte")} data-testid="me-open-card" className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Ma carte</button>
-              <Link href="/admin" className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">Le guide : tout le site expliqué</Link>
+              <button type="button" onClick={() => setMeSection("profile")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.editProfile")}</button>
+              <button type="button" onClick={() => setMeSection("security")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.manageSecurity")}</button>
+              <button type="button" onClick={() => setMeSection("worlds")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.viewWorlds")}</button>
+              <button type="button" onClick={() => setMeSection("sensitive")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.sensitiveActions")}</button>
+              <button type="button" onClick={() => navigate("/ma-carte")} data-testid="me-open-card" className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.myCard")}</button>
+              <Link href="/admin" className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.guide")}</Link>
             </div>
             {projects.length === 0 && (
               <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">
-                Aucun Monde pour le moment. Votre compte reste accessible.
+                {t("me.noWorlds")}
               </p>
             )}
           </div>
@@ -1009,65 +1024,65 @@ export function PortalContent({
 
         {meSection === "profile" && (
           <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
-            <h4 className="text-sm font-medium">Profil personnel</h4>
+            <h4 className="text-sm font-medium">{t("me.profile")}</h4>
             <div className="space-y-2 text-sm text-foreground/70">
-              <p>Nom: {user?.fullName || user?.firstName || "Non renseigné"}</p>
-              <p>E-mail principal: {user?.primaryEmailAddress?.emailAddress || "Non renseigné"}</p>
+              <p>{t("me.name")}: {user?.fullName || user?.firstName || t("me.unavailable")}</p>
+              <p>{t("me.mainEmail")}: {user?.primaryEmailAddress?.emailAddress || t("me.unavailable")}</p>
               <p>
-                E-mail vérifié: {user?.primaryEmailAddress?.verification?.status === "verified" ? "Oui" : "Non"}
+                {t("me.verified")}: {user?.primaryEmailAddress?.verification?.status === "verified" ? t("me.yes") : t("me.no")}
               </p>
               <p>
-                Créé le: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString("fr-FR") : "Indisponible"}
+                {t("me.createdAt")}: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === "en" ? "en-GB" : "fr-FR") : t("me.unavailable")}
               </p>
             </div>
             <button type="button" onClick={() => setMeSection("security")} className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground/5">
-              Gérer la connexion et la sécurité
+              {t("me.manageConnection")}
             </button>
           </div>
         )}
 
         {meSection === "security" && (
           <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
-            <h4 className="text-sm font-medium">Connexion et sécurité</h4>
+            <h4 className="text-sm font-medium">{t("me.security")}</h4>
             <div className="space-y-2">
               <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
-                <span>Adresse e-mail principale</span>
-                <span className="text-xs text-foreground/55">{user?.primaryEmailAddress?.verification?.status === "verified" ? "Vérifiée" : "À vérifier"}</span>
+                <span>{t("me.mainEmailRow")}</span>
+                <span className="text-xs text-foreground/55">{user?.primaryEmailAddress?.verification?.status === "verified" ? t("me.verifiedOk") : t("me.verifiedPending")}</span>
               </div>
               {(user?.externalAccounts ?? []).map((account) => (
                 <div key={account.id} className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
                   <span className="capitalize">{account.provider.replace("oauth_", "")}</span>
-                  <span className="text-xs text-foreground/75">Connecté</span>
+                  <span className="text-xs text-foreground/75">{t("me.connected")}</span>
                 </div>
               ))}
               {(user?.externalAccounts?.length ?? 0) === 0 && (
                 <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
-                  <span>E-mail & mot de passe</span>
-                  <span className="text-xs text-foreground/55">Actif</span>
+                  <span>{t("me.emailPassword")}</span>
+                  <span className="text-xs text-foreground/55">{t("me.active")}</span>
                 </div>
               )}
             </div>
             <button type="button" onClick={() => openUserProfile()} className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground hover:bg-foreground/5">
-              Ouvrir les actions avancées de sécurité
+              {t("me.advancedSecurity")}
             </button>
           </div>
         )}
 
         {meSection === "privacy" && (
           <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
-            <h4 className="text-sm font-medium">Confidentialité et visibilité</h4>
+            <h4 className="text-sm font-medium">{t("me.privacy")}</h4>
             <p className="text-sm text-foreground/65">
-              Le profil de compte reste privé. La publication publique du Monde se règle dans « Réglages du Monde ».
+              {t("me.privacyText")}
             </p>
             <div className="rounded-xl border border-border px-3 py-2 text-sm">
-              Profil public du Monde actif: {project?.publicProfile?.published ? "activé" : "désactivé"}
+              {t("me.publicProfile")}: {project?.publicProfile?.published ? t("me.enabled") : t("me.disabled")}
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href="/confidentialite" className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
-                Politique de confidentialité
+                {t("me.privacyPolicy")}
               </Link>
               <button type="button" onClick={() => setMeSection("sensitive")} className="rounded-full border border-foreground/15 px-4 py-2 text-xs hover:bg-foreground/5">
-                Export et actions sensibles
+                {t("me.exportSensitive")}
               </button>
             </div>
           </div>
@@ -1075,19 +1090,19 @@ export function PortalContent({
 
         {meSection === "preferences" && (
           <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
-            <h4 className="text-sm font-medium">Préférences</h4>
+            <h4 className="text-sm font-medium">{t("me.preferences")}</h4>
             <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-3 py-2.5">
               <div>
-                <p className="text-sm">Apparence</p>
-                <p className="mt-0.5 text-xs text-foreground/45">Mode clair ou sombre, sur tout AIME.</p>
+                <p className="text-sm">{t("me.appearance")}</p>
+                <p className="mt-0.5 text-xs text-foreground/45">{t("me.appearanceText")}</p>
               </div>
             </div>
             <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-3 py-2.5">
               <div>
-                <p className="text-sm">Langue</p>
-                <p className="mt-0.5 text-xs text-foreground/45">Français ou anglais, sur tout AIME.</p>
+                <p className="text-sm">{t("me.language")}</p>
+                <p className="mt-0.5 text-xs text-foreground/45">{t("me.languageText")}</p>
               </div>
-              <div className="flex gap-1 rounded-full border border-border p-1" role="group" aria-label="Langue">
+              <div className="flex gap-1 rounded-full border border-border p-1" role="group" aria-label={t("me.language")}>
                 {(["fr", "en"] as const).map(code => (
                   <button
                     key={code}
@@ -1105,17 +1120,16 @@ export function PortalContent({
               </div>
             </div>
             <p className="text-xs text-foreground/45">
-              D’autres préférences (notifications) seront ajoutées ici ; le réglage de l’apparence est
-              aussi disponible en bas de la barre latérale.
+              {t("me.prefNote")}
             </p>
           </div>
         )}
 
         {meSection === "worlds" && (
           <div className="space-y-4">
-            <h4 className="text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">Mondes accessibles</h4>
+            <h4 className="text-[10px] uppercase tracking-[.25em] text-foreground/40 font-semibold">{t("me.worldsTitle")}</h4>
             <p className="text-xs font-light leading-relaxed text-foreground/45">
-              Choisissez le Monde actif : ses invités, son budget et ses rôles le suivent.
+              {t("me.worldsText")}
             </p>
             <WorldSwitcher
               projects={projects}
@@ -1130,13 +1144,13 @@ export function PortalContent({
         {meSection === "sensitive" && (
           <div className="space-y-3 border-t border-border pt-4">
             <a href="/api/account/export" className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-border">
-              <Download className="h-4 w-4" /> Exporter mes données personnelles
+              <Download className="h-4 w-4" /> {t("me.exportData")}
             </a>
             <button onClick={() => signOut({ redirectUrl: basePath })} className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-border">
-              <LogOut className="h-4 w-4" /> Se déconnecter
+              <LogOut className="h-4 w-4" /> {t("me.signOut")}
             </button>
             <button onClick={() => setMeAccountDelete(true)} className="flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-sm font-medium text-destructive/80 transition hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-transparent hover:border-destructive/20">
-              <Trash2 className="h-4 w-4" /> Supprimer mon compte
+              <Trash2 className="h-4 w-4" /> {t("me.deleteAccount")}
             </button>
           </div>
         )}
@@ -1144,18 +1158,18 @@ export function PortalContent({
 
       {meAccountDelete && (
         <CenteredBlock
-          eyebrow="Zone critique"
-          title="Supprimer mon compte"
-          description="Cette action détruira définitivement votre profil, tous les Mondes dont vous êtes propriétaire et retirera votre accès aux autres Mondes."
+          eyebrow={t("me.criticalZone")}
+          title={t("me.deleteAccount")}
+          description={t("me.deleteAccountText")}
           onClose={() => setMeAccountDelete(false)}
         >
           <div className="space-y-5">
-            <Field label="Confirmation">
+            <Field label={t("ws.confirmLabel")}>
               <input
                 data-testid="account-delete-confirmation"
                 value={deleteAccountConfirmation}
                 onChange={(e) => setDeleteAccountConfirmation(e.target.value)}
-                placeholder="Tapez SUPPRIMER MON COMPTE pour confirmer"
+                placeholder={t("me.typeToDeleteAccount")}
                 className="field"
               />
             </Field>
@@ -1171,7 +1185,7 @@ export function PortalContent({
                   setSubmitting(true);
                   try {
                     if (!apiAvailable) {
-                      setNotice("Mode local-first : suppression locale du projet, compte conservé côté navigateur");
+                      setNotice(t("me.deleteAccountLocal"));
                       clearProject();
                       window.location.assign(basePath || "/");
                       return;
@@ -1186,14 +1200,14 @@ export function PortalContent({
                     await signOut({ redirectUrl: basePath || "/" });
                   } catch (err) {
                     setApiAvailable(false);
-                    setNotice("Mode local : projet supprimé localement");
+                    setNotice(t("me.deleteAccountLocalMode"));
                     clearProject();
                     window.location.assign(basePath || "/");
                   }
                 }}
                 className="flex-1 rounded-full bg-destructive px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {submitting ? "Suppression…" : "Détruire mon compte"}
+                {submitting ? t("ws.deleting") : t("me.destroyAccount")}
               </button>
               <button
                 onClick={() => {
@@ -1202,7 +1216,7 @@ export function PortalContent({
                 }}
                 className="flex-1 rounded-full border border-border bg-card px-5 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Annuler
+                {t("ws.cancel")}
               </button>
             </div>
           </div>
