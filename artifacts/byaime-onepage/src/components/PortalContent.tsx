@@ -12,6 +12,9 @@ import { trackEvent } from "@/lib/analytics";
 import { Link, useLocation } from "wouter";
 import { CenteredBlock } from "./CenteredBlock";
 import { VisualImportControl } from "./VisualImportControl";
+import { getWorldNavState } from "@/lib/world-nav-state";
+import { getWorldPhaseShortLabel } from "@/lib/wedding-navigation";
+import { resolveHeroVisual, setHeroVisualFor, WORLD_VISUAL_CHOICES } from "@/lib/world-visuals";
 import { WorldSwitcher } from "./WorldSwitcher";
 import { cn } from "@/lib/utils";
 import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
@@ -427,6 +430,9 @@ export function PortalContent({
         </p>
       );
     }
+    /* Le mode courant : le visuel d'ouverture se règle pour lui, pas pour les
+       trois à la fois. */
+    const mode = getWorldNavState().phase;
     return (
       <form
         data-testid="portal-hero-editor"
@@ -489,12 +495,18 @@ export function PortalContent({
             {t("heroEdit.visualLabel")}
           </span>
           <VisualImportControl
-            label={t("heroEdit.visualField")}
-            value={project.heroVisual}
-            onChange={heroVisual => {
-              updateProject({ heroVisual });
+            label={`${t("heroEdit.visualField")} · ${getWorldPhaseShortLabel(mode, locale)}`}
+            value={resolveHeroVisual(project, mode)}
+            onChange={visual => {
+              /* Même donnée que le héro, même règle : le visuel se règle pour
+                 LE MODE courant. Les deux éditeurs écrivaient la même clé
+                 unique — on ne pouvait pas avoir un visuel par mode (17/09). */
+              const { heroVisuals } = setHeroVisualFor(project, mode);
+              updateProject({ heroVisuals: { ...heroVisuals, [mode]: visual } });
               markPendingSave(t("heroEdit.visualSaved"));
             }}
+            choices={WORLD_VISUAL_CHOICES}
+            choicesLabel={t("world.hero.visual.choices")}
           />
         </div>
         <button className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

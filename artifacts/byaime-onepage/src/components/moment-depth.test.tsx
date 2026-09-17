@@ -192,6 +192,24 @@ describe("les Moments portent leur contexte et leurs actions", () => {
     expect(panel).not.toContain("Brochure Photographe");
   });
 
+  it("le tiroir d'un Moment propose les visuels du Monde, comme partout", async () => {
+    newProject();
+    await mountWorld();
+    expect(
+      document.querySelectorAll('[data-testid^="visual-choice-"]').length,
+      "aucun tiroir ouvert au départ",
+    ).toBe(0);
+
+    const scene = sceneOf("découverte du lieu");
+    expect(scene, "Moment du lieu introuvable").toBeTruthy();
+    click(scene!.querySelector("button"), "ouvrir le Moment");
+
+    expect(
+      document.querySelectorAll('[data-testid^="visual-choice-"]').length,
+      "le tiroir offre les vignettes du Monde, pas seulement un import",
+    ).toBeGreaterThan(8);
+  });
+
   it("replie les actions secondaires sous « Plus »", async () => {
     newProject();
     await mountWorld();

@@ -10,7 +10,7 @@ import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, planEvent
 import { getInitialWorldPhase, PANEL_FOR_KIND, type WorldPhase } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { getSubchapter } from "@/lib/timeline-chapters";
-import { momentAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
+import { WORLD_VISUAL_CHOICES, momentAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
 import { momentVisualOverlayAlpha, type WorldVisual } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
@@ -452,6 +452,10 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
             value={event.visual}
             disabled={!canEdit}
             onChange={visual => onEdit({ visual })}
+            /* Comme le héro et le panneau : les vignettes du Monde sont là,
+               au lieu d'un seul champ d'import (17/09). */
+            choices={WORLD_VISUAL_CHOICES}
+            choicesLabel={t("world.hero.visual.choices")}
           />
 
           <div className="grid grid-cols-2 gap-6">

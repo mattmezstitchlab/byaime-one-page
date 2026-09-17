@@ -1,4 +1,4 @@
-import type { WeddingPanelId } from "./wedding-navigation";
+import type { WeddingPanelId, WorldPhase } from "./wedding-navigation";
 
 /*
  * Événements du Panneau AIME : le Monde (ProjectStage) décide, le panneau
@@ -28,4 +28,20 @@ export function takePendingAimePanelShow(): AimePanelShowRequest | null {
   const value = pending;
   pending = null;
   return value;
+}
+
+/*
+ * Le mode a changé et le panneau présenté n'existe plus ici : le Monde le DIT
+ * au panneau, qui garde sa fenêtre ouverte et se vide — au lieu d'un
+ * `aime:close-world-panel` qui refermait tout (mesuré le 17/09 : on demandait
+ * « Avant » depuis la colonne et on se faisait sortir du panneau).
+ */
+export const AIME_PANEL_FOLLOW_EVENT = "aime:panel-follow-mode";
+
+export type AimePanelFollowRequest = { panel: WeddingPanelId; phase: WorldPhase };
+
+/** Le panneau présenté n'existe pas dans le nouveau mode : à suivre, pas à fermer. */
+export function requestAimePanelFollow(request: AimePanelFollowRequest): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(AIME_PANEL_FOLLOW_EVENT, { detail: request }));
 }

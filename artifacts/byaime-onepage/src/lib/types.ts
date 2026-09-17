@@ -340,6 +340,17 @@ export type WorldProject = {
   };
   universe: string;
   heroVisual?: WorldVisual | null;
+  /**
+   * Un visuel de héro par mode (17/09). Le Monde n'en avait qu'un : on réglait
+   * « Choisir un visuel » en Avant, et le Jour J changeait aussi, sans que rien
+   * ne le dise. `heroVisual` reste la valeur du Monde — c'est le repli des
+   * modes, donc aucun Monde existant ne perd son visuel.
+   */
+  heroVisuals?: {
+    avant?: WorldVisual | null;
+    pendant?: WorldVisual | null;
+    apres?: WorldVisual | null;
+  } | null;
   pivot: Fact<number>;
   city: Fact<string | null>;
   venue: Fact<string | null>;

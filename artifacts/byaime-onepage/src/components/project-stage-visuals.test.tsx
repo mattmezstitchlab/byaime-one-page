@@ -38,10 +38,9 @@ vi.mock("@clerk/react", () => ({
   useUser: () => ({ user: null }),
   useAuth: () => ({ isSignedIn: true, isLoaded: true, userId: "user_1" }) }));
 
-const project = createInitialProject(
-  parseIntention("Notre mariage le 5 août 2027, près de Lille, 90 invités."),
-  "Notre mariage le 5 août 2027, près de Lille, 90 invités.",
-);
+const SEED = "Notre mariage le 5 août 2027, près de Lille, 90 invités.";
+/* Un store MUTABLE, comme le vrai : le visuel choisi doit vraiment s'écrire. */
+let project = createInitialProject(parseIntention(SEED), SEED);
 
 vi.mock("@/store/project-store", () => ({
   useProject: () => ({
@@ -57,7 +56,9 @@ vi.mock("@/store/project-store", () => ({
     participantLinks: [],
     selectProject: vi.fn(),
     refreshParticipantLinks: vi.fn(async () => undefined),
-    updateProject: vi.fn(),
+    updateProject: (patch: Record<string, unknown>) => {
+      project = { ...project, ...patch } as typeof project;
+    },
     updateEntity: vi.fn(),
     addEntity: vi.fn(() => "new-id"),
     removeEntity: vi.fn() }) }));
@@ -66,6 +67,7 @@ let root: ReturnType<typeof createRoot> | null = null;
 let container: HTMLDivElement | null = null;
 
 afterEach(() => {
+  project = createInitialProject(parseIntention(SEED), SEED);
   act(() => root?.unmount());
   container?.remove();
   root = null;
@@ -101,13 +103,79 @@ describe("le Monde Mariage s'ouvre sur des visuels", () => {
     const el = await mountWorld();
     const edit = el.querySelector<HTMLButtonElement>('[data-testid="world-hero-edit-visual"]');
     expect(edit, "bouton « Changer le visuel » absent du hero").not.toBeNull();
-    expect(edit!.textContent).toContain("Choisir un visuel");
+    expect(edit!.textContent, "le bouton nomme le mode réglé").toContain("Visuel du mode Avant");
 
     act(() => edit!.click());
     const panel = document.querySelector('[data-testid="world-hero-visual-panel"]');
     expect(panel, "l'éditeur de visuel ne s'ouvre pas").not.toBeNull();
     // Les vignettes du Monde : un clic suffit, aucun fichier à importer.
     expect(document.querySelectorAll('[data-testid^="visual-choice-"]').length).toBeGreaterThan(8);
+  });
+
+  it("un visuel par mode : changer en Avant ne change pas le Jour J", async () => {
+    const el = await mountWorld();
+    /* La vignette donne l'URL brute ; le héro l'affiche normalisée. */
+    const shown = (url: string) => visualSourceUrl({ kind: "image", url });
+    const heroSrc = () => el.querySelector('[data-testid="world-hero-media"]')!.getAttribute("src");
+    const phase = (id: string) => act(() => el.querySelector<HTMLButtonElement>(`[data-testid="world-phase-${id}"]`)!.click());
+    const worldVisual = heroSrc();
+
+    /* Le bouton dit de quel mode on règle le visuel. */
+    const edit = el.querySelector<HTMLButtonElement>('[data-testid="world-hero-edit-visual"]')!;
+    expect(edit.textContent, "le bouton nomme le mode Avant").toContain("Avant");
+
+    act(() => edit.click());
+    const choices = [...document.querySelectorAll<HTMLButtonElement>('[data-testid^="visual-choice-"]')];
+    expect(choices.length).toBeGreaterThan(8);
+    /* Une vignette qui n'est PAS le visuel du Monde. */
+    const away = choices.find(choice => choice.querySelector("img")!.getAttribute("src") !== worldVisual)!;
+    const awayUrl = away.querySelector("img")!.getAttribute("src")!;
+    act(() => away.click());
+    expect(project.heroVisuals?.avant?.url, "le choix est écrit dans la case du mode").toBe(awayUrl);
+    expect(
+      visualSourceUrl(project.heroVisual!),
+      "le visuel du Monde n'est pas écrasé",
+    ).toBe(worldVisual);
+
+    /* Le Jour J n'a rien choisi : il garde le visuel du Monde (repli). */
+    phase("pendant");
+    expect(heroSrc(), "le Jour J garde le visuel du Monde").toBe(worldVisual);
+    expect(
+      el.querySelector<HTMLButtonElement>('[data-testid="world-hero-edit-visual"]')!.textContent,
+      "le bouton dit Jour J",
+    ).toContain("Jour J");
+
+    /* L'Avant, lui, affiche le sien. */
+    phase("avant");
+    expect(heroSrc(), "l'Avant affiche le visuel qu'on vient de lui donner").toBe(shown(awayUrl));
+
+    /* Deuxième mode : on règle le Jour J, l'Avant ne bouge pas. */
+    phase("pendant");
+    act(() => el.querySelector<HTMLButtonElement>('[data-testid="world-hero-edit-visual"]')!.click());
+    const dayChoices = [...document.querySelectorAll<HTMLButtonElement>('[data-testid^="visual-choice-"]')];
+    const dayChoice = dayChoices.find(choice => {
+      const url = choice.querySelector("img")!.getAttribute("src");
+      return url !== awayUrl && url !== worldVisual;
+    })!;
+    const dayUrl = dayChoice.querySelector("img")!.getAttribute("src")!;
+    act(() => dayChoice.click());
+    expect(project.heroVisuals?.pendant?.url).toBe(dayUrl);
+    /* Un vrai changement de mode : le store simulé n'est pas réactif. */
+    phase("apres");
+    phase("pendant");
+    expect(heroSrc(), "le Jour J a le sien").toBe(shown(dayUrl));
+    phase("avant");
+    expect(heroSrc(), "l'Avant garde le sien").toBe(shown(awayUrl));
+  });
+
+  it("un Monde d'avant garde son visuel dans les trois modes (repli)", async () => {
+    const el = await mountWorld();
+    const heroSrc = () => el.querySelector('[data-testid="world-hero-media"]')!.getAttribute("src");
+    const worldVisual = heroSrc();
+    for (const phase of ["pendant", "apres", "avant"] as const) {
+      act(() => el.querySelector<HTMLButtonElement>(`[data-testid="world-phase-${phase}"]`)!.click());
+      expect(heroSrc(), `le mode ${phase} retombe sur le visuel du Monde`).toBe(worldVisual);
+    }
   });
 
   it("donne un fond à chaque scène et à chaque chapitre de la Timeline", async () => {

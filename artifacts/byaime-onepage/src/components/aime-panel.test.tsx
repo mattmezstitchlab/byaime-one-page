@@ -209,6 +209,94 @@ describe("le Panneau AIME, la seule porte d'entrée", () => {
     expect(document.querySelector('[data-testid="world-hero"]'), "le Monde n'a pas bougé").not.toBeNull();
   });
 
+  it("la colonne suit le mode : le programme change de nom", async () => {
+    newProject();
+    await mountWorld();
+    openPanel();
+    const panel = () => document.querySelector('[data-testid="aime-panel"]');
+    expect(panel()!.textContent, "en Avant, le programme est le programme").toContain("Le programme");
+
+    click('[data-testid="aime-panel-phase-pendant"]');
+    expect(panel(), "le panneau reste ouvert").not.toBeNull();
+    expect(panel()!.textContent, "en Jour J, le programme devient le direct").toContain("Le Jour J, en direct");
+    expect(panel()!.textContent, "et plus « Le programme » tout court").not.toContain("Le programme");
+
+    click('[data-testid="aime-panel-phase-apres"]');
+    expect(panel()!.textContent, "en Après, le programme devient la revue").toContain("Le Jour J, en revue");
+  });
+
+  it("une entrée d'un autre mode est rangée à part, avec sa pastille", async () => {
+    newProject();
+    await mountWorld();
+    openPanel();
+    const pill = () => document.querySelector('[data-testid="aime-panel-mode-folder:program"]');
+    expect(pill(), "le dossier du Jour J porte sa pastille").not.toBeNull();
+    expect(pill()!.textContent).toBe("Jour J");
+    expect(
+      document.querySelector('[data-testid="aime-panel-item-folder:program"]')!.closest('[data-section]')!.getAttribute("data-section"),
+      "il est rangé dans les autres modes, pas dans le socle",
+    ).toBe("modes");
+    expect(document.querySelector('[data-testid="aime-panel-modes-hint"]'), "la section se nomme et s'explique").not.toBeNull();
+  });
+
+  it("ouvrir une entrée d'un autre mode l'annonce, sans fermer la fenêtre", async () => {
+    newProject();
+    await mountWorld();
+    openPanel();
+    click('[data-testid="aime-panel-item-folder:program"]');
+
+    const notice = document.querySelector('[data-testid="aime-panel-mode-notice"]');
+    expect(notice, "la bascule de mode est dite").not.toBeNull();
+    expect(document.querySelector('[data-testid="aime-panel"]'), "la fenêtre reste ouverte").not.toBeNull();
+    expect(document.querySelector('[data-testid="monde-panel"]'), "le dossier demandé est ouvert").not.toBeNull();
+    expect(
+      document.querySelector('[data-testid="world-phase-pendant"]')!.getAttribute("aria-current"),
+      "le Monde est passé en Jour J",
+    ).toBe("true");
+  });
+
+  it("changer de mode ne referme jamais la fenêtre", async () => {
+    newProject();
+    await mountWorld();
+    openPanel();
+    /* Le dossier du Jour J ouvre la régie ; on revient en Avant : la régie
+       n'existe plus, mais la fenêtre doit rester — et le dire. */
+    click('[data-testid="aime-panel-item-folder:program"]');
+    click('[data-testid="aime-panel-phase-avant"]');
+
+    expect(document.querySelector('[data-testid="aime-panel"]'), "la fenêtre reste ouverte").not.toBeNull();
+    const notice = document.querySelector('[data-testid="aime-panel-mode-notice"]');
+    expect(notice, "et dit ce qu'elle est devenue").not.toBeNull();
+    expect(notice!.textContent, "en nommant le mode").toContain("Avant");
+  });
+
+  it("le mode est nommé et expliqué — dans le héro et dans la colonne", async () => {
+    newProject();
+    await mountWorld();
+    openPanel();
+    const heroLabel = () => document.querySelector('[data-testid="world-mode-label"]');
+    const columnLabel = () => document.querySelector('[data-testid="aime-panel-mode-label"]');
+
+    expect(heroLabel(), "le héro nomme le mode").not.toBeNull();
+    expect(heroLabel()!.textContent).toContain("Avant");
+    expect(heroLabel()!.textContent).toContain("vous préparez");
+    expect(columnLabel(), "la colonne nomme le mode").not.toBeNull();
+    expect(columnLabel()!.textContent).toContain("vous préparez");
+    expect(document.querySelector('[data-testid="aime-panel-mode-role"]')!.textContent).toContain("Prestataires");
+
+    click('[data-testid="aime-panel-phase-pendant"]');
+    expect(heroLabel()!.textContent).toContain("vous exécutez");
+    expect(columnLabel()!.textContent).toContain("vous exécutez");
+
+    click('[data-testid="aime-panel-phase-apres"]');
+    expect(heroLabel()!.textContent).toContain("vous rassemblez");
+    expect(document.querySelector('[data-testid="aime-panel-mode-role"]')!.textContent).toContain("souvenirs");
+
+    /* Même clarification en anglais. */
+    click('[data-testid="aime-panel-locale"]');
+    expect(document.querySelector('[data-testid="aime-panel-mode-label"]')!.textContent).toContain("you gather");
+  });
+
   it("le miroir des périodes change la période sans quitter le panneau", async () => {
     newProject();
     await mountWorld();
@@ -342,6 +430,25 @@ describe("le Panneau AIME, la seule porte d'entrée", () => {
     expect(title, "le titre se modifie ici").not.toBeNull();
     expect(editor!.querySelector('input[type="date"]'), "la date se modifie ici").not.toBeNull();
     expect(document.querySelector('[data-testid="aime-panel"]'), "le panneau reste ouvert").not.toBeNull();
+  });
+
+  it("« Modifier l'ouverture » règle le visuel du MODE courant, pas des trois", async () => {
+    newProject();
+    await mountWorld();
+    openPanel();
+    /* On se place en Jour J, puis on règle l'ouverture depuis le panneau. */
+    click('[data-testid="aime-panel-phase-pendant"]');
+    click('[data-testid="aime-panel-item-hero-editor"]');
+
+    const editor = document.querySelector('[data-testid="portal-hero-editor"]');
+    expect(editor, "l'éditeur d'ouverture est dans le panneau").not.toBeNull();
+    const choices = [...editor!.querySelectorAll<HTMLButtonElement>('[data-testid^="visual-choice-"]')];
+    expect(choices.length, "les vignettes du Monde sont là").toBeGreaterThan(8);
+    const url = choices[0].querySelector("img")!.getAttribute("src")!;
+
+    act(() => choices[0].click());
+    expect(current.heroVisuals?.pendant?.url, "écrit dans la case du mode Jour J").toBe(url);
+    expect(current.heroVisuals?.avant?.url, "l'Avant n'a pas bougé").toBeFalsy();
   });
 
   it("« Poser une question » ouvre le chat AIME dans la zone de contenu", async () => {
