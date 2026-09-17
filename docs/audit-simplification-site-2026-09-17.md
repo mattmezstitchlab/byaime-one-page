@@ -404,14 +404,50 @@ build OK après chaque lot.
     `AimePanel` (partiel) — plus la page publique (`ProfileFeed`, `FilTrack`,
     `card-blocks`). Le domaine agence (`professionalConfig`) est hors périmètre.
 
+### P7 — FR/EN sur les pages principales du cockpit + cohérence visuelle —  EN COURS (17/09)
+
+27. ✅ **`UniversalTimeline` (la Timeline verticale) — i18n FR/EN (~90 clés
+    `tl.*`) + fin des visuels en doublon (décision utilisateur)** : le bandeau de
+    chapitre n'a plus d'image — une bande claire avec le titre du chapitre au
+    centre, deux filets, respiration calme ; seules les grandes zones (les scènes
+    de Moment) portent un visuel. Cohérence avec la fenêtre démo de l'accueil :
+    sobre, attractif sur mobile, sans charge cognitive. Scènes, zones, liens,
+    tiroir de Moment (statut, source, visibilité, onde de changement…) traduits ;
+    dates en `date-fns` avec locale FR/EN.
+28. ✅ **`WeddingModulesPanel` (le panneau Documents et les 12 modules) — i18n
+    FR/EN (~150 clés `wm.*`)** : documents/galerie, musique, organisation unifiée
+    (Cérémonie/Logistique/Équipe), messages, voyage de noces, redirections
+    « fusionné ». Jargon retiré : « dataURL », « local-first », « rail », « backend
+    api-server », « /participant-media » → phrases simples (« Les messages sont
+    conservés sur cet appareil… »). Les chaînes FR verrouillées par les tests
+    restent à l'identique (Galerie unifiée, Cérémonie + Logistique + Équipe,
+    Journal local, Message libre, fusionné dans Galerie, souvenirs cochés…).
+    `wedding-modules-mount.test.tsx` monte sous `I18nProvider initialLocale="fr"`
+    (sans provider, jsdom détecte « en »).
+29. ✅ **Oneboarding / ma-carte — bouton photo visible + étape plus courte**
+    (demande utilisateur) : l'`input type="file"` brut était invisible sur le fond
+    noir → vrai bouton clair « Choisir une photo » (input caché), aperçu rond,
+    « Retirer » stylé ; « Ma musique » repliée par défaut (facultatif) — l'étape
+    identité reste courte, par section, dans le même noir que le 1er bloc (format
+    du bloc « Créer ma carte »). Le flux est inchangé : les 18 tests de flux
+    Oneboarding restent verts.
+30. 🚧 **Reste à traduire (prochain lot)** : `AvantOverview`, `DayOfPanel`,
+    `PlayMode`, `GuestPanel`, `UniversalCardForm`, `CarteImport`, coquille
+    `AimePanel` (partiel) et la page publique (`ProfileFeed`, `FilTrack`,
+    `card-blocks`).
+    Vérification : **530 tests frontend verts (74 fichiers)** après chaque lot,
+    typecheck et build OK.
+
 ---
 
 ## 5. Ce qu'il ne faut PAS toucher
 
 - Les **chapitres de la timeline** (« La dernière ligne droite », « Le réveil »…) : le
   meilleur français clair du produit.
-- Le **Oneboarding** noir avec menus dépliants : verrouillé par 18 tests de flux + 519
-  tests frontend au total.
+- Le **flux** du Oneboarding noir avec menus dépliants : verrouillé par 18 tests de
+  flux (étapes, rôles, création). La **forme** a été affinée sur demande du 17/09
+  (P7.29) — bouton photo visible, musique repliée — sans toucher au flux, qui reste
+  vert.
 - Le **parcours invité** (RSVP, profil public, bilan) : pages publiques simples,
   autonomes, déjà propres.
 - La **PWA** (sw.js + manifest), l'export/import `.byaime.json` : fonctionnel réel, pas
@@ -432,7 +468,7 @@ build OK après chaque lot.
 | Bloc P6 (onboarding dupliqué) | ~26 lignes supprimées (jargon dev) |
 | Libellés de jargon retravaillés | ~20 familles de clés i18n (FR + EN) + 5 composants durcis + registry (P2) |
 | Jargon retiré + composants traduits (P6) | ~24 familles de clés + ~75 clés `ed.*` + ~25 clés `world.dayrun.*` (FR + EN) ; `EntityEditor` (472 lg) et `DayRunTimeline` migrés |
-| Chaînes durcies FR hors i18n restantes | Après P6 : les pages principales du cockpit (UniversalTimeline, WeddingModulesPanel, AvantOverview, DayOfPanel, PlayMode, GuestPanel, UniversalCardForm, CarteImport) et la page publique (ProfileFeed, FilTrack) ; domaine agence hors périmètre |
+| Chaînes durcies FR hors i18n restantes | Après P7 (partiel) : AvantOverview, DayOfPanel, PlayMode, GuestPanel, UniversalCardForm, CarteImport, coquille AimePanel (partiel) et la page publique (ProfileFeed, FilTrack, card-blocks) ; domaine agence hors périmètre |
 | Modèles de navigation superposés | 3 (dossiers / items de phase / rail) — P3 |
 | Surfaces de navigation absorbées (P4) | Phase 1 : `CommandBar.tsx` (236 lg) + `BottomDock.tsx` (309 lg). Phase 2 : `WorldTopMenu.tsx` + `WorldSearch.tsx` + `WeddingFolders.tsx` + `admin-plan.ts` (top menu, rangée, loupe). Phase 3 : `PortalControls.tsx` (1 198 lg) + `GlobalCreateCenter.tsx` (90 lg) → le tout dans `AimePanel.tsx` unique |
 | Portes d'entrée vers les mêmes 7 dossiers | 3 écrans + l'orbe — P3 |
