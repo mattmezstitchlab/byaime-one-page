@@ -7,17 +7,9 @@ import type { ReactNode } from "react";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /*
- * L'espace privé doit emprunter **le même** moteur que l'accueil.
- *
- * C'est l'exigence 6 du chantier : « intégrer le même moteur dans
- * PortalOnboarding ». Rien ne l'empêchait de dériver silencieusement vers un
- * second parcours — `PortalOnboarding` ne fait que rendre `LandingComposer`, qui
- * lui-même ne fait que rendre `Oneboarding`. Ce fichier verrouille la chaîne :
- * si un jour le portail remonte autre chose, ou si l'un des deux maillons cesse
- * d'être un simple relais, ces tests cassent.
- *
- * Le but utilisateur : une seule traversée, pas un parcours reconstruit selon
- * l'endroit où l'on entre.
+ * Le portail privé n'est plus une seconde entrée de Carte Universelle : il
+ * ouvre directement la Timeline, avec une création vide immédiate et une aide
+ * optionnelle d'AIME pour préremplir les faits compris dans une phrase.
  */
 
 vi.mock("@clerk/react", () => {
@@ -39,7 +31,8 @@ vi.mock("@clerk/react/internal", () => ({
 }));
 
 const store = vi.hoisted(() => ({
-  navigated: [] as string[],
+  createProjectFromDraft: vi.fn(),
+  createWeddingDemo: vi.fn(),
 }));
 
 vi.mock("@/store/project-store", () => ({
@@ -48,18 +41,11 @@ vi.mock("@/store/project-store", () => ({
     project: null,
     selectProject: vi.fn(async () => true),
     createProjectOnServer: vi.fn(),
-    createWeddingDemo: vi.fn(),
+    createProjectFromDraft: store.createProjectFromDraft,
+    createWeddingDemo: store.createWeddingDemo,
     syncStatus: "saved",
   }),
 }));
-
-vi.mock("wouter", async () => {
-  const actual = await vi.importActual<typeof import("wouter")>("wouter");
-  return {
-    ...actual,
-    useLocation: () => ["/", (to: string) => store.navigated.push(to)] as const,
-  };
-});
 
 import { I18nProvider } from "@/lib/i18n";
 import { Router } from "wouter";
@@ -122,7 +108,8 @@ async function click(el: Element | null) {
 }
 
 beforeEach(() => {
-  store.navigated = [];
+  store.createProjectFromDraft.mockClear();
+  store.createWeddingDemo.mockClear();
 });
 
 afterEach(() => {
@@ -133,42 +120,46 @@ afterEach(() => {
   container = null;
 });
 
-describe("l'espace privé emprunte le même moteur que l'accueil", () => {
-  it("ouvre sur la même porte unique", async () => {
+describe("l'espace privé ouvre directement la Timeline", () => {
+  it("présente une Timeline vide sans remonter la Carte Universelle", async () => {
     await mount();
 
-    /* La porte du Oneboarding, pas une porte propre au portail. */
-    expect(byTestId("oneboarding-entry")).not.toBeNull();
-    expect(byTestId("landing-create-primary")).not.toBeNull();
-    expect(text()).toContain("Votre carte BYAIME");
-
-    /* L'ancien choix binaire du portail a disparu. */
-    expect(text()).not.toContain("Couple ou Wedding planner");
-  });
-
-  it("déroule les cinq étapes du Oneboarding, avec le même repère", async () => {
-    await mount();
-    await click(byTestId("landing-create-primary"));
-
-    /* C'est bien le moteur partagé qui tourne, pas un parcours parallèle. */
-    expect(byTestId("oneboarding")).not.toBeNull();
-    expect(byTestId("oneboarding-step-person")).not.toBeNull();
-
-    const progress = byTestId("oneboarding")?.querySelector('[role="progressbar"]');
-    expect(progress?.getAttribute("aria-valuenow")).toBe("1");
-    expect(progress?.getAttribute("aria-valuemax")).toBe("5");
-    expect(text()).toContain("Commençons par vous");
-  });
-
-  it("ne remonte pas un second formulaire : LandingComposer n'est qu'un relais", async () => {
-    await mount();
-    await click(byTestId("landing-create-primary"));
-
-    /*
-     * L'ancienne machine à étapes de `UniversalCardForm` ne doit pas réapparaître
-     * sous le portail : un seul système de formulaire, orchestré par le plan.
-     */
+    expect(byTestId("timeline-start")).not.toBeNull();
+    expect(byTestId("timeline-start-empty")).not.toBeNull();
+    expect(byTestId("timeline-start-agent")).not.toBeNull();
+    expect(byTestId("timeline-start-card")).not.toBeNull();
     expect(byTestId("universal-card-form")).toBeNull();
-    expect(byTestId("oneboarding-step-person")).not.toBeNull();
+    expect(text()).toContain("Commencez par le fil.");
+  });
+
+  it("crée un Monde vide au clic, sans imposer un questionnaire", async () => {
+    await mount();
+    await click(byTestId("timeline-start-empty"));
+
+    expect(store.createProjectFromDraft).toHaveBeenCalledTimes(1);
+    expect(store.createProjectFromDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Mon mariage", universe: "Mariage" }),
+      "",
+    );
+  });
+
+  it("transmet la phrase optionnelle au parseur avant de créer la Timeline", async () => {
+    await mount();
+    const input = byTestId("timeline-start-input") as HTMLTextAreaElement;
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")!.set!;
+      setter.call(input, "Notre mariage le 14 août 2027 près de Lille, 120 invités.");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await click(byTestId("timeline-start-agent-submit"));
+
+    expect(store.createProjectFromDraft).toHaveBeenCalledTimes(1);
+    const [draft, subtitle] = store.createProjectFromDraft.mock.calls[0] as [Record<string, unknown>, string];
+    expect(draft.title).toBe("Notre Mariage");
+    expect((draft.guestsCount as { value: number }).value).toBe(120);
+    expect((draft.city as { value: string }).value).toContain("Lille");
+    expect(subtitle).toContain("14 août 2027");
+    expect(text()).not.toContain("Couple ou Wedding planner");
+    expect(byTestId("universal-card-form")).toBeNull();
   });
 });

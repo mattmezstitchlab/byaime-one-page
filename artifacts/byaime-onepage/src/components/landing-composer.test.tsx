@@ -17,34 +17,26 @@ const render = (node: ReactNode) =>
   renderToStaticMarkup(<Router hook={() => ["/", () => {}] as const}>{node}</Router>);
 
 describe("LandingComposer", () => {
-  it("ouvre sur une seule promesse : créer ma carte", () => {
+  it("ouvre sur une Timeline principale et une Carte secondaire séparée", () => {
     const markup = render(<LandingComposer />);
 
     expect(markup).toContain('data-testid="landing-composer"');
-    expect(markup).toContain('data-testid="oneboarding-entry"');
-    expect(markup).toContain('data-testid="landing-create-primary"');
-    expect(markup).toContain("Créer ma carte");
-    expect(markup).toContain("Votre carte BYAIME");
-    expect(markup).toContain("Votre identité. Une seule fois.");
+    expect(markup).toContain('data-testid="timeline-entry"');
+    expect(markup).toContain('data-testid="landing-open-timeline"');
+    expect(markup).toContain('data-testid="landing-open-card"');
+    expect(markup).toContain("Un seul fil. Tout votre mariage.");
+    expect(markup).toContain("Créer mon espace et ouvrir ma Timeline");
+    expect(markup).toContain("Ma carte personnelle");
 
-    /* Une seule action. « Créer un mariage », « Voir ma carte » et « Outils
-       avancés » sont sortis de la porte d'entrée : ils demandaient de comprendre
-       l'architecture de BYAIME avant de commencer. Le mariage est devenu une
-       étape du Oneboarding, pas une porte. */
+    /* L'entrée ne demande plus de choisir entre Carte, activité et mariage.
+       La Timeline est la promesse principale ; la Carte reste accessible à part. */
     expect(markup).not.toContain('data-testid="landing-start-blank"');
     expect(markup).not.toContain("Créer un mariage");
-    expect(markup).not.toContain("Voir ma carte");
     expect(markup).not.toContain("Outils avancés");
-
-    // Le choix Couple / Wedding planner ne revient jamais : une seule expérience.
     expect(markup).not.toContain('data-testid="landing-persona');
     expect(markup).not.toContain("Wedding planner");
-    // Aucune question, aucun champ, aucun bouton de création avant d'avoir commencé.
     expect(markup).not.toContain('data-testid="landing-intention-form"');
     expect(markup).not.toContain('data-testid="landing-intention-input"');
-    expect(markup).not.toContain('data-testid="landing-intention-submit"');
-    expect(markup).not.toContain('data-testid="landing-intention-skip"');
-    expect(markup).not.toContain('data-testid="landing-intention-finish"');
   });
 
   it("ne propose qu'un seul parcours : plus aucun champ libre alternatif", () => {

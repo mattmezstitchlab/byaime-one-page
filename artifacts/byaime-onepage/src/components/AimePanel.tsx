@@ -65,7 +65,7 @@ const CLOSE_PANEL_EVENT = "aime:close-world-panel";
 
 export function AimePanel() {
   const { t, locale, setLocale } = useI18n();
-  const { project, currentRole, canEdit } = useProject();
+  const { project, currentRole, canEdit, updateProject } = useProject();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -104,10 +104,10 @@ export function AimePanel() {
     const openAI = (event: Event) => {
       const detail = (event as CustomEvent<{ item?: string; section?: string; search?: boolean }>).detail;
       setOpen(true);
-      if (detail?.item) {
-        setSelectedId(detail.item);
-        setPresented(null);
-      }
+      /* Le + est d'abord la porte vers l'agent. La colonne reste disponible
+         pour les dossiers, mais l'ouverture ne demande plus un second clic. */
+      setSelectedId(detail?.item ?? "ask");
+      setPresented(null);
       if (detail?.search) requestAnimationFrame(() => searchInputRef.current?.focus());
     };
     const showPanel = (event: Event) => applyShow((event as CustomEvent<AimePanelShowRequest>).detail);
@@ -308,7 +308,11 @@ export function AimePanel() {
       case "ask":
         return (
           <div className="mx-auto max-w-4xl" data-testid="aime-panel-ask">
-            <AssistantChat />
+            <div data-testid="aime-panel-intro">
+              <AssistantChat
+                onApplyProject={project && canEdit ? (updates) => updateProject(updates) : undefined}
+              />
+            </div>
           </div>
         );
       case "share-doc":
