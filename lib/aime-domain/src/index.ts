@@ -7,3 +7,5 @@ export * from "./rapport";
 export * from "./universal-card";
 
 export * from "./professional-profile";
+
+export * from "./attestation-fact";

@@ -1,4 +1,5 @@
 import { claimRsvp } from "../lib/claimRsvp";
+import { attestationResponseSchema, buildAttestationPortal, checkCounterpart, decideResponse, isDuplicateResponse } from "../lib/attestationLink";
 import { canAccessClaimedRsvp, claimConsentSchema, claimRecipientSchema, participationWithRsvp, withoutRsvpCopies, rsvpFieldsChanged, normalizedClaimEmail, claimedParticipantWorld } from "../lib/rsvpClaim";
 import { cardSchema, participationSchema, projectWithCards, profileInputSchema, functioningSchema, assignmentErrors, assignmentSchema } from "../lib/universalCard";
 import { stripCardProjection, type CardParticipant, type ProfessionalProfile, type ProfessionalAssignment } from "@workspace/aime-domain";
@@ -9,6 +10,8 @@ import { clerkClient, getAuth } from "@clerk/express";
 import { and, asc, eq, gt, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import {
   db,
+  attestationLinksTable,
+  attestationsTable,
   universalCardsTable,
   professionalProfilesTable,
   professionalAssignmentsTable,
@@ -1578,6 +1581,181 @@ router.delete(
       return;
     }
     res.sendStatus(204);
+  },
+);
+
+/* ── Partie double : liens d'attestation ───────────────────────────
+   Un prestataire relié à un Moment contresigne le fait tel qu'il lui est
+   montré. Même mécanique que le RSVP : un jeton, pas de compte. Le Monde ne
+   peut jamais écrire une attestation ; elle n'entre que par la réponse au
+   lien, et le journal (aime_attestations) est append-only. */
+
+const attestationHistory = async (linkId: string) => {
+  const rows = await db.select().from(attestationsTable).where(eq(attestationsTable.linkId, linkId)).orderBy(asc(attestationsTable.respondedAt));
+  return rows.map(row => ({ status: row.status, hash: row.hash, respondedAt: row.respondedAt.toISOString(), amountCents: row.amountCents, note: row.note }));
+};
+
+router.get(
+  "/projects/:id/attestation-links",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const links = await db.select().from(attestationLinksTable).where(eq(attestationLinksTable.projectId, projectId));
+    res.json(links.map(link => (link.revoked ? { ...link, token: "" } : link)));
+  },
+);
+
+router.post(
+  "/projects/:id/attestation-links/:eventId/:providerId",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [project] = await db.select({ data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    const eventId = String(req.params.eventId);
+    const providerId = String(req.params.providerId);
+    const check = checkCounterpart(project?.data, eventId, providerId);
+    if (!check.ok) {
+      const reasons = {
+        event: "Moment introuvable dans ce Monde",
+        provider: "Professionnel introuvable dans ce Monde",
+        relation: "Ce professionnel n'est pas relié à ce Moment",
+        suggested: "Une suggestion ne se fait pas attester : adoptez d'abord le Moment",
+      } as const;
+      res.status(check.reason === "relation" || check.reason === "suggested" ? 409 : 404).json({ error: reasons[check.reason] });
+      return;
+    }
+    const [link] = await db
+      .insert(attestationLinksTable)
+      .values({ projectId, eventId, providerId, createdBy: req.userId! })
+      .onConflictDoUpdate({
+        target: [attestationLinksTable.projectId, attestationLinksTable.eventId, attestationLinksTable.providerId],
+        set: { revoked: false, token: randomUUID() },
+      })
+      .returning();
+    res.status(201).json(link);
+  },
+);
+
+router.delete(
+  "/projects/:id/attestation-links/:eventId/:providerId",
+  auth,
+  async (req: AuthedRequest, res): Promise<void> => {
+    const projectId = String(req.params.id);
+    if (!managedRoles.has((await membership(projectId, req.userId!))?.role ?? "")) {
+      res.status(403).json({ error: "Permission refusée" });
+      return;
+    }
+    const [updated] = await db
+      .update(attestationLinksTable)
+      .set({ revoked: true })
+      .where(and(
+        eq(attestationLinksTable.projectId, projectId),
+        eq(attestationLinksTable.eventId, String(req.params.eventId)),
+        eq(attestationLinksTable.providerId, String(req.params.providerId)),
+      ))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Lien d'attestation introuvable" });
+      return;
+    }
+    res.sendStatus(204);
+  },
+);
+
+router.get(
+  "/attestation/:token",
+  createRateLimit({ windowMs: 15 * 60 * 1000, max: 60, key: (req) => `attestation-read:${req.ip}` }),
+  async (req, res): Promise<void> => {
+    if (!uuid.safeParse(String(req.params.token)).success) {
+      res.status(404).json({ error: "Lien d'attestation invalide" });
+      return;
+    }
+    const [row] = await db
+      .select({ link: attestationLinksTable, project: projectsTable })
+      .from(attestationLinksTable)
+      .innerJoin(projectsTable, eq(projectsTable.id, attestationLinksTable.projectId))
+      .where(eq(attestationLinksTable.token, String(req.params.token)));
+    if (!row || row.link.revoked) {
+      res.status(404).json({ error: "Lien d'attestation invalide" });
+      return;
+    }
+    const portal = buildAttestationPortal(row.project.data, row.project.title, row.link.eventId, row.link.providerId, await attestationHistory(row.link.id));
+    if (!portal) {
+      res.status(404).json({ error: "Ce Moment n'existe plus dans ce Monde." });
+      return;
+    }
+    res.setHeader("Cache-Control", "no-store");
+    res.json(portal);
+  },
+);
+
+router.post(
+  "/attestation/:token",
+  createRateLimit({ windowMs: 15 * 60 * 1000, max: 20, key: (req) => `attestation-write:${req.ip}:${String(req.params.token)}` }),
+  async (req, res): Promise<void> => {
+    const input = parseBody(attestationResponseSchema, req, res);
+    if (!input) return;
+    if (!uuid.safeParse(String(req.params.token)).success) {
+      res.status(404).json({ error: "Lien d'attestation invalide" });
+      return;
+    }
+    const result = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ link: attestationLinksTable, project: projectsTable })
+        .from(attestationLinksTable)
+        .innerJoin(projectsTable, eq(projectsTable.id, attestationLinksTable.projectId))
+        .where(eq(attestationLinksTable.token, String(req.params.token)))
+        .for("update");
+      if (!row || row.link.revoked) return { status: 404 as const, error: "Lien d'attestation invalide" };
+      const decision = decideResponse(row.project.data, row.link.eventId, row.link.providerId, input);
+      if (!decision.ok) return { status: decision.status, error: decision.error };
+      const history = await tx.select({ status: attestationsTable.status, hash: attestationsTable.hash }).from(attestationsTable)
+        .where(eq(attestationsTable.linkId, row.link.id)).orderBy(asc(attestationsTable.respondedAt));
+      if (isDuplicateResponse(history, input)) return { status: 200 as const, duplicate: true };
+      const [entry] = await tx.insert(attestationsTable).values({
+        linkId: row.link.id,
+        projectId: row.link.projectId,
+        eventId: row.link.eventId,
+        providerId: row.link.providerId,
+        status: input.status,
+        hash: decision.hash,
+        amountCents: decision.fact.amountCents,
+        time: new Date(decision.fact.time),
+        note: input.status === "conteste" ? input.note ?? null : null,
+      }).returning();
+      /* Projection dans le Monde : la même écriture, relue par le client sans
+         appel supplémentaire. Le serveur la protège de toute sauvegarde
+         (projectDataPolicy relit `attestations` depuis la base) : la table
+         reste la source, la projection suit. On ne touche PAS à `updatedAt` :
+         la contrepartie n'écrit pas le Monde, elle écrit à côté — le verrou
+         optimiste du propriétaire ne doit pas se déclencher. */
+      const data = (row.project.data && typeof row.project.data === "object" ? row.project.data : {}) as Record<string, unknown>;
+      const attestations = Array.isArray(data.attestations) ? data.attestations : [];
+      await tx.update(projectsTable).set({
+        data: {
+          ...data,
+          attestations: [...attestations, {
+            id: entry.id, eventId: entry.eventId, providerId: entry.providerId, status: entry.status, hash: entry.hash,
+            respondedAt: entry.respondedAt.getTime(), amountCents: entry.amountCents, time: entry.time.getTime(),
+            ...(entry.note ? { note: entry.note } : {}),
+          }],
+        },
+      }).where(eq(projectsTable.id, row.project.id));
+      return { status: 201 as const, entry };
+    });
+    if ("error" in result) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+    res.status(result.status).json(result.status === 200 ? { duplicate: true } : result.entry);
   },
 );
 

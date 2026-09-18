@@ -1,5 +1,5 @@
+import { buildFactView, factViewFingerprint, type FactView } from "@workspace/aime-domain";
 import { documentStage, exportableDocuments, momentsForDocument, paymentsForDocument, type DocumentStage } from "./document-tense";
-import { fingerprint } from "./export-journal";
 import type { Attestation, Document, Payment, Provider, TimelineEvent, WorldProject } from "./types";
 
 /*
@@ -31,28 +31,7 @@ export type AttestationStatus = Attestation["status"];
 /** Un stade au-dessus de « fait » : le fait contresigné par la contrepartie. */
 export type AttestedStage = DocumentStage | "atteste";
 
-/**
- * Le fait tel que la contrepartie le voit : ce qui lui est montré, et donc ce
- * qu'elle signe. Pas d'URL, pas de notes privées — la date, la durée, le
- * lieu, l'intitulé, et ce qui a été réglé pour ce Moment.
- */
-export type FactView = {
-  eventId: string;
-  providerId: string;
-  title: string;
-  time: number;
-  endTime?: number;
-  location?: string;
-  amountCents: number;
-  documentIds: string[];
-  paymentIds: string[];
-};
-
-const eventEnd = (event: Pick<TimelineEvent, "time" | "endTime" | "durationMinutes">): number | undefined => {
-  if (typeof event.endTime === "number" && event.endTime >= event.time) return event.endTime;
-  if (typeof event.durationMinutes === "number" && event.durationMinutes > 0) return event.time + event.durationMinutes * 60_000;
-  return undefined;
-};
+export { factViewFingerprint, type FactView };
 
 /** Les documents d'un prestataire reliés à ce Moment (ou, à défaut, tous ses documents financiers). */
 export function documentsForFact(
@@ -65,42 +44,19 @@ export function documentsForFact(
   return linked.length > 0 ? linked : ofProvider;
 }
 
-/** La vue du fait montrée à la contrepartie, déterministe pour un même projet. */
+/**
+ * La vue du fait montrée à la contrepartie. Calculée par le module partagé
+ * client / serveur (`@workspace/aime-domain`) : le serveur empreinte la même
+ * vue au moment de la réponse, le Monde la recompare ensuite.
+ */
 export function factView(
   event: TimelineEvent,
   providerId: string,
   project: Pick<WorldProject, "documents" | "payments">,
 ): FactView {
-  const documents = documentsForFact(event, providerId, project.documents);
-  const settled = documents
-    .flatMap(document => paymentsForDocument(document, project.payments))
-    .filter(payment => payment.state === "paye");
-  const unique = [...new Map(settled.map(payment => [payment.id, payment])).values()].sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
-  return {
-    eventId: event.id,
-    providerId,
-    title: event.title,
-    time: event.time,
-    endTime: eventEnd(event),
-    location: event.location,
-    amountCents: unique.reduce((sum, payment) => sum + payment.amountCents, 0),
-    documentIds: documents.map(document => document.id).sort(),
-    paymentIds: unique.map(payment => payment.id),
+  return buildFactView({ timeline: [event], documents: project.documents, payments: project.payments }, event.id, providerId) ?? {
+    eventId: event.id, providerId, title: event.title, time: event.time, amountCents: 0, documentIds: [], paymentIds: [],
   };
-}
-
-/** L'empreinte du fait tel que montré : change si la date, la durée, le lieu ou les règlements changent. */
-export function factViewFingerprint(view: FactView): string {
-  return fingerprint([
-    view.eventId,
-    view.providerId,
-    view.title,
-    view.time,
-    view.endTime ?? "",
-    view.location ?? "",
-    view.amountCents,
-    view.paymentIds.join(","),
-  ].join("\u001f"));
 }
 
 /** Les attestations d'un Moment pour une contrepartie, de la plus ancienne à la plus récente. */
