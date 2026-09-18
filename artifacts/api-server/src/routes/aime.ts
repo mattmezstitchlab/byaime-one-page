@@ -1,4 +1,6 @@
 import { claimRsvp } from "../lib/claimRsvp";
+import { claimAttestation } from "../lib/claimAttestation";
+import { countersignedMoments, profileProof } from "../lib/attestationClaim";
 import { attestationResponseSchema, buildAttestationPortal, checkCounterpart, decideResponse, isDuplicateResponse } from "../lib/attestationLink";
 import { canAccessClaimedRsvp, claimConsentSchema, claimRecipientSchema, participationWithRsvp, withoutRsvpCopies, rsvpFieldsChanged, normalizedClaimEmail, claimedParticipantWorld } from "../lib/rsvpClaim";
 import { cardSchema, participationSchema, projectWithCards, profileInputSchema, functioningSchema, assignmentErrors, assignmentSchema } from "../lib/universalCard";
@@ -746,6 +748,7 @@ router.get(
       version: 1,
       exportedAt: new Date().toISOString(),
       claimedInvitations: await db.select({ projectId: rsvpsTable.projectId, guestId: rsvpsTable.guestId, response: rsvpsTable.response, claimedAt: rsvpsTable.claimedAt }).from(rsvpsTable).where(eq(rsvpsTable.claimedCardUserId, userId)),
+      claimedAttestations: await db.select({ projectId: attestationLinksTable.projectId, eventId: attestationLinksTable.eventId, providerId: attestationLinksTable.providerId, claimedAt: attestationLinksTable.claimedAt }).from(attestationLinksTable).where(eq(attestationLinksTable.claimedCardUserId, userId)),
       professionalProfiles: await db.select().from(professionalProfilesTable).where(eq(professionalProfilesTable.cardUserId, userId)),
       professionalAssignments: await db.select().from(professionalAssignmentsTable).where(eq(professionalAssignmentsTable.userId, userId)),
       universalCard: await db.select().from(universalCardsTable).where(eq(universalCardsTable.userId, userId)),
@@ -1605,7 +1608,8 @@ router.get(
       return;
     }
     const links = await db.select().from(attestationLinksTable).where(eq(attestationLinksTable.projectId, projectId));
-    res.json(links.map(link => (link.revoked ? { ...link, token: "" } : link)));
+    /* L'organisateur voit si les Moments sont rattachés, jamais à quel compte. */
+    res.json(links.map(({ claimedCardUserId: _card, ...link }) => (link.revoked ? { ...link, token: "" } : link)));
   },
 );
 
@@ -1758,6 +1762,75 @@ router.post(
     res.status(result.status).json(result.status === 200 ? { duplicate: true } : result.entry);
   },
 );
+
+/* LE PROFIL QUI NAÎT REMPLI. La contrepartie rattache ses Moments d'un Monde
+   à sa Carte. Comme pour le RSVP : la possession du lien ne prouve rien,
+   l'organisateur confirme une adresse personnelle, le compte doit l'avoir
+   vérifiée, et rien n'est transféré automatiquement. */
+
+const verifiedEmailsOf = async (userId: string) => {
+  const user = await clerkClient.users.getUser(userId);
+  return user.emailAddresses.filter(e => e.verification?.status === "verified").map(e => e.emailAddress);
+};
+
+router.get("/attestation/:token/claim", auth, createRateLimit({ windowMs: 900000, max: 20, key: req => `attestation-claim-preview:${(req as AuthedRequest).userId}` }), async (req: AuthedRequest, res) => {
+  if (!uuid.safeParse(String(req.params.token)).success) { res.status(404).json({ error: "Lien d'attestation invalide" }); return; }
+  res.setHeader("Cache-Control", "no-store");
+  const result = await claimAttestation(db, { token: String(req.params.token), userId: req.userId!, verifiedEmails: await verifiedEmailsOf(req.userId!), confirm: false });
+  res.status("error" in result ? result.status! : 200).json(result);
+});
+router.post("/attestation/:token/claim", auth, createRateLimit({ windowMs: 900000, max: 10, key: req => `attestation-claim-confirm:${(req as AuthedRequest).userId}` }), async (req: AuthedRequest, res) => {
+  if (!uuid.safeParse(String(req.params.token)).success) { res.status(404).json({ error: "Lien d'attestation invalide" }); return; }
+  if (!parseBody(claimConsentSchema, req, res)) return;
+  res.setHeader("Cache-Control", "no-store");
+  const result = await claimAttestation(db, { token: String(req.params.token), userId: req.userId!, verifiedEmails: await verifiedEmailsOf(req.userId!), confirm: true });
+  res.status("error" in result ? result.status! : 200).json(result);
+});
+
+/* L'organisateur confirme l'adresse personnelle du prestataire pour ce Monde.
+   Elle vaut pour tous ses liens : c'est la même personne. */
+router.patch("/projects/:id/attestation-links/:providerId/claim-recipient", auth, async (req: AuthedRequest, res) => {
+  const input = parseBody(claimRecipientSchema, req, res); if (!input) return;
+  const member = await membership(String(req.params.id), req.userId!);
+  if (!member || !managedRoles.has(member.role)) { res.status(403).json({ error: "Confirmation réservée aux organisateurs autorisés." }); return; }
+  const providerId = String(req.params.providerId);
+  const result = await db.transaction(async tx => {
+    const [project] = await tx.select().from(projectsTable).where(eq(projectsTable.id, member.projectId)).for("update");
+    if (!project || (project.data as any)?.closure?.closedAt) return { error: "Monde clôturé ou introuvable" };
+    const links = await tx.select().from(attestationLinksTable).where(eq(attestationLinksTable.projectId, member.projectId));
+    const mine = links.filter(link => link.providerId === providerId && !link.revoked);
+    if (!mine.length) return { error: "Aucun lien d'attestation actif pour ce professionnel." };
+    if (mine.some(link => link.claimedAt)) return { error: "Ces Moments sont déjà rattachés à une carte. Aucun transfert automatique n'est autorisé." };
+    if (links.some(link => link.providerId !== providerId && !link.revoked && normalizedClaimEmail(link.claimEmail) === input.email)) return { error: "Utilisez une adresse personnelle unique pour chaque professionnel." };
+    await tx.update(attestationLinksTable).set({ claimEmail: input.email })
+      .where(and(eq(attestationLinksTable.projectId, member.projectId), eq(attestationLinksTable.providerId, providerId), eq(attestationLinksTable.revoked, false)));
+    return { confirmed: true, links: mine.length };
+  });
+  res.status("error" in result ? 409 : 200).json(result);
+});
+
+/* Ce que la Carte lit : les Moments contresignés par d'autres Mondes.
+   Relus à l'instant, jamais copiés — un fait qui bouge périme sa signature. */
+router.get("/me/attestations", auth, async (req: AuthedRequest, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const links = await db.select().from(attestationLinksTable)
+    .where(and(eq(attestationLinksTable.claimedCardUserId, req.userId!), eq(attestationLinksTable.revoked, false)));
+  const projectIds = [...new Set(links.map(link => link.projectId))];
+  const moments: ReturnType<typeof countersignedMoments> = [];
+  for (const projectId of projectIds) {
+    const [project] = await db.select({ id: projectsTable.id, title: projectsTable.title, data: projectsTable.data }).from(projectsTable).where(eq(projectsTable.id, projectId));
+    if (!project) continue;
+    const mine = links.filter(link => link.projectId === projectId);
+    const providerIds = new Set(mine.map(link => link.providerId));
+    const history = (await db
+      .select({ eventId: attestationsTable.eventId, providerId: attestationsTable.providerId, status: attestationsTable.status, hash: attestationsTable.hash, respondedAt: attestationsTable.respondedAt })
+      .from(attestationsTable).where(eq(attestationsTable.projectId, projectId)))
+      .filter(row => providerIds.has(row.providerId));
+    moments.push(...countersignedMoments(project, mine, history));
+  }
+  moments.sort((a, b) => b.time - a.time);
+  res.json({ moments, proof: profileProof(moments) });
+});
 
 router.get(
   "/projects/:id/participant-media",

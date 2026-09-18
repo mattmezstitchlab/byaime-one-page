@@ -11,6 +11,10 @@ it("extracts only a known invitation path, never an external redirect or a guess
     token,
   });
   expect(invitationTarget(token)).toEqual({ kind: "rsvp", token });
+  expect(invitationTarget(`https://byaime.fr/attestation/${token}`)).toEqual({
+    kind: "attestation",
+    token,
+  });
   for (const v of [
     "Jean Dupont",
     "javascript:alert(1)",

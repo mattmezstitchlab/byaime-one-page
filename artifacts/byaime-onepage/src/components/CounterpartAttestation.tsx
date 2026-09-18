@@ -14,7 +14,15 @@ import type { Provider, TimelineEvent, WorldProject } from "@/lib/types";
  * est dérivé de `project.attestations`, que seul le serveur prolonge.
  */
 
-type AttestationLink = { eventId: string; providerId: string; token: string; revoked: boolean };
+export type AttestationLink = {
+  eventId: string;
+  providerId: string;
+  token: string;
+  revoked: boolean;
+  /** Adresse personnelle confirmée par l'organisateur pour ce prestataire (partie double, slice « Profil rempli »). */
+  claimEmail?: string | null;
+  claimedAt?: string | null;
+};
 
 const STATE_LABEL: Record<FactState, string> = {
   declare: "Déclaré de votre côté",
@@ -45,7 +53,9 @@ export function useAttestationLinks(projectId: string | undefined, enabled: bool
   };
   useEffect(() => { void refresh(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, enabled]);
-  return { links, available, refresh, key };
+  /** Les liens actifs d'un prestataire : c'est à cette échelle que se confirme son adresse. */
+  const forProvider = (providerId: string) => Object.values(links).filter(item => item.providerId === providerId);
+  return { links, available, refresh, key, forProvider };
 }
 
 export function CounterpartAttestation({

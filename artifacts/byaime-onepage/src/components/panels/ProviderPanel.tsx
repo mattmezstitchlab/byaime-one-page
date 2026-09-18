@@ -9,6 +9,7 @@ import { momentProviderIds } from "@/lib/moment-context";
 import { invoicesForPayment } from "@/lib/document-tense";
 import { attestedCachets, hoursProjection, legalDeadlines, pendingDeadlineMoments, deadlineMomentId } from "@/lib/intermittent";
 import { CounterpartAttestation, useAttestationLinks } from "@/components/CounterpartAttestation";
+import { CounterpartRecipientAuthorization } from "@/components/CounterpartRecipientAuthorization";
 
 const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 
@@ -188,6 +189,19 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                     <p className="text-xs text-[var(--agency-eyebrow)]">Aucun moment prévu avec ce professionnel.</p>
                   )}
                 </div>
+                {canManage && attestationLinks.forProvider(provider.id).length > 0 && (() => {
+                  const [first] = attestationLinks.forProvider(provider.id);
+                  return (
+                    <CounterpartRecipientAuthorization
+                      key={`${provider.id}-${first.claimEmail ?? ""}`}
+                      projectId={project.id}
+                      providerId={provider.id}
+                      claimEmail={first.claimEmail}
+                      claimedAt={first.claimedAt}
+                      onSaved={attestationLinks.refresh}
+                    />
+                  );
+                })()}
                 {(provider.employment === "guso" || provider.employment === "structure") && (
                   <div className="mt-3 rounded-2xl border border-[var(--agency-hairline)] p-3" data-testid={`provider-deadlines-${provider.id}`}>
                     <p className={cn(EYEBROW, "text-[9px]")}>Échéances légales · déduites des prestations</p>

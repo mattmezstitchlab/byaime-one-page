@@ -32,6 +32,11 @@ const formatDate = (value: number) =>
   new Date(value).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const formatTime = (value: number) => new Date(value).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
+/* Le chemin vers la Carte, en passant par la connexion : le lien est gardé,
+   la personne revient sur sa carte avec ses Moments à rattacher. */
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const claimHref = (token: string) => `${basePath}/connexion?returnTo=${encodeURIComponent(`/ma-carte?attestation=${token}`)}`;
+
 export function AttestationPage({ params }: { params: { token: string } }) {
   const [portal, setPortal] = useState<Portal | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "submitting" | "error">("loading");
@@ -187,6 +192,21 @@ export function AttestationPage({ params }: { params: { token: string } }) {
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {portal && (
+          <section className="mt-8 rounded-2xl border border-[var(--agency-hairline)] p-5" data-testid="attestation-claim-invite">
+            <p className={EYEBROW}>Votre Profil, écrit par d'autres</p>
+            <p className={cn(BODY, "mt-2 text-sm")}>
+              Avec une Carte Universelle, ce Moment attesté devient une ligne de votre Profil — datée, empreintée, contresignée par ce Monde. Rien à raconter : c'est déjà écrit.
+            </p>
+            <a href={claimHref(params.token)} className={cn(PILL_GHOST, "mt-4 inline-flex")} data-testid="attestation-claim-link">
+              Rattacher à ma carte
+            </a>
+            <p className="mt-3 text-xs text-[var(--agency-eyebrow)]">
+              L'organisateur doit avoir confirmé votre adresse personnelle ; votre compte doit l'avoir vérifiée. Le lien seul ne suffit pas.
+            </p>
           </section>
         )}
 

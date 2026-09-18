@@ -142,6 +142,11 @@ export const attestationLinksTable = pgTable("aime_attestation_links", {
   token: uuid("token").notNull().defaultRandom().unique(),
   revoked: boolean("revoked").notNull().default(false),
   createdBy: text("created_by").notNull(),
+  /** Adresse personnelle confirmée par l'organisateur pour ce prestataire — jamais déduite d'un contact. */
+  claimEmail: text("claim_email"),
+  /** La Carte à laquelle la contrepartie a rattaché ses Moments de ce Monde. */
+  claimedCardUserId: text("claimed_card_user_id").references(() => universalCardsTable.userId, { onDelete: "set null" }),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [uniqueIndex("aime_attestation_project_event_provider").on(table.projectId, table.eventId, table.providerId)]);
 

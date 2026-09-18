@@ -113,6 +113,14 @@ describe("la page de la contrepartie", () => {
     expect(el.querySelector("[data-testid=attestation-message]")?.textContent).toContain("a changé depuis votre lecture");
   });
 
+  it("propose de rattacher le Moment à sa carte, en gardant le lien à travers la connexion", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(json(200, { projectTitle: "M", providerName: "Léo", fact, hash: "abcd1234", history: [], attested: false }));
+    const el = await mount();
+    const link = el.querySelector<HTMLAnchorElement>("[data-testid=attestation-claim-link]");
+    expect(link?.getAttribute("href")).toBe(`/connexion?returnTo=${encodeURIComponent("/ma-carte?attestation=11111111-1111-1111-1111-111111111111")}`);
+    expect(el.querySelector("[data-testid=attestation-claim-invite]")?.textContent).toContain("Le lien seul ne suffit pas");
+  });
+
   it("dit clairement qu'un lien n'est plus valide", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(json(404, { error: "Lien d'attestation invalide" }));
     const el = await mount();
