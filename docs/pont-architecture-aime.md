@@ -276,13 +276,27 @@ Les 6 écarts nommés par le juge se partagent en deux lots :
   Elle reste comptée, nommée, et sera retirée du dépôt quand la décision
   d'archivage sera prise — pas par cette convergence.
 
-**Angle mort #9, mineur, à remettre au juge** : les constantes de classes
-(`const inputClass = "…"`) réutilisées dans plusieurs `className={inputClass}`
-ne sont pas extraites — un défaut dans une constante est un défaut par
-usage, invisible. Résolution honnête : les compter en « constructions
-dynamiques » nommées, ou résoudre les identifiants locaux dont la valeur
-est un littéral de chaîne dans le même fichier (aucune devinette : la valeur
-est écrite en clair).
+**Angle mort #9 — implémenté côté juge, transport en attente (18/09)** :
+les constantes de classes (`const inputClass = "…"`) réutilisées dans
+plusieurs `className={inputClass}` n'étaient pas extraites — un défaut dans
+une constante est un défaut par usage, invisible. Résolu dans
+`diagnostic/src/extract.mjs` (`localStringConstants` + `classLiterals`) :
+littéral du même fichier → jugé **à la ligne de chaque usage** ; première
+déclaration retenue, redéclaration = retrait ; gabarit → segments `${…}`
+comptés non résolus ; prop / import / calcul → NON RÉSOLU, jamais
+interprété. Fixture `class-constants` + 3 tests exacts (54/54 ; QA 12/12 ;
+résolveur 109/109).
+
+Le jeton de la session n'écrit pas sur AIME-COMPOSER (403) : le commit
+voyage en **`arena-transport-diagnostic-angle-mort-9.patch`** à la racine
+de ce dépôt (`git am` sur `main` COMPOSER `20fabad`, applicabilité vérifiée)
+— la Navette de la proposition n°3, une fois de plus vécue.
+
+**Re-mesure byaime avec ce juge** : **72 écarts réels apparaissent**
+(EntityEditor 29, ProfessionalProfileEditor 22, card-blocks 21 — rayons
+`rounded-xl`, tailles et couleurs portés par des constantes), total
+998 → 1070, densité écrans inchangée (9.6). Le juge n'a pas régressé : il
+mesure ce qu'il ratait. Ces 72 sont le premier lot de la convergence n°4.
 
 Résultat après n°3 : FOCUS **3** (tous hors produit, `reference/`),
 563 tests verts, build ✓, `verify:vercel` ✓.

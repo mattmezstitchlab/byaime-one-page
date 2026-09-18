@@ -1,0 +1,231 @@
+From 22244761b112524e9086b09f97cdce0594625653 Mon Sep 17 00:00:00 2001
+From: arena-agent <297053741+arena-agent@users.noreply.github.com>
+Date: Fri, 18 Sep 2026 07:14:26 +0000
+Subject: [PATCH] =?UTF-8?q?fix(diagnostic):=20=C2=A710=20pont=20=E2=80=94?=
+ =?UTF-8?q?=20constantes=20de=20classes=20jug=C3=A9es=20par=20usage=20(ang?=
+ =?UTF-8?q?le=20mort=20n=C2=B09)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+byaime (pont §10) : `const inputClass = "… focus-visible:outline-none
+focus:border-…"` réutilisée dans une dizaine de `className={inputClass}`
+portait le motif corrigé 53 fois en convergence n°2 — invisible au juge,
+qui n'extrayait que les attributs className littéraux.
+
+- src/extract.mjs — localStringConstants(text) : const/let/var NAME =
+  "…"|'…'|`…` du même fichier ; première déclaration retenue,
+  redéclaration = retrait (on ne choisit pas entre deux valeurs), gabarit
+  marqué (segments ${…} comptés non résolus). classLiterals résout
+  className={NAME} à la ligne de CHAQUE usage — un défaut dans la
+  constante = un écart par usage, localisé. Prop, import, calcul → NON
+  RÉSOLU, compté, jamais interprété.
+- fixture class-constants (FOCUS 2 sur deux lignes d'usage distinctes,
+  paire valide non facturée, 4 non résolus nommés) + 3 tests exacts.
+  54/54. QA design system 12/12, résolveur 109/109 inchangés.
+- README §« Constantes de classes ».
+
+Mesuré sur byaime après sa convergence n°3 : 72 écarts réels apparaissent
+(EntityEditor 29, ProfessionalProfileEditor 22, card-blocks 21), total
+998 → 1070, densité écrans inchangée (9.6). Le juge n'a pas régressé — il
+mesure ce qu'il ratait.
+
+Co-authored-by: arena-agent <297053741+arena-agent@users.noreply.github.com>
+---
+ diagnostic/README.md                          | 32 ++++++++++++++++++
+ diagnostic/src/extract.mjs                    | 33 +++++++++++++++++++
+ .../fixtures/class-constants/package.json     |  1 +
+ .../test/fixtures/class-constants/src/App.jsx | 32 ++++++++++++++++++
+ diagnostic/test/run.mjs                       | 28 +++++++++++++++-
+ 5 files changed, 125 insertions(+), 1 deletion(-)
+ create mode 100644 diagnostic/test/fixtures/class-constants/package.json
+ create mode 100644 diagnostic/test/fixtures/class-constants/src/App.jsx
+
+diff --git a/diagnostic/README.md b/diagnostic/README.md
+index 4405e2e..9bcd709 100644
+--- a/diagnostic/README.md
++++ b/diagnostic/README.md
+@@ -133,6 +133,38 @@ supprimé, rien à signaler). Fixtures `focus-pairing`
+ byaime, FOCUS tombe ainsi de 217 à **l'inventaire réel des paires non
+ appariées** (attendu proche de zéro).
+ 
++## Constantes de classes — la valeur est écrite, la lire n'est pas deviner
++
++Neuvième angle mort, remis par byaime (pont §10) : deux constantes
++`const inputClass = "… focus-visible:outline-none focus:border-…"` réutilisées
++dans une dizaine de `className={inputClass}` portaient exactement le motif
++que la convergence n°2 venait de corriger 53 fois — et le juge ne voyait
++rien, parce qu'il n'extrayait que les attributs `className` littéraux. Un
++défaut dans une constante est un défaut **par usage**, invisible.
++
++La règle (`localStringConstants` + `classLiterals` dans `src/extract.mjs`) :
++
++- `const|let|var NAME = "…" | '…' | `…`` déclaré dans **le même fichier** →
++  résolu ; chaque `className={NAME}` est jugé **à sa ligne** (un défaut,
++  autant d'écarts que d'usages, chacun localisé) ;
++- première déclaration retenue ; un nom **redéclaré** est retiré (on ne
++  choisit pas entre deux valeurs) ;
++- un gabarit garde ses segments `${…}` comptés non résolus ;
++- prop, import, appel de fonction, calcul → **NON RÉSOLU**, compté, jamais
++  interprété.
++
++Fixture `class-constants` (2 usages d'une constante fautive → FOCUS 2, à
++deux lignes distinctes ; paire valide non facturée ; prop / import /
++redéclaration / `${…}` → 4 non résolus) + 3 tests exacts.
++
++Mesuré sur byaime (`artifacts/byaime-onepage`, après sa convergence n°3) :
++**72 écarts réels apparaissent** (EntityEditor 29, ProfessionalProfileEditor
++22, card-blocks 21 — rayons `rounded-xl`, tailles hors échelle, couleurs
++littérales portés par des constantes), total 998 → 1070. La densité par
++écran ne bouge pas (9.6) : ce sont des fragments. Un juge qui voit plus
++d'écarts après amélioration n'a pas régressé — il mesure enfin ce qu'il
++ratait.
++
+ ## Le pont officiel — converger vers zéro sans changer de moteur
+ 
+ Le système génère son propre preset (`design-system/bridge/`,
+diff --git a/diagnostic/src/extract.mjs b/diagnostic/src/extract.mjs
+index 99ab2e6..14020a7 100644
+--- a/diagnostic/src/extract.mjs
++++ b/diagnostic/src/extract.mjs
+@@ -46,6 +46,26 @@ const toPx = (raw) => {
+   return null;
+ };
+ 
++/* ══ Constantes de chaîne locales ═════════════════════════════════
++   `const inputClass = "…"` / `let x = '…'` / `` const y = `…` `` déclarées
++   au niveau du fichier ou d'une fonction. Seule la première déclaration
++   d'un nom est retenue ; une redéclaration rend le nom NON RÉSOLU (on ne
++   choisit pas entre deux valeurs). Les gabarits gardent leur marqueur
++   `template` pour que les segments `${…}` soient comptés non résolus. */
++export function localStringConstants(text) {
++  const map = new Map();
++  const seen = new Set();
++  const re = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::\s*string\s*)?=\s*(?:"((?:\\.|[^"\\\n])*)"|'((?:\\.|[^'\\\n])*)'|`([^`]*)`)\s*(?=[;,\n\r])/g;
++  for (const m of text.matchAll(re)) {
++    const name = m[1];
++    if (seen.has(name)) { map.delete(name); continue; }
++    seen.add(name);
++    if (m[4] !== undefined) map.set(name, { raw: m[4], template: true });
++    else map.set(name, { raw: m[2] !== undefined ? m[2] : m[3], template: false });
++  }
++  return map;
++}
++
+ /* ══ Littéraux de classes, toutes syntaxes ═══════════════════════ */
+ /**
+  * Retourne les chaînes de classes d'un fichier, avec leur ligne.
+@@ -68,6 +88,19 @@ export function classLiterals(text) {
+   for (const m of text.matchAll(/(?:className|class)\s*=\s*(["'])([^"']*)\1/g)) push(m[2], m.index);
+   for (const m of text.matchAll(/(?:className|class)\s*=\s*\{`([^`]*)`\}/g)) push(m[1], m.index, { template: true });
+   for (const m of text.matchAll(/(?:className|class)\s*=\s*\{(["'])([^"']*)\1\}/g)) push(m[2], m.index);
++  /* Constantes locales de classes (pont §10, angle mort n°9) :
++       const inputClass = "…";  …  className={inputClass}
++     La valeur est écrite en clair dans le même fichier — la lire n'est pas
++     deviner. Chaque usage est jugé À SA LIGNE (un défaut dans la constante
++     est un défaut par usage), le littéral est résolu à chaque usage. Un
++     identifiant sans littéral local (import, prop, calcul) reste NON RÉSOLU,
++     compté, jamais interprété. */
++  const locals = localStringConstants(text);
++  for (const m of text.matchAll(/(?:className|class)\s*=\s*\{\s*([A-Za-z_$][\w$]*)\s*\}/g)) {
++    const value = locals.get(m[1]);
++    if (value === undefined) { unresolved += 1; continue; }
++    push(value.raw, m.index, { template: value.template });
++  }
+   /* Vue / Svelte : :class="[…]", v-bind:class="…" — les littéraux entre quotes. */
+   for (const m of text.matchAll(/(?::|v-bind:)class\s*=\s*(["'])([\s\S]*?)\1/g)) {
+     for (const q of m[2].matchAll(/(["'`])([^"'`]*?)\1/g)) push(q[2], m.index + (q.index || 0), { template: q[1] === '`' });
+diff --git a/diagnostic/test/fixtures/class-constants/package.json b/diagnostic/test/fixtures/class-constants/package.json
+new file mode 100644
+index 0000000..3ac032f
+--- /dev/null
++++ b/diagnostic/test/fixtures/class-constants/package.json
+@@ -0,0 +1 @@
++{"dependencies":{"react":"^18"}}
+diff --git a/diagnostic/test/fixtures/class-constants/src/App.jsx b/diagnostic/test/fixtures/class-constants/src/App.jsx
+new file mode 100644
+index 0000000..a308260
+--- /dev/null
++++ b/diagnostic/test/fixtures/class-constants/src/App.jsx
+@@ -0,0 +1,32 @@
++// FIXTURE — constantes locales de classes (pont §10, angle mort n°9).
++// Le défaut vit dans la constante ; il est facturé PAR USAGE, à la ligne de
++// l'usage. Ce qui n'a pas de littéral local reste NON RÉSOLU, jamais deviné.
++//
++//  inputClass  → focus-visible:outline-none sans ring : écart FOCUS, utilisé 2× → 2 écarts
++//  okClass     → paire valide : 0 écart, utilisé 1×
++//  tpl         → gabarit avec ${…} : le segment est compté non résolu (1), le reste jugé
++//  twice       → redéclaré : NON RÉSOLU (1), on ne choisit pas entre deux valeurs
++//  cls (prop)  → NON RÉSOLU (1)
++//  imported    → NON RÉSOLU (1)
++// ATTENDU : FOCUS = 2 · non résolu = 4
++const inputClass = "w-full focus-visible:outline-none focus:border-b";
++const okClass = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
++const tpl = `rounded-md ${dynamic}`;
++let twice = "outline-none";
++let twice = "ring-2";
++import { imported } from "./elsewhere";
++
++export default function App({ cls }) {
++  return (
++    <div>
++      <h1>Constantes de classes</h1>
++      <input className={inputClass} />
++      <input className={inputClass} />
++      <button type="button" className={okClass}>OK</button>
++      <span className={tpl} />
++      <i className={cls} />
++      <b className={twice} />
++      <em className={imported} />
++    </div>
++  );
++}
+diff --git a/diagnostic/test/run.mjs b/diagnostic/test/run.mjs
+index 1078b12..216190d 100644
+--- a/diagnostic/test/run.mjs
++++ b/diagnostic/test/run.mjs
+@@ -358,7 +358,7 @@ test('un dépôt vide est « aucun écran », pas « inaccessible »', () => {
+ console.log('\nUNIVERSEL V2');
+ 
+ import { profileProject } from '../src/profile.mjs';
+-import { extractProject, focusPairing } from '../src/extract.mjs';
++import { localStringConstants, extractProject, focusPairing } from '../src/extract.mjs';
+ import { baselineDiff, diagnose as diagnoseV2 } from '../src/diagnose.mjs';
+ import { reportJson } from '../diagnose.mjs';
+ 
+@@ -628,6 +628,32 @@ test('fixture focus-pairing (valide/nu/pointeur/incomplète) — FOCUS = l\'inve
+   ok(focus.top.some((i) => /incomplète|sans focus-visible/.test(i.message)), 'la paire incomplète n\'est pas nommée');
+ });
+ 
++test('fixture class-constants (pont §10, angle mort n°9) — la constante est jugée par usage, à la ligne de l\'usage', () => {
++  const d = diagnoseV2(collect(FIX('class-constants')), REF);
++  const focus = d.families.find((f) => f.family === 'FOCUS');
++  eq(focus.count, 2, `FOCUS attendu 2 (inputClass utilisé deux fois), reçu ${focus.count}`);
++  /* les deux écarts portent la ligne de chaque usage, pas celle de la déclaration */
++  const lines = focus.top.map((i) => i.line).filter(Boolean).sort();
++  ok(lines.length === 2 && lines[0] !== lines[1], `deux lignes d\'usage distinctes attendues, reçu ${JSON.stringify(lines)}`);
++  ok(!focus.top.some((i) => /ring-ring/.test(i.message)), 'la paire valide (okClass) est facturée');
++});
++
++test('class-constants : ce qui n\'a pas de littéral local reste NON RÉSOLU — prop, import, redéclaration, segment ${…}', () => {
++  const d = diagnoseV2(collect(FIX('class-constants')), REF);
++  eq(d.unresolved, 4, `non résolu attendu 4 (cls, imported, twice, \${dynamic}), reçu ${d.unresolved}`);
++});
++
++test('localStringConstants : première déclaration retenue, redéclaration = retrait, gabarit marqué', () => {
++  const src = 'const a = "x";\nlet b = \'y\';\nconst c = `z ${n}`;\nvar d = "1"; var d = "2";\nconst e: string = "typed";\nconst f = fn("not a literal");\n';
++  const m = localStringConstants(src);
++  eq(m.get('a').raw, 'x', 'const double quote');
++  eq(m.get('b').raw, 'y', 'let simple quote');
++  ok(m.get('c').template === true && m.get('c').raw === 'z ${n}', 'gabarit marqué template');
++  ok(!m.has('d'), 'un nom redéclaré ne doit pas être résolu');
++  eq(m.get('e').raw, 'typed', 'annotation : string tolérée');
++  ok(!m.has('f'), 'un appel de fonction n\'est pas un littéral');
++});
++
+ test('focus-pairing : aucun retrait d\'outline, aucun écart FOCUS inventé', () => {
+   const dir = mkdtempSync(join(tmpdir(), 'aime-focus-ring-only-'));
+   writeFileSync(join(dir, 'package.json'), '{"dependencies":{"react":"^18"}}');
+-- 
+2.39.5
+
