@@ -20,7 +20,7 @@ const REACHABLE_VIEWS: TimelineView[] = [
   "chronological", "public-info", "day-of", "person", "provider", "music", "logistics", "collaborative", "memories",
 ];
 const KNOWN_ROUTES = [
-  "/", "/creation", "/connexion", "/sign-in", "/sign-up", "/user-portal", "/profile", "/dossiers", "/conditions", "/confidentialite",
+  "/", "/creation", "/connexion", "/sign-in", "/sign-up", "/user-portal", "/profile", "/conditions", "/confidentialite",
 ];
 /* Uniquement des événements qui ont encore un émetteur ET un écouteur. */
 const KNOWN_EVENTS = ["aime:open-ai", "aime:open-world-settings", "aime:open-collaboration-invite"];

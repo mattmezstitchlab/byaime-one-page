@@ -133,7 +133,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     ],
     actions: [
       { label: "Créer mon espace", detail: "Ouvre la création de compte ; votre phrase sera reprise.", href: "/creation" },
-      { label: "Découvrir l'assistant", detail: "Questions, documents et dossiers, une fois connecté.", href: "/dossiers" },
+      { label: "Découvrir l'assistant", detail: "Questions, documents et dossiers, une fois connecté.", emit: "aime:open-ai" },
     ],
     related: ["creation", "portal", "assistant"],
     keywords: ["accueil", "home", "commencer", "champ", "saisir", "présentation", "première fois"],
@@ -229,8 +229,8 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
       "Partager depuis un compte invité : la lecture suffit pour demander, l'ajout reste réservé aux responsables.",
     ],
     actions: [
-      { label: "Ouvrir l'assistant", detail: "Question, document, dossiers.", href: "/dossiers" },
-      { label: "Ouvrir les dossiers", detail: "Les sept dossiers en grand.", href: "/dossiers" },
+      { label: "Ouvrir l'assistant", detail: "Question, document, dossiers.", emit: "aime:open-ai" },
+      { label: "Ouvrir les dossiers", detail: "Les sept dossiers en grand.", emit: "aime:open-ai" },
     ],
     related: ["portal", "folders", "panel:documents"],
     keywords: ["assistant", "question", "poser", "demander", "document", "partager", "dossier", "chat", "ia", "jumo"],
@@ -249,8 +249,8 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
       "Chercher un fichier dans le Monde : les ajouts de l'assistant rejoignent les documents du Monde, classés par dossier.",
     ],
     actions: [
-      { label: "Ouvrir les dossiers", detail: "Sept dossiers, un seul écran.", href: "/dossiers" },
-      { label: "Poser une question", detail: "AIME vérifie dans le Monde.", href: "/dossiers" },
+      { label: "Ouvrir les dossiers", detail: "Sept dossiers, un seul écran.", emit: "aime:open-ai" },
+      { label: "Poser une question", detail: "AIME vérifie dans le Monde.", emit: "aime:open-ai" },
     ],
     related: ["assistant", "portal", "panel:documents"],
     keywords: ["dossiers", "buro", "classer", "ranger", "contrats", "enveloppe", "souvenirs", "retrouver"],

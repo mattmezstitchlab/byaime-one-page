@@ -60,7 +60,6 @@ const clerkKeyMissing = !clerkPubKey;
  */
 const LazyHome = lazy(() => import('@/pages/Home').then(module => ({ default: module.Home })));
 const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module => ({ default: module.PublicProfilePage })));
-const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ default: module.FoldersPage })));
 const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
 const LazyMentions = lazy(() => import('@/pages/Mentions').then(module => ({ default: module.MentionsLegalesPage })));
 
@@ -370,7 +369,7 @@ function Routes() {
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>
     <Route path="/user-portal">{() => <PrivateRoute><LazyHome /></PrivateRoute>}</Route>
-    <Route path="/dossiers">{() => <PrivateRoute><LazyFolders /></PrivateRoute>}</Route>
+    <Route path="/dossiers"><Redirect to="/user-portal" /></Route>
     <Route path="/connexion/*?">{() => <AuthPage />}</Route>
     <Route path="/creation/*?">{() => <AuthPage signup />}</Route>
     <Route path="/sign-in/*?">{() => <AuthPage />}</Route>

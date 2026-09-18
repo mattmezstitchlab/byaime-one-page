@@ -53,7 +53,7 @@ describe("resolveDegradedView — pages servies sans authentification", () => {
   });
 
   it("dit que tout le reste exige une session, sans rien demander", () => {
-    for (const path of ["/user-portal", "/admin", "/profile", "/assistant", "/dossiers", "/connexion", "/creation", "/invite/abc", "/profil/proj_1", "/inconnu"]) {
+    for (const path of ["/user-portal", "/admin", "/profile", "/connexion", "/creation", "/invite/abc", "/profil/proj_1", "/inconnu"]) {
       expect(resolveDegradedView(path)).toEqual({ kind: "unavailable", requestedPath: path });
     }
   });

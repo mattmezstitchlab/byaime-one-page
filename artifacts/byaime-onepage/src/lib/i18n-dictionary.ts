@@ -1218,11 +1218,6 @@ const fr = {
   "assistant.empty.title": "AIME vous attend avec un Monde.",
   "assistant.empty.subtitle": "Créez votre mariage — une seule réponse suffit — puis revenez poser vos questions.",
   "assistant.empty.cta": "Créer mon mariage",
-  // Dossiers du mariage (la page /dossiers, miroir du BURO)
-  "dossier.hero.eyebrow": "AIME · Dossiers",
-  "dossier.hero.title": "Tout votre mariage, rangé au même endroit.",
-  "dossier.hero.subtitle": "Sept dossiers, identiques pour chaque mariage. Tout s’y retrouve, du premier devis aux derniers remerciements.",
-  "dossier.open": "Ouvrir",
   "dossier.locked": "Réservé aux responsables du Monde",
   "dossier.count.items": "{count} élément(s)",
   /* Panneau unique AIME (17/09) : l'orbe « + » ouvre un seul panneau pour
@@ -1254,8 +1249,6 @@ const fr = {
   "aime.panel.editHero": "Modifier l'ouverture",
   "aime.panel.editHero.desc": "Le titre, la date, le lieu et le visuel de début.",
   "aime.panel.progress": "Avancement",
-  "aime.deep.hint": "Ça vit dans le panneau AIME — il vient de s'ouvrir sur la bonne section.",
-  "aime.deep.open": "Ouvrir le panneau AIME",
   "aime.panel.askResult": "Demander à AIME",
 
   // Panneau — Créer (contenu de l'aide)
@@ -2761,10 +2754,6 @@ const en: Record<I18nKey, string> = {
   "assistant.empty.title": "AIME is waiting for you with a World.",
   "assistant.empty.subtitle": "Create your wedding — a single answer is enough — then come back with your questions.",
   "assistant.empty.cta": "Create my wedding",
-  "dossier.hero.eyebrow": "AIME · Folders",
-  "dossier.hero.title": "Your whole wedding, filed in one place.",
-  "dossier.hero.subtitle": "Seven folders, identical for every wedding. Everything lands there, from the first quote to the final thank-yous.",
-  "dossier.open": "Open",
   "dossier.locked": "Reserved for World managers",
   "dossier.count.items": "{count} item(s)",
   /* The single AIME panel (17/09): the « + » orb opens one panel for the
@@ -2796,8 +2785,6 @@ const en: Record<I18nKey, string> = {
   "aime.panel.editHero": "Change the opening",
   "aime.panel.editHero.desc": "The title, the date, the venue and the first visual.",
   "aime.panel.progress": "Progress",
-  "aime.deep.hint": "This lives in the AIME panel — it just opened on the right section.",
-  "aime.deep.open": "Open the AIME panel",
   "aime.panel.askResult": "Ask AIME",
 
   // Panel — Create (help content)
