@@ -113,8 +113,7 @@ export function AimePanel() {
       setPresented({ panel: request.panel, momentId: request.momentId ?? null });
       setSelectedId(aimePanelItemIdForPanel(request.panel));
     };
-    /* L'orbe, ou un deep-link (/assistant, /dossiers) qui pointe la section,
-       ou une demande de recherche (actions de l'assistant) : le curseur va
+    /* L'orbe, ou une demande de recherche (actions de l'assistant) : le curseur va
        directement dans la case, en tête de colonne. */
     const openAI = (event: Event) => {
       const detail = (event as CustomEvent<{ item?: string; section?: string; search?: boolean }>).detail;

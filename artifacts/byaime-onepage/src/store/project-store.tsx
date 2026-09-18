@@ -33,6 +33,7 @@ type ProjectStore = {
   commitDraft: () => void;
   createProjectFromIntention: (text: string) => boolean;
   createProjectFromDraft: (draft: Partial<WorldProject>, subtitle: string) => void;
+  createProjectFromWorld: (world: WorldProject) => void;
   /**
    * Crée le Monde côté serveur et attend la réponse. `pendingServer` est vrai
    * quand aucune session n'existe : le projet reste alors local et la création
@@ -420,6 +421,15 @@ function ProjectStore({ session, children }: { session: ProjectStoreSession; chi
     setIntentionTextState('');
   }, []);
 
+  const createProjectFromWorld = useCallback((world: WorldProject) => {
+    projectCreationSourceRef.current = 'created';
+    const newProject = normalizeProject(world);
+    setPendingOwnedProjectId(newProject.id);
+    setProject(newProject);
+    setDraft(null);
+    setIntentionTextState('');
+  }, []);
+
   /*
    * Création d'un Monde avec confirmation réelle du service.
    *
@@ -601,6 +611,7 @@ function ProjectStore({ session, children }: { session: ProjectStoreSession; chi
       commitDraft,
       createProjectFromIntention,
       createProjectFromDraft,
+      createProjectFromWorld,
       createProjectOnServer,
       createWeddingDemo,
       clearProject,

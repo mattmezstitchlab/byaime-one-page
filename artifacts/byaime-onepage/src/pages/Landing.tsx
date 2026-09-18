@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { ArrowRight, Gift, Lock, Accessibility, Wifi } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
 import { LandingShowcase } from "@/components/LandingShowcase";
+import { LandingJourney } from "@/components/LandingJourney";
 import { Reveal } from "@/components/Reveal";
 import { useRouteMeta } from "@/lib/page-meta";
 import { I18nProvider, useI18n, type I18nKey, type Locale } from "@/lib/i18n";
@@ -11,8 +12,9 @@ import { cn } from "@/lib/utils";
  * L'accueil d'AIME, dans la direction « Apple du mariage » : un message par
  * écran, de l'espace, de grands visuels pleine page, de grands titres et une
  * hiérarchie minimale. Le hero tient sa promesse en une phrase sur fond noir,
- * puis la vitrine du Monde Mariage, les valeurs (« Pourquoi AIME »), un
- * témoignage puis un appel à créer.
+ * puis la vitrine du Monde Mariage, la visite verticale du produit
+ * (`LandingJourney`), les valeurs (« Pourquoi AIME »), un témoignage puis un
+ * appel à créer.
  */
 export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
   return (
@@ -135,6 +137,10 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
         </div>
       </section>
 
+      {/* ——— La visite verticale du produit : concept, Timeline, agent,
+            trois temps, Carte — chacun dans un iPhone ou un iPad ——— */}
+      <LandingJourney />
+
       {/* ——— Les valeurs ——— */}
       <section
         data-testid="landing-values"
@@ -229,6 +235,7 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
               <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[var(--agency-eyebrow)]">{t("footer.col.product")}</p>
               <ul className="mt-4 space-y-2.5 text-xs text-[var(--agency-body)]">
                 <li><a href="#landing-product" className="transition hover:text-[var(--agency-ink)]">{t("nav.howItWorks")}</a></li>
+                <li><a href="#landing-journey" className="transition hover:text-[var(--agency-ink)]">{t("journey.eyebrow")}</a></li>
                 <li><a href="#landing-values" className="transition hover:text-[var(--agency-ink)]">{t("apple.values.eyebrow")}</a></li>
                 <li><Link href="/creation" className="transition hover:text-[var(--agency-ink)]">{t("nav.signUp")}</Link></li>
               </ul>

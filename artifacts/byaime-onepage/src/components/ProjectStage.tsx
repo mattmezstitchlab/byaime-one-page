@@ -24,6 +24,7 @@ import { PersonSpotlight } from './PersonSpotlight';
 import { MESSAGE_TO_EVENT } from '@/lib/person-spotlight-bus';
 import { VisibilityGraph } from './VisibilityGraph';
 import { WorldSwitcher } from './WorldSwitcher';
+import { UniversalSummary } from './UniversalSummary';
 import type { Guest, TimelineEvent } from '@/lib/types';
 import type { MomentAction } from '@/lib/moment-context';
 import {
@@ -740,6 +741,20 @@ export function ProjectStage() {
           )}
         </div>
       </header>
+
+      {project.universal && (
+        <UniversalSummary
+          project={project}
+          onAcceptModule={(id) => {
+            const next = (project.modulesProposed ?? []).map(m => m.id === id ? { ...m, status: "accepted" as const } : m);
+            updateProject({ modulesProposed: next });
+          }}
+          onRejectModule={(id) => {
+            const next = (project.modulesProposed ?? []).map(m => m.id === id ? { ...m, status: "rejected" as const } : m);
+            updateProject({ modulesProposed: next });
+          }}
+        />
+      )}
 
       {/* Accueil d'un Monde neuf : quatre dossiers, dans l'ordre, langage clair. */}
       {!isPublicInfo && gettingStartedRows && (

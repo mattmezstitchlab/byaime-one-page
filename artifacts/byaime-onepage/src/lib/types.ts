@@ -368,6 +368,80 @@ export type PublicPageBlock = {
 };
 export type PublicPage = { blocks: PublicPageBlock[] };
 
+/* ── Couche universelle : point zéro des vivants ────────────────
+   Le Monde n'est plus seulement un mariage. Cette couche décrit l'acteur,
+   son intention, sa situation actuelle et son écosystème, sans dupliquer les
+   données canoniques du mariage. Elle est optionnelle pour rester rétrocompatible. */
+
+export type UniversalActorKind =
+  | "person"
+  | "couple"
+  | "independent"
+  | "group"
+  | "organization"
+  | "event"
+  | "join";
+
+export type WorldFactStatus = "confirme" | "probable" | "a_verifier" | "proposition_aime";
+
+export type WorldFact = {
+  id: string;
+  label: string;
+  value: string | boolean | null;
+  confidence: Confidence;
+  status: WorldFactStatus;
+  /** Source humaine, AIME ou import ; datée si règle externe. */
+  source?: string;
+  sourceDate?: string;
+  provenance?: ContentProvenance;
+};
+
+export type UniversalWorldProfile = {
+  actorKind: UniversalActorKind;
+  actorLabel: string;
+  actorDetail?: string;
+  intention: string[];
+  intentionLabels?: string[];
+  situation: string[];
+  situationFree?: string;
+  ecosystem: string[];
+  facts: WorldFact[];
+  createdAt: number;
+  nextQuestion?: string;
+};
+
+export type TrajectoryConfidence = "confirme" | "probable" | "a_verifier" | "proposition_aime";
+
+export type TrajectoryStep = {
+  id: string;
+  title: string;
+  description: string;
+  status: "a_faire" | "en_cours" | "termine" | "a_verifier";
+  confidence: TrajectoryConfidence;
+  source?: string;
+  sourceDate?: string;
+};
+
+export type Trajectory = {
+  id: string;
+  worldId?: string;
+  current: Array<{ label: string; value: string; confidence: Confidence; status: WorldFactStatus }>;
+  desired: Array<{ label: string; value: string }>;
+  gaps: string[];
+  steps: TrajectoryStep[];
+  proofs: string[];
+  decisions: string[];
+  disclaimer: string;
+};
+
+export type ProposedModule = {
+  id: string;
+  label: string;
+  description: string;
+  status: "proposed" | "accepted" | "rejected";
+  provenance: ContentProvenance;
+};
+
 export type WorldProject = {
   /** Read-only projection of cards referenced by memberships. Never persisted in project data. */
   cardParticipants?: { functioning?: { profileId: string; profession: string; parameters: ProfessionalParameters; availability: string; errors: string[] }[]; userId: string; card: Pick<UniversalCard, "firstName" | "lastName" | "nickname" | "photoUrl" | "profession">; participation: Pick<Participation, "roles" | "rsvp" | "moments" | "arrival" | "departure"> }[];
@@ -421,6 +495,13 @@ export type WorldProject = {
   currency?: string;
   /** Journal des décisions AIME : aucune proposition appliquée sans trace. */
   aimeProposalHistory?: AimeProposalAudit[];
+
+  /** Couche universelle du Monde (point zéro) : profil, intention, situation, écosystème. Absente pour les Mondes mariage existants (rétrocompatible). */
+  universal?: UniversalWorldProfile;
+  /** Trajectoire proposée mais jamais appliquée automatiquement. */
+  trajectory?: Trajectory;
+  /** Modules proposés par AIME — inspectables et acceptables, jamais silencieux. */
+  modulesProposed?: ProposedModule[];
 
   timeline: TimelineEvent[];
   tasks: Task[];
