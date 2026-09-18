@@ -300,3 +300,28 @@ mesure ce qu'il ratait. Ces 72 sont le premier lot de la convergence n°4.
 
 Résultat après n°3 : FOCUS **3** (tous hors produit, `reference/`),
 563 tests verts, build ✓, `verify:vercel` ✓.
+
+## 11. Convergence n°4 — trois décisions à prendre, pas trois corrections (18/09)
+
+Les 72 écarts révélés par l'angle mort #9 ne sont pas des défauts
+d'accessibilité comme en n°2 et n°3 : ce sont **trois choix de langue
+visuelle**, portés par trois constantes réutilisées (`inputClass` /
+`selectClass` dans `EntityEditor`, `cardInputStyle` / `cardButtonStyle`
+dans `card-blocks`, `input` / `button` dans `ProfessionalProfileEditor`).
+Les corriger mécaniquement changerait l'apparence du produit — la règle
+« jamais de réparation sans validation humaine » s'applique. Voici la
+décision, chiffrée.
+
+| Lot | Écarts | Ce que le juge dit | Ce que ça changerait à l'écran | Décision |
+|---|---|---|---|---|
+| **A. Rayons** | 46 (`rounded-xl` = 12 px) | hors des quatre niveaux AIME (0 · 4 · 8 · 14 · pill) | champs et cartes passent de 12 à 14 px (`large`) ou 8 px (`medium`). Le produit utilise `rounded-xl` **80×**, `rounded-2xl` 68×, `rounded-3xl` 51× : c'est toute la géométrie, pas trois constantes | **spec COMPOSER d'abord** (pont §5 étape 5 — géométrie en calque) ; puis adoption du pont Tailwind (`tailwind.preset.cjs`) qui ferme l'échelle d'un coup |
+| **B. Couleurs nommées** | 23 (`text-white` 17, `bg-white` 3, `text-black` 3) + le littéral `bg-[#262320]` | palette externe au système | formulaires de la Carte universelle (surface sombre) : `white` → `var(--aime-color-text-inverse)` (#F5F3EE en sombre), `#262320` → un rôle de surface. Différence perceptible mais fine ; c'est la couture des palettes du §5 étape 3, jusqu'ici « documentée, pas forcée » | **à valider** — c'est la première fois que la couture toucherait un écran |
+| **C. Espacement** | 3 (`px-5` = 20 px) | hors échelle (16 · 24) | boutons de la Carte : 20 → 16 ou 24 px de marge horizontale | **mineur, peut suivre A** |
+
+Ordre proposé : **B seul peut se faire maintenant** si validé (3 constantes,
+un écran, réversible) ; **A et C attendent le pont Tailwind** — les traiter
+constante par constante serait une convergence de façade (46 sur 199
+`rounded-xl/2xl/3xl`). La densité par écran (9.6) ne bougera pas tant que
+l'échelle n'est pas adoptée : c'est le chantier n°7 de la liste du 18/09,
+80 % des écarts restants (SPACING 492 · ALIGNMENT 240 · TYPOGRAPHY 149).
+
