@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Link2, MapPin, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints } from "lucide-react";
+import { Link2, MapPin, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints, Pencil, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import type { TimelineEntityKind, TimelineEvent, WorldProject } from "@/lib/types";
@@ -10,7 +10,7 @@ import { analyzeEventImpact, applyPropagationPlan, buildTimelineIndex, planEvent
 import { getInitialWorldPhase, PANEL_FOR_KIND, type WorldPhase } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
 import { getSubchapter } from "@/lib/timeline-chapters";
-import { WORLD_VISUAL_CHOICES, momentAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
+import { WORLD_MEDIA_CHOICES, momentAmbientAsset, momentVisual, momentVisualZone, visualSourceUrl } from "@/lib/world-visuals";
 import { momentVisualOverlayAlpha, type WorldVisual } from "@/lib/types";
 import { ContextPanel } from "@/components/ContextPanel";
 import { VisualImportControl } from "@/components/VisualImportControl";
@@ -94,12 +94,14 @@ function EventScene({
   context,
   onClick,
   onAction,
+  canEdit,
 }: {
   event: TimelineEvent;
   project: WorldProject;
   context: MomentContextModel;
   onClick: () => void;
   onAction: (action: MomentAction, event: TimelineEvent) => void;
+  canEdit: boolean;
 }) {
   const { t, locale } = useI18n();
   const dateLocale = locale === "en" ? enUS : fr;
@@ -175,6 +177,18 @@ function EventScene({
           </motion.div>
         </button>
 
+        {canEdit && (
+          <button
+            type="button"
+            data-testid={`timeline-edit-${event.id}`}
+            onClick={onClick}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/30 bg-black/20 px-4 text-[11px] uppercase tracking-[.16em] text-white/80 backdrop-blur transition hover:border-white/70 hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            <Pencil aria-hidden className="h-3.5 w-3.5" />
+            {t("tl.editMoment")}
+          </button>
+        )}
+
         {/* UN MOMENT = UN CONTEXTE = SES ACTIONS.
             Repères déjà connus, puis les actions pertinentes de cet instant —
             dérivés du WorldProject, jamais dupliqués. */}
@@ -231,8 +245,8 @@ export function UniversalTimeline({
     if (!canEdit) return;
     // Le jalon naît dans la période courante (Avant / Jour J / Après) : sinon
     // il serait filtré de la vue immédiatement après sa création.
-    const phase = getInitialWorldPhase(project.pivot.value);
-    const id = addEntity("timeline", { time: project.pivot.value, durationMinutes: 60, kind: "evenement", title: t("tl.newMilestone"), status: "prepare", confidence: "confirme", phase, universe: project.universe, provenance: "real", visibility: "equipe", relations: [], dependencyIds: [], resources: [], propagation: { state: "none" } });
+    const activePhase = phase ?? getInitialWorldPhase(project.pivot.value);
+    const id = addEntity("timeline", { time: project.pivot.value, durationMinutes: 60, kind: "evenement", title: t("tl.newMilestone"), status: "prepare", confidence: "confirme", phase: activePhase, universe: project.universe, provenance: "real", visibility: "equipe", relations: [], dependencyIds: [], resources: [], propagation: { state: "none" } });
     setSelected(id);
   };
   const addRef = useRef(add);
@@ -265,9 +279,33 @@ export function UniversalTimeline({
 
   return (
     <div className="w-full flex flex-col bg-background">
-      {events.length === 0 && !isDayRun && (
-        <div className="py-32 text-center text-sm text-foreground/40">
-          {t("tl.empty")}
+      {events.length > 0 && canEdit && (
+        <div className="flex justify-end border-t border-foreground/5 bg-background px-6 py-4 sm:px-10">
+          <button
+            type="button"
+            data-testid="timeline-add-moment"
+            onClick={add}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--agency-ink)]/20 px-4 text-[11px] font-medium uppercase tracking-[.16em] text-[var(--agency-ink)] transition hover:border-[var(--agency-ink)]/50 hover:bg-[var(--agency-ink)]/[.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus aria-hidden className="h-4 w-4" />
+            {t("tl.addMoment")}
+          </button>
+        </div>
+      )}
+      {events.length === 0 && (
+        <div className="flex flex-col items-center gap-5 border-t border-foreground/5 bg-background px-6 py-32 text-center">
+          <p className="text-sm text-foreground/40">{t("tl.empty")}</p>
+          {canEdit && (
+            <button
+              type="button"
+              data-testid="timeline-add-moment"
+              onClick={add}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--agency-ink)] px-5 text-xs font-medium text-[var(--agency-paper)] transition hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Plus aria-hidden className="h-4 w-4" />
+              {t("tl.addMoment")}
+            </button>
+          )}
         </div>
       )}
 
@@ -295,6 +333,7 @@ export function UniversalTimeline({
               context={buildMomentContext(item, project, capabilities, locale)}
               onClick={() => setSelected(item.id)}
               onAction={onMomentAction}
+              canEdit={canEdit}
             />
           </Fragment>
         );
@@ -454,7 +493,7 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
             onChange={visual => onEdit({ visual })}
             /* Comme le héro et le panneau : les vignettes du Monde sont là,
                au lieu d'un seul champ d'import (17/09). */
-            choices={WORLD_VISUAL_CHOICES}
+            choices={WORLD_MEDIA_CHOICES}
             choicesLabel={t("world.hero.visual.choices")}
           />
 

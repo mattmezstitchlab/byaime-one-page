@@ -8,6 +8,9 @@
 const ASSETS_VERSION = "2026-09-14";
 
 export function getAssetUrl(path: string) {
+  /* Les assets éditoriaux fournis sur jsDelivr restent des URLs absolues :
+     ne pas les transformer en `${BASE_URL}/https://…`. */
+  if (/^(https?:)?\/\//i.test(path) || path.startsWith("data:")) return path;
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const separator = cleanPath.includes('?') ? '&' : '?';

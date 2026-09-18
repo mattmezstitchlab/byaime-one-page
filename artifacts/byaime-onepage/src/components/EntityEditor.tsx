@@ -4,6 +4,7 @@ import { CenteredBlock } from "./CenteredBlock";
 import { VisualImportControl } from "./VisualImportControl";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { WORLD_MEDIA_CHOICES } from "@/lib/world-visuals";
 
 /*
  * L'éditeur d'élément (Moment, invité, document, paiement, prestataire,
@@ -188,6 +189,8 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                  value={event.visual}
                  disabled={!canEdit}
                  onChange={visual => updateEntity("timeline", event.id, { visual })}
+                 choices={WORLD_MEDIA_CHOICES}
+                 choicesLabel={t("world.hero.visual.choices")}
                />
             </div>
 

@@ -1,4 +1,3 @@
-import { UniversalCardForm } from "@/components/UniversalCardForm";
 import { SiteFooter } from "@/components/SiteChrome";
 import { BODY, CARD, EYEBROW, FIELD, PILL_GHOST, PILL_INK, PILL_SMALL_GHOST, TITLE } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
@@ -20,6 +19,7 @@ import { sitePath } from '@/lib/site-path';
 import { Route, Switch, Redirect, useLocation, Router as WouterRouter } from 'wouter';
 
 import { PrivateLayout } from '@/components/PrivateLayout';
+import { CardSite } from '@/components/CardSite';
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -127,13 +127,20 @@ function LandingRoute() {
   return <LandingPage signedIn={!!isSignedIn} />;
 }
 
-function PrivateRoute({ children, signInReturnTo }: { children: ReactNode; signInReturnTo?: string }) {
+function PrivateRoute({
+  children,
+  signInReturnTo,
+  shell = true,
+}: {
+  children: ReactNode;
+  signInReturnTo?: string;
+  /** Les espaces de contenu du Monde utilisent le shell privé ; la Carte a son propre site. */
+  shell?: boolean;
+}) {
   return (
     <>
       <Show when="signed-in">
-        <PrivateLayout>
-          {children}
-        </PrivateLayout>
+        {shell ? <PrivateLayout>{children}</PrivateLayout> : children}
       </Show>
       <Show when="signed-out">
         <Redirect to={signInReturnTo ? authPath("/connexion", signInReturnTo) : "/"} />
@@ -361,7 +368,7 @@ function Routes() {
     <Route path="/bilan/:projectId">{() => <LazyBilan />}</Route>
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
-    <Route path="/ma-carte">{() => <PrivateRoute signInReturnTo={`/ma-carte${typeof window !== "undefined" ? window.location.search : ""}`}><div className="mx-auto max-w-2xl px-4 py-8"><UniversalCardForm signedIn /></div></PrivateRoute>}</Route>
+    <Route path="/ma-carte">{() => <PrivateRoute shell={false} signInReturnTo={`/ma-carte${typeof window !== "undefined" ? window.location.search : ""}`}><CardSite /></PrivateRoute>}</Route>
     <Route path="/admin">{() => <PrivateRoute><LazyAdmin /></PrivateRoute>}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>

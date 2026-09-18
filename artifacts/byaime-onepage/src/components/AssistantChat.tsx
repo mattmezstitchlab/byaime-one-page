@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, BookOpen, LoaderCircle } from "lucide-react";
+import { ArrowUp, BookOpen, LoaderCircle, Sparkles } from "lucide-react";
 import { useProject } from "@/store/project-store";
 import { useI18n } from "@/lib/i18n";
+import { parseIntention } from "@/lib/parser";
 import { trackEvent } from "@/lib/analytics";
 import {
   askAssistant,
   assistantSuggestions,
   type AssistantReply,
 } from "@/lib/assistant";
+import {
+  buildAimeProposalPlan,
+  type AimeProposalPlan,
+} from "@/lib/aime-orchestrator";
+import { AimeProposalReview } from "./AimeProposalReview";
 import { cn } from "@/lib/utils";
+import type { WorldProject } from "@/lib/types";
 
 type ChatMessage = {
   id: string;
@@ -16,7 +23,69 @@ type ChatMessage = {
   text: string;
   sources: AssistantReply["sources"];
   mode: AssistantReply["mode"];
+  /** Faits reconnus dans la phrase de l'utilisateur, en attente de confirmation. */
+  projectUpdates?: Partial<WorldProject>;
+  /** Passe structurée : données, Moments, textes et visuels en attente de décision. */
+  proposalPlan?: AimeProposalPlan;
+  proposalApplied?: boolean;
+  proposalRejected?: boolean;
+  applied?: boolean;
 };
+
+function projectUpdatesFromMessage(message: string): Partial<WorldProject> | undefined {
+  const parsed = parseIntention(message);
+  const updates: Partial<WorldProject> = {};
+  const hasWeddingSignal = /(mariage|marier|épouser|wedding|marry|married)/i.test(message);
+
+  if (hasWeddingSignal && parsed.title && parsed.universe) {
+    updates.title = parsed.title;
+    updates.universe = parsed.universe;
+  }
+  if (parsed.pivot && parsed.pivot.confidence !== "deduit") updates.pivot = parsed.pivot;
+  if (parsed.city?.value) updates.city = parsed.city;
+  if (parsed.guestsCount?.value !== null && parsed.guestsCount?.value !== undefined) {
+    updates.guestsCount = parsed.guestsCount;
+  }
+  if (parsed.budget?.value !== null && parsed.budget?.value !== undefined) {
+    updates.budget = parsed.budget;
+    if (parsed.currency) updates.currency = parsed.currency;
+  }
+
+  return Object.keys(updates).length ? updates : undefined;
+}
+
+type ProjectPreviewRow = { label: string; value: string };
+
+function projectPreviewRows(updates: Partial<WorldProject>, locale: string): ProjectPreviewRow[] {
+  const isEnglish = locale === "en";
+  const rows: ProjectPreviewRow[] = [];
+  if (updates.title) rows.push({ label: isEnglish ? "Title" : "Titre", value: updates.title });
+  if (updates.universe) rows.push({ label: isEnglish ? "Space" : "Espace", value: updates.universe });
+  if (updates.pivot) {
+    rows.push({
+      label: isEnglish ? "Date" : "Date",
+      value: new Intl.DateTimeFormat(isEnglish ? "en-US" : "fr-FR", { dateStyle: "long" }).format(updates.pivot.value),
+    });
+  }
+  if (updates.city?.value) rows.push({ label: isEnglish ? "Place" : "Lieu", value: updates.city.value });
+  if (updates.guestsCount?.value !== null && updates.guestsCount?.value !== undefined) {
+    rows.push({
+      label: isEnglish ? "Guests" : "Invités",
+      value: `${updates.guestsCount.value} ${isEnglish ? "guests" : "invités"}`,
+    });
+  }
+  if (updates.budget?.value !== null && updates.budget?.value !== undefined) {
+    rows.push({
+      label: isEnglish ? "Budget" : "Budget",
+      value: new Intl.NumberFormat(isEnglish ? "en-US" : "fr-FR", {
+        style: "currency",
+        currency: updates.currency ?? "EUR",
+        maximumFractionDigits: 0,
+      }).format(updates.budget.value),
+    });
+  }
+  return rows;
+}
 
 let messageSeq = 0;
 const nextId = () => `assistant-message-${Date.now()}-${(messageSeq += 1)}`;
@@ -27,7 +96,21 @@ const nextId = () => `assistant-message-${Date.now()}-${(messageSeq += 1)}`;
  * synchronisé, le guidage local répond quand même : une question ne reste
  * jamais sans réponse, mais on ne fait pas semblant d'être connecté.
  */
-export function AssistantChat() {
+export function AssistantChat({
+  onApplyProject,
+  onApplyProposal,
+  onRejectProposal,
+  phase = "avant",
+}: {
+  /** Écriture explicite après confirmation : l'agent ne modifie jamais le Monde en silence. */
+  onApplyProject?: (updates: Partial<WorldProject>) => void;
+  /** Applique uniquement les opérations sélectionnées dans une passe structurée. */
+  onApplyProposal?: (plan: AimeProposalPlan) => void;
+  /** Journalise le refus explicite d'une passe sans appliquer ses opérations. */
+  onRejectProposal?: (plan: AimeProposalPlan) => void;
+  /** Phase visible dans le cockpit : elle influence la prochaine question. */
+  phase?: "avant" | "pendant" | "apres";
+} = {}) {
   const { project, currentRole } = useProject();
   const { t, locale } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -48,15 +131,64 @@ export function AssistantChat() {
     setInput("");
     setPending(true);
     setMessages(previous => [...previous, { id: nextId(), from: "user", text: message, sources: [], mode: "local" }]);
+    const proposalPlan = project && onApplyProposal
+      ? buildAimeProposalPlan(project, message, { role: currentRole, phase, locale })
+      : undefined;
     try {
       const reply = await askAssistant({ project, message, locale, role: currentRole });
-      setMessages(previous => [...previous, { id: nextId(), from: "aime", text: reply.answer, sources: reply.sources, mode: reply.mode }]);
+      setMessages(previous => [
+        ...previous,
+        {
+          id: nextId(),
+          from: "aime",
+          text: reply.answer,
+          sources: reply.sources,
+          mode: reply.mode,
+          projectUpdates: project && onApplyProject ? projectUpdatesFromMessage(message) : undefined,
+          proposalPlan,
+        },
+      ]);
       trackEvent("assistant_question_asked", { mode: reply.mode, hasProject: !!project, viaSuggestion });
     } catch {
       setError(t("assistant.chat.error"));
     } finally {
       setPending(false);
     }
+  };
+
+  const applyProjectUpdates = (messageId: string, updates: Partial<WorldProject>) => {
+    if (!onApplyProject) return;
+    onApplyProject(updates);
+    setMessages(previous => previous.map(message =>
+      message.id === messageId ? { ...message, applied: true } : message,
+    ));
+    trackEvent("assistant_project_prefill_applied", { fields: Object.keys(updates).join(",") });
+  };
+
+  const changeProposal = (messageId: string, plan: AimeProposalPlan) => {
+    setMessages(previous => previous.map(message =>
+      message.id === messageId ? { ...message, proposalPlan: plan } : message,
+    ));
+  };
+
+  const applyProposal = (messageId: string, plan: AimeProposalPlan) => {
+    if (!onApplyProposal) return;
+    onApplyProposal(plan);
+    setMessages(previous => previous.map(message =>
+      message.id === messageId ? { ...message, proposalPlan: plan, proposalApplied: true } : message,
+    ));
+    trackEvent("assistant_proposal_applied", {
+      operationCount: plan.operations.filter(operation => operation.selected).length,
+      proposalId: plan.id,
+    });
+  };
+
+  const rejectProposal = (messageId: string, plan: AimeProposalPlan) => {
+    onRejectProposal?.(plan);
+    setMessages(previous => previous.map(message =>
+      message.id === messageId ? { ...message, proposalPlan: plan, proposalRejected: true } : message,
+    ));
+    trackEvent("assistant_proposal_rejected", { proposalId: plan.id });
   };
 
   return (
@@ -123,6 +255,53 @@ export function AssistantChat() {
                     ))}
                   </ul>
                 </div>
+              )}
+              {message.from === "aime" && message.projectUpdates && onApplyProject && (
+                <div className="mt-4 rounded-2xl border border-brand-accent/25 bg-brand-accent/5 p-3">
+                  <p className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-foreground/55">
+                    <Sparkles aria-hidden className="h-3 w-3" />
+                    {t("assistant.chat.fillProposal")}
+                  </p>
+                  <ul
+                    data-testid={`assistant-preview-${message.id}`}
+                    className="mt-3 space-y-1.5 border-t border-brand-accent/15 pt-3"
+                  >
+                    {projectPreviewRows(message.projectUpdates, locale).map(row => (
+                      <li key={row.label} className="flex items-baseline justify-between gap-4 text-xs">
+                        <span className="text-foreground/50">{row.label}</span>
+                        <span className="text-right font-medium text-foreground/80">{row.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-xs leading-relaxed text-foreground/60">
+                    {t("assistant.chat.fillHint")}
+                  </p>
+                  <button
+                    type="button"
+                    data-testid={`assistant-fill-${message.id}`}
+                    disabled={message.applied}
+                    onClick={() => applyProjectUpdates(message.id, message.projectUpdates!)}
+                    className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-full bg-foreground px-4 text-xs font-semibold text-background transition hover:bg-foreground/90 disabled:cursor-default disabled:opacity-50"
+                  >
+                    <Sparkles aria-hidden className="h-3.5 w-3.5" />
+                    {message.applied ? t("assistant.chat.filled") : t("assistant.chat.fill")}
+                  </button>
+                </div>
+              )}
+              {message.from === "aime" && message.proposalPlan && onApplyProposal && (
+                message.proposalRejected ? (
+                  <p className="mt-4 rounded-2xl border border-[var(--agency-hairline)] px-4 py-3 text-xs text-[var(--agency-body)]" data-testid="aime-proposal-rejected">
+                    Passe refusée. Rien n'a été appliqué ; ce choix est conservé dans le journal du Monde.
+                  </p>
+                ) : (
+                  <AimeProposalReview
+                    plan={message.proposalPlan}
+                    applied={message.proposalApplied}
+                    onChange={plan => changeProposal(message.id, plan)}
+                    onApply={plan => applyProposal(message.id, plan)}
+                    onReject={plan => rejectProposal(message.id, plan)}
+                  />
+                )
               )}
             </div>
           </div>

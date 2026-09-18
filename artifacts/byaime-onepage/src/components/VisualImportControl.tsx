@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
-export type VisualChoice = { zone: string; asset: string };
+export type VisualChoice = { zone: string; asset: string; label?: string };
 
 function looksLikeVideoUrl(url: string) {
   return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
@@ -141,7 +141,7 @@ export function VisualImportControl({
                 >
                   <img src={getAssetUrl(choice.asset)} alt="" className="h-full w-full object-cover" />
                   <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1 py-0.5 text-[8px] uppercase tracking-[.1em] text-white/85">
-                    {choice.zone}
+                    {choice.label ?? choice.zone}
                   </span>
                 </button>
               );

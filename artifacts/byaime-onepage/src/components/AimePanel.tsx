@@ -43,6 +43,11 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
 import { trackEvent } from "@/lib/analytics";
+import {
+  applyAimeProposalToProject,
+  rejectAimeProposal,
+  type AimeProposalPlan,
+} from "@/lib/aime-orchestrator";
 
 /*
  * Le Panneau AIME — la seule porte d'entrée de l'espace privé (17/09).
@@ -65,7 +70,7 @@ const CLOSE_PANEL_EVENT = "aime:close-world-panel";
 
 export function AimePanel() {
   const { t, locale, setLocale } = useI18n();
-  const { project, currentRole, canEdit } = useProject();
+  const { project, currentRole, canEdit, updateProject } = useProject();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -89,6 +94,16 @@ export function AimePanel() {
     if (reason === "user") window.dispatchEvent(new Event(CLOSE_PANEL_EVENT));
   };
 
+  const applyAimePass = (plan: AimeProposalPlan) => {
+    if (!project || !canEdit) return;
+    updateProject(applyAimeProposalToProject(project, plan));
+  };
+
+  const rejectAimePass = (plan: AimeProposalPlan) => {
+    if (!project || !canEdit) return;
+    updateProject(rejectAimeProposal(project, plan));
+  };
+
   /* Ouverture : l'orbe (ou Cmd/Ctrl + K), la demande de panneau du Monde
      (`aime:show-panel`), et la fermeture programmatique (`aime:close-world-panel`). */
   useEffect(() => {
@@ -104,10 +119,10 @@ export function AimePanel() {
     const openAI = (event: Event) => {
       const detail = (event as CustomEvent<{ item?: string; section?: string; search?: boolean }>).detail;
       setOpen(true);
-      if (detail?.item) {
-        setSelectedId(detail.item);
-        setPresented(null);
-      }
+      /* Le + est d'abord la porte vers l'agent. La colonne reste disponible
+         pour les dossiers, mais l'ouverture ne demande plus un second clic. */
+      setSelectedId(detail?.item ?? "ask");
+      setPresented(null);
       if (detail?.search) requestAnimationFrame(() => searchInputRef.current?.focus());
     };
     const showPanel = (event: Event) => applyShow((event as CustomEvent<AimePanelShowRequest>).detail);
@@ -308,7 +323,13 @@ export function AimePanel() {
       case "ask":
         return (
           <div className="mx-auto max-w-4xl" data-testid="aime-panel-ask">
-            <AssistantChat />
+            <div data-testid="aime-panel-intro">
+              <AssistantChat
+                phase={currentPhase}
+                onApplyProposal={project && canEdit ? applyAimePass : undefined}
+                onRejectProposal={project && canEdit ? rejectAimePass : undefined}
+              />
+            </div>
           </div>
         );
       case "share-doc":

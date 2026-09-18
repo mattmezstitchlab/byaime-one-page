@@ -14,7 +14,7 @@ import { CenteredBlock } from "./CenteredBlock";
 import { VisualImportControl } from "./VisualImportControl";
 import { getWorldNavState } from "@/lib/world-nav-state";
 import { getWorldPhaseShortLabel } from "@/lib/wedding-navigation";
-import { resolveHeroVisual, setHeroVisualFor, WORLD_VISUAL_CHOICES } from "@/lib/world-visuals";
+import { resolveHeroVisual, setHeroVisualFor, WORLD_MEDIA_CHOICES } from "@/lib/world-visuals";
 import { WorldSwitcher } from "./WorldSwitcher";
 import { cn } from "@/lib/utils";
 import { effectiveGuestDietary, effectiveGuestRsvp } from "@/lib/participant-rsvp";
@@ -505,7 +505,7 @@ export function PortalContent({
               updateProject({ heroVisuals: { ...heroVisuals, [mode]: visual } });
               markPendingSave(t("heroEdit.visualSaved"));
             }}
-            choices={WORLD_VISUAL_CHOICES}
+            choices={WORLD_MEDIA_CHOICES}
             choicesLabel={t("world.hero.visual.choices")}
           />
         </div>
