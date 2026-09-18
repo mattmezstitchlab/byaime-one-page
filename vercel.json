@@ -3,6 +3,7 @@
   "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/byaime-onepage run build",
+  "ignoreCommand": "sh scripts/vercel-ignore-build.sh",
   "outputDirectory": "artifacts/byaime-onepage/dist/public",
   "crons": [
     {

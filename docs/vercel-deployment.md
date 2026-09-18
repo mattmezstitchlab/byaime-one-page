@@ -166,6 +166,33 @@ Rules:
 - Read the Vercel failure line rather than the build logs: a lockfile error
   is reported by pnpm during *Install*, never during *Build*.
 
+## Ignored Build Step — ne pas dépenser le quota sur des commits de docs
+
+`ignoreCommand` (both `vercel.json` files) runs `scripts/vercel-ignore-build.sh`.
+On 2026-09-18 the project hit « Deployment rate limited — retry in 24 hours »
+(Hobby plan) while production still had to be repaired; part of the quota had
+been spent on commits that could not change the site.
+
+Contract: exit 0 = skip, exit 1 = build, anything else normalised to 1 (when
+in doubt, build). The comparison base is `VERCEL_GIT_PREVIOUS_SHA` (last
+successful deployment of the branch), never `HEAD^`: Vercel deploys only the
+head of a push, so `HEAD^` would skip a push that ends on a docs commit and
+leave the code before it deployed nowhere. No previous SHA, unknown SHA
+(shallow clone), not a git repo → build. The script always `cd`s to the
+repository top level, so it behaves the same with Root Directory unset or set
+to `artifacts/byaime-onepage`.
+
+Paths that cannot change what Vercel serves (verified: nothing in the build
+imports `*.md` or `docs/`; `attached_assets/` **is** aliased `@assets` by
+`vite.config.ts` and is therefore *not* excluded): `docs/`, `research/`,
+`screenshots/`, `.agents/`, `.github/`, `*.md`, `*.patch`.
+
+`corepack pnpm run test:vercel-ignore` (also run by `verify:vercel`) replays
+the real script against throwaway repositories: docs-only → 0, code → 1,
+mixed push ending on docs → 1, `attached_assets` → 1, lockfile → 1, missing
+or unknown base → 1, run from the artifact directory with a change in `lib/`
+→ 1, no change → 0.
+
 ## Clean rebuild checks
 
 Run the following from a clean workspace:

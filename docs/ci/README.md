@@ -27,7 +27,7 @@ sont livrés ici sous forme de patch, prêts et validés localement.
      `998afc3`) ;
   3. `corepack pnpm test` — 563 + 85 + 33 tests ;
   4. `corepack pnpm run verify:vercel` — build Vercel, configs, entrypoints,
-     lockfile gelé.
+     lockfile gelé, recette de l'Ignored Build Step (`test:vercel-ignore`).
 
   pnpm est épinglé par corepack sur `packageManager` (10.14.0) — pas de
   version flottante qui régénérerait le lockfile autrement que Vercel.

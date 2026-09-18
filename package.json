@@ -13,6 +13,7 @@
     "typecheck:e2e": "tsc -p e2e/tsconfig.json --noEmit",
     "e2e": "playwright test",
     "verify:vercel": "node ./scripts/verify-vercel.mjs",
+    "test:vercel-ignore": "node scripts/test-vercel-ignore-build.mjs",
     "test:card-migrations": "node scripts/test-card-migrations.mjs",
     "check:db": "corepack pnpm --filter @workspace/scripts run check:db"
   },

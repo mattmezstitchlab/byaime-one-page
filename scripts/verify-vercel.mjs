@@ -15,11 +15,13 @@ const vercelConfigPaths = [
   {
     path: "vercel.json",
     expectedBuildCommand: "pnpm --filter @workspace/byaime-onepage run build",
+    expectedIgnoreCommand: "sh scripts/vercel-ignore-build.sh",
     expectedOutputDirectory: "artifacts/byaime-onepage/dist/public",
   },
   {
     path: "artifacts/byaime-onepage/vercel.json",
     expectedBuildCommand: "pnpm run build",
+    expectedIgnoreCommand: "sh ../../scripts/vercel-ignore-build.sh",
     expectedOutputDirectory: "dist/public",
   },
 ];
@@ -158,7 +160,7 @@ function findRouteDestination(routes, requestPath) {
   return null;
 }
 
-async function assertVercelConfig({ path: configPath, expectedBuildCommand, expectedOutputDirectory }) {
+async function assertVercelConfig({ path: configPath, expectedBuildCommand, expectedIgnoreCommand, expectedOutputDirectory }) {
   const config = await readJson(configPath);
   if (!Array.isArray(config.routes)) {
     throw new Error(`${configPath} must define explicit routes for /api`);
@@ -171,6 +173,9 @@ async function assertVercelConfig({ path: configPath, expectedBuildCommand, expe
   }
   if (config.outputDirectory !== expectedOutputDirectory) {
     throw new Error(`${configPath} must define outputDirectory ${expectedOutputDirectory}`);
+  }
+  if (config.ignoreCommand !== expectedIgnoreCommand) {
+    throw new Error(`${configPath} must define ignoreCommand ${expectedIgnoreCommand}`);
   }
 
   for (const { requestPath, expectedDestination } of requiredRoutingChecks) {
@@ -266,6 +271,10 @@ async function main() {
   }
 
   assertFrozenLockfile();
+  /* L'Ignored Build Step a deux codes de sortie porteurs de charge (0 =
+     ignorer, 1 = construire) : la recette les rejoue contre de vrais dépôts
+     jetables — une régression ici ne casse pas un build, elle en saute un. */
+  run("node", ["scripts/test-vercel-ignore-build.mjs"]);
 
   await Promise.all(generatedPathsToClean.map(removePath));
   await removeTsBuildInfoFiles(rootDir);
