@@ -2,6 +2,9 @@
 @import 'tailwindcss';
 @import '@clerk/themes/shadcn.css';
 @import 'tw-animate-css';
+/* Pont AIME-COMPOSER (étape 3) : couche commune des rôles --aime-*.
+   Additif — aucune variable existante n'est changée. */
+@import './styles/aime-tokens.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -11,9 +14,12 @@
   .agency-serif { font-family: var(--agency-serif); }
   .action { display: flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--color-border); border-radius: .75rem; padding: .7rem; font-size: .75rem; text-align: center; transition: background .2s; }
   .action:hover { background: hsl(var(--foreground) / 0.08); }
-  .field { width: 100%; border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: transparent; padding: .65rem 0; color: var(--color-foreground); font-size: .875rem; outline: none; transition: border-color .2s; }
+  .field { width: 100%; border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: transparent; padding: .65rem 0; color: var(--color-foreground); font-size: .875rem; transition: border-color .2s; }
   .field::placeholder { color: hsl(var(--foreground) / 0.25); }
   .field:focus { border-color: hsl(var(--foreground) / 0.85); }
+  /* Clavier d'abord : l'outline par défaut reste au clavier ; il est
+     retiré au pointeur uniquement (convergence FOCUS, motif exempté). */
+  .field:focus:not(:focus-visible) { outline: none; }
   .aime-visual-copy {
     color: #171410;
   }

@@ -266,13 +266,13 @@ export function DayOfPanel() {
                   date.setHours(hours, minutes, 0, 0);
                   propose(event.id, { time: date.getTime() });
                 }}
-                className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-sm outline-none focus:border-[var(--agency-ink)]/40"
+                className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-[var(--agency-ink)]/40"
               />
               <input
                 disabled={!canEdit}
                 value={event.title}
                 onChange={e => updateEntity("timeline", event.id, { title: e.target.value })}
-                className="min-w-0 flex-1 bg-transparent text-[15px] font-medium outline-none text-[var(--agency-ink)]"
+                className="min-w-0 flex-1 bg-transparent text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-[var(--agency-ink)]"
               />
               {canEdit && (
                 <button onClick={() => removeEntity("timeline", event.id)} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
@@ -286,7 +286,7 @@ export function DayOfPanel() {
                 value={event.location || ""}
                 onChange={e => propose(event.id, { location: e.target.value })}
                 placeholder={t("dayof.location")}
-                className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)]"
+                className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)]"
               />
               <input
                 disabled={!canEdit}
@@ -294,13 +294,13 @@ export function DayOfPanel() {
                 min="0"
                 value={event.durationMinutes || 0}
                 onChange={e => propose(event.id, { durationMinutes: Number(e.target.value) })}
-                className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none"
+                className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <select
                 disabled={!canEdit}
                 value={event.status}
                 onChange={e => updateEntity("timeline", event.id, { status: e.target.value })}
-                className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none"
+                className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="prepare">{t("dayof.status.prepare")}</option>
                 <option value="execute">{t("dayof.status.execute")}</option>

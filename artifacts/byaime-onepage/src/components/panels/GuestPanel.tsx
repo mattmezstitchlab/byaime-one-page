@@ -176,7 +176,7 @@ export function GuestPanel({ momentId = null }: { momentId?: string | null } = {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t("gp.search.placeholder")}
-            className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-[var(--agency-eyebrow)]"
+            className="w-full bg-transparent py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)]"
           />
         </label>
         {canEdit && (
@@ -225,7 +225,7 @@ export function GuestPanel({ momentId = null }: { momentId?: string | null } = {
                   disabled={!canEdit}
                   value={guest.name}
                   onChange={e => updateEntity("guests", guest.id, { name: e.target.value })}
-                  className="flex-1 bg-transparent text-[15px] font-medium outline-none text-[var(--agency-ink)]"
+                  className="flex-1 bg-transparent text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-[var(--agency-ink)]"
                 />
                 {canEdit && (
                   <button onClick={() => removeEntity("guests", guest.id)} className="text-[var(--agency-eyebrow)] hover:text-[#B42318]">
@@ -241,7 +241,7 @@ export function GuestPanel({ momentId = null }: { momentId?: string | null } = {
                   disabled={!canEdit || Boolean(link?.response)}
                   value={effectiveRsvp}
                   onChange={e => updateEntity("guests", guest.id, { rsvp: e.target.value })}
-                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none disabled:opacity-70"
+                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70"
                 >
                   <option value="en_attente">{t("gp.rsvp.pending")}</option>
                   <option value="confirme">{t("gp.rsvp.confirmed")}</option>
@@ -253,13 +253,13 @@ export function GuestPanel({ momentId = null }: { momentId?: string | null } = {
                   value={effectiveDietary}
                   onChange={e => updateEntity("guests", guest.id, { dietary: e.target.value })}
                   placeholder={t("gp.dietary")}
-                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)] disabled:opacity-70"
+                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)] disabled:opacity-70"
                 />
                 <select
                   disabled={!canEdit}
                   value={guest.tableId || ""}
                   onChange={e => updateEntity("guests", guest.id, { tableId: e.target.value || undefined })}
-                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none"
+                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="">{t("gp.noTable")}</option>
                   {project.tables.map(item => (
@@ -438,7 +438,7 @@ function GuestSeatRow({ guest, tables, onChange }: { guest: { name: string; tabl
         {guest.name}
         {guest.dietary && <span className="ml-2 text-[10px] text-[var(--agency-body)]">{guest.dietary}</span>}
       </span>
-      <select value={guest.tableId || ""} onChange={(e) => onChange(e.target.value)} className="max-w-[130px] rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs outline-none">
+      <select value={guest.tableId || ""} onChange={(e) => onChange(e.target.value)} className="max-w-[130px] rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <option value="">{t("gp.noTable")}</option>
         {tables.map((t) => (
           <option key={t.id} value={t.id}>

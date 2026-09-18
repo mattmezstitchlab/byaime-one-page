@@ -1,0 +1,416 @@
+/*
+ * AIME DESIGN SYSTEM V1 — couche de tokens (pont d'adoption).
+ * Source : AIME-COMPOSER design-system/tokens/tokens.css, généré par
+ * src/build.mjs (commit 90ad4c0). Ne pas éditer ici : l'origine est le
+ * dépôt du design system — ce fichier voyage avec sa provenance.
+ *
+ * Rôle (docs/pont-architecture-aime.md, étape 3) : couche commune des
+ * rôles --aime-* pour tout nouveau code. Les palettes historiques de
+ * l'app (--agency-*, shadcn HSL) restent la vérité visuelle actuelle ;
+ * la couture est documentée dans le pont. Additif : aucune variable
+ * existante n'est modifiée par ce fichier.
+ */
+/* AIME DESIGN SYSTEM V1 — fichier généré par src/build.mjs.
+   Ne pas éditer à la main : éditer src/tokens.mjs puis lancer npm run build. */
+
+/* ══════════════════════════════════════════════════════════════
+   COUCHE 1 — TOKENS
+   ══════════════════════════════════════════════════════════════ */
+
+/* 1.1 PRIMITIVES — la palette. Elle n'est JAMAIS utilisée directement
+       par un composant : seuls les rôles sémantiques sont consommés. */
+:root {
+  /* neutral */
+  --aime-p-neutral-100: #C9C8C4;
+  --aime-p-neutral-200: #A2A2A8;
+  --aime-p-neutral-300: #7A7A83;
+  --aime-p-neutral-400: #56565F;
+  --aime-p-neutral-500: #3A3A43;
+  --aime-p-neutral-600: #2A2A31;
+  --aime-p-neutral-700: #1E1E23;
+  --aime-p-neutral-800: #16161A;
+  --aime-p-neutral-850: #111114;
+  --aime-p-neutral-900: #0C0C0E;
+  --aime-p-neutral-950: #08080A;
+  --aime-p-neutral-050: #E6E4DE;
+
+  /* ivoire */
+  --aime-p-ivoire-100: #FBFAF7;
+  --aime-p-ivoire-150: #F2F0EA;
+  --aime-p-ivoire-000: #FFFFFF;
+  --aime-p-ivoire-050: #F5F3EE;
+
+  /* fuchsia */
+  --aime-p-fuchsia-200: #FFA9D6;
+  --aime-p-fuchsia-300: #FF7AC4;
+  --aime-p-fuchsia-400: #FF4FB0;
+  --aime-p-fuchsia-500: #FF2F9E;
+  --aime-p-fuchsia-600: #DE1183;
+  --aime-p-fuchsia-700: #AE0A66;
+  --aime-p-fuchsia-800: #7A0748;
+}
+
+/* 1.2 RÔLES SÉMANTIQUES — thème sombre (défaut AIME) */
+:root,
+:root[data-aime-theme='dark'] {
+  --aime-color-background: #08080A;
+  --aime-color-surface: #0C0C0E;
+  --aime-color-surface-elevated: #111114;
+  --aime-color-surface-overlay: #16161A;
+  --aime-color-surface-sunken: #08080A;
+  --aime-color-text: #F5F3EE;
+  --aime-color-text-muted: #C9C8C4;
+  --aime-color-text-subtle: #A2A2A8;
+  --aime-color-text-inverse: #08080A;
+  --aime-color-border-subtle: #1E1E23;
+  --aime-color-border: #2A2A31;
+  --aime-color-border-strong: #7A7A83;
+  --aime-color-accent: #FF2F9E;
+  --aime-color-accent-hover: #FF4FB0;
+  --aime-color-accent-active: #DE1183;
+  --aime-color-accent-subtle: rgba(255, 47, 158, 0.12);
+  --aime-color-accent-text: #FF7AC4;
+  --aime-color-accent-on: #08080A;
+  --aime-color-focus-ring: #FF7AC4;
+  --aime-color-grid-line: #16161A;
+  --aime-color-scrim: rgba(8, 8, 10, 0.72);
+  --aime-color-success-text: #5FD6A4;
+  --aime-color-success-border: #5FD6A4;
+  --aime-color-success-solid: #5FD6A4;
+  --aime-color-success-on-solid: #08080A;
+  --aime-color-success-surface: #5FD6A41F;
+  --aime-color-warning-text: #E5A63C;
+  --aime-color-warning-border: #E5A63C;
+  --aime-color-warning-solid: #E5A63C;
+  --aime-color-warning-on-solid: #08080A;
+  --aime-color-warning-surface: #E5A63C1F;
+  --aime-color-error-text: #FF8A80;
+  --aime-color-error-border: #FF8A80;
+  --aime-color-error-solid: #FF8A80;
+  --aime-color-error-on-solid: #08080A;
+  --aime-color-error-surface: #FF8A801F;
+  --aime-color-info-text: #8CC4F5;
+  --aime-color-info-border: #8CC4F5;
+  --aime-color-info-solid: #8CC4F5;
+  --aime-color-info-on-solid: #08080A;
+  --aime-color-info-surface: #8CC4F51F;
+}
+
+/* 1.3 RÔLES SÉMANTIQUES — thème clair */
+:root[data-aime-theme='light'] {
+  --aime-color-background: #F2F0EA;
+  --aime-color-surface: #FBFAF7;
+  --aime-color-surface-elevated: #FFFFFF;
+  --aime-color-surface-overlay: #FFFFFF;
+  --aime-color-surface-sunken: #F2F0EA;
+  --aime-color-text: #08080A;
+  --aime-color-text-muted: #3A3A43;
+  --aime-color-text-subtle: #56565F;
+  --aime-color-text-inverse: #F5F3EE;
+  --aime-color-border-subtle: #C9C8C4;
+  --aime-color-border: #A2A2A8;
+  --aime-color-border-strong: #56565F;
+  --aime-color-accent: #DE1183;
+  --aime-color-accent-hover: #AE0A66;
+  --aime-color-accent-active: #7A0748;
+  --aime-color-accent-subtle: rgba(222, 17, 131, 0.10);
+  --aime-color-accent-text: #AE0A66;
+  --aime-color-accent-on: #FFFFFF;
+  --aime-color-focus-ring: #AE0A66;
+  --aime-color-grid-line: #C9C8C4;
+  --aime-color-scrim: rgba(242, 240, 234, 0.72);
+  --aime-color-success-text: #0E7A4E;
+  --aime-color-success-border: #149461;
+  --aime-color-success-solid: #149461;
+  --aime-color-success-on-solid: #08080A;
+  --aime-color-success-surface: #14946114;
+  --aime-color-warning-text: #8A5300;
+  --aime-color-warning-border: #B57208;
+  --aime-color-warning-solid: #B57208;
+  --aime-color-warning-on-solid: #08080A;
+  --aime-color-warning-surface: #B5720814;
+  --aime-color-error-text: #B3271F;
+  --aime-color-error-border: #D2392E;
+  --aime-color-error-solid: #D2392E;
+  --aime-color-error-on-solid: #FFFFFF;
+  --aime-color-error-surface: #D2392E14;
+  --aime-color-info-text: #1D5C9C;
+  --aime-color-info-border: #2A74BC;
+  --aime-color-info-solid: #2A74BC;
+  --aime-color-info-on-solid: #FFFFFF;
+  --aime-color-info-surface: #2A74BC14;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-aime-theme]) {
+    --aime-color-background: #F2F0EA;
+    --aime-color-surface: #FBFAF7;
+    --aime-color-surface-elevated: #FFFFFF;
+    --aime-color-surface-overlay: #FFFFFF;
+    --aime-color-surface-sunken: #F2F0EA;
+    --aime-color-text: #08080A;
+    --aime-color-text-muted: #3A3A43;
+    --aime-color-text-subtle: #56565F;
+    --aime-color-text-inverse: #F5F3EE;
+    --aime-color-border-subtle: #C9C8C4;
+    --aime-color-border: #A2A2A8;
+    --aime-color-border-strong: #56565F;
+    --aime-color-accent: #DE1183;
+    --aime-color-accent-hover: #AE0A66;
+    --aime-color-accent-active: #7A0748;
+    --aime-color-accent-subtle: rgba(222, 17, 131, 0.10);
+    --aime-color-accent-text: #AE0A66;
+    --aime-color-accent-on: #FFFFFF;
+    --aime-color-focus-ring: #AE0A66;
+    --aime-color-grid-line: #C9C8C4;
+    --aime-color-scrim: rgba(242, 240, 234, 0.72);
+    --aime-color-success-text: #0E7A4E;
+    --aime-color-success-border: #149461;
+    --aime-color-success-solid: #149461;
+    --aime-color-success-on-solid: #08080A;
+    --aime-color-success-surface: #14946114;
+    --aime-color-warning-text: #8A5300;
+    --aime-color-warning-border: #B57208;
+    --aime-color-warning-solid: #B57208;
+    --aime-color-warning-on-solid: #08080A;
+    --aime-color-warning-surface: #B5720814;
+    --aime-color-error-text: #B3271F;
+    --aime-color-error-border: #D2392E;
+    --aime-color-error-solid: #D2392E;
+    --aime-color-error-on-solid: #FFFFFF;
+    --aime-color-error-surface: #D2392E14;
+    --aime-color-info-text: #1D5C9C;
+    --aime-color-info-border: #2A74BC;
+    --aime-color-info-solid: #2A74BC;
+    --aime-color-info-on-solid: #FFFFFF;
+    --aime-color-info-surface: #2A74BC14;
+  }
+}
+
+/* 1.4 TYPOGRAPHIE — 9 rôles, une échelle, aucune taille libre */
+:root {
+  --aime-font-sans: Inter, "Inter var", "Helvetica Neue", "Segoe UI Variable Text", system-ui, -apple-system, Arial, sans-serif;
+  --aime-font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --aime-font-regular: 400;
+  --aime-font-medium: 500;
+  --aime-font-semibold: 600;
+  --aime-font-bold: 700;
+  /* META — mesure max 90ch */
+  --aime-text-meta-size: 11px;
+  --aime-text-meta-lh: 1.3;
+  --aime-text-meta-ls: 0.1em;
+  --aime-text-meta-weight: 500;
+  --aime-text-meta-measure: 90ch;
+  --aime-text-meta-family: var(--aime-font-mono);
+  /* CAPTION — mesure max 90ch */
+  --aime-text-caption-size: 12px;
+  --aime-text-caption-lh: 1.4;
+  --aime-text-caption-ls: 0em;
+  --aime-text-caption-weight: 400;
+  --aime-text-caption-measure: 90ch;
+  --aime-text-caption-family: var(--aime-font-sans);
+  /* LABEL — mesure max 40ch */
+  --aime-text-label-size: 13px;
+  --aime-text-label-lh: 1.35;
+  --aime-text-label-ls: 0.08em;
+  --aime-text-label-weight: 500;
+  --aime-text-label-measure: 40ch;
+  --aime-text-label-family: var(--aime-font-sans);
+  /* BODY-SMALL — mesure max 78ch */
+  --aime-text-body-small-size: 14px;
+  --aime-text-body-small-lh: 1.5;
+  --aime-text-body-small-ls: 0em;
+  --aime-text-body-small-weight: 400;
+  --aime-text-body-small-measure: 78ch;
+  --aime-text-body-small-family: var(--aime-font-sans);
+  /* BODY — mesure max 68ch */
+  --aime-text-body-size: 16px;
+  --aime-text-body-lh: 1.55;
+  --aime-text-body-ls: -0.005em;
+  --aime-text-body-weight: 400;
+  --aime-text-body-measure: 68ch;
+  --aime-text-body-family: var(--aime-font-sans);
+  /* H3 — mesure max 44ch */
+  --aime-text-h3-size: 20px;
+  --aime-text-h3-lh: 1.25;
+  --aime-text-h3-ls: -0.01em;
+  --aime-text-h3-weight: 600;
+  --aime-text-h3-measure: 44ch;
+  --aime-text-h3-family: var(--aime-font-sans);
+  /* H2 — mesure max 38ch */
+  --aime-text-h2-size: 25px;
+  --aime-text-h2-lh: 1.16;
+  --aime-text-h2-ls: -0.02em;
+  --aime-text-h2-weight: 600;
+  --aime-text-h2-measure: 38ch;
+  --aime-text-h2-family: var(--aime-font-sans);
+  /* H1 — mesure max 30ch */
+  --aime-text-h1-size: clamp(31px, 3.4vw + 8px, 52px);
+  --aime-text-h1-lh: 1.08;
+  --aime-text-h1-ls: -0.03em;
+  --aime-text-h1-weight: 700;
+  --aime-text-h1-measure: 30ch;
+  --aime-text-h1-family: var(--aime-font-sans);
+  /* DISPLAY — mesure max 24ch */
+  --aime-text-display-size: clamp(39px, 5vw + 12px, 84px);
+  --aime-text-display-lh: 1;
+  --aime-text-display-ls: -0.045em;
+  --aime-text-display-weight: 700;
+  --aime-text-display-measure: 24ch;
+  --aime-text-display-family: var(--aime-font-sans);
+}
+
+/* 1.5 ESPACE — échelle fermée : 4 8 12 16 24 32 48 64 96 128 */
+:root {
+  --aime-space-1: 4px;
+  --aime-space-2: 8px;
+  --aime-space-3: 12px;
+  --aime-space-4: 16px;
+  --aime-space-5: 24px;
+  --aime-space-6: 32px;
+  --aime-space-7: 48px;
+  --aime-space-8: 64px;
+  --aime-space-9: 96px;
+  --aime-space-10: 128px;
+  /* alias fonctionnels */
+  --aime-gap-inline: var(--aime-space-2);
+  --aime-gap-stack: var(--aime-space-4);
+  --aime-gap-group: var(--aime-space-6);
+  --aime-gap-section: var(--aime-space-8);
+  --aime-page-margin: var(--aime-space-6);
+  --aime-hairline: var(--aime-space-1);
+  /* hauteurs de contrôle (tailles, pas espacements) */
+  --aime-control-xs: 24px;
+  --aime-control-sm: 32px;
+  --aime-control-md: 40px;
+  --aime-control-lg: 48px;
+}
+
+/* 1.6 RAYON — quatre niveaux, aucun autre */
+:root {
+  --aime-radius-none: 0px;
+  --aime-radius-small: 4px;
+  --aime-radius-medium: 8px;
+  --aime-radius-large: 14px;
+  --aime-radius-pill: 999px;
+}
+
+/* 1.7 BORDURE — cinq états logiques */
+:root {
+  --aime-border-width: 1px;
+  --aime-border-width-strong: 2px;
+  --aime-border-subtle: var(--aime-border-width) solid var(--aime-color-border-subtle);
+  --aime-border-default: var(--aime-border-width) solid var(--aime-color-border);
+  --aime-border-strong: var(--aime-border-width) solid var(--aime-color-border-strong);
+  --aime-border-active: var(--aime-border-width-strong) solid var(--aime-color-accent);
+  --aime-border-focus: var(--aime-border-width-strong) solid var(--aime-color-focus-ring);
+  --aime-focus-ring: 0 0 0 2px var(--aime-color-background), 0 0 0 4px var(--aime-color-focus-ring);
+  --aime-focus-offset: 2px;
+}
+
+/* 1.8 OMBRE — deux seulement ; la profondeur vient de la surface et de l'espace */
+:root {
+  --aime-shadow-none: none;
+  --aime-shadow-raise: 0 1px 2px rgba(8,8,10,.10), 0 12px 32px rgba(8,8,10,.22);
+  --aime-shadow-drag: 0 2px 4px rgba(8,8,10,.16), 0 24px 56px rgba(8,8,10,.34);
+}
+
+/* 1.9 MOTION — sept primitives, quatre durées, trois courbes */
+:root {
+  --aime-motion-instant: 80ms;
+  --aime-motion-fast: 140ms;
+  --aime-motion-base: 200ms;
+  --aime-motion-slow: 320ms;
+  --aime-motion-cycle: 900ms;
+  --aime-motion-stagger: 150ms;
+  --aime-ease-out: cubic-bezier(.2,.7,.3,1);
+  --aime-ease-in: cubic-bezier(.5,0,.9,.4);
+  --aime-ease-inout: cubic-bezier(.4,0,.2,1);
+  --aime-motion-primitives: fade, slide, scale, expand, collapse, drag, connect;
+}
+
+/* 1.10 LAYOUT — grille, rythme, proportions */
+:root {
+  --aime-columns-mobile: 4;
+  --aime-columns-tablet: 6;
+  --aime-columns-desktop: 12;
+  --aime-columns-wide: 12;
+  --aime-gutter-mobile: 12px;
+  --aime-gutter-tablet: 16px;
+  --aime-gutter-desktop: 24px;
+  --aime-gutter-wide: 32px;
+  --aime-margin-mobile: 20px;
+  --aime-margin-tablet: 32px;
+  --aime-margin-desktop: 64px;
+  --aime-margin-wide: 96px;
+  --aime-measure-mobile: 480px;
+  --aime-measure-tablet: 720px;
+  --aime-measure-desktop: 1040px;
+  --aime-measure-wide: 1280px;
+  --aime-canvas-max: 1680px;
+  --aime-ratio-golden: 1.618;
+  --aime-type-ratio: 1.25;
+}
+
+/* 1.11 POINTS DE RUPTURE */
+:root {
+  --aime-bp-mobile: 0px;
+  --aime-bp-tablet: 640px;
+  --aime-bp-desktop: 1024px;
+  --aime-bp-wide: 1440px;
+}
+
+/* 1.12 COUCHES */
+:root {
+  --aime-z-base: 0;
+  --aime-z-sticky: 100;
+  --aime-z-dropdown: 400;
+  --aime-z-drawer: 600;
+  --aime-z-overlay: 800;
+  --aime-z-toast: 900;
+  --aime-z-tooltip: 1000;
+}
+
+/* 1.13 ÉTATS DE CONNAISSANCE NOEMA — OBSERVED · EXTRACTED · INFERRED ·
+        PROPOSED · CONFIRMED · SUPERSEDED.
+        Règle : le sens est toujours doublé par une FORME (plein / pointillé /
+        tireté / barré). La couleur seule ne porte jamais l'information. */
+:root {
+  /* Observé — non établi */
+  --aime-state-observed-fg: var(--aime-color-info-text);
+  --aime-state-observed-bd: var(--aime-color-info-border);
+  --aime-state-observed-style: dotted;
+  --aime-state-observed-glyph: 'noe-observed';
+  /* Extrait — non établi */
+  --aime-state-extracted-fg: var(--aime-color-info-text);
+  --aime-state-extracted-bd: var(--aime-color-info-border);
+  --aime-state-extracted-style: dashed;
+  --aime-state-extracted-glyph: 'noe-extracted';
+  /* Déduit — non établi */
+  --aime-state-inferred-fg: var(--aime-color-warning-text);
+  --aime-state-inferred-bd: var(--aime-color-warning-border);
+  --aime-state-inferred-style: dashed;
+  --aime-state-inferred-glyph: 'noe-inferred';
+  /* Proposé — non établi */
+  --aime-state-proposed-fg: var(--aime-color-accent-text);
+  --aime-state-proposed-bd: var(--aime-color-accent);
+  --aime-state-proposed-style: dashed;
+  --aime-state-proposed-glyph: 'noe-proposed';
+  /* Confirmé — fait établi */
+  --aime-state-confirmed-fg: var(--aime-color-success-text);
+  --aime-state-confirmed-bd: var(--aime-color-success-border);
+  --aime-state-confirmed-style: solid;
+  --aime-state-confirmed-glyph: 'noe-confirmed';
+  /* Remplacé — fait établi */
+  --aime-state-superseded-fg: var(--aime-color-text-subtle);
+  --aime-state-superseded-bd: var(--aime-color-border);
+  --aime-state-superseded-style: solid;
+  --aime-state-superseded-glyph: 'noe-superseded';
+}
+
+/* 1.14 CONTRAT DE CONTRASTE — seuils que le QA vérifie */
+:root {
+  --aime-contrast-text: 4.5;
+  --aime-contrast-large: 3;
+  --aime-contrast-ui: 3;
+}

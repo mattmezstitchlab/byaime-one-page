@@ -105,7 +105,7 @@ function TaskRow({ task, onToggle, onEdit, onDelete }: { task: Task; onToggle: (
         <input
           value={task.title}
           onChange={e => onEdit({ title: e.target.value })}
-          className={cn("min-w-0 flex-1 bg-transparent text-[15px] outline-none text-[var(--agency-ink)]", task.status === "termine" && "line-through")}
+          className={cn("min-w-0 flex-1 bg-transparent text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-[var(--agency-ink)]", task.status === "termine" && "line-through")}
         />
         <button onClick={onDelete} className="text-[var(--agency-eyebrow)] transition hover:text-[#B42318]">
           <Trash2 className="h-4 w-4" />
@@ -115,7 +115,7 @@ function TaskRow({ task, onToggle, onEdit, onDelete }: { task: Task; onToggle: (
         <select
           value={task.priority}
           onChange={e => onEdit({ priority: e.target.value as Task["priority"] })}
-          className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-[11px] outline-none focus:border-[var(--agency-ink)]/40"
+          className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-[var(--agency-ink)]/40"
         >
           <option value="haute">Très important</option>
           <option value="normale">Normal</option>
@@ -125,7 +125,7 @@ function TaskRow({ task, onToggle, onEdit, onDelete }: { task: Task; onToggle: (
           value={task.owner || ""}
           onChange={e => onEdit({ owner: e.target.value })}
           placeholder="Qui s'en charge ?"
-          className="w-36 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-[11px] outline-none placeholder:text-[var(--agency-eyebrow)] focus:border-[var(--agency-ink)]/40"
+          className="w-36 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)] focus:border-[var(--agency-ink)]/40"
         />
         {task.dueDate && (
           <span className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-[11px] text-[var(--agency-body)]">

@@ -163,7 +163,7 @@ export function CarteImport({
           if (error) setError("");
         }}
         placeholder={t("carte.import.pastePlaceholder")}
-        className="mt-2 w-full resize-y rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 font-mono text-[12.5px] text-white outline-none transition placeholder:text-white/35 focus:border-white/40 focus:bg-white/[0.09]"
+        className="mt-2 w-full resize-y rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 font-mono text-[12.5px] text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition placeholder:text-white/35 focus:border-white/40 focus:bg-white/[0.09]"
       />
 
       {error && (

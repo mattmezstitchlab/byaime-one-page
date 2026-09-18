@@ -197,7 +197,7 @@ export function VisualImportControl({
               onChange={event => setUrlDraft(event.target.value)}
               onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); submitUrl(); } }}
               placeholder={urlMode === "video" ? "https://…/video.mp4, .webm…" : "https://…/photo.jpg"}
-              className="min-w-0 flex-1 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs text-[var(--agency-ink)] outline-none transition focus:border-[var(--agency-ink)]/30 disabled:opacity-50"
+              className="min-w-0 flex-1 rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs text-[var(--agency-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition focus:border-[var(--agency-ink)]/30 disabled:opacity-50"
             />
             <button
               type="button"

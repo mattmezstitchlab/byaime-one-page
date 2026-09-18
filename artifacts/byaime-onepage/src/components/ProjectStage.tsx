@@ -6,6 +6,8 @@ import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay,
 import { enUS, fr } from 'date-fns/locale';
 import { useLocation } from 'wouter';
 import { UniversalTimeline } from './UniversalTimeline';
+import { PublicPageView } from './PublicPageView';
+import { publicPageOf, withBlockVisibility } from '@/lib/public-page';
 import { TimelinePlayback } from './TimelinePlayback';
 import { requestAimePanelFollow, requestAimePanelShow } from '@/lib/aime-panel-events';
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ImagePlus, Waves } from 'lucide-react';
@@ -669,7 +671,7 @@ export function ProjectStage() {
             {!previewRole && <button
               type="button"
               onClick={() => setTasksOpen(true)}
-              className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               style={{ background: `conic-gradient(from -90deg, hsl(var(--brand-accent)) 0deg ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
               aria-label={t("world.hero.tasks.aria", { percent: completion })}
             >
@@ -808,6 +810,20 @@ export function ProjectStage() {
               )}
             </div>
           </section>
+        )}
+        {/* La page publique du Monde en composition déclarative (pont
+            AIME-COMPOSER, docs/pont-architecture-aime.md) : chaque bloc lit
+            sa source en direct — changer le Monde change la page. */}
+        {isPublicInfo && (
+          <PublicPageView
+            project={project}
+            onToggleVisibility={
+              canEdit
+                ? (blockId, visibility) =>
+                    updateProject({ publicPage: withBlockVisibility(publicPageOf(project), blockId, visibility) })
+                : undefined
+            }
+          />
         )}
         {/* La lecture de la Timeline reste à la place où on la regarde :
             au-dessus du déroulé, plus dans une barre de navigation. */}

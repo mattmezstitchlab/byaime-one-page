@@ -2,6 +2,7 @@ import { WorldProject, fact } from './types';
 import { normalizeProject } from './project-migration';
 import { generateWeddingTimeline } from './seed-data';
 import { DEFAULT_HERO_VISUAL } from './world-visuals';
+import { defaultPublicPage } from './public-page';
 
 /*
  * Lecture de la date dans une intention libre.
@@ -351,6 +352,9 @@ export function createInitialProject(draft: Partial<WorldProject>, intentionText
       { id: "tm2", name: "Claire Martin", role: "Coordination jour J", contact: "06 42 18 73 20", responsibilities: ["Run sheet", "Prestataires", "Urgences"] },
       { id: "tm3", name: "Sophie Martin", role: "Témoin", contact: "", responsibilities: ["Lecture", "Livre d'or", "Kit urgence"] }
     ] : [],
+    /* La page publique naît composée : le kit livre ses liaisons par défaut,
+       l'utilisateur n'assemble rien (pont AIME-COMPOSER, tranche 1). */
+    publicPage: defaultPublicPage(),
     memoryChecklist: isWedding ? [
       { id: "mc1", label: "La première rencontre des familles", done: false },
       { id: "mc2", label: "Les vœux", done: false },

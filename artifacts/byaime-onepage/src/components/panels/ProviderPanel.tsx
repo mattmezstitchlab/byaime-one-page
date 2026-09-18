@@ -41,7 +41,7 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-[var(--agency-eyebrow)]"
+              className="w-full bg-transparent py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)]"
               placeholder="Rechercher un professionnel…"
             />
           </label>
@@ -80,14 +80,14 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                     disabled={!canEdit}
                     value={provider.role}
                     onChange={e => updateEntity("providers", provider.id, { role: e.target.value })}
-                    className="w-full bg-transparent text-[11px] uppercase tracking-[0.24em] text-[var(--agency-eyebrow)] outline-none"
+                    className="w-full bg-transparent text-[11px] uppercase tracking-[0.24em] text-[var(--agency-eyebrow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
                   <input
                     disabled={!canEdit}
                     value={provider.name || ""}
                     onChange={e => updateEntity("providers", provider.id, { name: e.target.value })}
                     placeholder="Nom"
-                    className="mt-1 w-full bg-transparent text-[15px] font-medium outline-none text-[var(--agency-ink)] placeholder:text-[var(--agency-eyebrow)]"
+                    className="mt-1 w-full bg-transparent text-[15px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-[var(--agency-ink)] placeholder:text-[var(--agency-eyebrow)]"
                   />
                 </div>
                 {canEdit && (
@@ -102,7 +102,7 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                   disabled={!canEdit}
                   value={provider.status}
                   onChange={e => updateEntity("providers", provider.id, { status: e.target.value })}
-                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none"
+                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="recherche">À trouver</option>
                   <option value="contacte">Contact pris</option>
@@ -114,7 +114,7 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                   value={provider.nextAction || ""}
                   onChange={e => updateEntity("providers", provider.id, { nextAction: e.target.value })}
                   placeholder="À faire ensuite"
-                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)]"
+                  className="rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)]"
                 />
                 <input
                   disabled={!canEdit}
@@ -122,7 +122,7 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                   value={provider.amountCents ? provider.amountCents / 100 : ""}
                   onChange={e => updateEntity("providers", provider.id, { amountCents: e.target.value ? Number(e.target.value) * 100 : undefined })}
                   placeholder="Montant €"
-                  className="col-span-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none placeholder:text-[var(--agency-eyebrow)]"
+                  className="col-span-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)]"
                 />
               </div>
 
@@ -215,7 +215,7 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                   {p.state === "paye" && <Check className="h-3.5 w-3.5" />}
                 </button>
                 <div className="flex-1">
-                  <input value={p.label} onChange={e => updateEntity("payments", p.id, { label: e.target.value })} className="w-full bg-transparent text-sm outline-none text-[var(--agency-ink)]" />
+                  <input value={p.label} onChange={e => updateEntity("payments", p.id, { label: e.target.value })} className="w-full bg-transparent text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-[var(--agency-ink)]" />
                   <p className="mt-1 text-xs text-[var(--agency-body)]">{new Date(p.at).toLocaleDateString("fr-FR")} · {p.state === "paye" ? "réglé" : "à régler"}</p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -223,7 +223,7 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                     type="number"
                     value={p.amountCents / 100}
                     onChange={e => updateEntity("payments", p.id, { amountCents: Number(e.target.value) * 100 })}
-                    className="w-24 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-right font-mono text-sm outline-none"
+                    className="w-24 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-1.5 text-right font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
                   <span className="w-8 text-xs text-[var(--agency-body)]">{currencySymbol(project.currency)}</span>
                 </div>

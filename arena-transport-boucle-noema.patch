@@ -1,0 +1,916 @@
+From 3c6f68f76c99774fbef68ba66fcb921e81dc1bae Mon Sep 17 00:00:00 2001
+From: mattmezstitchlab <260379715+mattmezstitchlab@users.noreply.github.com>
+Date: Fri, 18 Sep 2026 01:34:01 +0000
+Subject: [PATCH] =?UTF-8?q?Boucle=20NOEMA=20branch=C3=A9e=20sur=20l'h?=
+ =?UTF-8?q?=C3=A9bergement=20=E2=80=94=20un=20routeur,=20deux=20h=C3=B4tes?=
+ =?UTF-8?q?,=20un=20runtime=20publi=C3=A9?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Les routes /api/ de la boucle quittent server.mjs pour src/http.mjs
+(createLoopApi) : le serveur local complet et la fonction serverless de
+l'hébergement partagent exactement les mêmes règles — une décision sans
+acteur est refusée (400), aucune écriture sans provenance — sans
+duplication ni réécriture.
+
+- loop/src/http.mjs : le routeur API extrait, inchangé dans ses règles.
+  Il reçoit un `runtime` honnête et le publie dans /api/state.
+- loop/server.mjs : compose le routeur avec les fichiers statiques.
+  Runtime publié : { mode: 'server', persisted: true } (disque atomique).
+- api/[[...route]].mjs : fonction Vercel — même routeur, monde de
+  démonstration en mémoire. Runtime publié :
+  { mode: 'serverless', persisted: false }.
+
+Contrat d'honnêteté serverless — affiché, jamais caché : sur l'hébergement,
+le monde survit tant que l'instance est chaude et se réinitialise à froid.
+L'écran /loop/ le badge « démo · réinitialisée à froid », l'accueil badge
+« NOEMA en ligne · démo », et la persistance disque reste la promesse du
+serveur local complet (node loop/server.mjs), jamais simulée.
+
+Gates :
+- loop : 91 tests unitaires + 36 tests API (3 nouveaux : le serveur local
+  publie son runtime ; un hôte serverless publie sa vérité ; la fonction
+  de l'hébergement branche le même routeur sans ouvrir de port) — HTTP
+  réel, ports éphémères, comme toujours.
+- design-system : QA 12 familles conformes · vérification DOM 34/34.
+- loop/test/smoke-deployed.mjs (npm run smoke:deployed, BASE_URL
+  configurable) : la gate post-déploiement — l'écran est servi, l'API
+  répond avec un monde et un runtime honnête, une décision sans acteur
+  est refusée sur l'hôte réel, une route inconnue reste un 404 JSON.
+  Un déploiement qui ne prouve pas ce qu'il sert est une opinion.
+
+Note déploiement : le Root Directory du projet reste la racine du dépôt —
+la fonction est détectée seule, aucun vercel.json requis.
+
+Co-authored-by: arena-agent <297053741+arena-agent@users.noreply.github.com>
+---
+ README.md                    |  33 +++++
+ api/[[...route]].mjs         |  35 +++++
+ home.js                      |  16 ++-
+ loop/index.html              |   1 +
+ loop/package.json            |   3 +-
+ loop/server.mjs              | 229 +++----------------------------
+ loop/src/http.mjs            | 252 +++++++++++++++++++++++++++++++++++
+ loop/test/api.mjs            |  49 +++++++
+ loop/test/smoke-deployed.mjs |  89 +++++++++++++
+ loop/ui.mjs                  |   1 +
+ 10 files changed, 496 insertions(+), 212 deletions(-)
+ create mode 100644 api/[[...route]].mjs
+ create mode 100644 loop/src/http.mjs
+ create mode 100644 loop/test/smoke-deployed.mjs
+
+diff --git a/README.md b/README.md
+index 64f6e5c..251ef33 100644
+--- a/README.md
++++ b/README.md
+@@ -122,3 +122,36 @@ Behavioral smokes (viewer, local ingest, coverage, selection, exports) run in
+ ```bash
+ cd design-system && node qa/smoke-medias-v2.mjs
+ ```
++
++## Boucle NOEMA
++
++`loop/` is the minimal AIME/NOEMA loop: a provenance-carrying store, a
++proposition engine, and **human-only decisions** — a decision without an actor
++is refused, on every host, by the same router.
++
++The API routes live in `loop/src/http.mjs` (`createLoopApi`) and are shared by
++two hosts without duplication:
++
++| Host | What it is | Runtime published in `/api/state` |
++|---|---|---|
++| `node loop/server.mjs` | the full local server — static files + API, **disk persistence** (`loop/data/world.json`, atomic writes) | `{ mode: 'server', persisted: true }` |
++| `api/[[...route]].mjs` | the hosting function (Vercel) — same router, **in-memory demo world** | `{ mode: 'serverless', persisted: false }` |
++
++**Serverless honesty contract**: on the hosting, the world lives in memory per
++function instance — it survives while the instance is warm and resets to the
++demonstration seed on cold start. This is *displayed*, never hidden: the
++`/loop/` screen shows a "démo · réinitialisée à froid" badge and the home
++badge reads "NOEMA en ligne · démo". Disk persistence remains the promise of
++the full local server, never simulated.
++
++```bash
++cd loop
++npm test               # 91 unit + 36 API tests (HTTP, ephemeral ports)
++npm run smoke:deployed # post-deploy gate against the real host
++# BASE_URL=https://… npm run smoke:deployed
++```
++
++The post-deploy smoke checks what a deployment must prove: the screen is
++served, `/api/state` answers with a world and an honest runtime, an actor-less
++decision is refused (400) on the real host, and unknown API routes stay JSON
++404s. A deployment that does not prove what it serves is an opinion.
+diff --git a/api/[[...route]].mjs b/api/[[...route]].mjs
+new file mode 100644
+index 0000000..ac873ce
+--- /dev/null
++++ b/api/[[...route]].mjs
+@@ -0,0 +1,35 @@
++/**
++ * AIME / NOEMA — FONCTION SERVERLESS DE LA BOUCLE
++ *
++ * Branche le routeur API de la boucle (loop/src/http.mjs — le même que le
++ * serveur local complet) sur l'hébergement. Aucune dépendance, aucune
++ * réécriture de règle : une décision sans acteur est refusée ici exactement
++ * comme ailleurs.
++ *
++ * Contrat d'honnêteté serverless — il est affiché, jamais caché :
++ *   · le monde vit en mémoire, par instance de fonction ;
++ *   · il survit tant que l'instance est chaude, et se réinitialise à froid
++ *     sur le monde de démonstration ;
++ *   · /api/state publie runtime { mode: 'serverless', persisted: false },
++ *     et l'écran affiche « démo · réinitialisée à froid » ;
++ *   · la persistance disque reste la promesse du serveur local complet
++ *     (`node loop/server.mjs`) — elle n'est jamais simulée ici.
++ */
++import { createStore } from '../loop/src/store.mjs';
++import { createLoopApi } from '../loop/src/http.mjs';
++import { seed } from '../loop/seed.mjs';
++
++const g = globalThis;
++if (!g.__aimeNoemaLoopApi) {
++  /* Aucun disque n'est garanti sur cet hôte : mémoire seule, et c'est dit. */
++  const store = createStore(null);
++  seed(store);
++  g.__aimeNoemaLoopApi = createLoopApi({
++    store,
++    runtime: { mode: 'serverless', persisted: false },
++  });
++}
++
++export default function handler(req, res) {
++  return g.__aimeNoemaLoopApi(req, res);
++}
+diff --git a/home.js b/home.js
+index 1f7a989..9e4fd78 100644
+--- a/home.js
++++ b/home.js
+@@ -74,6 +74,7 @@
+   const CONF = { low: 'faible', medium: 'moyenne', high: 'élevée' };
+ 
+   let live = false; /* la boucle répond-elle ? */
++  let runtimeMode = null; /* 'server' | 'serverless' | null — la vérité de l'hôte */
+ 
+   async function api(path, opts) {
+     const r = await fetch(path, opts);
+@@ -85,7 +86,15 @@
+   function setStatus() {
+     const b = $('#h-noema-status');
+     if (!b) return;
+-    b.textContent = live ? 'NOEMA en ligne' : 'NOEMA hors ligne';
++    /* Serverless sans disque : la boucle répond, mais son monde est une
++       démo réinitialisée à froid — le badge le dit au lieu de promettre
++       une persistance que l'hôte ne tient pas. */
++    b.textContent = live
++      ? runtimeMode === 'serverless' ? 'NOEMA en ligne · démo' : 'NOEMA en ligne'
++      : 'NOEMA hors ligne';
++    b.title = live && runtimeMode === 'serverless'
++      ? 'Monde de démonstration en mémoire, réinitialisé à froid — la persistance disque vit sur le serveur local complet.'
++      : '';
+     b.className = live ? 'a-badge a-badge--success' : 'a-badge';
+   }
+ 
+@@ -95,7 +104,7 @@
+ 
+   function offlineNote() {
+     if (!out) return;
+-    out.innerHTML = `<p class="t-body-sm u-muted">La boucle NOEMA n'est pas branchée sur cet hébergement — la page reste consultable, la conversation demande le serveur de la boucle :</p>
++    out.innerHTML = `<p class="t-body-sm u-muted">La boucle NOEMA n'a pas répondu depuis cet hébergement — la page reste consultable, la conversation demande le serveur de la boucle :</p>
+       <pre class="ds-code">node loop/server.mjs\n<i>puis recharger cette page — le badge passera « NOEMA en ligne ».</i></pre>
+       <p class="t-caption u-muted">En attendant, la boucle complète — propositions, validation, mémoire, journal — s'ouvre <a class="a-text-btn" href="loop/">sur l'écran de la boucle</a>.</p>`;
+   }
+@@ -176,8 +185,9 @@
+      « hors ligne », sans erreur — la page documente déjà comment brancher. */
+   if (typeof fetch === 'function') {
+     api('/api/state')
+-      .then(() => {
++      .then((d) => {
+         live = true;
++        runtimeMode = d.runtime?.mode || null;
+         setStatus();
+       })
+       .catch(() => setStatus());
+diff --git a/loop/index.html b/loop/index.html
+index 688294a..8a09b36 100644
+--- a/loop/index.html
++++ b/loop/index.html
+@@ -42,6 +42,7 @@
+   <div class="ds-rule">
+     <p class="ds-rule__title">Ce que cet écran prouve</p>
+     <p>Chaque objet persisté a un propriétaire, une source et une provenance. NOEMA observe et propose — elle n'écrit jamais un fait. Une proposition devient un fait uniquement par une décision humaine attribuée, qui laisse une preuve. Sous le seuil de confiance, NOEMA se tait : les propositions retenues sont affichées comme retenues, jamais appliquées.</p>
++    <p>L'hôte de cet écran est publié, jamais déguisé : sur un hébergement sans disque, le monde est une démo en mémoire — réinitialisée à froid, affichée comme telle — et la persistance disque reste la promesse du serveur local complet.</p>
+   </div>
+ 
+   <section class="ds-block" aria-labelledby="intention">
+diff --git a/loop/package.json b/loop/package.json
+index cc4228f..8486cdb 100644
+--- a/loop/package.json
++++ b/loop/package.json
+@@ -7,6 +7,7 @@
+   "scripts": {
+     "test": "node test/run.mjs && node test/api.mjs",
+     "test:unit": "node test/run.mjs",
+-    "test:api": "node test/api.mjs"
++    "test:api": "node test/api.mjs",
++    "smoke:deployed": "node test/smoke-deployed.mjs"
+   }
+ }
+diff --git a/loop/server.mjs b/loop/server.mjs
+index 801de85..ec5449c 100644
+--- a/loop/server.mjs
++++ b/loop/server.mjs
+@@ -4,45 +4,28 @@
+  *
+  * Sans dépendance. Sert le dépôt en statique et expose la boucle en JSON.
+  *
+- *   GET  /api/state            le monde : entités, journal, observation en cours
+- *   POST /api/observe          NOEMA observe et écrit ses propositions
+- *   POST /api/decide           un humain tranche { proposal_id, decision, actor, reason }
+- *   POST /api/intend           une phrase humaine → propositions (jamais des faits)
+- *   POST /api/authorize        un humain autorise ou refuse une action
+- *   POST /api/execute          exécute une action autorisée (simulé, tracé)
+- *   GET  /api/rights           les huit droits et leur vocabulaire
+- *   POST /api/memory/voir      ce que le système sait d'un sujet
+- *   POST /api/memory/comprendre  pourquoi NOEMA croit ce qu'elle croit
+- *   POST /api/memory/corriger  correction humaine attribuée
+- *   POST /api/memory/supprimer suppression réelle + pierre tombale
+- *   POST /api/memory/pauser    suspendre la collecte sur un sujet
+- *   POST /api/memory/limiter   catégorie et plafond de visibilité
+- *   POST /api/memory/partager  accord d'accès borné
+- *   POST /api/memory/revoquer  retrait d'un accès accordé
+- *   GET  /api/timeline         projection du flux canonique (?mode=&granularity=&project_id=)
+- *   GET  /api/timeline/moteur  modes, capacités, granularités
+- *   POST /api/timeline/move    déplace l'événement canonique (jamais une copie)
+- *   POST /api/timeline/complete  achève un événement
+- *   POST /api/reset            repart du monde de démonstration
++ * Les routes /api/* vivent dans src/http.mjs (createLoopApi) : le même
++ * routeur sert ce serveur local complet — avec persistance disque — et la
++ * fonction serverless de l'hébergement (api/[[...route]].mjs), sans
++ * duplication. Les règles (« une décision sans acteur est refusée »,
++ * « aucune écriture sans provenance ») sont donc écrites une seule fois.
+  *
+- * Trois règles côté serveur, les mêmes que dans les modules :
+- *   · une décision sans acteur est refusée (400) ;
+- *   · NOEMA ne peut pas appeller /api/decide à la place d'un humain —
+- *     l'acteur est obligatoire et tracé ;
+- *   · aucune route n'écrit un objet sans provenance.
++ * Ici, l'hôte est un serveur qui tourne : runtime { mode: 'server',
++ * persisted: true }, publié tel quel dans /api/state.
++ *
++ *   node loop/server.mjs
++ *     écran   http://0.0.0.0:8090/loop/
++ *     API     http://0.0.0.0:8090/api/state
++ *     données loop/data/world.json (atomique, reload propre)
++ *
++ * La liste complète des routes est documentée dans src/http.mjs.
+  */
+ import { createServer } from 'node:http';
+ import { readFileSync, existsSync, statSync } from 'node:fs';
+ import { join, dirname, extname, resolve, relative } from 'node:path';
+ import { fileURLToPath } from 'node:url';
+ import { createStore } from './src/store.mjs';
+-import { observe, propose, decide } from './src/noema.mjs';
+-import { interpret, submit } from './src/intention.mjs';
+-import { draft, authorize, execute, posture } from './src/action.mjs';
+-import {
+-  voir, comprendre, corriger, supprimer, pauser, limiter, partager, revoquer, droits,
+-} from './src/governance.mjs';
+-import { project, move, complete, moteur } from './src/timeline.mjs';
++import { createLoopApi } from './src/http.mjs';
+ import { seed } from './seed.mjs';
+ 
+ const HERE = dirname(fileURLToPath(import.meta.url));
+@@ -66,7 +49,11 @@ export function createLoopServer({ db = DB } = {}) {
+     seed(store);
+     store.save();
+   }
+-  return createServer(handler);
++  const api = createLoopApi({ store, runtime: { mode: 'server', persisted: true } });
++  return createServer(async (req, res) => {
++    if (await api(req, res)) return;
++    serveStatic(req, res);
++  });
+ }
+ 
+ /** Le store courant — utile aux tests qui vérifient l'état persisté. */
+@@ -82,183 +69,9 @@ const MIME = {
+   '.ico': 'image/x-icon',
+ };
+ 
+-const json = (res, code, body) => {
+-  const out = JSON.stringify(body, null, 2);
+-  res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'content-length': Buffer.byteLength(out) });
+-  res.end(out);
+-};
+-
+-const readBody = (req) => new Promise((done, fail) => {
+-  let raw = '';
+-  req.on('data', (c) => { raw += c; if (raw.length > 1e6) req.destroy(); });
+-  req.on('end', () => { try { done(raw ? JSON.parse(raw) : {}); } catch (e) { fail(e); } });
+-  req.on('error', fail);
+-});
+-
+-/** Ce que l'écran a besoin de voir, et rien de plus. */
+-function snapshot() {
+-  const { drafts, proposable, withheld } = observe(store);
+-  return {
+-    now: new Date().toISOString(),
+-    entities: store.all(),
+-    journal: store.journal.slice(-40),
+-    observation: {
+-      total: drafts.length,
+-      proposable: proposable.map((d) => ({ kind: d.kind, target_id: d.target_id, confidence: d.confidence, title: d.title })),
+-      withheld: withheld.map((d) => ({ kind: d.kind, target_id: d.target_id, confidence: d.confidence, title: d.title })),
+-    },
+-  };
+-}
+-
+-async function handler(req, res) {
++function serveStatic(req, res) {
+   const url = new URL(req.url, `http://${req.headers.host}`);
+   const path = decodeURIComponent(url.pathname);
+-
+-  /* ── API ─────────────────────────────────────────────────── */
+-  if (path.startsWith('/api/')) {
+-    try {
+-      if (path === '/api/state' && req.method === 'GET') {
+-        return json(res, 200, snapshot());
+-      }
+-
+-      if (path === '/api/observe' && req.method === 'POST') {
+-        const result = propose(store, { actor: 'noema' });
+-        store.save();
+-        return json(res, 200, { ...result, state: snapshot() });
+-      }
+-
+-      if (path === '/api/decide' && req.method === 'POST') {
+-        const body = await readBody(req);
+-        /* Une décision anonyme est refusée : c'est le cœur du système. */
+-        if (!body.actor) return json(res, 400, { error: 'une décision sans acteur est refusée' });
+-        if (!body.proposal_id) return json(res, 400, { error: 'proposal_id obligatoire' });
+-        if (!['accepted', 'rejected', 'deferred'].includes(body.decision)) {
+-          return json(res, 400, { error: `décision inconnue : « ${body.decision} »` });
+-        }
+-        const out = decide(store, body);
+-        store.save();
+-        return json(res, 200, { ...out, state: snapshot() });
+-      }
+-
+-      if (path === '/api/intend' && req.method === 'POST') {
+-        const body = await readBody(req);
+-        if (!body.text || !String(body.text).trim()) {
+-          return json(res, 400, { error: 'aucune intention à lire : « text » est vide' });
+-        }
+-        /* `dry_run` permet à l'écran de montrer ce que NOEMA a compris
+-           AVANT d'écrire quoi que ce soit. C'est le principe GARDIENNE :
+-           on propose d'abord, on n'enregistre qu'ensuite. */
+-        if (body.dry_run) return json(res, 200, { ...interpret(body.text), written: [], state: snapshot() });
+-        const out = submit(store, body.text, { actor: body.actor || 'noema' });
+-        store.save();
+-        return json(res, 200, { ...out, state: snapshot() });
+-      }
+-
+-      if (path === '/api/authorize' && req.method === 'POST') {
+-        const body = await readBody(req);
+-        /* Même règle que /api/decide : pas d'acteur, pas d'autorisation. */
+-        if (!body.actor) return json(res, 400, { error: 'une autorisation sans acteur est refusée' });
+-        if (!body.action_id) return json(res, 400, { error: 'action_id obligatoire' });
+-        const out = authorize(store, body);
+-        store.save();
+-        return json(res, 200, { ...out, state: snapshot() });
+-      }
+-
+-      if (path === '/api/execute' && req.method === 'POST') {
+-        const body = await readBody(req);
+-        if (!body.actor) return json(res, 400, { error: 'une exécution sans acteur est refusée' });
+-        if (!body.action_id) return json(res, 400, { error: 'action_id obligatoire' });
+-        const out = execute(store, body);
+-        store.save();
+-        return json(res, 200, { ...out, state: snapshot() });
+-      }
+-
+-      if (path === '/api/posture' && req.method === 'GET') {
+-        return json(res, 200, posture());
+-      }
+-
+-      /* ── Gouvernance de la mémoire ───────────────────────────
+-         Huit droits, une seule règle transversale : aucun ne s'exerce
+-         sans acteur. Le serveur refuse avant d'appeler le module, pour
+-         que le refus soit identique quel que soit le droit.
+-         ──────────────────────────────────────────────────────── */
+-      /* ── Timeline universelle ────────────────────────────────
+-         Une projection, jamais une seconde source de vérité : GET
+-         n'écrit rien, et move() frappe l'événement canonique.
+-         ──────────────────────────────────────────────────────── */
+-      if (path === '/api/timeline' && req.method === 'GET') {
+-        const mode = url.searchParams.get('mode') || 'PLAN';
+-        const granularity = url.searchParams.get('granularity') || 'JOUR';
+-        const project_id = url.searchParams.get('project_id') || null;
+-        return json(res, 200, project(store, { mode, granularity, project_id }));
+-      }
+-
+-      if (path === '/api/timeline/moteur' && req.method === 'GET') {
+-        return json(res, 200, moteur());
+-      }
+-
+-      if (path === '/api/timeline/move' && req.method === 'POST') {
+-        const body = await readBody(req);
+-        /* Le mode est vérifié côté serveur : une interface qui autoriserait
+-           un déplacement en READ ne pourrait pas le faire passer. */
+-        if (!body.actor) return json(res, 400, { error: 'un déplacement sans acteur est refusé' });
+-        if (!body.item_id) return json(res, 400, { error: 'item_id obligatoire' });
+-        const out = move(store, body);
+-        store.save();
+-        return json(res, 200, { ...out, state: snapshot() });
+-      }
+-
+-      if (path === '/api/timeline/complete' && req.method === 'POST') {
+-        const body = await readBody(req);
+-        if (!body.actor) return json(res, 400, { error: 'un achèvement sans acteur est refusé' });
+-        if (!body.item_id) return json(res, 400, { error: 'item_id obligatoire' });
+-        const out = complete(store, body);
+-        store.save();
+-        return json(res, 200, { ...out, state: snapshot() });
+-      }
+-
+-      if (path === '/api/rights' && req.method === 'GET') {
+-        return json(res, 200, droits());
+-      }
+-
+-      if (path.startsWith('/api/memory/') && req.method === 'POST') {
+-        const right = path.slice('/api/memory/'.length);
+-        const body = await readBody(req);
+-        if (!body.actor) {
+-          return json(res, 400, { error: `le droit « ${right} » exige un acteur — un droit anonyme n'est pas vérifiable` });
+-        }
+-        const HANDLERS = {
+-          voir: () => voir(store, { subject_id: body.subject_id, actor: body.actor }),
+-          comprendre: () => comprendre(store, { id: body.id, actor: body.actor }),
+-          corriger: () => corriger(store, body),
+-          supprimer: () => supprimer(store, body),
+-          pauser: () => pauser(store, { subject_id: body.subject_id, until: body.until, actor: body.actor, reason: body.reason }),
+-          limiter: () => limiter(store, body),
+-          partager: () => partager(store, body),
+-          revoquer: () => revoquer(store, { grant_id: body.grant_id, actor: body.actor, reason: body.reason }),
+-        };
+-        if (!HANDLERS[right]) {
+-          return json(res, 404, { error: `droit inconnu : « ${right} » (${Object.keys(HANDLERS).join(', ')})` });
+-        }
+-        const out = HANDLERS[right]();
+-        store.save();
+-        return json(res, 200, { ...out, state: snapshot() });
+-      }
+-
+-      if (path === '/api/reset' && req.method === 'POST') {
+-        store.reset();
+-        seed(store);
+-        store.save();
+-        return json(res, 200, { ok: true, state: snapshot() });
+-      }
+-
+-      return json(res, 404, { error: `route inconnue : ${req.method} ${path}` });
+-    } catch (e) {
+-      return json(res, 400, { error: e.message });
+-    }
+-  }
+-
+-  /* ── Statique ────────────────────────────────────────────── */
+   let file = join(REPO, path === '/' ? 'loop/index.html' : path);
+   /* Un chemin qui se termine par / ou pointe un dossier sert son index. */
+   if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
+diff --git a/loop/src/http.mjs b/loop/src/http.mjs
+new file mode 100644
+index 0000000..38aaa87
+--- /dev/null
++++ b/loop/src/http.mjs
+@@ -0,0 +1,252 @@
++/**
++ * AIME / NOEMA — ROUTEUR API DE LA BOUCLE
++ *
++ * Extrait de server.mjs : les routes /api/* sont celles du serveur local
++ * complet — un seul routeur, deux hôtes. Le serveur local (server.mjs) le
++ * compose avec les fichiers statiques ; une fonction serverless
++ * (api/[[...route]].mjs) le branche sans rien réécrire. Si une règle change
++ * (une décision sans acteur refusée, la provenance obligatoire), elle change
++ * ici et s'applique partout — les tests parlent HTTP au routeur, jamais à
++ * une copie.
++ *
++ * Le routeur ne sait pas où il tourne : il reçoit un `runtime` honnête —
++ * { mode: 'server', persisted: true } quand un disque existe,
++ * { mode: 'serverless', persisted: false } quand rien n'est garanti — et le
++ * publie dans /api/state. L'écran affiche la vérité de son hôte, jamais une
++ * promesse de persistance que l'hôte ne tient pas.
++ *
++ *   GET  /api/state            le monde : entités, journal, observation, runtime
++ *   POST /api/observe          NOEMA observe et écrit ses propositions
++ *   POST /api/decide           un humain tranche { proposal_id, decision, actor, reason }
++ *   POST /api/intend           une phrase humaine → propositions (jamais des faits)
++ *   POST /api/authorize        un humain autorise ou refuse une action
++ *   POST /api/execute          exécute une action autorisée (simulé, tracé)
++ *   GET  /api/posture          la posture affichée de NOEMA
++ *   GET  /api/rights           les huit droits et leur vocabulaire
++ *   POST /api/memory/*         les huit droits de la mémoire
++ *   GET  /api/timeline         projection du flux canonique (?mode=&granularity=&project_id=)
++ *   GET  /api/timeline/moteur  modes, capacités, granularités
++ *   POST /api/timeline/move    déplace l'événement canonique (jamais une copie)
++ *   POST /api/timeline/complete  achève un événement
++ *   POST /api/reset            repart du monde de démonstration
++ *
++ * Trois règles côté routeur, les mêmes que dans les modules :
++ *   · une décision sans acteur est refusée (400) ;
++ *   · NOEMA ne peut pas appeler /api/decide à la place d'un humain —
++ *     l'acteur est obligatoire et tracé ;
++ *   · aucune route n'écrit un objet sans provenance.
++ */
++import { observe, propose, decide } from './noema.mjs';
++import { interpret, submit } from './intention.mjs';
++import { draft, authorize, execute, posture } from './action.mjs';
++import {
++  voir, comprendre, corriger, supprimer, pauser, limiter, partager, revoquer, droits,
++} from './governance.mjs';
++import { project, move, complete, moteur } from './timeline.mjs';
++import { seed } from '../seed.mjs';
++
++const json = (res, code, body) => {
++  const out = JSON.stringify(body, null, 2);
++  res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'content-length': Buffer.byteLength(out) });
++  res.end(out);
++};
++
++const readBody = (req) => new Promise((done, fail) => {
++  let raw = '';
++  req.on('data', (c) => { raw += c; if (raw.length > 1e6) req.destroy(); });
++  req.on('end', () => { try { done(raw ? JSON.parse(raw) : {}); } catch (e) { fail(e); } });
++  req.on('error', fail);
++});
++
++/**
++ * Construit le routeur API de la boucle.
++ *
++ * @param {{ store: object, runtime?: { mode: 'server'|'serverless', persisted: boolean } }} options
++ * @returns {(req: object, res: object) => Promise<boolean>} true si la requête
++ *   était une route /api/* (traitée, réponse terminée), false sinon — l'hôte
++ *   (serveur statique, fonction serverless) garde la main sur le reste.
++ */
++export function createLoopApi({ store, runtime = { mode: 'server', persisted: true } }) {
++  /** Ce que l'écran a besoin de voir, et rien de plus. */
++  function snapshot() {
++    const { drafts, proposable, withheld } = observe(store);
++    return {
++      now: new Date().toISOString(),
++      runtime,
++      entities: store.all(),
++      journal: store.journal.slice(-40),
++      observation: {
++        total: drafts.length,
++        proposable: proposable.map((d) => ({ kind: d.kind, target_id: d.target_id, confidence: d.confidence, title: d.title })),
++        withheld: withheld.map((d) => ({ kind: d.kind, target_id: d.target_id, confidence: d.confidence, title: d.title })),
++      },
++    };
++  }
++
++  return async function loopApi(req, res) {
++    const url = new URL(req.url, `http://${req.headers.host}`);
++    const path = decodeURIComponent(url.pathname);
++    if (!path.startsWith('/api/')) return false;
++
++    try {
++      if (path === '/api/state' && req.method === 'GET') {
++        json(res, 200, snapshot());
++        return true;
++      }
++
++      if (path === '/api/observe' && req.method === 'POST') {
++        const result = propose(store, { actor: 'noema' });
++        store.save();
++        json(res, 200, { ...result, state: snapshot() });
++        return true;
++      }
++
++      if (path === '/api/decide' && req.method === 'POST') {
++        const body = await readBody(req);
++        /* Une décision anonyme est refusée : c'est le cœur du système. */
++        if (!body.actor) { json(res, 400, { error: 'une décision sans acteur est refusée' }); return true; }
++        if (!body.proposal_id) { json(res, 400, { error: 'proposal_id obligatoire' }); return true; }
++        if (!['accepted', 'rejected', 'deferred'].includes(body.decision)) {
++          json(res, 400, { error: `décision inconnue : « ${body.decision} »` });
++          return true;
++        }
++        const out = decide(store, body);
++        store.save();
++        json(res, 200, { ...out, state: snapshot() });
++        return true;
++      }
++
++      if (path === '/api/intend' && req.method === 'POST') {
++        const body = await readBody(req);
++        if (!body.text || !String(body.text).trim()) {
++          json(res, 400, { error: 'aucune intention à lire : « text » est vide' });
++          return true;
++        }
++        /* `dry_run` permet à l'écran de montrer ce que NOEMA a compris
++           AVANT d'écrire quoi que ce soit. C'est le principe GARDIENNE :
++           on propose d'abord, on n'enregistre qu'ensuite. */
++        if (body.dry_run) { json(res, 200, { ...interpret(body.text), written: [], state: snapshot() }); return true; }
++        const out = submit(store, body.text, { actor: body.actor || 'noema' });
++        store.save();
++        json(res, 200, { ...out, state: snapshot() });
++        return true;
++      }
++
++      if (path === '/api/authorize' && req.method === 'POST') {
++        const body = await readBody(req);
++        /* Même règle que /api/decide : pas d'acteur, pas d'autorisation. */
++        if (!body.actor) { json(res, 400, { error: 'une autorisation sans acteur est refusée' }); return true; }
++        if (!body.action_id) { json(res, 400, { error: 'action_id obligatoire' }); return true; }
++        const out = authorize(store, body);
++        store.save();
++        json(res, 200, { ...out, state: snapshot() });
++        return true;
++      }
++
++      if (path === '/api/execute' && req.method === 'POST') {
++        const body = await readBody(req);
++        if (!body.actor) { json(res, 400, { error: 'une exécution sans acteur est refusée' }); return true; }
++        if (!body.action_id) { json(res, 400, { error: 'action_id obligatoire' }); return true; }
++        const out = execute(store, body);
++        store.save();
++        json(res, 200, { ...out, state: snapshot() });
++        return true;
++      }
++
++      if (path === '/api/posture' && req.method === 'GET') {
++        json(res, 200, posture());
++        return true;
++      }
++
++      /* ── Gouvernance de la mémoire ───────────────────────────
++         Huit droits, une seule règle transversale : aucun ne s'exerce
++         sans acteur. Le routeur refuse avant d'appeler le module, pour
++         que le refus soit identique quel que soit le droit.
++         ──────────────────────────────────────────────────────── */
++      /* ── Timeline universelle ────────────────────────────────
++         Une projection, jamais une seconde source de vérité : GET
++         n'écrit rien, et move() frappe l'événement canonique.
++         ──────────────────────────────────────────────────────── */
++      if (path === '/api/timeline' && req.method === 'GET') {
++        const mode = url.searchParams.get('mode') || 'PLAN';
++        const granularity = url.searchParams.get('granularity') || 'JOUR';
++        const project_id = url.searchParams.get('project_id') || null;
++        json(res, 200, project(store, { mode, granularity, project_id }));
++        return true;
++      }
++
++      if (path === '/api/timeline/moteur' && req.method === 'GET') {
++        json(res, 200, moteur());
++        return true;
++      }
++
++      if (path === '/api/timeline/move' && req.method === 'POST') {
++        const body = await readBody(req);
++        /* Le mode est vérifié côté serveur : une interface qui autoriserait
++           un déplacement en READ ne pourrait pas le faire passer. */
++        if (!body.actor) { json(res, 400, { error: 'un déplacement sans acteur est refusé' }); return true; }
++        if (!body.item_id) { json(res, 400, { error: 'item_id obligatoire' }); return true; }
++        const out = move(store, body);
++        store.save();
++        json(res, 200, { ...out, state: snapshot() });
++        return true;
++      }
++
++      if (path === '/api/timeline/complete' && req.method === 'POST') {
++        const body = await readBody(req);
++        if (!body.actor) { json(res, 400, { error: 'un achèvement sans acteur est refusé' }); return true; }
++        if (!body.item_id) { json(res, 400, { error: 'item_id obligatoire' }); return true; }
++        const out = complete(store, body);
++        store.save();
++        json(res, 200, { ...out, state: snapshot() });
++        return true;
++      }
++
++      if (path === '/api/rights' && req.method === 'GET') {
++        json(res, 200, droits());
++        return true;
++      }
++
++      if (path.startsWith('/api/memory/') && req.method === 'POST') {
++        const right = path.slice('/api/memory/'.length);
++        const body = await readBody(req);
++        if (!body.actor) {
++          json(res, 400, { error: `le droit « ${right} » exige un acteur — un droit anonyme n'est pas vérifiable` });
++          return true;
++        }
++        const HANDLERS = {
++          voir: () => voir(store, { subject_id: body.subject_id, actor: body.actor }),
++          comprendre: () => comprendre(store, { id: body.id, actor: body.actor }),
++          corriger: () => corriger(store, body),
++          supprimer: () => supprimer(store, body),
++          pauser: () => pauser(store, { subject_id: body.subject_id, until: body.until, actor: body.actor, reason: body.reason }),
++          limiter: () => limiter(store, body),
++          partager: () => partager(store, body),
++          revoquer: () => revoquer(store, { grant_id: body.grant_id, actor: body.actor, reason: body.reason }),
++        };
++        if (!HANDLERS[right]) {
++          json(res, 404, { error: `droit inconnu : « ${right} » (${Object.keys(HANDLERS).join(', ')})` });
++          return true;
++        }
++        const out = HANDLERS[right]();
++        store.save();
++        json(res, 200, { ...out, state: snapshot() });
++        return true;
++      }
++
++      if (path === '/api/reset' && req.method === 'POST') {
++        store.reset();
++        seed(store);
++        store.save();
++        json(res, 200, { ok: true, state: snapshot() });
++        return true;
++      }
++
++      json(res, 404, { error: `route inconnue : ${req.method} ${path}` });
++      return true;
++    } catch (e) {
++      json(res, 400, { error: e.message });
++      return true;
++    }
++  };
++}
+diff --git a/loop/test/api.mjs b/loop/test/api.mjs
+index 51048f7..a461a2d 100644
+--- a/loop/test/api.mjs
++++ b/loop/test/api.mjs
+@@ -14,6 +14,7 @@
+  * handler directement ne prouverait rien sur le routage.
+  */
+ import { createLoopServer, currentStore } from '../server.mjs';
++import { createServer } from 'node:http';
+ import { mkdtempSync, rmSync } from 'node:fs';
+ import { tmpdir } from 'node:os';
+ import { join } from 'node:path';
+@@ -329,6 +330,54 @@ await test('une écriture est sauvée sur disque', async () => {
+   ok(brut.journal.length > 0, 'le journal n\'est pas persisté');
+ });
+ 
++/* ══ RUNTIME — l'hôte est publié, jamais déguisé ════════════════ */
++console.log('\nSERVEUR — runtime publié');
++
++await test('le serveur local publie son runtime : server, persisté', async () => {
++  const r = await get('/api/state');
++  eq(r.body.runtime, { mode: 'server', persisted: true }, 'runtime mensonger');
++});
++
++await test('un hôte serverless publie sa vérité : démo en mémoire', async () => {
++  const { createLoopApi } = await import('../src/http.mjs');
++  const { createStore } = await import('../src/store.mjs');
++  const { seed } = await import('../seed.mjs');
++  const store = createStore(null); /* mémoire seule : aucun disque promis */
++  seed(store);
++  const api = createLoopApi({ store, runtime: { mode: 'serverless', persisted: false } });
++  /* On parle HTTP pour de vrai, comme le reste du fichier : un handler
++     appelé directement ne prouverait rien sur le routage. */
++  const srv = createServer(api);
++  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
++  const base = `http://127.0.0.1:${srv.address().port}`;
++  const state = await (await fetch(`${base}/api/state`)).json();
++  eq(state.runtime, { mode: 'serverless', persisted: false }, 'runtime mensonger');
++  ok(state.entities.length > 0, 'le monde de démonstration est absent');
++  const refused = await fetch(`${base}/api/decide`, {
++    method: 'POST',
++    headers: { 'content-type': 'application/json' },
++    body: JSON.stringify({ proposal_id: 'prop-0001', decision: 'accepted' }),
++  });
++  eq(refused.status, 400, 'une décision sans acteur passe sur un hôte serverless');
++  srv.close();
++});
++
++await test('la fonction de l\u2019hébergement branche le même routeur, sans ouvrir de port', async () => {
++  const mod = await import('../../api/[[...route]].mjs');
++  ok(typeof mod.default === 'function', 'pas de handler exporté par défaut');
++  const srv = createServer(mod.default);
++  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
++  const base = `http://127.0.0.1:${srv.address().port}`;
++  const state = await (await fetch(`${base}/api/state`)).json();
++  eq(state.runtime, { mode: 'serverless', persisted: false }, 'la fonction déguise son hôte');
++  ok(state.entities.length > 0, 'le monde de démonstration est absent');
++  /* Le même store sert toutes les requêtes de l'instance : la boucle
++     conversationnelle tient tant que l'instance est chaude. */
++  const apres = await (await fetch(`${base}/api/state`)).json();
++  eq(apres.entities.length, state.entities.length, "l'instance ne tient pas son monde entre deux requêtes");
++  srv.close();
++});
++
+ /* ── Bilan ─────────────────────────────────────────────────────── */
+ server.close();
+ rmSync(dir, { recursive: true, force: true });
+diff --git a/loop/test/smoke-deployed.mjs b/loop/test/smoke-deployed.mjs
+new file mode 100644
+index 0000000..e0c4f28
+--- /dev/null
++++ b/loop/test/smoke-deployed.mjs
+@@ -0,0 +1,89 @@
++#!/usr/bin/env node
++/**
++ * AIME / NOEMA — SMOKE POST-DÉPLOIEMENT DE LA BOUCLE
++ *
++ * Un déploiement qui ne prouve pas ce qu'il sert est une opinion. Après
++ * chaque mise en ligne, ce smoke demande à l'hôte réel :
++ *
++ *   1. l'écran de la boucle est servi (HTML, titre attendu) ;
++ *   2. /api/state répond en JSON, avec un monde et un runtime honnête ;
++ *   3. une décision sans acteur est refusée (400) — la règle centrale
++ *      tient sur l'hébergement, pas seulement en local ;
++ *   4. une route inconnue sous /api/ renvoie 404 JSON, pas un HTML d'erreur.
++ *
++ *   BASE_URL=https://… node loop/test/smoke-deployed.mjs
++ *
++ * Sortie 0 si tout tient, 1 si un contrôle échoue, 2 si la commande est
++ * mal formée. Les codes suivent la convention du diagnostic : mesurer et
++ * nommer, jamais réparer.
++ */
++const BASE = (process.env.BASE_URL || 'https://aime-composer.vercel.app').replace(/\/+$/, '');
++const failures = [];
++const check = (ok, label, detail = '') => {
++  console.log(`  ${ok ? '✓' : '✗'} ${label}${ok || !detail ? '' : ` — ${detail}`}`);
++  if (!ok) failures.push(label);
++};
++
++if (!/^https?:\/\//.test(BASE)) {
++  console.error('BASE_URL doit être une URL http(s).');
++  process.exit(2);
++}
++
++console.log(`\nSMOKE BOUCLE — ${BASE}\n`);
++
++/* 1. L'écran est servi. */
++try {
++  const r = await fetch(`${BASE}/loop/`);
++  const html = await r.text();
++  const served = r.status === 200 && (r.headers.get('content-type') || '').includes('text/html');
++  check(served, 'l’écran de la boucle est servi (HTML 200)');
++  check(/Boucle minimale — AIME \/ NOEMA/.test(html), 'l’écran porte son titre attendu');
++} catch (e) {
++  check(false, 'l’écran de la boucle est servi (HTML 200)', e.message);
++}
++
++/* 2. L'API répond, avec un monde et un runtime honnête. */
++try {
++  const r = await fetch(`${BASE}/api/state`);
++  const type = r.headers.get('content-type') || '';
++  const d = await r.json().catch(() => null);
++  check(r.status === 200 && type.includes('application/json'), '/api/state répond 200 en JSON');
++  check(Array.isArray(d?.entities) && d.entities.length > 0, 'le monde de démonstration est là');
++  const rt = d?.runtime;
++  check(
++    rt && ['server', 'serverless'].includes(rt.mode) && typeof rt.persisted === 'boolean',
++    'le runtime est publié (mode, persisted)',
++    `reçu : ${JSON.stringify(rt)}`,
++  );
++  if (rt?.mode === 'serverless') {
++    check(rt.persisted === false, 'un hôte serverless ne prétend pas persister sur disque');
++  }
++} catch (e) {
++  check(false, '/api/state répond 200 en JSON', e.message);
++}
++
++/* 3. La règle centrale tient sur l'hôte réel. */
++try {
++  const r = await fetch(`${BASE}/api/decide`, {
++    method: 'POST',
++    headers: { 'content-type': 'application/json' },
++    body: JSON.stringify({ proposal_id: 'prop-0001', decision: 'accepted' }),
++  });
++  const d = await r.json().catch(() => ({}));
++  check(r.status === 400 && /acteur/.test(d.error || ''), 'une décision sans acteur est refusée (400)');
++} catch (e) {
++  check(false, 'une décision sans acteur est refusée (400)', e.message);
++}
++
++/* 4. Une route inconnue reste un 404 JSON propre. */
++try {
++  const r = await fetch(`${BASE}/api/inconnue`);
++  const type = r.headers.get('content-type') || '';
++  const d = await r.json().catch(() => null);
++  check(r.status === 404 && type.includes('application/json') && !!d?.error, 'une route inconnue renvoie 404 JSON');
++} catch (e) {
++  check(false, 'une route inconnue renvoie 404 JSON', e.message);
++}
++
++console.log(`\n${failures.length ? '✗' : '✓'} smoke boucle : ${failures.length ? failures.length + ' échec(s)' : 'tout tient'}\n`);
++process.exit(failures.length ? 1 : 0);
+diff --git a/loop/ui.mjs b/loop/ui.mjs
+index ad88666..5b6b08d 100644
+--- a/loop/ui.mjs
++++ b/loop/ui.mjs
+@@ -202,6 +202,7 @@ function render(d) {
+     <span class="a-badge a-badge--accent">${open.length} en attente</span>
+     <span class="a-badge">${d.entities.length} entités</span>
+     <span class="a-badge">${proofs.length} preuve(s)</span>
++    ${d.runtime?.mode === 'serverless' ? `<span class="a-badge a-badge--warning" title="Monde de démonstration en mémoire : réinitialisé à chaque cold start. La persistance disque vit sur le serveur local complet (node loop/server.mjs).">démo · réinitialisée à froid</span>` : ''}
+     ${(d.entities || []).some((e) => e.id?.startsWith('act-')) ? `<span class="a-badge a-badge--warning">${(d.entities || []).filter((e) => e.id?.startsWith('act-') && e.status !== 'executed').length} action(s)</span>` : ''}`;
+   $('#h-stamp').textContent = `observation du ${new Date(d.now).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}`;
+ 
+-- 
+2.39.5
+
