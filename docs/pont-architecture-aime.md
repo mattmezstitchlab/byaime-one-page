@@ -158,3 +158,52 @@ Proposition (dans la grammaire du système) : publier ces cas comme
 `NON RÉSOLU — h1 composé/alias/coquille`, jamais comme écart ; exclure
 `*.test.*` des routes ; compter `motion.h[1-6]` comme titres. La règle
 « jamais deviner » reste : ce qui n'est pas résolu est nommé, pas inventé.
+
+**✅ Boucle fermée le 18/09 au soir** — le juge a intégré les 4 angles
+(PR AIME-COMPOSER #43, commit `be9cac3`, recetté indépendamment : résolveur
+109/109, smokes 69/69, QA 12/12, DOM 34/34, loop 91+36, diagnostic 38/38).
+Re-mesure byaime : **HIERARCHY 16 → 2 vrais écarts + 4 non-résolus nommés
+écran par écran** (coquille SPA `index.html` ; `Home`→`ProjectStage` ;
+`Legal`/`Mentions`→`SiteChrome`), écrans 19 → 13 (6 fichiers de test
+exclus). La densité par écran monte mécaniquement (280/13 = 21.5) : effet
+dénominateur, pas de régression. La boucle terrain → juge → re-mesure a
+tourné complète une fois.
+
+## 8. Deuxième retour du terrain — mesuré le 18/09 au soir
+
+Re-mesure post-amélioration du juge : deux découvertes, dont une bloquante
+pour l'histoire d'adoption.
+
+### 8.1 🔴 La couche d'adoption est facturée comme dette (bloquant)
+
+`src/styles/aime-tokens.css` — la couche vendée depuis AIME-COMPOSER
+(étape 3 du pont) — contient exactement **150 littéraux couleur**, et le
+diagnostic les compte : **COLOR 328 → 478** (3 → 4 feuilles), à attribution
+constante par ailleurs (écrans 84 · fragments 132 inchangés).
+
+C'est l'incitation perverse du pont : **un projet qui adopte la couche de
+tokens voit ses écarts monter de 150 au lieu de descendre.** Le bridge
+promet « zéro écart pour qui n'utilise que le pont » — la promesse est
+fausse tant que le fichier de tokens lui-même est facturé.
+
+Fix demandée (même principe que CONTRAST `REFERENCE_ONLY` — « on ne facture
+pas un projet tiers pour nos dettes ») : reconnaître la couche de tokens
+vendée — par marqueur de provenance en tête de fichier ou empreinte du
+`tokens.css` officiel — comme **REFERENCE** : exclue de COLOR, et comptée
+en **adoption** (« couche de tokens présente »). L'adoption doit être
+visible dans le bon sens, jamais taxée.
+
+### 8.2 🟠 Cinquième et sixième angles morts (hiérarchie)
+
+- **h1 exclusifs par branche** : `App.tsx` porte 3 `<h1>` dans des branches
+  mutuellement exclusives (invitation à collaborer / portail RSVP /
+  connexion indisponible) — un seul rend à la fois, le scan statique
+  compte 3. Traitement honnête : `NON RÉSOLU — h1 par branche`, jamais une
+  interpolation de contrôle.
+- **Bootstrap compté comme écran** : `main.tsx` (montage React, 0 h1)
+  apparaît comme un écran « 0 h1 ». Un fichier de montage n'est pas un
+  écran — même traitement que la coquille SPA.
+
+Critère d'acceptation de la prochaine tranche juge : byaime passe à
+**HIERARCHY 0 vrai écart + non-résolus nommés** (composé, coquille,
+branche, bootstrap) et **COLOR ≤ 328 avec la couche reconnue en adoption**.
