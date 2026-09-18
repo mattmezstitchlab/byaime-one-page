@@ -133,7 +133,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     ],
     actions: [
       { label: "Créer mon espace", detail: "Ouvre la création de compte ; votre phrase sera reprise.", href: "/creation" },
-      { label: "Découvrir l'assistant", detail: "Questions, documents et dossiers, une fois connecté.", href: "/assistant" },
+      { label: "Découvrir l'assistant", detail: "Questions, documents et dossiers, une fois connecté.", href: "/dossiers" },
     ],
     related: ["creation", "portal", "assistant"],
     keywords: ["accueil", "home", "commencer", "champ", "saisir", "présentation", "première fois"],
@@ -229,7 +229,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
       "Partager depuis un compte invité : la lecture suffit pour demander, l'ajout reste réservé aux responsables.",
     ],
     actions: [
-      { label: "Ouvrir l'assistant", detail: "Question, document, dossiers.", href: "/assistant" },
+      { label: "Ouvrir l'assistant", detail: "Question, document, dossiers.", href: "/dossiers" },
       { label: "Ouvrir les dossiers", detail: "Les sept dossiers en grand.", href: "/dossiers" },
     ],
     related: ["portal", "folders", "panel:documents"],
@@ -250,7 +250,7 @@ export const AIME_SCREENS: Record<AimeScreenId, AimeScreen> = {
     ],
     actions: [
       { label: "Ouvrir les dossiers", detail: "Sept dossiers, un seul écran.", href: "/dossiers" },
-      { label: "Poser une question", detail: "AIME vérifie dans le Monde.", href: "/assistant" },
+      { label: "Poser une question", detail: "AIME vérifie dans le Monde.", href: "/dossiers" },
     ],
     related: ["assistant", "portal", "panel:documents"],
     keywords: ["dossiers", "buro", "classer", "ranger", "contrats", "enveloppe", "souvenirs", "retrouver"],
