@@ -9,6 +9,11 @@ import {
   assistantSuggestions,
   type AssistantReply,
 } from "@/lib/assistant";
+import {
+  buildAimeProposalPlan,
+  type AimeProposalPlan,
+} from "@/lib/aime-orchestrator";
+import { AimeProposalReview } from "./AimeProposalReview";
 import { cn } from "@/lib/utils";
 import type { WorldProject } from "@/lib/types";
 
@@ -20,6 +25,10 @@ type ChatMessage = {
   mode: AssistantReply["mode"];
   /** Faits reconnus dans la phrase de l'utilisateur, en attente de confirmation. */
   projectUpdates?: Partial<WorldProject>;
+  /** Passe structurée : données, Moments, textes et visuels en attente de décision. */
+  proposalPlan?: AimeProposalPlan;
+  proposalApplied?: boolean;
+  proposalRejected?: boolean;
   applied?: boolean;
 };
 
@@ -89,9 +98,18 @@ const nextId = () => `assistant-message-${Date.now()}-${(messageSeq += 1)}`;
  */
 export function AssistantChat({
   onApplyProject,
+  onApplyProposal,
+  onRejectProposal,
+  phase = "avant",
 }: {
   /** Écriture explicite après confirmation : l'agent ne modifie jamais le Monde en silence. */
   onApplyProject?: (updates: Partial<WorldProject>) => void;
+  /** Applique uniquement les opérations sélectionnées dans une passe structurée. */
+  onApplyProposal?: (plan: AimeProposalPlan) => void;
+  /** Journalise le refus explicite d'une passe sans appliquer ses opérations. */
+  onRejectProposal?: (plan: AimeProposalPlan) => void;
+  /** Phase visible dans le cockpit : elle influence la prochaine question. */
+  phase?: "avant" | "pendant" | "apres";
 } = {}) {
   const { project, currentRole } = useProject();
   const { t, locale } = useI18n();
@@ -113,6 +131,9 @@ export function AssistantChat({
     setInput("");
     setPending(true);
     setMessages(previous => [...previous, { id: nextId(), from: "user", text: message, sources: [], mode: "local" }]);
+    const proposalPlan = project && onApplyProposal
+      ? buildAimeProposalPlan(project, message, { role: currentRole, phase, locale })
+      : undefined;
     try {
       const reply = await askAssistant({ project, message, locale, role: currentRole });
       setMessages(previous => [
@@ -124,6 +145,7 @@ export function AssistantChat({
           sources: reply.sources,
           mode: reply.mode,
           projectUpdates: project && onApplyProject ? projectUpdatesFromMessage(message) : undefined,
+          proposalPlan,
         },
       ]);
       trackEvent("assistant_question_asked", { mode: reply.mode, hasProject: !!project, viaSuggestion });
@@ -141,6 +163,32 @@ export function AssistantChat({
       message.id === messageId ? { ...message, applied: true } : message,
     ));
     trackEvent("assistant_project_prefill_applied", { fields: Object.keys(updates).join(",") });
+  };
+
+  const changeProposal = (messageId: string, plan: AimeProposalPlan) => {
+    setMessages(previous => previous.map(message =>
+      message.id === messageId ? { ...message, proposalPlan: plan } : message,
+    ));
+  };
+
+  const applyProposal = (messageId: string, plan: AimeProposalPlan) => {
+    if (!onApplyProposal) return;
+    onApplyProposal(plan);
+    setMessages(previous => previous.map(message =>
+      message.id === messageId ? { ...message, proposalPlan: plan, proposalApplied: true } : message,
+    ));
+    trackEvent("assistant_proposal_applied", {
+      operationCount: plan.operations.filter(operation => operation.selected).length,
+      proposalId: plan.id,
+    });
+  };
+
+  const rejectProposal = (messageId: string, plan: AimeProposalPlan) => {
+    onRejectProposal?.(plan);
+    setMessages(previous => previous.map(message =>
+      message.id === messageId ? { ...message, proposalPlan: plan, proposalRejected: true } : message,
+    ));
+    trackEvent("assistant_proposal_rejected", { proposalId: plan.id });
   };
 
   return (
@@ -239,6 +287,21 @@ export function AssistantChat({
                     {message.applied ? t("assistant.chat.filled") : t("assistant.chat.fill")}
                   </button>
                 </div>
+              )}
+              {message.from === "aime" && message.proposalPlan && onApplyProposal && (
+                message.proposalRejected ? (
+                  <p className="mt-4 rounded-2xl border border-[var(--agency-hairline)] px-4 py-3 text-xs text-[var(--agency-body)]" data-testid="aime-proposal-rejected">
+                    Passe refusée. Rien n'a été appliqué ; ce choix est conservé dans le journal du Monde.
+                  </p>
+                ) : (
+                  <AimeProposalReview
+                    plan={message.proposalPlan}
+                    applied={message.proposalApplied}
+                    onChange={plan => changeProposal(message.id, plan)}
+                    onApply={plan => applyProposal(message.id, plan)}
+                    onReject={plan => rejectProposal(message.id, plan)}
+                  />
+                )
               )}
             </div>
           </div>

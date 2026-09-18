@@ -11,6 +11,8 @@ import type { WorldProject } from "@/lib/types";
 const assistant = vi.hoisted(() => ({
   ask: vi.fn(async () => ({ answer: "Je peux préparer ces informations.", sources: [], mode: "local" as const })),
   update: vi.fn(),
+  applyPlan: vi.fn(),
+  rejectPlan: vi.fn(),
 }));
 
 const project = createInitialProject(
@@ -35,13 +37,19 @@ let container: HTMLDivElement | null = null;
 beforeEach(() => {
   assistant.ask.mockClear();
   assistant.update.mockClear();
+  assistant.applyPlan.mockClear();
+  assistant.rejectPlan.mockClear();
   container = document.createElement("div");
   document.body.appendChild(container);
   act(() => {
     root = createRoot(container!);
     root.render(
       <I18nProvider initialLocale="fr">
-        <AssistantChat onApplyProject={assistant.update as (updates: Partial<WorldProject>) => void} />
+        <AssistantChat
+          onApplyProject={assistant.update as (updates: Partial<WorldProject>) => void}
+          onApplyProposal={assistant.applyPlan}
+          onRejectProposal={assistant.rejectPlan}
+        />
       </I18nProvider>,
     );
   });
@@ -97,5 +105,25 @@ describe("AssistantChat — proposition confirmée", () => {
       currency: "EUR",
     });
     expect(button.textContent).toContain("Monde prérempli");
+  });
+});
+
+describe("AssistantChat — passe d'orchestration", () => {
+  it("montre une passe inspectable et attend la validation avant d'appeler le store", async () => {
+    await ask("Notre mariage le 21 août 2027 près de Paris, 80 invités, budget 20 000 €.");
+
+    expect(container!.querySelector('[data-testid="aime-proposal-review"]')).toBeTruthy();
+    expect(container!.querySelector('[data-testid="aime-proposal-apply"]')).toBeTruthy();
+    expect(assistant.applyPlan).not.toHaveBeenCalled();
+  });
+
+  it("applique uniquement après le bouton de la passe", async () => {
+    await ask("Notre mariage le 21 août 2027 près de Paris, 80 invités, budget 20 000 €.");
+    const button = container!.querySelector<HTMLButtonElement>('[data-testid="aime-proposal-apply"]')!;
+
+    act(() => button.click());
+
+    expect(assistant.applyPlan).toHaveBeenCalledTimes(1);
+    expect(container!.querySelector('[data-testid="aime-proposal-applied"]')?.textContent).toContain("journalisée");
   });
 });

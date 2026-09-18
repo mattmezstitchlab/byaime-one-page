@@ -43,6 +43,11 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
 import { trackEvent } from "@/lib/analytics";
+import {
+  applyAimeProposalToProject,
+  rejectAimeProposal,
+  type AimeProposalPlan,
+} from "@/lib/aime-orchestrator";
 
 /*
  * Le Panneau AIME — la seule porte d'entrée de l'espace privé (17/09).
@@ -87,6 +92,16 @@ export function AimePanel() {
     setPresented(null);
     setFilter("");
     if (reason === "user") window.dispatchEvent(new Event(CLOSE_PANEL_EVENT));
+  };
+
+  const applyAimePass = (plan: AimeProposalPlan) => {
+    if (!project || !canEdit) return;
+    updateProject(applyAimeProposalToProject(project, plan));
+  };
+
+  const rejectAimePass = (plan: AimeProposalPlan) => {
+    if (!project || !canEdit) return;
+    updateProject(rejectAimeProposal(project, plan));
   };
 
   /* Ouverture : l'orbe (ou Cmd/Ctrl + K), la demande de panneau du Monde
@@ -310,7 +325,9 @@ export function AimePanel() {
           <div className="mx-auto max-w-4xl" data-testid="aime-panel-ask">
             <div data-testid="aime-panel-intro">
               <AssistantChat
-                onApplyProject={project && canEdit ? (updates) => updateProject(updates) : undefined}
+                phase={currentPhase}
+                onApplyProposal={project && canEdit ? applyAimePass : undefined}
+                onRejectProposal={project && canEdit ? rejectAimePass : undefined}
               />
             </div>
           </div>

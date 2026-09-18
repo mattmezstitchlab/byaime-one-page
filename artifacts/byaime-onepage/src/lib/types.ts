@@ -205,11 +205,18 @@ export type MemoryItem = {
   notes?: string;
 };
 
+export type ContentProvenance = {
+  source: "human" | "aime" | "import" | "integration";
+  proposalId?: string;
+  createdAt?: number;
+};
+
 export type MessageTemplate = {
   id: string;
   title: string;
   type: "invitation" | "rappel" | "pratique" | "remerciement" | "prestataire";
   body: string;
+  provenance?: ContentProvenance;
 };
 
 export type MessageLog = {
@@ -219,6 +226,18 @@ export type MessageLog = {
   sentAt: number;
   status: "simule" | "brouillon";
   note?: string;
+};
+
+/** Trace minimale d'une passe AIME décidée par une personne. */
+export type AimeProposalAudit = {
+  id: string;
+  createdAt: number;
+  decidedAt: number;
+  status: "applied" | "rejected";
+  sourceMessage: string;
+  acceptedOperationIds: string[];
+  rejectedOperationIds: string[];
+  conflictedOperationIds?: string[];
 };
 
 /**
@@ -232,6 +251,13 @@ export type WorldVisual = {
   url: string;
   name?: string;
   overlay?: number;
+  provenance?: {
+    source: "human" | "aime" | "import" | "integration" | "manifest" | "generated";
+    proposalId?: string;
+    createdAt?: number;
+    prompt?: string;
+    license?: string;
+  };
 };
 
 export const DEFAULT_VISUAL_OVERLAY = 60;
@@ -242,11 +268,15 @@ export function normalizeWorldVisual(value: unknown): WorldVisual | null {
   if (typeof candidate.url !== "string" || !candidate.url.trim()) return null;
   if (candidate.kind !== "image" && candidate.kind !== "video") return null;
   const overlay = Number(candidate.overlay);
+  const provenance = candidate.provenance && typeof candidate.provenance === "object"
+    ? candidate.provenance
+    : undefined;
   return {
     kind: candidate.kind,
     url: candidate.url,
     ...(typeof candidate.name === "string" && candidate.name ? { name: candidate.name } : {}),
     ...(Number.isFinite(overlay) && overlay >= 0 && overlay <= 100 ? { overlay: Math.round(overlay) } : {}),
+    ...(provenance ? { provenance } : {}),
   };
 }
 
@@ -389,6 +419,8 @@ export type WorldProject = {
   persona?: "couple" | "pro";
   /** Code ISO 4217 de la devise du mariage (budget, prestataires, paiements). */
   currency?: string;
+  /** Journal des décisions AIME : aucune proposition appliquée sans trace. */
+  aimeProposalHistory?: AimeProposalAudit[];
 
   timeline: TimelineEvent[];
   tasks: Task[];

@@ -181,7 +181,10 @@ export function parseIntention(text: string): Partial<WorldProject> {
 
   let city = null;
   let cityConf: "deduit" | "confirme" | "manquant" = "manquant";
-  const cityMatch = text.match(/\b(?:à|a|près de|proche de|near|in)\s+([A-ZÀ-Ü][A-Za-zÀ-ÿ\s'-]+)\b/);
+  /* `\b` ne reconnaît pas toujours la lettre accentuée `à` comme caractère
+     de mot en JavaScript : garder la frontière sur les connecteurs ASCII,
+     mais laisser le connecteur français accentué s'exprimer directement. */
+  const cityMatch = text.match(/(?:(?:\b(?:a|near|in)\b)|(?:à|près de|proche de))\s+([A-ZÀ-Ü][A-Za-zÀ-ÿ\s'-]+?)(?=\s*(?:,|\.|\d|$))/i);
   if (cityMatch && cityMatch[1].trim().length > 2) {
     city = cityMatch[1].trim();
     cityConf = "confirme";
