@@ -232,11 +232,40 @@ async function assertDeploymentRouting() {
   await Promise.all(requiredDeploymentChecks.map((check) => assertDeploymentRoute(baseUrl, check)));
 }
 
+/* Vercel installe avec `pnpm install --frozen-lockfile` : un lockfile qui ne
+   reflète plus `pnpm-workspace.yaml` (overrides, catalog) ou un `package.json`
+   (specifier) fait échouer le déploiement avant toute compilation, avec
+   `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` / `ERR_PNPM_OUTDATED_LOCKFILE`. C'est ce
+   qui a cassé la production du 18/09/2026 : la PR #36 avait régénéré le
+   lockfile dans un bac à sable qui ignorait la section `overrides`, et rien
+   côté dépôt ne le disait avant Vercel. `--lockfile-only` rejoue la même
+   vérification sans toucher à `node_modules`. */
+function assertFrozenLockfile() {
+  try {
+    execFileSync(corepackCommand, ["pnpm", "install", "--frozen-lockfile", "--lockfile-only"], {
+      cwd: rootDir,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: process.env,
+      encoding: "utf8",
+    });
+  } catch (error) {
+    const output = `${error?.stdout ?? ""}${error?.stderr ?? ""}`.trim();
+    throw new Error(
+      "pnpm-lock.yaml is not frozen-installable — Vercel's `pnpm install --frozen-lockfile` would fail.\n"
+      + "Regenerate it from a clean checkout with `corepack pnpm install` (never with a pnpm that ignores\n"
+      + "pnpm-workspace.yaml overrides) and commit the result.\n"
+      + output,
+    );
+  }
+}
+
 async function main() {
   const forbiddenTracked = trackedFiles().filter(isForbiddenTrackedArtifact);
   if (forbiddenTracked.length > 0) {
     throw new Error(`Forbidden generated artifacts are still tracked by Git:\n${forbiddenTracked.join("\n")}`);
   }
+
+  assertFrozenLockfile();
 
   await Promise.all(generatedPathsToClean.map(removePath));
   await removeTsBuildInfoFiles(rootDir);

@@ -135,6 +135,37 @@ default HTML page — the HTML page is what made a browser print
   into a French sentence, and `/ma-carte` keeps its form usable with a
   non-blocking retry banner.
 
+## Lockfile — the invariant Vercel checks first
+
+`installCommand` is `pnpm install --frozen-lockfile`, so the very first thing
+a deployment does is compare `pnpm-lock.yaml` with `pnpm-workspace.yaml`
+(`overrides`, `catalog`, settings) and every `package.json` specifier. Any
+drift fails the deployment **before a single file is compiled**, with
+`ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` (workspace config) or
+`ERR_PNPM_OUTDATED_LOCKFILE` (specifier).
+
+That is what broke production on 2026-09-18: PR #36 regenerated the lockfile
+in a sandbox whose pnpm ignored the `overrides` section of
+`pnpm-workspace.yaml`, so the committed lockfile lost its 86 overrides
+(`esbuild: 0.28.1`, the `'-'` platform-binary exclusions, …) and gained the
+platform binaries they exclude. Every deployment from `bb761de` onwards
+failed at install time; the last good one was `86617b0` (PR #35). No code
+change was at fault — the build, the 563 tests and the typecheck all passed
+locally with the previous lockfile.
+
+Rules:
+
+- Regenerate the lockfile only with `corepack pnpm install` from the
+  repository root, on the pinned `pnpm@10.14.0`, and check that
+  `pnpm-lock.yaml` still contains an `overrides:` block matching
+  `pnpm-workspace.yaml` before committing.
+- `corepack pnpm run verify:vercel` now runs
+  `pnpm install --frozen-lockfile --lockfile-only` first — the same
+  verification Vercel performs, without touching `node_modules` — and fails
+  with an explicit message when the lockfile would not install frozen.
+- Read the Vercel failure line rather than the build logs: a lockfile error
+  is reported by pnpm during *Install*, never during *Build*.
+
 ## Clean rebuild checks
 
 Run the following from a clean workspace:
