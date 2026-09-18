@@ -533,6 +533,24 @@ export type WorldProject = {
   messageLogs: MessageLog[];
   media: MemoryItem[];
   messages: MessageLog[];
-  
+  /**
+   * Journal des exports (comptabilité, CSV, preuves). Append-only : une entrée
+   * ne se modifie ni ne s'efface, une nouvelle est écrite si le fait change.
+   * Seul le propriétaire le voit et le prolonge (`export-journal.ts`).
+   */
+  exportLog?: ExportEntry[];
+
   missing: string[];
+};
+
+export type ExportEntry = {
+  id: string;
+  documentId: string;
+  destination: "pennylane" | "csv" | "preuve";
+  exportedAt: number;
+  /** Empreinte du fait tel qu'exporté : document + paiements rapprochés. */
+  hash: string;
+  amountCents: number;
+  providerId?: string;
+  paymentIds: string[];
 };

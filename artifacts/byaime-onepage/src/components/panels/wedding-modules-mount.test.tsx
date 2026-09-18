@@ -161,6 +161,46 @@ describe("les douze modules du mariage", () => {
     expect(el.textContent).not.toContain("Devis traiteur.pdf");
   });
 
+  it("« documents » journalise l'export CSV des faits sans jamais réécrire le journal", async () => {
+    seed();
+    const at = Date.now() - 86400000;
+    commit({
+      ...current,
+      providers: [{ id: "p1", category: "traiteur", role: "Traiteur", status: "reserve" }],
+      documents: [
+        { id: "d-facture", title: "Facture traiteur.pdf", kind: "facture", providerId: "p1", at },
+        { id: "d-devis", title: "Devis.pdf", kind: "devis", providerId: "p1", at },
+      ],
+      payments: [{ id: "pay-1", label: "Solde", amountCents: 250000, at, state: "paye", providerId: "p1" }],
+      exportLog: [],
+    });
+    const el = await mountModule("documents");
+
+    const button = el.querySelector<HTMLButtonElement>("[data-testid=documents-export] button");
+    expect(button, "bouton d'export absent").not.toBeNull();
+    expect(button!.textContent).toContain("1 fait(s)");
+    expect(el.querySelector("[data-testid=documents-export-journal]")).toBeNull();
+
+    act(() => button!.click());
+    expect(current.exportLog).toHaveLength(1);
+    expect(current.exportLog![0]).toMatchObject({ documentId: "d-facture", destination: "csv", amountCents: 250000, paymentIds: ["pay-1"] });
+    const firstEntry = current.exportLog![0];
+    expect(el.querySelector("[data-testid=documents-export-journal]")?.textContent).toContain("Facture traiteur.pdf");
+    expect(el.querySelector("[data-testid=documents-export] button")?.textContent).toContain("Retélécharger");
+
+    /* Second clic : rien à ajouter, l'entrée existante reste identique. */
+    act(() => el.querySelector<HTMLButtonElement>("[data-testid=documents-export] button")!.click());
+    expect(current.exportLog).toEqual([firstEntry]);
+
+    /* Le fait change (montant corrigé) : une nouvelle entrée, l'ancienne intacte. */
+    act(() => commit({ ...current, payments: [{ ...current.payments[0], amountCents: 260000 }] }));
+    expect(el.querySelector("[data-testid=documents-export] button")?.textContent).toContain("1 fait(s)");
+    act(() => el.querySelector<HTMLButtonElement>("[data-testid=documents-export] button")!.click());
+    expect(current.exportLog).toHaveLength(2);
+    expect(current.exportLog![0]).toEqual(firstEntry);
+    expect(current.exportLog![1].amountCents).toBe(260000);
+  });
+
   it("« logistics » réunit Cérémonie, Logistique et Équipe, avec les données du projet", async () => {
     seed();
     commit({ ...current, logistics: { ...current.logistics, parking: "Entrée nord", weatherFallback: "Orangerie" } });

@@ -20,6 +20,7 @@ import { MESSAGE_TO_EVENT, consumeMessageDraft } from "@/lib/person-spotlight-bu
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import { momentDocumentIds, momentTrackIds } from "@/lib/moment-context";
 import { DOCUMENT_STAGES, documentStage, documentTense, exportableDocuments, type DocumentStage } from "@/lib/document-tense";
+import { appendExport, buildExportCsv, pendingExports } from "@/lib/export-journal";
 import { AIME_MEDIA_LIBRARY, visualFromAimeMedia, type AimeMediaAsset } from "@/lib/media-library";
 import { useI18n, type I18nKey } from "@/lib/i18n";
 import type { WeddingModule } from "@/lib/wedding-navigation";
@@ -368,6 +369,21 @@ export function WeddingModulesPanel({
     const docs = stageFilter === "all" ? allDocs : allDocs.filter((d) => stageOf(d) === stageFilter);
     const stageCounts = Object.fromEntries(DOCUMENT_STAGES.map((stage) => [stage, allDocs.filter((d) => stageOf(d) === stage).length])) as Record<DocumentStage, number>;
     const exportableCount = exportableDocuments({ documents: allDocs, payments: project.payments }).length;
+    /* Le journal des exports ne se prolonge que par la fin : on ajoute les
+       entrées, on télécharge le fichier, on ne réécrit rien (export-journal.ts). */
+    const exportLog = project.exportLog ?? [];
+    const pendingCsv = currentRole === "owner" ? pendingExports(project, "csv").length : 0;
+    const exportFactsCsv = () => {
+      const { added, exportLog: nextLog } = appendExport(project, "csv", Date.now());
+      const entries = added.length > 0 ? added : exportLog.filter((entry) => entry.destination === "csv");
+      if (entries.length === 0) return;
+      if (added.length > 0) updateProject({ exportLog: nextLog });
+      const csv = buildExportCsv(entries, project);
+      if (typeof URL.createObjectURL !== "function") return;
+      const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" }));
+      Object.assign(document.createElement("a"), { href: url, download: `aime-faits-${new Date().toISOString().slice(0, 10)}.csv` }).click();
+      URL.revokeObjectURL(url);
+    };
     const momentDocCount = momentId ? momentDocumentIds(project, momentId).length : 0;
     const filtered = galleryFilter === "image" ? images : galleryFilter === "video" ? videos : galleryFilter === "doc" ? docs : project.documents;
     return (
@@ -433,6 +449,38 @@ export function WeddingModulesPanel({
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-[var(--agency-body)]">{tScope("wm.docs.stage.hint")}</p>
               {exportableCount > 0 && <p className="mt-1 text-[11px] text-[var(--agency-eyebrow)]" data-testid="documents-exportable-hint">{tScope("wm.docs.exportableHint", { count: exportableCount })}</p>}
+              {currentRole === "owner" && exportableCount > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-3" data-testid="documents-export">
+                  <button
+                    type="button"
+                    onClick={exportFactsCsv}
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--agency-ink)] bg-[var(--agency-ink)] px-3 py-1.5 text-[11px] text-[var(--agency-paper)] transition hover:opacity-90"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {pendingCsv > 0 ? tScope("wm.docs.export.cta", { count: pendingCsv }) : tScope("wm.docs.export.again")}
+                  </button>
+                  <span className="text-[11px] text-[var(--agency-body)]">{tScope("wm.docs.export.rule")}</span>
+                </div>
+              )}
+              {currentRole === "owner" && exportLog.length > 0 && (
+                <details className="mt-3" data-testid="documents-export-journal">
+                  <summary className="cursor-pointer text-[10px] uppercase tracking-widest text-[var(--agency-eyebrow)]">{tScope("wm.docs.export.journal", { count: exportLog.length })}</summary>
+                  <ul className="mt-2 space-y-1">
+                    {[...exportLog].sort((a, b) => b.exportedAt - a.exportedAt).map((entry) => {
+                      const doc = project.documents.find((d) => d.id === entry.documentId);
+                      return (
+                        <li key={entry.id} className="flex flex-wrap items-center gap-x-2 text-[11px] text-[var(--agency-body)]">
+                          <span className="font-mono text-[10px] text-[var(--agency-eyebrow)]">{new Date(entry.exportedAt).toLocaleDateString(dateLocale)}</span>
+                          <span className="rounded-full border border-[var(--agency-hairline)] px-2 py-0.5 text-[9px] uppercase tracking-widest">{entry.destination}</span>
+                          <span className="truncate">{doc?.title ?? entry.documentId}</span>
+                          <span className="font-mono text-[10px]">{(entry.amountCents / 100).toFixed(2)}</span>
+                          <span className="font-mono text-[9px] text-[var(--agency-eyebrow)]">{entry.hash}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </details>
+              )}
             </div>
           )}
           {momentId && (

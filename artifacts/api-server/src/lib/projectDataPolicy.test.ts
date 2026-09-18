@@ -5,6 +5,7 @@ const data = {
   budget: { value: 20000, confidence: "confirme" },
   payments: [{ id: "pay", amountCents: 1000 }],
   documents: [{ id: "doc" }],
+  exportLog: [{ id: "x1", documentId: "doc", destination: "csv", exportedAt: 1, hash: "a", amountCents: 100, paymentIds: [] }],
   providers: [{ id: "provider", name: "Photo", amountCents: 5000, paidCents: 1000 }],
   tasks: [{ id: "task" }],
   publicProfile: { published: true },
@@ -22,6 +23,20 @@ describe("project data policy", () => {
     expect(JSON.stringify(viewer)).not.toContain("5000");
     expect(JSON.stringify(viewer)).not.toContain("private");
     expect(JSON.stringify(viewer)).not.toContain("invoice");
+  });
+
+  it("hides the export journal from collaborators and restores it on save", () => {
+    expect(projectDataForRole(data, "planner").exportLog).toEqual([]);
+    const merged = mergeProtectedProjectData(data, { ...projectDataForRole(data, "planner"), exportLog: [] }, "planner");
+    expect(merged.exportLog).toEqual(data.exportLog);
+  });
+
+  it("lets the owner extend the export journal but never rewrite or shrink it", () => {
+    const extended = [...data.exportLog, { id: "x2", documentId: "doc", destination: "csv", exportedAt: 2, hash: "b", amountCents: 100, paymentIds: [] }];
+    expect(mergeProtectedProjectData(data, { ...data, exportLog: extended }, "owner").exportLog).toEqual(extended);
+    expect(mergeProtectedProjectData(data, { ...data, exportLog: [] }, "owner").exportLog).toEqual(data.exportLog);
+    const rewritten = [{ ...data.exportLog[0], amountCents: 1 }, extended[1]];
+    expect(mergeProtectedProjectData(data, { ...data, exportLog: rewritten }, "owner").exportLog).toEqual(data.exportLog);
   });
 
   it("restores fields a collaborator never received when saving", () => {
