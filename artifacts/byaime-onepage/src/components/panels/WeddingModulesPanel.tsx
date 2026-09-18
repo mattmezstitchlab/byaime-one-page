@@ -19,6 +19,7 @@ import type { MusicSearchResult, MusicTrack, Document } from "@/lib/types";
 import { MESSAGE_TO_EVENT, consumeMessageDraft } from "@/lib/person-spotlight-bus";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import { momentDocumentIds, momentTrackIds } from "@/lib/moment-context";
+import { DOCUMENT_STAGES, documentStage, documentTense, exportableDocuments, type DocumentStage } from "@/lib/document-tense";
 import { AIME_MEDIA_LIBRARY, visualFromAimeMedia, type AimeMediaAsset } from "@/lib/media-library";
 import { useI18n, type I18nKey } from "@/lib/i18n";
 import type { WeddingModule } from "@/lib/wedding-navigation";
@@ -139,6 +140,7 @@ export function WeddingModulesPanel({
   const [localDocError, setLocalDocError] = useState("");
   const [localDocProgress, setLocalDocProgress] = useState<{ done: number; total: number; current: string } | null>(null);
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video" | "doc">("all");
+  const [stageFilter, setStageFilter] = useState<DocumentStage | "all">("all");
   const [editorialMediaQuery, setEditorialMediaQuery] = useState("");
   const [galleryLightboxUrl, setGalleryLightboxUrl] = useState<string | null>(null);
   const [galleryLightboxType, setGalleryLightboxType] = useState<"image" | "video" | null>(null);
@@ -358,7 +360,14 @@ export function WeddingModulesPanel({
     const source = project.documents.filter(inScope);
     const images = source.filter((d) => d.url?.startsWith("data:image") || d.title.match(/\.(jpg|jpeg|png|webp|gif)$/i));
     const videos = source.filter((d) => d.url?.startsWith("data:video") || d.title.match(/\.(mp4|webm|mov)$/i));
-    const docs = source.filter((d) => !images.includes(d) && !videos.includes(d));
+    const allDocs = source.filter((d) => !images.includes(d) && !videos.includes(d));
+    /* Le stade est dérivé (document-tense.ts), jamais saisi : la Galerie ne
+       fait que filtrer. Le temps se lit sur les Moments reliés, vu d'ici. */
+    const now = Date.now();
+    const stageOf = (d: Document) => documentStage(d, project.payments);
+    const docs = stageFilter === "all" ? allDocs : allDocs.filter((d) => stageOf(d) === stageFilter);
+    const stageCounts = Object.fromEntries(DOCUMENT_STAGES.map((stage) => [stage, allDocs.filter((d) => stageOf(d) === stage).length])) as Record<DocumentStage, number>;
+    const exportableCount = exportableDocuments({ documents: allDocs, payments: project.payments }).length;
     const momentDocCount = momentId ? momentDocumentIds(project, momentId).length : 0;
     const filtered = galleryFilter === "image" ? images : galleryFilter === "video" ? videos : galleryFilter === "doc" ? docs : project.documents;
     return (
@@ -402,6 +411,30 @@ export function WeddingModulesPanel({
               <button key={f} onClick={()=>setGalleryFilter(f)} className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", galleryFilter===f ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}>{tScope(`wm.docs.filter.${f}` as I18nKey)}</button>
             ))}
           </div>
+          {(galleryFilter === "all" || galleryFilter === "doc") && allDocs.length > 0 && (
+            <div className="mt-4 border-t border-[var(--agency-hairline)] pt-4" data-testid="documents-stage-filter">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] uppercase tracking-widest text-[var(--agency-eyebrow)]">{tScope("wm.docs.stage.heading")}</span>
+                {(["all", ...DOCUMENT_STAGES] as const).map((stage) => {
+                  const count = stage === "all" ? allDocs.length : stageCounts[stage];
+                  if (stage !== "all" && count === 0) return null;
+                  return (
+                    <button
+                      key={stage}
+                      type="button"
+                      aria-pressed={stageFilter === stage}
+                      onClick={() => setStageFilter(stage)}
+                      className={cn("rounded-full border px-3 py-1 text-[10px] uppercase tracking-widest", stageFilter === stage ? "bg-[var(--agency-ink)] text-[var(--agency-paper)] border-[var(--agency-ink)]" : "border-[var(--agency-hairline)] text-foreground/50")}
+                    >
+                      {tScope(`wm.docs.stage.${stage}` as I18nKey)} · {count}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-[var(--agency-body)]">{tScope("wm.docs.stage.hint")}</p>
+              {exportableCount > 0 && <p className="mt-1 text-[11px] text-[var(--agency-eyebrow)]" data-testid="documents-exportable-hint">{tScope("wm.docs.exportableHint", { count: exportableCount })}</p>}
+            </div>
+          )}
           {momentId && (
             <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--agency-hairline)] pt-4" data-testid="documents-moment-scope">
               <button
@@ -518,11 +551,18 @@ export function WeddingModulesPanel({
         {(galleryFilter==="all" || galleryFilter==="doc") && (
           <div className="space-y-2">
             <p className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.docs.docsHeading")}</p>
-            {docs.length===0 && filtered.length===0 ? <Empty>{tScope("wm.docs.emptyAll")}</Empty> : docs.map((doc)=>{
+            {docs.length===0 && filtered.length===0 ? <Empty>{tScope("wm.docs.emptyAll")}</Empty> : docs.length===0 && stageFilter!=="all" ? <Empty>{tScope("wm.docs.emptyFilter")}</Empty> : docs.map((doc)=>{
               return (
                 <div key={doc.id} className="flex items-center gap-3 rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-4">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--agency-hairline)]"><ExternalLink className="h-4 w-4"/></div>
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm">{doc.title}</p><p className="mt-1 text-xs text-[var(--agency-eyebrow)]">{doc.kind} · {new Date(doc.at).toLocaleDateString(dateLocale)}</p></div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">{doc.title}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--agency-eyebrow)]">
+                      <span>{doc.kind} · {new Date(doc.at).toLocaleDateString(dateLocale)}</span>
+                      <span data-stage={stageOf(doc)} className={cn("rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-widest", stageOf(doc) === "fait" ? "border-[var(--agency-ink)] text-[var(--agency-ink)]" : "border-[var(--agency-hairline)]")}>{tScope(`wm.docs.stage.badge.${stageOf(doc)}` as I18nKey)}</span>
+                      <span data-tense={documentTense(doc, project.timeline, now)} className="text-[9px] uppercase tracking-widest">{tScope(`wm.docs.tense.${documentTense(doc, project.timeline, now)}` as I18nKey)}</span>
+                    </p>
+                  </div>
                   {doc.url && <><a aria-label={tScope("wm.docs.previewAria", { title: doc.title })} target="_blank" rel="noreferrer" href={doc.url} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]"><ExternalLink className="h-4 w-4"/></a><a aria-label={tScope("wm.docs.downloadAria", { title: doc.title })} href={doc.url} download={doc.title} className="p-2 text-[var(--agency-eyebrow)] hover:text-[var(--agency-ink)]"><Download className="h-4 w-4"/></a></>}
                   {canManage && <button aria-label={`Supprimer ${doc.title}`} onClick={()=>removeEntity("documents", doc.id)} className="p-2 text-[var(--agency-eyebrow)] hover:text-[#B42318]"><Trash2 className="h-4 w-4"/></button>}
                 </div>

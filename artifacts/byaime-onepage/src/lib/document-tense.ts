@@ -177,3 +177,17 @@ export function readDocuments(
 export function exportableDocuments(project: Pick<WorldProject, "documents" | "payments">): Document[] {
   return project.documents.filter(document => documentStage(document, project.payments) === "fait");
 }
+
+/**
+ * Les documents d'une liste regroupés par stade, dans l'ordre du cycle.
+ * C'est ce que la Galerie affiche : un filtre par stade, jamais une case
+ * à cocher « payé » sur le document lui-même.
+ */
+export function groupDocumentsByStage(
+  documents: ReadonlyArray<Document>,
+  payments: ReadonlyArray<Payment>,
+): Record<DocumentStage, Document[]> {
+  const groups: Record<DocumentStage, Document[]> = { proposition: [], engagement: [], echeance: [], fait: [], libre: [] };
+  for (const document of documents) groups[documentStage(document, payments)].push(document);
+  return groups;
+}

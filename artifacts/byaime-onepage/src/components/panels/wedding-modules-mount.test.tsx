@@ -124,6 +124,43 @@ describe("les douze modules du mariage", () => {
     expect(text).toContain(`${current.documents.length} fichier(s)`);
   });
 
+  it("« documents » lit le stade de chaque document et ne laisse exportable que la facture rapprochée", async () => {
+    seed();
+    const at = Date.now() - 86400000;
+    commit({
+      ...current,
+      providers: [{ id: "p1", category: "traiteur", role: "Traiteur", status: "reserve" }, { id: "p2", category: "photo", role: "Photo", status: "devis" }],
+      documents: [
+        { id: "d-devis", title: "Devis traiteur.pdf", kind: "devis", providerId: "p1", at },
+        { id: "d-contrat", title: "Contrat traiteur.pdf", kind: "contrat", providerId: "p1", at },
+        { id: "d-facture-1", title: "Facture traiteur.pdf", kind: "facture", providerId: "p1", at },
+        { id: "d-facture-2", title: "Facture photo.pdf", kind: "facture", providerId: "p2", at },
+      ],
+      payments: [
+        { id: "pay-1", label: "Acompte traiteur", amountCents: 100000, at, state: "paye", providerId: "p1" },
+        { id: "pay-2", label: "Photo", amountCents: 50000, at, state: "du", providerId: "p2" },
+      ],
+    });
+    const el = await mountModule("documents");
+
+    /* Le stade est dérivé : aucune saisie, une pastille par document. */
+    const stages = [...el.querySelectorAll<HTMLElement>("[data-stage]")].map(node => node.dataset.stage);
+    expect(stages).toEqual(["proposition", "engagement", "fait", "echeance"]);
+
+    /* Seule la facture rapprochée d'un paiement réglé du même prestataire est exportable. */
+    expect(el.querySelector("[data-testid=documents-exportable-hint]")?.textContent).toContain("1 facture(s)");
+
+    /* Le filtre par stade ne montre que ce qu'il annonce. */
+    const filter = el.querySelector("[data-testid=documents-stage-filter]")!;
+    const factsButton = [...filter.querySelectorAll<HTMLButtonElement>("button")].find(b => b.textContent?.startsWith("Faits"));
+    expect(factsButton, "filtre « Faits » absent").not.toBeUndefined();
+    act(() => factsButton!.click());
+    const visible = [...el.querySelectorAll<HTMLElement>("[data-stage]")].map(node => node.dataset.stage);
+    expect(visible).toEqual(["fait"]);
+    expect(el.textContent).toContain("Facture traiteur.pdf");
+    expect(el.textContent).not.toContain("Devis traiteur.pdf");
+  });
+
   it("« logistics » réunit Cérémonie, Logistique et Équipe, avec les données du projet", async () => {
     seed();
     commit({ ...current, logistics: { ...current.logistics, parking: "Entrée nord", weatherFallback: "Orangerie" } });
