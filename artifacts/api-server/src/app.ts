@@ -17,13 +17,14 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import { isTrustedAppOrigin } from "./lib/security";
 import { jsonErrorHandler } from "./middlewares/jsonErrorHandler";
+import { resolveRequestId } from "./lib/requestId";
 
 const app: Express = express();
 
 app.use(
   pinoHttp({
     logger,
-    genReqId: (req) => (req.headers["x-request-id"] as string) || undefined,
+    genReqId: (req) => resolveRequestId(req.headers["x-request-id"]),
     serializers: {
       req(req) {
         return {
