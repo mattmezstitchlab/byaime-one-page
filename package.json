@@ -15,7 +15,8 @@
     "verify:vercel": "node ./scripts/verify-vercel.mjs",
     "test:vercel-ignore": "node scripts/test-vercel-ignore-build.mjs",
     "test:card-migrations": "node scripts/test-card-migrations.mjs",
-    "check:db": "corepack pnpm --filter @workspace/scripts run check:db"
+    "check:db": "corepack pnpm --filter @workspace/scripts run check:db",
+    "db:migrate": "corepack pnpm --filter @workspace/scripts run db:migrate"
   },
   "private": true,
   "devDependencies": {

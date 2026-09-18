@@ -89,7 +89,20 @@ immediately after) the deploy that needs them.
 psql "$DATABASE_URL" -f lib/db/migrations/20260916_universal_cards.sql
 psql "$DATABASE_URL" -f lib/db/migrations/20260916_professional_profiles.sql
 psql "$DATABASE_URL" -f lib/db/migrations/20260916_verified_rsvp_claims.sql
+psql "$DATABASE_URL" -f lib/db/migrations/20260918_attestations.sql
+psql "$DATABASE_URL" -f lib/db/migrations/20260918_attestation_claims.sql
 ```
+
+No `psql` at hand? The same files can be applied from this repository with
+Node only (the `pg` driver ships with `lib/db`):
+
+```bash
+DATABASE_URL="postgres://…" corepack pnpm run db:migrate
+```
+
+`scripts/src/apply-migrations.ts` runs every file of `lib/db/migrations/` in
+name order, inside the transactions the files declare. Because every file is
+idempotent, re-running it is harmless; run `check:db` afterwards to confirm.
 
 To find out what a given database actually has, run the read-only diagnostic:
 
@@ -98,7 +111,7 @@ DATABASE_URL="postgres://…" corepack pnpm run check:db
 ```
 
 `scripts/src/check-db-schema.ts` connects, lists every expected table and every
-column added by the 2026-09-16 migrations as present or missing, prints the
+column added by the 2026-09-16 and 2026-09-18 migrations as present or missing, prints the
 exact `psql` commands to apply, and exits 0 (complete), 1 (incomplete or
 unreachable) or 2 (no `DATABASE_URL`). It never prints the password and changes
 nothing.

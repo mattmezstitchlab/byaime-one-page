@@ -22,6 +22,8 @@ import { createRequire } from "node:module";
 
 /** Les tables déclarées par `lib/db/src/schema/aime.ts`. */
 const TABLES_ATTENDUES = [
+  "aime_attestation_links",
+  "aime_attestations",
   "aime_files",
   "aime_invitations",
   "aime_memberships",
@@ -34,7 +36,7 @@ const TABLES_ATTENDUES = [
   "aime_universal_cards",
 ] as const;
 
-/** Les colonnes ajoutées par les migrations du 16/09/2026. */
+/** Les colonnes ajoutées par les migrations du 16/09 et du 18/09/2026. */
 const COLONNES_ATTENDUES = [
   { table: "aime_memberships", colonne: "card_user_id", migration: "20260916_universal_cards.sql" },
   { table: "aime_memberships", colonne: "participation", migration: "20260916_universal_cards.sql" },
@@ -42,12 +44,17 @@ const COLONNES_ATTENDUES = [
   { table: "aime_rsvps", colonne: "claim_email", migration: "20260916_verified_rsvp_claims.sql" },
   { table: "aime_rsvps", colonne: "claimed_card_user_id", migration: "20260916_verified_rsvp_claims.sql" },
   { table: "aime_rsvps", colonne: "claimed_at", migration: "20260916_verified_rsvp_claims.sql" },
+  { table: "aime_attestation_links", colonne: "claim_email", migration: "20260918_attestation_claims.sql" },
+  { table: "aime_attestation_links", colonne: "claimed_card_user_id", migration: "20260918_attestation_claims.sql" },
+  { table: "aime_attestation_links", colonne: "claimed_at", migration: "20260918_attestation_claims.sql" },
 ] as const;
 
 const MIGRATIONS = [
   "20260916_universal_cards.sql",
   "20260916_professional_profiles.sql",
   "20260916_verified_rsvp_claims.sql",
+  "20260918_attestations.sql",
+  "20260918_attestation_claims.sql",
 ] as const;
 
 /** L’URL sans son mot de passe : la sortie peut être collée dans un rapport. */
@@ -149,7 +156,7 @@ for (const table of TABLES_ATTENDUES)
   console.log(`  ${tablesManquantes.includes(table) ? "✗ absente " : "✓ présente"}  ${table}`);
 
 console.log("");
-console.log(`Colonnes du 16/09/2026 : ${colonnesPresentes.length}/${COLONNES_ATTENDUES.length} présentes`);
+console.log(`Colonnes des migrations : ${colonnesPresentes.length}/${COLONNES_ATTENDUES.length} présentes`);
 for (const attendue of COLONNES_ATTENDUES) {
   const cle = `${attendue.table}.${attendue.colonne}`;
   console.log(
