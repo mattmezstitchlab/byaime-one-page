@@ -1024,7 +1024,7 @@ export function PortalContent({
               <button type="button" onClick={() => setMeSection("worlds")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.viewWorlds")}</button>
               <button type="button" onClick={() => setMeSection("sensitive")} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.sensitiveActions")}</button>
               <button type="button" onClick={() => navigate("/ma-carte")} data-testid="me-open-card" className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.myCard")}</button>
-              <Link href="/admin" className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5">{t("me.guide")}</Link>
+              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("aime:open-ai", { detail: { section: "monde" } }))} className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t("me.guide")}</button>
             </div>
             {projects.length === 0 && (
               <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-foreground/55">

@@ -5,10 +5,9 @@ import type { ReactNode } from "react";
 import { I18nProvider } from "@/lib/i18n";
 import { AssistantPage } from "./Assistant";
 import { FoldersPage } from "./Folders";
-import { AdminSommairePage } from "./AdminSommaire";
 
 /*
- * Phase 2 (17/09) : /assistant, /dossiers et /admin ne sont plus des écrans
+ * Phase 2 (17/09) : /assistant et /dossiers ne sont plus des écrans
  * à part — ce sont des liens profonds qui ouvrent le Panneau AIME sur la
  * bonne section. Le chat, le document et les sept dossiers vivent dans le
  * panneau ; ces pages gardent leur promesse en une phrase et un bouton.
@@ -56,16 +55,5 @@ describe("/dossiers — lien profond vers la section « Le Monde »", () => {
     const markup = render(<FoldersPage />, "/dossiers");
 
     expect(markup).not.toContain('data-testid="wedding-folders"');
-  });
-});
-
-describe("/admin — lien profond vers le panneau", () => {
-  it("le guide garde son titre et ouvre le panneau", () => {
-    const markup = render(<AdminSommairePage />, "/admin");
-
-    expect(markup).toContain('data-testid="admin-page"');
-    expect(markup).toContain("Le guide");
-    expect(markup).toContain(renderable("Ouvrir le panneau AIME"));
-    expect(markup).toContain('data-testid="admin-open-panel"');
   });
 });

@@ -1438,12 +1438,6 @@ const fr = {
   "worldSwitcher.empty": "Aucun Monde pour le moment. Votre compte reste accessible.",
   "worldSwitcher.active": "Mariage · Monde actif",
 
-  // Page /admin (le rétroplanning)
-  "admin.page.eyebrow": "Tout le site expliqué",
-  "admin.page.title": "Le guide",
-  "admin.page.lead": "Tout le mariage, remis dans l’ordre — chaque ligne ouvre la bonne vue du Monde.",
-  "admin.page.metaTitle": "AIME · Le guide",
-  "admin.page.metaDesc": "Tout le mariage, remis dans l’ordre — dans le panneau AIME.",
 
   // Éditeur d'élément (Moments, invités, documents, paiements, prestataires…)
   "ed.edit": "Modifier",
@@ -2986,12 +2980,6 @@ const en: Record<I18nKey, string> = {
   "worldSwitcher.empty": "No World for now. Your account stays accessible.",
   "worldSwitcher.active": "Wedding · Active World",
 
-  // /admin page (the back-office)
-  "admin.page.eyebrow": "The whole site explained",
-  "admin.page.title": "The guide",
-  "admin.page.lead": "The whole wedding, put in order — each line opens the right view of the World.",
-  "admin.page.metaTitle": "AIME · The guide",
-  "admin.page.metaDesc": "The whole wedding, put in order — inside the AIME panel.",
 
   // Element editor (Moments, guests, documents, payments, providers…)
   "ed.edit": "Edit",

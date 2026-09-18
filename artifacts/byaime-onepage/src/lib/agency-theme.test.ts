@@ -56,7 +56,6 @@ function contrastRatio(foreground: string, background: string): number {
 const AGENCY_PAGES = [
   "../pages/Landing.tsx",
   "../pages/BilanPage.tsx",
-  "../pages/AdminSommaire.tsx",
   "../pages/Mentions.tsx",
   "../pages/Legal.tsx",
   "../components/CoupleReport.tsx",

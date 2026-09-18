@@ -63,7 +63,6 @@ const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module
 const LazyAssistant = lazy(() => import('@/pages/Assistant').then(module => ({ default: module.AssistantPage })));
 const LazyFolders = lazy(() => import('@/pages/Folders').then(module => ({ default: module.FoldersPage })));
 const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
-const LazyAdmin = lazy(() => import('@/pages/AdminSommaire').then(module => ({ default: module.AdminSommairePage })));
 const LazyMentions = lazy(() => import('@/pages/Mentions').then(module => ({ default: module.MentionsLegalesPage })));
 
 function stripBase(path: string) {
@@ -155,8 +154,8 @@ function authPath(path: "/connexion" | "/creation", returnTo?: string) {
 }
 
 function invitationReturnPath() {
-  /* Tout chemin interne sûr : /invite/:token bien sûr, mais aussi /admin ou
-     /user-portal — le lien Admin de la landing passe par là après connexion. */
+  /* Tout chemin interne sûr : /invite/:token bien sûr, mais aussi
+     /user-portal — passe par là après connexion. */
   const value = new URLSearchParams(window.location.search).get("returnTo");
   return value && value.startsWith("/") && !value.startsWith("//") ? value : undefined;
 }
@@ -369,7 +368,6 @@ function Routes() {
     <Route path="/confidentialite">{() => <LegalPage kind="privacy" />}</Route>
     <Route path="/conditions">{() => <LegalPage kind="terms" />}</Route>
     <Route path="/ma-carte">{() => <PrivateRoute shell={false} signInReturnTo={`/ma-carte${typeof window !== "undefined" ? window.location.search : ""}`}><CardSite /></PrivateRoute>}</Route>
-    <Route path="/admin">{() => <PrivateRoute><LazyAdmin /></PrivateRoute>}</Route>
     <Route path="/" component={LandingRoute} />
     <Route path="/app"><Redirect to="/user-portal" /></Route>
     <Route path="/user-portal">{() => <PrivateRoute><LazyHome /></PrivateRoute>}</Route>
