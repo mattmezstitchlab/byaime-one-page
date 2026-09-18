@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useProject } from "@/store/project-store";
 import { EntityEditor } from "@/components/EntityEditor";
 import { CenteredBlock } from "@/components/CenteredBlock";
+import { ProfileAccessBlocked } from "@/components/ProfileAccessBlocked";
 
 import type { ProfileTimelineEvent } from "@/components/ProfileFeed";
 import { canRoleSeeTimelineEvent } from "@/lib/profile-visibility";
@@ -327,15 +328,7 @@ export function PublicProfilePage({ privatePreview: previewProp = false }: { pri
   }
 
   if (error || !profile) {
-    return (
-      <main data-testid="profile-error" className="flex min-h-[100dvh] flex-col items-center justify-center bg-background p-6 text-center text-foreground">
-        <div className="max-w-md">
-          <p className="mb-8 text-[10px] uppercase tracking-[.4em] text-muted-foreground">Erreur</p>
-          <h1 className="text-3xl font-display font-semibold tracking-tight mb-6">L'accès à cette histoire est impossible.</h1>
-          <p className="mb-12 text-sm font-light text-muted-foreground">{error instanceof Error ? error.message : "Profil introuvable"}</p>
-        </div>
-      </main>
-    );
+    return <ProfileAccessBlocked error={error} />;
   }
 
 

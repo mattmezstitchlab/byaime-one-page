@@ -116,7 +116,14 @@ d'implémentation, prouvée par des tests dans notre style (comme
    passer par le pont). `lucide-react` nommée bibliothèque tierce, pas
    comptée en écarts. La convergence se suit désormais par mesures
    successives — jamais déclarée.
-4. **La géométrie verrouillable** (ratio, `locked_to`) — en calque
+4. **Convergence n°1 — hiérarchie (18/09, mesurée)** : 16 → **12** écarts
+   écran (densité 15.5 → 15.3). Vraies corrections : état d'erreur du profil
+   public extrait en fragment (`ProfileAccessBlocked` — la page garde un
+   seul h1 par fichier, le rendu est identique) ; saut h2→h4 du pied de
+   page de `design/index.html` résolu (h4→h3) ; h1 masqué ajouté à la
+   coquille `mockup-sandbox`. Les 12 restants sont des **angles morts du
+   collecteur, pas des écarts du produit** — voir §7.
+5. **La géométrie verrouillable** (ratio, `locked_to`) — en calque
    présentation, après la preuve, côté spec COMPOSER d'abord.
 5. **Le wording universel** en dernier — quand le moteur existe, les mots
    suivent ; jamais l'inverse.
@@ -128,3 +135,26 @@ d'implémentation, prouvée par des tests dans notre style (comme
 - COMPOSER ne devient pas une deuxième implémentation du produit ;
 - aucune donnée dupliquée entre les deux dépôts — des formats d'échange
   versionnés, rien d'autre.
+
+## 7. Retour du terrain au juge — angles morts mesurés (18/09)
+
+Première passe de convergence exécutée côté byaime. Sur 16 écarts HIERARCHY
+« écran », 4 étaient de vrais écarts (corrigés) et **12 sont des angles
+morts du collecteur**, à publier comme tels plutôt qu'à facturer au projet :
+
+1. **h1 composé invisible** : une route dont le titre vit dans un fragment
+   importé (`SiteHero` rend le h1 de Legal/Mentions ; `ProjectStage` celui
+   de l'écran app) compte « 0 h1 ». Le scan statique d'une route n'inlined
+   pas ses imports locaux.
+2. **Alias de composants non résolus** : `<motion.h1>` (framer-motion) n'est
+   pas compté comme h1 — l'écran app en rend un vrai.
+3. **Fichiers `*.test.*` comptés comme routes** : les tests de pages
+   (`landing.test.tsx`, `assistant-folders.test.tsx`…) sont des écrans pour
+   le collecteur ; leurs doubles rendus y comptent des « 2 h1 ».
+4. **Coquilles SPA** : `index.html` du montage Vite n'a pas de h1 statique —
+   il vit dans le rendu ; en ajouter un créerait un double h1 à l'exécution.
+
+Proposition (dans la grammaire du système) : publier ces cas comme
+`NON RÉSOLU — h1 composé/alias/coquille`, jamais comme écart ; exclure
+`*.test.*` des routes ; compter `motion.h[1-6]` comme titres. La règle
+« jamais deviner » reste : ce qui n'est pas résolu est nommé, pas inventé.
