@@ -43,7 +43,7 @@ import { setWorldNavState } from '@/lib/world-nav-state';
 import { trackEvent } from '@/lib/analytics';
 import { useI18n } from '@/lib/i18n';
 import { heroVisualOverlayCss } from '@/lib/types';
-import { isCustomHeroVisual, resolveHeroVisual, setHeroVisualFor, visualSourceUrl, WORLD_VISUAL_CHOICES } from '@/lib/world-visuals';
+import { isCustomHeroVisual, resolveHeroVisual, setHeroVisualFor, visualSourceUrl, WORLD_MEDIA_CHOICES } from '@/lib/world-visuals';
 import { VisualImportControl } from '@/components/VisualImportControl';
 import type { UniversalCreateActionId } from '@/lib/universal/create-actions';
 
@@ -908,7 +908,7 @@ export function ProjectStage() {
               const { heroVisuals } = setHeroVisualFor(project, phase);
               updateProject({ heroVisuals: { ...heroVisuals, [phase]: visual } });
             }}
-            choices={WORLD_VISUAL_CHOICES}
+            choices={WORLD_MEDIA_CHOICES}
             choicesLabel={t("world.hero.visual.choices")}
           />
           <p className="mt-4 text-xs font-light leading-relaxed text-[var(--agency-body)]">{t("world.hero.visual.hint")}</p>

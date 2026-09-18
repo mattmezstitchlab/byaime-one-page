@@ -1,6 +1,6 @@
 import { nextBestActions, type AimeNextStep } from "./aime-guidance";
 import { parseIntention } from "./parser";
-import { DEFAULT_HERO_VISUAL, momentVisual, momentVisualZone, visualSourceUrl } from "./world-visuals";
+import { DEFAULT_HERO_VISUAL, editorialMomentVisual, momentVisual, momentVisualZone, visualSourceUrl } from "./world-visuals";
 import type {
   Confidence,
   MessageTemplate,
@@ -490,7 +490,7 @@ function createVisualProposals(project: WorldProject, message: string, planId: s
 
   if (/(hero|page publique|section|ouverture)/i.test(message)) {
     const sourceEvent = fallback[0];
-    const visual = sourceEvent ? momentVisual(sourceEvent, project) : DEFAULT_HERO_VISUAL;
+    const visual = sourceEvent ? (editorialMomentVisual(sourceEvent, project) ?? momentVisual(sourceEvent, project)) : DEFAULT_HERO_VISUAL;
     const zone = sourceEvent ? momentVisualZone(sourceEvent, project) : "reception";
     const heroOperation = operation(
       "visual",
@@ -516,7 +516,7 @@ function createVisualProposals(project: WorldProject, message: string, planId: s
   }
 
   for (const event of fallback) {
-    const visual = momentVisual(event, project);
+    const visual = editorialMomentVisual(event, project) ?? momentVisual(event, project);
     const zone = momentVisualZone(event, project);
     const visualOperation = operation(
       "visual",

@@ -1,4 +1,5 @@
 import { AIME_VIDEOS, AIME_VISUALS, getAssetUrl } from "./assets";
+import { AIME_MEDIA_CHOICES, findAimeMediaForText, visualFromAimeMedia } from "./media-library";
 import { getSubchapter } from "./timeline-chapters";
 import { DEFAULT_VISUAL_OVERLAY, type TimelineEvent, type WorldProject, type WorldVisual } from "./types";
 
@@ -179,6 +180,21 @@ export function chapterAmbientAsset(chapter: string, phase: TimelineEvent["phase
 export const WORLD_VISUAL_CHOICES: ReadonlyArray<{ zone: MomentVisualZone; asset: string }> = (
   Object.keys(ZONE_ASSETS) as MomentVisualZone[]
 ).map(zone => ({ zone, asset: ZONE_ASSETS[zone] }));
+
+/** Local manifest choices plus the editorial corpus supplied for AIME. */
+export const WORLD_MEDIA_CHOICES: ReadonlyArray<{ zone: string; asset: string; label?: string }> = [
+  ...WORLD_VISUAL_CHOICES,
+  ...AIME_MEDIA_CHOICES,
+];
+
+/** A semantic editorial suggestion for a Moment, without changing the project. */
+export function editorialMomentVisual(event: TimelineEvent, project?: WorldProject | null): WorldVisual | null {
+  const media = findAimeMediaForText(
+    [event.title, event.detail, event.location, event.resources?.join(" ")].filter(Boolean).join(" "),
+    momentVisualZone(event, project),
+  );
+  return media ? visualFromAimeMedia(media) : null;
+}
 
 /*
  * ——— Le hero du Monde ———

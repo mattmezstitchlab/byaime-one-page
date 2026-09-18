@@ -19,6 +19,7 @@ import type { MusicSearchResult, MusicTrack, Document } from "@/lib/types";
 import { MESSAGE_TO_EVENT, consumeMessageDraft } from "@/lib/person-spotlight-bus";
 import { linkMusicTrackToEvents, musicEventIdsForTrack } from "@/lib/timeline-graph";
 import { momentDocumentIds, momentTrackIds } from "@/lib/moment-context";
+import { AIME_MEDIA_LIBRARY, visualFromAimeMedia, type AimeMediaAsset } from "@/lib/media-library";
 import { useI18n, type I18nKey } from "@/lib/i18n";
 import type { WeddingModule } from "@/lib/wedding-navigation";
 
@@ -138,6 +139,7 @@ export function WeddingModulesPanel({
   const [localDocError, setLocalDocError] = useState("");
   const [localDocProgress, setLocalDocProgress] = useState<{ done: number; total: number; current: string } | null>(null);
   const [galleryFilter, setGalleryFilter] = useState<"all" | "image" | "video" | "doc">("all");
+  const [editorialMediaQuery, setEditorialMediaQuery] = useState("");
   const [galleryLightboxUrl, setGalleryLightboxUrl] = useState<string | null>(null);
   const [galleryLightboxType, setGalleryLightboxType] = useState<"image" | "video" | null>(null);
   const [orgaTab, setOrgaTab] = useState<OrgaSection>(orgaSection ?? "ceremony");
@@ -313,8 +315,20 @@ export function WeddingModulesPanel({
     setFreeOpen(false);
   };
 
+  const editorialMedia = AIME_MEDIA_LIBRARY.filter(asset => {
+    const query = editorialMediaQuery.trim().toLocaleLowerCase();
+    if (!query) return true;
+    return [asset.label, asset.zone, asset.source, ...asset.tags].join(" ").toLocaleLowerCase().includes(query);
+  });
 
-
+  const applyEditorialMedia = (asset: AimeMediaAsset) => {
+    const visual = visualFromAimeMedia(asset);
+    if (momentId) {
+      updateEntity("timeline", momentId, { visual });
+      return;
+    }
+    updateProject({ heroVisual: visual });
+  };
 
   if (module === "seating") {
     return (
@@ -411,6 +425,46 @@ export function WeddingModulesPanel({
             </div>
           )}
         </div>
+
+        <section className="rounded-3xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-5" data-testid="aime-editorial-gallery">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--agency-eyebrow)]">Médiathèque AIME</p>
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[var(--agency-body)]">
+                Des visuels contextualisés, issus des dépôts éditoriaux fournis. Ils restent référencés par URL et portent leur provenance ; rien n’est copié dans les données métier.
+              </p>
+            </div>
+            <span className="rounded-full border border-[var(--agency-hairline)] px-2.5 py-1 text-[10px] text-[var(--agency-eyebrow)]">{editorialMedia.length} choix</span>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <input
+              value={editorialMediaQuery}
+              onChange={event => setEditorialMediaQuery(event.target.value)}
+              placeholder="Rechercher : cérémonie, fleurs, rôle…"
+              aria-label="Rechercher dans la médiathèque AIME"
+              className="min-w-[16rem] flex-1 rounded-full border border-[var(--agency-hairline)] bg-transparent px-3 py-2 text-xs text-[var(--agency-ink)] outline-none placeholder:text-[var(--agency-eyebrow)] focus:border-[var(--agency-ink)]"
+            />
+          </div>
+          <div className="mt-4 grid max-h-[34rem] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4">
+            {editorialMedia.map(asset => (
+              <article key={asset.id} className="overflow-hidden rounded-2xl border border-[var(--agency-hairline)] bg-[var(--agency-ink)]/[0.02]">
+                <button type="button" onClick={() => { setGalleryLightboxUrl(asset.url); setGalleryLightboxType("image"); }} className="block aspect-[4/3] w-full bg-[var(--agency-ink)]/[0.06]">
+                  <img src={asset.url} alt={asset.label} loading="lazy" className="h-full w-full object-cover transition duration-300 hover:scale-[1.03]" />
+                </button>
+                <div className="p-2.5">
+                  <p className="truncate text-[11px] font-medium text-[var(--agency-ink)]">{asset.label}</p>
+                  <p className="mt-1 truncate text-[10px] text-[var(--agency-eyebrow)]">{asset.zone} · {asset.source}</p>
+                  {canEdit && (
+                    <button type="button" onClick={() => applyEditorialMedia(asset)} className="mt-2 w-full rounded-full border border-[var(--agency-hairline)] px-2 py-1.5 text-[10px] text-[var(--agency-body)] transition hover:border-[var(--agency-ink)] hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)]">
+                      {momentId ? "Utiliser dans ce Moment" : "Utiliser pour le Monde"}
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+          {editorialMedia.length === 0 && <p className="mt-4 text-xs text-[var(--agency-body)]">Aucun visuel ne correspond à cette recherche.</p>}
+        </section>
 
         {localDocProgress && (
           <div role="status" aria-live="polite" className="rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] p-3 text-xs">
