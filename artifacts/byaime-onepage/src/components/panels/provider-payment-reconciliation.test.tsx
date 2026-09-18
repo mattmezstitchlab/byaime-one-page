@@ -42,6 +42,7 @@ afterEach(() => {
   root = null;
   container = null;
   listeners.clear();
+  vi.restoreAllMocks();
 });
 
 async function mount() {
@@ -104,6 +105,59 @@ describe("intermittents : échéances légales et heures attestées", () => {
     const hours = el.querySelector("[data-testid=intermittent-hours]");
     expect(hours?.textContent).toContain("12 h sur 507 h");
     expect(hours?.textContent).toContain("ne garantit aucune ouverture de droits");
+  });
+});
+
+describe("partie double : l'autre côté du Moment, vu depuis le Monde", () => {
+  it("affiche l'état du fait par contrepartie et demande l'attestation par un lien", async () => {
+    const DAY = 86400000;
+    const gigAt = Date.now() - 20 * DAY;
+    const text = "Notre mariage le 5 août 2027 à Lyon, 80 invités.";
+    current = createInitialProject(parseIntention(text), text);
+    const bal = { id: "bal", time: gigAt, durationMinutes: 180, kind: "evenement" as const, title: "Bal", status: "execute" as const, confidence: "confirme" as const, phase: "pendant" as const, universe: "Mariage", provenance: "real" as const, relations: [{ kind: "provider" as const, id: "sax" }, { kind: "document" as const, id: "f-sax" }] };
+    commit({
+      ...current,
+      providers: [{ id: "sax", category: "musique", role: "Saxophoniste", name: "Léo", status: "reserve", employment: "guso" }],
+      timeline: [bal],
+      documents: [{ id: "f-sax", title: "Cachet.pdf", kind: "facture", providerId: "sax", at: gigAt }],
+      payments: [{ id: "pay-sax", label: "Cachet", amountCents: 15000, at: gigAt + DAY, state: "paye", providerId: "sax", documentId: "f-sax" }],
+      attestations: [],
+    });
+    const posted: string[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (init?.method === "POST") {
+        posted.push(url);
+        return new Response(JSON.stringify({ eventId: "bal", providerId: "sax", token: "22222222-2222-2222-2222-222222222222", revoked: false }), { status: 201, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify(posted.length ? [{ eventId: "bal", providerId: "sax", token: "22222222-2222-2222-2222-222222222222", revoked: false }] : []), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => undefined) } });
+
+    const el = await mount();
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    const counterpart = el.querySelector<HTMLElement>("[data-testid=counterpart-bal-sax]");
+    expect(counterpart, "état de la contrepartie absent").not.toBeNull();
+    expect(counterpart!.dataset.factState).toBe("declare");
+    expect(el.querySelector("[data-testid=intermittent-attested]")?.textContent).toContain("Dont 0 h contresignées");
+
+    await act(async () => { el.querySelector<HTMLButtonElement>("[data-testid=counterpart-request-bal-sax]")!.click(); });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(posted).toEqual(["/api/projects/" + current.id + "/attestation-links/bal/sax"]);
+    expect(el.querySelector("[data-testid=counterpart-bal-sax]")?.textContent).toContain("Copier le lien");
+
+    /* La contrepartie a signé (le serveur a projeté l'écriture) : le Monde le voit sans rien écrire lui-même. */
+    const { factView, factViewFingerprint } = await import("@/lib/attestation");
+    const hash = factViewFingerprint(factView(bal, "sax", current));
+    act(() => commit({ ...current, attestations: [{ id: "a1", eventId: "bal", providerId: "sax", status: "atteste", hash, respondedAt: Date.now(), amountCents: 15000, time: gigAt }] }));
+    expect(el.querySelector<HTMLElement>("[data-testid=counterpart-bal-sax]")?.dataset.factState).toBe("atteste");
+    expect(el.querySelector("[data-testid=counterpart-request-bal-sax]")).toBeNull();
+    expect(el.querySelector("[data-testid=intermittent-attested]")?.textContent).toContain("Dont 12 h contresignées");
+
+    /* Le Monde corrige le montant : la signature ne couvre plus ce fait. */
+    act(() => commit({ ...current, payments: [{ ...current.payments[0], amountCents: 20000 }] }));
+    expect(el.querySelector<HTMLElement>("[data-testid=counterpart-bal-sax]")?.dataset.factState).toBe("perime");
   });
 });
 

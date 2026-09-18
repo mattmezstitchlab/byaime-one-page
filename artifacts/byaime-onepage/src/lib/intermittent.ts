@@ -1,3 +1,4 @@
+import { attestedDocuments } from "./attestation";
 import { exportableDocuments } from "./document-tense";
 import { TRAJECTORY_DISCLAIMER } from "./trajectory";
 import type { Payment, Provider, TimelineEvent, WorldProject } from "./types";
@@ -185,15 +186,20 @@ export type Cachet = {
   amountCents: number;
   providerId?: string;
   documentId: string;
+  /** Partie double : le prestataire a-t-il contresigné le Moment de ce cachet ? */
+  attested: boolean;
 };
 
 /**
- * Les cachets attestés d'un Monde : une facture rapprochée d'un paiement
- * réglé, pour un prestataire employé en cachet. Même porte que l'export
- * comptable : ce qui n'est pas un fait ne compte pas.
+ * Les cachets d'un Monde : une facture rapprochée d'un paiement réglé, pour
+ * un prestataire employé en cachet. Même porte que l'export comptable : ce
+ * qui n'est pas un fait ne compte pas. Chaque cachet dit s'il est contresigné
+ * par la contrepartie (`attested`) — c'est la porte des PREUVES, plus étroite.
  */
-export function attestedCachets(project: Pick<WorldProject, "providers" | "documents" | "payments">): Cachet[] {
+export function attestedCachets(project: Pick<WorldProject, "providers" | "documents" | "payments"> & Partial<Pick<WorldProject, "timeline" | "attestations">>): Cachet[] {
   const employed = new Set(employedProviders(project).map(provider => provider.id));
+  const full = { timeline: project.timeline ?? [], attestations: project.attestations ?? [], documents: project.documents, payments: project.payments };
+  const countersigned = new Set(attestedDocuments(full).map(document => document.id));
   return exportableDocuments(project)
     .filter(document => document.providerId && employed.has(document.providerId))
     .map(document => {
@@ -206,6 +212,7 @@ export function attestedCachets(project: Pick<WorldProject, "providers" | "docum
         amountCents: settled.reduce((sum, payment) => sum + payment.amountCents, 0),
         providerId: document.providerId,
         documentId: document.id,
+        attested: countersigned.has(document.id),
       };
     })
     .sort((a, b) => a.at - b.at);
@@ -221,6 +228,9 @@ export function referenceWindowStart(end: number, months: number = REFERENCE_MON
 export type HoursProjection = {
   cachets: number;
   hours: number;
+  /** Partie double : cachets et heures contresignés par la contrepartie — le dossier de preuves. */
+  attestedCachets: number;
+  attestedHours: number;
   threshold: number;
   remainingHours: number;
   /** Nombre de cachets encore nécessaires pour atteindre le seuil. */
@@ -240,10 +250,13 @@ export function hoursProjection(cachets: ReadonlyArray<Cachet>, now: number): Ho
   const windowStart = referenceWindowStart(now);
   const inWindow = cachets.filter(cachet => cachet.at > windowStart && cachet.at <= now);
   const hours = inWindow.length * HOURS_PER_CACHET;
+  const attested = inWindow.filter(cachet => cachet.attested).length;
   const remainingHours = Math.max(0, HOURS_THRESHOLD - hours);
   return {
     cachets: inWindow.length,
     hours,
+    attestedCachets: attested,
+    attestedHours: attested * HOURS_PER_CACHET,
     threshold: HOURS_THRESHOLD,
     remainingHours,
     remainingCachets: Math.ceil(remainingHours / HOURS_PER_CACHET),

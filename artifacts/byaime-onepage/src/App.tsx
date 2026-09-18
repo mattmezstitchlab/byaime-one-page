@@ -62,6 +62,7 @@ const LazyHome = lazy(() => import('@/pages/Home').then(module => ({ default: mo
 const LazyPublicProfile = lazy(() => import('@/pages/PublicProfile').then(module => ({ default: module.PublicProfilePage })));
 const LazyBilan = lazy(() => import('@/pages/BilanPage').then(module => ({ default: module.BilanPage })));
 const LazyMentions = lazy(() => import('@/pages/Mentions').then(module => ({ default: module.MentionsLegalesPage })));
+const LazyAttestation = lazy(() => import('@/pages/AttestationPage').then(module => ({ default: module.AttestationPage })));
 
 function stripBase(path: string) {
   return basePath && path.startsWith(basePath) ? path.slice(basePath.length) || '/' : path;
@@ -376,6 +377,7 @@ function Routes() {
     <Route path="/sign-up/*?">{() => <AuthPage signup />}</Route>
     <Route path="/invite/:token" component={InvitePage} />
     <Route path="/rsvp/:token" component={RsvpPage} />
+    <Route path="/attestation/:token">{(params) => <LazyAttestation params={{ token: params.token }} />}</Route>
     <Route path="/profil/:projectId">{() => <LazyPublicProfile />}</Route>
     <Route component={NotFound} />
   </Switch></Suspense></RoutedErrorBoundary>;
@@ -451,6 +453,8 @@ function DegradedRoutes() {
       return <LazyBilan />;
     case 'rsvp':
       return <RsvpPage params={{ token: view.token }} />;
+    case 'attestation':
+      return <Suspense fallback={null}><LazyAttestation params={{ token: view.token }} /></Suspense>;
     case 'landing':
       /* Personne n'est connecté — c'est le cas par définition dans ce mode :
          l'accueil est rendu en visiteur (store en session absente). */

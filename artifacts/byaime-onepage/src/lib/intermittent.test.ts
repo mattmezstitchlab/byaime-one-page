@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { worldAlerts } from "./world-alerts";
+import { factView, factViewFingerprint } from "./attestation";
 import { createInitialProject, parseIntention } from "./parser";
 import {
   attestedCachets,
@@ -127,10 +128,23 @@ describe("attestedCachets / hoursProjection — le compteur est une projection d
     expect(cachets[0].amountCents).toBe(15_000);
   });
 
+  it("distingue les cachets déclarés des cachets contresignés (partie double)", () => {
+    const gig1 = moment({ id: "gig1", time: NOW - 199 * DAY, relations: [{ kind: "provider", id: "sax" }, { kind: "document", id: "f-sax-1" }] });
+    const view = factView(gig1, "sax", project);
+    const signed = { ...project, timeline: [gig1], attestations: [{ id: "a", eventId: "gig1", providerId: "sax", status: "atteste" as const, hash: factViewFingerprint(view), respondedAt: NOW, amountCents: view.amountCents, time: gig1.time }] };
+    const cachets = attestedCachets(signed);
+    expect(cachets.map(c => [c.documentId, c.attested])).toEqual([["f-sax-1", true], ["f-sax-2", false]]);
+    const projection = hoursProjection(cachets, NOW);
+    expect(projection.hours).toBe(24);
+    expect(projection.attestedHours).toBe(12);
+    expect(projection.attestedCachets).toBe(1);
+  });
+
   it("crédite douze heures par cachet dans la fenêtre de douze mois", () => {
     const projection = hoursProjection(attestedCachets(project), NOW);
     expect(projection.cachets).toBe(2);
     expect(projection.hours).toBe(2 * HOURS_PER_CACHET);
+    expect(projection.attestedHours).toBe(0);
     expect(projection.remainingHours).toBe(HOURS_THRESHOLD - 24);
     expect(projection.remainingCachets).toBe(Math.ceil((HOURS_THRESHOLD - 24) / HOURS_PER_CACHET));
     expect(projection.disclaimer).toContain("ne garantit aucune ouverture de droits");

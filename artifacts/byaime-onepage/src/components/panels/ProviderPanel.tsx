@@ -8,12 +8,18 @@ import { formatCents, currencySymbol } from "@/lib/money";
 import { momentProviderIds } from "@/lib/moment-context";
 import { invoicesForPayment } from "@/lib/document-tense";
 import { attestedCachets, hoursProjection, legalDeadlines, pendingDeadlineMoments, deadlineMomentId } from "@/lib/intermittent";
+import { CounterpartAttestation, useAttestationLinks } from "@/components/CounterpartAttestation";
 
 const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 
 export function ProviderPanel({ momentId = null }: { momentId?: string | null } = {}) {
-  const { project, updateEntity, addEntity, removeEntity, updateProject, canEdit } = useProject();
+  const { project, updateEntity, addEntity, removeEntity, updateProject, canEdit, currentRole } = useProject();
   const [query, setQuery] = useState("");
+  const canManage = currentRole === "owner" || currentRole === "planner";
+  /* Partie double : les liens d'attestation par Moment × prestataire. Hook
+     appelé avant tout retour anticipé ; s'il échoue (hors ligne, sans API),
+     `available` passe à faux et les boutons disparaissent, rien d'autre. */
+  const attestationLinks = useAttestationLinks(project?.id, Boolean(project) && canManage);
   if (!project) return null;
   /* Ancrage Moment : les professionnels reliés à ce Moment passent en tête et
      sont signalés — mêmes relations que les repères affichés sur la scène. */
@@ -160,10 +166,23 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                 <div className="mt-3 space-y-1.5">
                   {journey.length ? (
                     journey.map(event => (
-                      <p key={event.id} className="text-xs leading-relaxed text-[var(--agency-body)]">
-                        {new Date(event.time).toLocaleString("fr-FR")} · {event.title}
-                        {event.location ? ` · ${event.location}` : ""}
-                      </p>
+                      <div key={event.id}>
+                        <p className="text-xs leading-relaxed text-[var(--agency-body)]">
+                          {new Date(event.time).toLocaleString("fr-FR")} · {event.title}
+                          {event.location ? ` · ${event.location}` : ""}
+                        </p>
+                        {event.provenance !== "suggested" && (
+                          <CounterpartAttestation
+                            event={event}
+                            provider={provider}
+                            project={project}
+                            link={attestationLinks.links[attestationLinks.key(event.id, provider.id)]}
+                            available={attestationLinks.available}
+                            canManage={canManage}
+                            onChanged={attestationLinks.refresh}
+                          />
+                        )}
+                      </div>
                     ))
                   ) : (
                     <p className="text-xs text-[var(--agency-eyebrow)]">Aucun moment prévu avec ce professionnel.</p>
@@ -214,6 +233,9 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
           <div className="mt-3 h-1 rounded-full bg-foreground/10">
             <div className="h-1 rounded-full bg-foreground/60" style={{ width: `${Math.min(100, Math.round((projection.hours / projection.threshold) * 100))}%` }} />
           </div>
+          <p className="mt-2 text-xs text-[var(--agency-body)]" data-testid="intermittent-attested">
+            Dont {projection.attestedHours} h contresignées par la contrepartie ({projection.attestedCachets} cachet(s)) — seules celles-ci constituent une preuve.
+          </p>
           <p className="mt-2 text-xs leading-relaxed text-[var(--agency-body)]">
             {projection.remainingHours > 0
               ? `Il reste ${projection.remainingHours} h, soit ${projection.remainingCachets} cachet(s) attesté(s). Seules les factures rapprochées d'un paiement réglé comptent.`
