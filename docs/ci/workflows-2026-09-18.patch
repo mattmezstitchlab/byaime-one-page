@@ -1,0 +1,108 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..089c400
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,61 @@
++name: CI
++
++# La gate qui manquait le 18/09/2026 : la PR #36 a été fusionnée avec un
++# lockfile non gelable et la production Vercel est tombée à l'install. Ce
++# workflow n'a besoin d'aucun secret — il tourne sur chaque PR, fork compris,
++# et rejoue exactement ce que Vercel fait en premier.
++
++on:
++  pull_request:
++  push:
++    branches: [main]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: ci-${{ github.workflow }}-${{ github.ref }}
++  cancel-in-progress: true
++
++jobs:
++  verify:
++    name: Lockfile · typecheck · tests · build Vercel
++    runs-on: ubuntu-latest
++    timeout-minutes: 20
++    env:
++      CI: "true"
++      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
++    steps:
++      - uses: actions/checkout@v4
++
++      # Même pnpm que Vercel et que `packageManager` (10.14.0), via corepack —
++      # pas de version flottante qui régénérerait le lockfile autrement.
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 22
++      - name: Enable corepack (pnpm pinned by package.json)
++        run: corepack enable && corepack pnpm --version
++      - name: Locate pnpm store
++        id: pnpm-store
++        run: echo "path=$(corepack pnpm store path --silent)" >> "$GITHUB_OUTPUT"
++      - uses: actions/cache@v4
++        with:
++          path: ${{ steps.pnpm-store.outputs.path }}
++          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
++          restore-keys: pnpm-store-${{ runner.os }}-
++
++      # 1. L'invariant Vercel : le lockfile doit s'installer gelé.
++      - name: Install (frozen lockfile — what Vercel runs first)
++        run: corepack pnpm install --frozen-lockfile
++
++      # 2. Types sur tous les packages (libs, e2e, artifacts, scripts).
++      - name: Typecheck
++        run: corepack pnpm run typecheck
++
++      # 3. Tests unitaires de tous les packages (onepage, api-server, aime-domain).
++      - name: Unit tests
++        run: corepack pnpm test
++
++      # 4. Le build Vercel lui-même + configs + entrypoints (scripts/verify-vercel.mjs).
++      - name: Verify Vercel build
++        run: corepack pnpm run verify:vercel
+diff --git a/.github/workflows/e2e.yml b/.github/workflows/e2e.yml
+index a2b9f53..e6f9fb7 100644
+--- a/.github/workflows/e2e.yml
++++ b/.github/workflows/e2e.yml
+@@ -9,8 +9,35 @@ permissions:
+   contents: read
+ 
+ jobs:
++  # Le contexte `secrets` n'est pas disponible dans `jobs.<id>.if` : le
++  # fichier était invalide et GitHub refusait le workflow entier (100 runs
++  # « failure » en 0 s du 11/09 au 18/09/2026, sans jamais démarrer un job).
++  # On lit les secrets dans l'`env` d'un step, seul endroit autorisé, et on
++  # expose la décision en output : E2E skippé proprement quand ils manquent
++  # (forks, dépôts sans Clerk), jamais un faux échec.
++  gate:
++    runs-on: ubuntu-latest
++    timeout-minutes: 2
++    outputs:
++      run-e2e: ${{ steps.decide.outputs.run-e2e }}
++    steps:
++      - id: decide
++        env:
++          HAS_CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY != '' }}
++          HAS_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY != '' }}
++          IS_SAME_REPO: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
++        run: |
++          if [ "$HAS_CLERK_SECRET_KEY" = "true" ] && [ "$HAS_CLERK_PUBLISHABLE_KEY" = "true" ] && [ "$IS_SAME_REPO" = "true" ]; then
++            echo "run-e2e=true" >> "$GITHUB_OUTPUT"
++            echo "E2E : secrets Clerk présents, dépôt d'origine → lancement."
++          else
++            echo "run-e2e=false" >> "$GITHUB_OUTPUT"
++            echo "E2E : ignoré (secrets Clerk absents ou PR d'un fork). La gate CI sans secrets reste obligatoire."
++          fi
++
+   playwright:
+-    if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.CLERK_SECRET_KEY != '' && secrets.CLERK_PUBLISHABLE_KEY != ''
++    needs: gate
++    if: needs.gate.outputs.run-e2e == 'true'
+     runs-on: ubuntu-latest
+     timeout-minutes: 25
+     services:

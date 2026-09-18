@@ -243,3 +243,85 @@ l'extraction de classes, symétrique de l'exemption CSS existante
 Acceptance sur byaime : FOCUS tombe de 217 à **l'inventaire réel des
 paires non appariées** (attendu proche de zéro), comptes exacts, fixtures
 `focus-pairing` (paire valide / nu / pointeur / paire incomplète).
+
+**✅ Boucle fermée le 18/09 (matin)** — le juge a intégré §8 et §9 (PR
+AIME-COMPOSER #44 `1f9da76` : couche de tokens REFERENCE, h1 par branche,
+bootstrap ; PR #45 `f49461e` : pairing FOCUS « la substitution, pas le
+token », angle mort n°8 `font-display` compté `.t-display`). Re-mesure
+byaime (diagnostic V2 sur `artifacts/byaime-onepage`, juge `20fabad`) :
+
+| Famille | Avant (§8) | Après juge #44/#45 | Après convergence n°3 |
+|---|---|---|---|
+| HIERARCHY | 16 | **0 vrai** + 6 non-résolus nommés | 0 + 6 |
+| COLOR | 478 | **127** (`tokens_layer: true`, 2 fichiers reconnus) | 127 |
+| FOCUS | 217 | **6** (inventaire réel, chacun nommé) | **3** |
+
+## 10. Convergence n°3 — les 6 FOCUS réels (18/09)
+
+Les 6 écarts nommés par le juge se partagent en deux lots :
+
+- **3 dans le produit, corrigés** : `FilTrack` (point RSVP sur le fil,
+  `focus-visible:outline-none` sans anneau → `ring-2 ring-brand-accent/70`) ;
+  `card-blocks` (champ de recherche des rôles, fond sombre → `ring-inset
+  ring-white/60`) ; `PlanningPanel` (corbeille d'une étape sans nom
+  accessible → `aria-label="Supprimer {titre}"` + anneau clavier). Au
+  passage, `EntityEditor` : deux chaînes de classes (`inputClass`,
+  `selectClass`) portaient le motif « outline retiré au clavier, seule la
+  bordure change » — le même que les 53 corrigés en n°2 ; le juge ne les
+  voyait pas (constantes, pas attributs `className` littéraux) — corrigées
+  quand même, c'est l'accessibilité qui compte, pas la mesure.
+- **3 dans `reference/source-zip/`** (`HeroBar.tsx` ×3) : une archive de
+  référence commitée le 07/09, importée nulle part, hors `tsconfig`. Elle
+  n'est pas le produit ; on ne la « corrige » pas pour flatter un chiffre.
+  Elle reste comptée, nommée, et sera retirée du dépôt quand la décision
+  d'archivage sera prise — pas par cette convergence.
+
+**Angle mort #9 — implémenté côté juge, transport en attente (18/09)** :
+les constantes de classes (`const inputClass = "…"`) réutilisées dans
+plusieurs `className={inputClass}` n'étaient pas extraites — un défaut dans
+une constante est un défaut par usage, invisible. Résolu dans
+`diagnostic/src/extract.mjs` (`localStringConstants` + `classLiterals`) :
+littéral du même fichier → jugé **à la ligne de chaque usage** ; première
+déclaration retenue, redéclaration = retrait ; gabarit → segments `${…}`
+comptés non résolus ; prop / import / calcul → NON RÉSOLU, jamais
+interprété. Fixture `class-constants` + 3 tests exacts (54/54 ; QA 12/12 ;
+résolveur 109/109).
+
+Le jeton de la session n'écrit pas sur AIME-COMPOSER (403) : le commit
+voyage en **`arena-transport-diagnostic-angle-mort-9.patch`** à la racine
+de ce dépôt (`git am` sur `main` COMPOSER `20fabad`, applicabilité vérifiée)
+— la Navette de la proposition n°3, une fois de plus vécue.
+
+**Re-mesure byaime avec ce juge** : **72 écarts réels apparaissent**
+(EntityEditor 29, ProfessionalProfileEditor 22, card-blocks 21 — rayons
+`rounded-xl`, tailles et couleurs portés par des constantes), total
+998 → 1070, densité écrans inchangée (9.6). Le juge n'a pas régressé : il
+mesure ce qu'il ratait. Ces 72 sont le premier lot de la convergence n°4.
+
+Résultat après n°3 : FOCUS **3** (tous hors produit, `reference/`),
+563 tests verts, build ✓, `verify:vercel` ✓.
+
+## 11. Convergence n°4 — trois décisions à prendre, pas trois corrections (18/09)
+
+Les 72 écarts révélés par l'angle mort #9 ne sont pas des défauts
+d'accessibilité comme en n°2 et n°3 : ce sont **trois choix de langue
+visuelle**, portés par trois constantes réutilisées (`inputClass` /
+`selectClass` dans `EntityEditor`, `cardInputStyle` / `cardButtonStyle`
+dans `card-blocks`, `input` / `button` dans `ProfessionalProfileEditor`).
+Les corriger mécaniquement changerait l'apparence du produit — la règle
+« jamais de réparation sans validation humaine » s'applique. Voici la
+décision, chiffrée.
+
+| Lot | Écarts | Ce que le juge dit | Ce que ça changerait à l'écran | Décision |
+|---|---|---|---|---|
+| **A. Rayons** | 46 (`rounded-xl` = 12 px) | hors des quatre niveaux AIME (0 · 4 · 8 · 14 · pill) | champs et cartes passent de 12 à 14 px (`large`) ou 8 px (`medium`). Le produit utilise `rounded-xl` **80×**, `rounded-2xl` 68×, `rounded-3xl` 51× : c'est toute la géométrie, pas trois constantes | **spec COMPOSER d'abord** (pont §5 étape 5 — géométrie en calque) ; puis adoption du pont Tailwind (`tailwind.preset.cjs`) qui ferme l'échelle d'un coup |
+| **B. Couleurs nommées** | 23 (`text-white` 17, `bg-white` 3, `text-black` 3) + le littéral `bg-[#262320]` | palette externe au système | formulaires de la Carte universelle (surface sombre) : `white` → `var(--aime-color-text-inverse)` (#F5F3EE en sombre), `#262320` → un rôle de surface. Différence perceptible mais fine ; c'est la couture des palettes du §5 étape 3, jusqu'ici « documentée, pas forcée » | **à valider** — c'est la première fois que la couture toucherait un écran |
+| **C. Espacement** | 3 (`px-5` = 20 px) | hors échelle (16 · 24) | boutons de la Carte : 20 → 16 ou 24 px de marge horizontale | **mineur, peut suivre A** |
+
+Ordre proposé : **B seul peut se faire maintenant** si validé (3 constantes,
+un écran, réversible) ; **A et C attendent le pont Tailwind** — les traiter
+constante par constante serait une convergence de façade (46 sur 199
+`rounded-xl/2xl/3xl`). La densité par écran (9.6) ne bougera pas tant que
+l'échelle n'est pas adoptée : c'est le chantier n°7 de la liste du 18/09,
+80 % des écarts restants (SPACING 492 · ALIGNMENT 240 · TYPOGRAPHY 149).
+

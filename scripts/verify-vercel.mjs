@@ -15,11 +15,13 @@ const vercelConfigPaths = [
   {
     path: "vercel.json",
     expectedBuildCommand: "pnpm --filter @workspace/byaime-onepage run build",
+    expectedIgnoreCommand: "sh scripts/vercel-ignore-build.sh",
     expectedOutputDirectory: "artifacts/byaime-onepage/dist/public",
   },
   {
     path: "artifacts/byaime-onepage/vercel.json",
     expectedBuildCommand: "pnpm run build",
+    expectedIgnoreCommand: "sh ../../scripts/vercel-ignore-build.sh",
     expectedOutputDirectory: "dist/public",
   },
 ];
@@ -158,7 +160,7 @@ function findRouteDestination(routes, requestPath) {
   return null;
 }
 
-async function assertVercelConfig({ path: configPath, expectedBuildCommand, expectedOutputDirectory }) {
+async function assertVercelConfig({ path: configPath, expectedBuildCommand, expectedIgnoreCommand, expectedOutputDirectory }) {
   const config = await readJson(configPath);
   if (!Array.isArray(config.routes)) {
     throw new Error(`${configPath} must define explicit routes for /api`);
@@ -171,6 +173,9 @@ async function assertVercelConfig({ path: configPath, expectedBuildCommand, expe
   }
   if (config.outputDirectory !== expectedOutputDirectory) {
     throw new Error(`${configPath} must define outputDirectory ${expectedOutputDirectory}`);
+  }
+  if (config.ignoreCommand !== expectedIgnoreCommand) {
+    throw new Error(`${configPath} must define ignoreCommand ${expectedIgnoreCommand}`);
   }
 
   for (const { requestPath, expectedDestination } of requiredRoutingChecks) {
@@ -232,11 +237,44 @@ async function assertDeploymentRouting() {
   await Promise.all(requiredDeploymentChecks.map((check) => assertDeploymentRoute(baseUrl, check)));
 }
 
+/* Vercel installe avec `pnpm install --frozen-lockfile` : un lockfile qui ne
+   reflète plus `pnpm-workspace.yaml` (overrides, catalog) ou un `package.json`
+   (specifier) fait échouer le déploiement avant toute compilation, avec
+   `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` / `ERR_PNPM_OUTDATED_LOCKFILE`. C'est ce
+   qui a cassé la production du 18/09/2026 : la PR #36 avait régénéré le
+   lockfile dans un bac à sable qui ignorait la section `overrides`, et rien
+   côté dépôt ne le disait avant Vercel. `--lockfile-only` rejoue la même
+   vérification sans toucher à `node_modules`. */
+function assertFrozenLockfile() {
+  try {
+    execFileSync(corepackCommand, ["pnpm", "install", "--frozen-lockfile", "--lockfile-only"], {
+      cwd: rootDir,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: process.env,
+      encoding: "utf8",
+    });
+  } catch (error) {
+    const output = `${error?.stdout ?? ""}${error?.stderr ?? ""}`.trim();
+    throw new Error(
+      "pnpm-lock.yaml is not frozen-installable — Vercel's `pnpm install --frozen-lockfile` would fail.\n"
+      + "Regenerate it from a clean checkout with `corepack pnpm install` (never with a pnpm that ignores\n"
+      + "pnpm-workspace.yaml overrides) and commit the result.\n"
+      + output,
+    );
+  }
+}
+
 async function main() {
   const forbiddenTracked = trackedFiles().filter(isForbiddenTrackedArtifact);
   if (forbiddenTracked.length > 0) {
     throw new Error(`Forbidden generated artifacts are still tracked by Git:\n${forbiddenTracked.join("\n")}`);
   }
+
+  assertFrozenLockfile();
+  /* L'Ignored Build Step a deux codes de sortie porteurs de charge (0 =
+     ignorer, 1 = construire) : la recette les rejoue contre de vrais dépôts
+     jetables — une régression ici ne casse pas un build, elle en saute un. */
+  run("node", ["scripts/test-vercel-ignore-build.mjs"]);
 
   await Promise.all(generatedPathsToClean.map(removePath));
   await removeTsBuildInfoFiles(rootDir);

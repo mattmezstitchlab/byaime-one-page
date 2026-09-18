@@ -135,6 +135,64 @@ default HTML page — the HTML page is what made a browser print
   into a French sentence, and `/ma-carte` keeps its form usable with a
   non-blocking retry banner.
 
+## Lockfile — the invariant Vercel checks first
+
+`installCommand` is `pnpm install --frozen-lockfile`, so the very first thing
+a deployment does is compare `pnpm-lock.yaml` with `pnpm-workspace.yaml`
+(`overrides`, `catalog`, settings) and every `package.json` specifier. Any
+drift fails the deployment **before a single file is compiled**, with
+`ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` (workspace config) or
+`ERR_PNPM_OUTDATED_LOCKFILE` (specifier).
+
+That is what broke production on 2026-09-18: PR #36 regenerated the lockfile
+in a sandbox whose pnpm ignored the `overrides` section of
+`pnpm-workspace.yaml`, so the committed lockfile lost its 86 overrides
+(`esbuild: 0.28.1`, the `'-'` platform-binary exclusions, …) and gained the
+platform binaries they exclude. Every deployment from `bb761de` onwards
+failed at install time; the last good one was `86617b0` (PR #35). No code
+change was at fault — the build, the 563 tests and the typecheck all passed
+locally with the previous lockfile.
+
+Rules:
+
+- Regenerate the lockfile only with `corepack pnpm install` from the
+  repository root, on the pinned `pnpm@10.14.0`, and check that
+  `pnpm-lock.yaml` still contains an `overrides:` block matching
+  `pnpm-workspace.yaml` before committing.
+- `corepack pnpm run verify:vercel` now runs
+  `pnpm install --frozen-lockfile --lockfile-only` first — the same
+  verification Vercel performs, without touching `node_modules` — and fails
+  with an explicit message when the lockfile would not install frozen.
+- Read the Vercel failure line rather than the build logs: a lockfile error
+  is reported by pnpm during *Install*, never during *Build*.
+
+## Ignored Build Step — ne pas dépenser le quota sur des commits de docs
+
+`ignoreCommand` (both `vercel.json` files) runs `scripts/vercel-ignore-build.sh`.
+On 2026-09-18 the project hit « Deployment rate limited — retry in 24 hours »
+(Hobby plan) while production still had to be repaired; part of the quota had
+been spent on commits that could not change the site.
+
+Contract: exit 0 = skip, exit 1 = build, anything else normalised to 1 (when
+in doubt, build). The comparison base is `VERCEL_GIT_PREVIOUS_SHA` (last
+successful deployment of the branch), never `HEAD^`: Vercel deploys only the
+head of a push, so `HEAD^` would skip a push that ends on a docs commit and
+leave the code before it deployed nowhere. No previous SHA, unknown SHA
+(shallow clone), not a git repo → build. The script always `cd`s to the
+repository top level, so it behaves the same with Root Directory unset or set
+to `artifacts/byaime-onepage`.
+
+Paths that cannot change what Vercel serves (verified: nothing in the build
+imports `*.md` or `docs/`; `attached_assets/` **is** aliased `@assets` by
+`vite.config.ts` and is therefore *not* excluded): `docs/`, `research/`,
+`screenshots/`, `.agents/`, `.github/`, `*.md`, `*.patch`.
+
+`corepack pnpm run test:vercel-ignore` (also run by `verify:vercel`) replays
+the real script against throwaway repositories: docs-only → 0, code → 1,
+mixed push ending on docs → 1, `attached_assets` → 1, lockfile → 1, missing
+or unknown base → 1, run from the artifact directory with a change in `lib/`
+→ 1, no change → 0.
+
 ## Clean rebuild checks
 
 Run the following from a clean workspace:
