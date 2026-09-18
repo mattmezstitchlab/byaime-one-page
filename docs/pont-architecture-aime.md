@@ -96,11 +96,26 @@ d'implémentation, prouvée par des tests dans notre style (comme
    « Informations pratiques », repli déterministe pour les Mondes légués,
    15 tests qui verrouillent le Ripple et la non-publication par héritage
    (563 tests verts au total).
-3. **Le pont Tailwind** : adopter le preset du design system dans l'app
-   (Tailwind v4, config CSS — aucun fichier de config à créer), brûler les
-   couleurs littérales, mesurer la convergence avec
-   `node diagnostic/diagnose.mjs --baseline` : la boucle d'alignement
-   jusqu'à zéro écart, outillée par le juge des deux côtés.
+3. **Le pont Tailwind — couche posée, baseline mesurée (18/09)** :
+   `src/styles/aime-tokens.css` (vendored, provenance AIME-COMPOSER
+   `90ad4c0`) est chargé dans `index.css` — additif, aucune variable
+   existante changée, build vérifié. La couture des palettes historiques :
+
+   | Rôle AIME (`--aime-*`) | Équivalent actuel de l'app | Statut |
+   |---|---|---|
+   | `color-surface` / `color-text` (thème clair) | `--agency-paper` #FFFFFF / `--agency-ink` #171410 | couture documentée — l'agence reste la vérité visuelle, contrastes verrouillés par `agency-theme.test.ts` |
+   | `color-border-subtle` | `--agency-hairline` #E6E1D8 | idem |
+   | `color-text-muted` | `--agency-body` #6F6A61 | idem |
+   | shadcn HSL (`--background`…) | — | couche propre à l'app, hors périmètre de convergence |
+
+   **Baseline mesurée** (diagnostic universel V2, voit le React) :
+   19 écrans · 154 fragments · 294 écarts écrans (densité 15.5/écran) ·
+   vocabulaire système 0/1159 classes. Chantiers dans l'ordre du juge :
+   hiérarchie (16), focus (218), couleurs littérales (328), valeurs hors
+   échelle (847), classes non résolues (1560 — cn()/clsx, à nommer ou
+   passer par le pont). `lucide-react` nommée bibliothèque tierce, pas
+   comptée en écarts. La convergence se suit désormais par mesures
+   successives — jamais déclarée.
 4. **La géométrie verrouillable** (ratio, `locked_to`) — en calque
    présentation, après la preuve, côté spec COMPOSER d'abord.
 5. **Le wording universel** en dernier — quand le moteur existe, les mots

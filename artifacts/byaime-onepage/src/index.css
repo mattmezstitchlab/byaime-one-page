@@ -2,6 +2,9 @@
 @import 'tailwindcss';
 @import '@clerk/themes/shadcn.css';
 @import 'tw-animate-css';
+/* Pont AIME-COMPOSER (étape 3) : couche commune des rôles --aime-*.
+   Additif — aucune variable existante n'est changée. */
+@import './styles/aime-tokens.css';
 
 @custom-variant dark (&:is(.dark *));
 
