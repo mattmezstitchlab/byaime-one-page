@@ -15,7 +15,7 @@
 ## P7 — clôture (18/09)
 - ✅ README racine avec TL;DR archi + screenshots (`README.md`)
 - ✅ Deploy Vercel — prod réparée le 18/09 (lockfile gelé, PR #37), gate `verify:vercel` + CI sans secrets (`docs/ci/`)
-- ⏳ Tag `v1.0-local-first` — à poser sur `main` une fois #37 fusionnée et le déploiement Production vert (`git tag -a v1.0-local-first -m "…" && git push origin v1.0-local-first`)
+- ✅ Tag `v1.0-local-first` — posé sur `919130b` (merge #37) le 18/09, prod verte (deployment 6519851691)
 
 ## Architecture indiscutable
 Voir ARCHITECTURE_INDISCUTABLE.md — 1 fichier=1 mariage, rail 7, galerie+orga, local-first, 377 tests.
