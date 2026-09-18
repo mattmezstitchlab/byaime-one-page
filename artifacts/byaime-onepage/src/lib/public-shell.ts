@@ -21,6 +21,8 @@ export type DegradedView =
   | { kind: "report"; projectId: string }
   /** Le portail d'un invité : aucun compte requis pour répondre à une RSVP. */
   | { kind: "rsvp"; token: string }
+  /** La page de la contrepartie : un prestataire atteste un Moment sans compte. */
+  | { kind: "attestation"; token: string }
   /** L'accueil : la page unique du site public, rendue sans session. */
   | { kind: "landing" }
   /** Tout le reste exige une session : on le dit, sans rien demander. */
@@ -53,6 +55,11 @@ export function resolveDegradedView(path: string): DegradedView {
   const rsvp = clean.match(/^\/rsvp\/([^/]+)\/?$/);
   if (rsvp) return { kind: "rsvp", token: rsvp[1] };
 
+  /* Même règle pour la contrepartie : attester un Moment ne demande aucun
+     compte, donc aucune configuration d'authentification. */
+  const attestation = clean.match(/^\/attestation\/([^/]+)\/?$/);
+  if (attestation) return { kind: "attestation", token: attestation[1] };
+
   /* Restent indisponibles, volontairement :
      - `/invite/:token` : accepter une invitation crée un compte (`useAuth`) ;
      - `/profil/:projectId` : le mini-site invité est rendu par le même
@@ -73,4 +80,5 @@ export const DEGRADED_PUBLIC_PATHS: readonly string[] = [
   "/conditions",
   "/bilan/:projectId",
   "/rsvp/:token",
+  "/attestation/:token",
 ];

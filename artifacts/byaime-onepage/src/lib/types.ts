@@ -79,6 +79,13 @@ export type Provider = {
   depositCents?: number;
   paidCents?: number;
   nextAction?: string;
+  /**
+   * Mode de rémunération. `facture` : indépendant, une facture suffit.
+   * `guso` / `structure` : artiste ou technicien employé en cachet — le
+   * Monde propose alors les échéances légales et compte les heures
+   * (`intermittent.ts`). Absent = facture.
+   */
+  employment?: "facture" | "guso" | "structure";
 };
 
 export type Payment = {
@@ -90,6 +97,12 @@ export type Payment = {
   providerId?: string;
   category?: string;
   dueDate?: number;
+  /**
+   * Rapprochement explicite : la facture que ce paiement règle. S'il est posé,
+   * il fait foi ; sinon le rapprochement retombe sur le prestataire commun
+   * (`document-tense.ts`). Jamais requis : l'existant reste valide.
+   */
+  documentId?: string;
 };
 
 export type Document = {
@@ -527,6 +540,47 @@ export type WorldProject = {
   messageLogs: MessageLog[];
   media: MemoryItem[];
   messages: MessageLog[];
-  
+  /**
+   * Journal des exports (comptabilité, CSV, preuves). Append-only : une entrée
+   * ne se modifie ni ne s'efface, une nouvelle est écrite si le fait change.
+   * Seul le propriétaire le voit et le prolonge (`export-journal.ts`).
+   */
+  exportLog?: ExportEntry[];
+  /**
+   * Écritures de la contrepartie (partie double). Une attestation est donnée
+   * par le prestataire relié à un Moment, via un lien de claim, jamais par le
+   * propriétaire : le serveur refuse toute attestation venue de la sauvegarde
+   * du projet et ne les prolonge qu'à partir de la réponse au lien
+   * (`attestation.ts`). Lecture seule côté Monde.
+   */
+  attestations?: Attestation[];
+
   missing: string[];
+};
+
+export type Attestation = {
+  id: string;
+  eventId: string;
+  providerId: string;
+  status: "atteste" | "conteste";
+  /** Empreinte du fait tel qu'il a été montré et signé (`factViewFingerprint`). */
+  hash: string;
+  respondedAt: number;
+  /** Ce que la contrepartie a vu : montant et date, pour relire sans recalculer. */
+  amountCents: number;
+  time: number;
+  /** Une contestation dit pourquoi, en une phrase ; jamais une note. */
+  note?: string;
+};
+
+export type ExportEntry = {
+  id: string;
+  documentId: string;
+  destination: "pennylane" | "csv" | "preuve";
+  exportedAt: number;
+  /** Empreinte du fait tel qu'exporté : document + paiements rapprochés. */
+  hash: string;
+  amountCents: number;
+  providerId?: string;
+  paymentIds: string[];
 };

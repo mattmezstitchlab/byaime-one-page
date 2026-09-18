@@ -14,8 +14,10 @@
     "e2e": "playwright test",
     "verify:vercel": "node ./scripts/verify-vercel.mjs",
     "test:vercel-ignore": "node scripts/test-vercel-ignore-build.mjs",
-    "test:card-migrations": "node scripts/test-card-migrations.mjs",
-    "check:db": "corepack pnpm --filter @workspace/scripts run check:db"
+    "test:card-migrations": "node scripts/test-card-migrations.mjs && node scripts/test-embedded-migrations.mjs",
+    "db:sync-migrations": "node scripts/sync-migrations.mjs",
+    "check:db": "corepack pnpm --filter @workspace/scripts run check:db",
+    "db:migrate": "corepack pnpm --filter @workspace/scripts run db:migrate"
   },
   "private": true,
   "devDependencies": {

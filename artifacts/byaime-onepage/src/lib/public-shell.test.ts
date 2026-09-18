@@ -50,6 +50,7 @@ describe("resolveDegradedView — pages servies sans authentification", () => {
     // Un invité répond la veille du Jour J : il ne dépend ni de compte, ni de
     // la configuration d'authentification du déploiement.
     expect(resolveDegradedView("/rsvp/abc123")).toEqual({ kind: "rsvp", token: "abc123" });
+    expect(resolveDegradedView("/attestation/abc123")).toEqual({ kind: "attestation", token: "abc123" });
   });
 
   it("dit que tout le reste exige une session, sans rien demander", () => {

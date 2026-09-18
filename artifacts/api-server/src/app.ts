@@ -18,6 +18,7 @@ import {
 import { isTrustedAppOrigin } from "./lib/security";
 import { jsonErrorHandler } from "./middlewares/jsonErrorHandler";
 import { resolveRequestId } from "./lib/requestId";
+import { pool, schemaGuard } from "@workspace/db";
 
 const app: Express = express();
 
@@ -105,6 +106,14 @@ app.use(
   })),
 );
 
+/* Le schéma se vérifie tout seul, une fois par processus, avant la première
+   route qui touche la base. `/api/healthz` reste hors de ce passage : il doit
+   répondre même quand la base ne répond pas. */
+const ensureSchemaOnce = schemaGuard(pool, logger);
+app.use("/api", (req, _res, next) => {
+  if (req.path === "/healthz") return next();
+  void ensureSchemaOnce().then(() => next(), next);
+});
 app.use("/api", router);
 
 /* En dernier : sans ce gestionnaire, la moindre erreur non rattrapée sort en

@@ -1,5 +1,7 @@
 import { weddingDisplayLabel } from "@/lib/project-catalog";
 import { RsvpClaimPanel } from "./RsvpClaimPanel";
+import { AttestationClaimPanel } from "./AttestationClaimPanel";
+import { CountersignedMoments } from "./CountersignedMoments";
 import {
   ProfessionalProfileEditor,
   ProfessionalAssignmentsEditor,
@@ -68,6 +70,15 @@ export function UniversalCardForm({
       ? ""
       : (new URLSearchParams(window.location.search).get("invitation") ?? ""),
   );
+  /* Arrivée depuis une page d'attestation : la contrepartie vient rattacher
+     ses Moments à sa carte (le Profil qui naît rempli). */
+  const [claimingAttestation, setClaimingAttestation] = useState(false);
+  const initialAttestation = useRef(
+    typeof window === "undefined"
+      ? ""
+      : (new URLSearchParams(window.location.search).get("attestation") ?? ""),
+  );
+  const [attestationsVersion, setAttestationsVersion] = useState(0);
   const savedIdentity = useRef<UniversalCard | null>(null);
   const [linkedRsvp, setLinkedRsvp] = useState<{
     token: string;
@@ -76,7 +87,7 @@ export function UniversalCardForm({
   const sectionRef = useRef<HTMLElement>(null);
   useEffect(() => {
     sectionRef.current?.scrollIntoView?.({ block: "start" });
-  }, [step, editingFunctioning, joining]);
+  }, [step, editingFunctioning, joining, claimingAttestation]);
   const [projectId, setProjectId] = useState("");
   const [hasSavedContext, setHasSavedContext] = useState(false);
   const savedPresence = useRef<Participation>(emptyParticipation());
@@ -132,6 +143,7 @@ export function UniversalCardForm({
           savedIdentity.current = current.data;
           setStep(4);
           if (initialInvitation.current) setJoining(true);
+          else if (initialAttestation.current) setClaimingAttestation(true);
           setVersion(current.updatedAt);
           setCardUserId(current.userId);
         } else {
@@ -238,6 +250,7 @@ export function UniversalCardForm({
         await saveCard();
         setStep(4); // Creation is complete. No wedding or role is required.
         if (signedIn && initialInvitation.current) setJoining(true);
+        else if (signedIn && initialAttestation.current) setClaimingAttestation(true);
         return;
       }
       if (
@@ -350,6 +363,20 @@ export function UniversalCardForm({
           setJoining(false);
           await selectContext(id);
           setStep(1);
+        }}
+      />
+    );
+  if (claimingAttestation && signedIn && version)
+    return (
+      <AttestationClaimPanel
+        initialToken={initialAttestation.current}
+        onClose={() => setClaimingAttestation(false)}
+        onJoined={() => {
+          initialAttestation.current = "";
+          navigate("/ma-carte", { replace: true });
+          setClaimingAttestation(false);
+          setAttestationsVersion((n) => n + 1);
+          setNotice("Vos Moments attestés sont rattachés à votre carte.");
         }}
       />
     );
@@ -765,6 +792,11 @@ export function UniversalCardForm({
                       {t("ucf.guestHint")}
                     </p>
                   </section>
+                  <CountersignedMoments
+                    enabled={signedIn && Boolean(version)}
+                    refreshToken={attestationsVersion}
+                    onClaim={() => setClaimingAttestation(true)}
+                  />
                   <section
                     className="space-y-4 rounded-2xl border border-white/15 p-5"
                     aria-label={t("ucf.weddings.aria")}

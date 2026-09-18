@@ -20,16 +20,33 @@ export function projectDataForRole(value: unknown, role: ProjectRole): Row {
     budget: { value: null, confidence: "manquant" },
     payments: [],
     documents: [],
+    exportLog: [],
     providers,
     tasks: role === "viewer" ? [] : data.tasks,
     timeline: rows(data.timeline).filter(event => canSeeEvent(event, role)),
   };
 }
 
+/**
+ * Le journal des exports ne se prolonge que par la fin : si le journal soumis
+ * ne commence pas par l'exact journal connu, il est refusé et l'ancien reste.
+ * Même le propriétaire ne peut pas réécrire ce qui est déjà sorti du Monde.
+ */
+export function appendOnlyExportLog(currentValue: unknown, submittedValue: unknown): Row[] {
+  const current = rows(currentValue);
+  const submitted = rows(submittedValue);
+  if (submitted.length < current.length) return current;
+  const preserved = current.every((entry, index) => JSON.stringify(submitted[index]) === JSON.stringify(entry));
+  return preserved ? submitted : current;
+}
+
 export function mergeProtectedProjectData(currentValue: unknown, submittedValue: unknown, role: ProjectRole): Row {
   const current = currentValue && typeof currentValue === "object" ? currentValue as Row : {};
   const submitted = submittedValue && typeof submittedValue === "object" ? submittedValue as Row : {};
-  if (role === "owner") return submitted;
+  /* Les attestations sont les écritures de la contrepartie : personne dans le
+     Monde ne peut les écrire, les modifier ni les effacer par la sauvegarde.
+     Elles n'entrent que par la réponse à un lien de claim (route dédiée). */
+  if (role === "owner") return { ...submitted, exportLog: appendOnlyExportLog(current.exportLog, submitted.exportLog), attestations: rows(current.attestations) };
 
   const currentEvents = rows(current.timeline);
   const submittedVisibleEvents = rows(submitted.timeline).filter(event => canSeeEvent(event, role));
@@ -50,6 +67,8 @@ export function mergeProtectedProjectData(currentValue: unknown, submittedValue:
     budget: current.budget,
     payments: current.payments,
     documents: current.documents,
+    exportLog: current.exportLog,
+    attestations: rows(current.attestations),
     publicProfile: current.publicProfile,
     providers,
     timeline: [...submittedVisibleEvents, ...hiddenEvents],

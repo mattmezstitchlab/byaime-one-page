@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { ArrowRight, Gift, Lock, Accessibility, Wifi } from "lucide-react";
 import { LandingComposer } from "@/components/LandingComposer";
 import { LandingShowcase } from "@/components/LandingShowcase";
+import { LandingGuides } from "@/components/LandingGuides";
 import { LandingJourney } from "@/components/LandingJourney";
 import { Reveal } from "@/components/Reveal";
 import { useRouteMeta } from "@/lib/page-meta";
@@ -12,7 +13,8 @@ import { cn } from "@/lib/utils";
  * L'accueil d'AIME, dans la direction « Apple du mariage » : un message par
  * écran, de l'espace, de grands visuels pleine page, de grands titres et une
  * hiérarchie minimale. Le hero tient sa promesse en une phrase sur fond noir,
- * puis la vitrine du Monde Mariage, la visite verticale du produit
+ * puis les trois vidéos-guides (`LandingGuides` : prestataire, mariée,
+ * invité), la vitrine du Monde Mariage, la visite verticale du produit
  * (`LandingJourney`), les valeurs (« Pourquoi AIME »), un témoignage puis un
  * appel à créer.
  */
@@ -113,6 +115,10 @@ function LandingContent({ signedIn }: { signedIn: boolean }) {
           <p className="aime-apple-confiance mt-8 text-[var(--agency-eyebrow)]">{t("hero.reassurance")}</p>
         </div>
       </section>
+
+      {/* ——— Les vidéos-guides : prestataire, mariée, invité — trois vrais
+            parcours enregistrés dans le produit, juste sous le hero ——— */}
+      <LandingGuides />
 
       {/* ——— La vitrine : le Monde Mariage mis en scène ——— */}
       <section

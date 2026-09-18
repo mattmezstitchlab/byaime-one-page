@@ -128,6 +128,42 @@ export const rsvpsTable = pgTable("aime_rsvps", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [uniqueIndex("aime_rsvp_project_guest").on(table.projectId, table.guestId), uniqueIndex("aime_rsvp_project_card").on(table.projectId, table.claimedCardUserId)]);
 
+/**
+ * Partie double : le lien par lequel la contrepartie d'un Moment (un
+ * prestataire) contresigne le fait tel qu'il lui est montré. Même mécanique
+ * que le RSVP : un jeton, pas de compte. Les réponses sont append-only et
+ * portent l'empreinte du fait signé ; le Monde ne peut jamais les écrire.
+ */
+export const attestationLinksTable = pgTable("aime_attestation_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  eventId: text("event_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  token: uuid("token").notNull().defaultRandom().unique(),
+  revoked: boolean("revoked").notNull().default(false),
+  createdBy: text("created_by").notNull(),
+  /** Adresse personnelle confirmée par l'organisateur pour ce prestataire — jamais déduite d'un contact. */
+  claimEmail: text("claim_email"),
+  /** La Carte à laquelle la contrepartie a rattaché ses Moments de ce Monde. */
+  claimedCardUserId: text("claimed_card_user_id").references(() => universalCardsTable.userId, { onDelete: "set null" }),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [uniqueIndex("aime_attestation_project_event_provider").on(table.projectId, table.eventId, table.providerId)]);
+
+export const attestationsTable = pgTable("aime_attestations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  linkId: uuid("link_id").notNull().references(() => attestationLinksTable.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
+  eventId: text("event_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  status: text("status").notNull(),
+  hash: text("hash").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  time: timestamp("time", { withTimezone: true }).notNull(),
+  note: text("note"),
+  respondedAt: timestamp("responded_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const songRequestsTable = pgTable("aime_song_requests", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id").notNull().references(() => projectsTable.id, { onDelete: "cascade" }),
@@ -152,3 +188,5 @@ export const insertSongRequestSchema = createInsertSchema(songRequestsTable);
 export type Project = typeof projectsTable.$inferSelect;
 export type Membership = typeof membershipsTable.$inferSelect;
 export type SongRequest = typeof songRequestsTable.$inferSelect;
+export type AttestationLink = typeof attestationLinksTable.$inferSelect;
+export type AttestationRow = typeof attestationsTable.$inferSelect;
