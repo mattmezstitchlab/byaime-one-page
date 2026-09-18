@@ -90,8 +90,12 @@ d'implémentation, prouvée par des tests dans notre style (comme
 
 ## 5. Étapes suivantes, dans l'ordre
 
-1. **Ce pont** (ce document) — validé ou corrigé par toi.
-2. **La tranche Page/blocs** (§4) — testée, fusionnée.
+1. **Ce pont** (ce document) — validé (18/09).
+2. **La tranche Page/blocs** (§4) — **faite** : modèle `publicPage` (liaisons
+   seulement), projection en direct, vue `PublicPageView` branchée sur la vue
+   « Informations pratiques », repli déterministe pour les Mondes légués,
+   15 tests qui verrouillent le Ripple et la non-publication par héritage
+   (563 tests verts au total).
 3. **Le pont Tailwind** : adopter le preset du design system dans l'app
    (Tailwind v4, config CSS — aucun fichier de config à créer), brûler les
    couleurs littérales, mesurer la convergence avec

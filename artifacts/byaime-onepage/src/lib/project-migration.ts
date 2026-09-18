@@ -1,4 +1,5 @@
 import { normalizeWorldVisual, type TimelineEvent, type WorldProject } from "./types";
+import { normalizePublicPage } from "./public-page";
 import { generateWeddingTimeline } from "./seed-data";
 import { TIMELINE_SCHEMA_VERSION } from "./timeline-graph";
 
@@ -33,6 +34,10 @@ export function normalizeProject(value: WorldProject): WorldProject {
   return {
     ...value,
     heroVisual: normalizeWorldVisual(value.heroVisual),
+    /* Repli déterministe : tout Monde normalisé repart avec une page
+       composée (celle du kit si aucune n'était stockée) — jamais une page
+       vide. Les blocs ne portant que des liaisons, ce repli ne copie rien. */
+    publicPage: normalizePublicPage(value.publicPage),
     heroVisuals: value.heroVisuals
       ? {
           avant: normalizeWorldVisual(value.heroVisuals.avant),

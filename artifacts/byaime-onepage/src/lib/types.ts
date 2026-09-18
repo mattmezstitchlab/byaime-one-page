@@ -316,6 +316,28 @@ export type TimelineEvent = {
   visual?: WorldVisual | null;
 };
 
+/* ── Page publique du Monde — composition déclarative ─────────────
+   Pont AIME-COMPOSER (docs/pont-architecture-aime.md, tranche 1) :
+   un bloc ne stocke jamais une valeur, seulement sa liaison vers une
+   source canonique. La projection relit la source en direct — changer
+   la source change la page, sans copie à resynchroniser. La géométrie
+   (ratio, verrou) viendra en calque présentation séparé (loi 2.3). */
+export type PublicBlockVisibility = "public" | "prive";
+export type PublicTextField = "title" | "subtitle" | "venue" | "city";
+export type PublicPageBlockSource =
+  | { kind: "world"; field: PublicTextField }
+  | { kind: "heroVisual" }
+  | { kind: "document"; documentId: string }
+  | { kind: "timeline" };
+export type PublicPageBlockType = "text" | "visual" | "moments";
+export type PublicPageBlock = {
+  id: string;
+  type: PublicPageBlockType;
+  source: PublicPageBlockSource;
+  visibility: PublicBlockVisibility;
+};
+export type PublicPage = { blocks: PublicPageBlock[] };
+
 export type WorldProject = {
   /** Read-only projection of cards referenced by memberships. Never persisted in project data. */
   cardParticipants?: { functioning?: { profileId: string; profession: string; parameters: ProfessionalParameters; availability: string; errors: string[] }[]; userId: string; card: Pick<UniversalCard, "firstName" | "lastName" | "nickname" | "photoUrl" | "profession">; participation: Pick<Participation, "roles" | "rsvp" | "moments" | "arrival" | "departure"> }[];
@@ -351,6 +373,13 @@ export type WorldProject = {
     pendant?: WorldVisual | null;
     apres?: WorldVisual | null;
   } | null;
+  /**
+   * Composition déclarative de la page publique du Monde (pont
+   * AIME-COMPOSER). Optionnelle : absente, la composition par défaut du
+   * kit s'applique — les blocs ne portent que des liaisons, jamais de
+   * valeurs copiées, donc le repli ne peut mentir.
+   */
+  publicPage?: PublicPage;
   pivot: Fact<number>;
   city: Fact<string | null>;
   venue: Fact<string | null>;
