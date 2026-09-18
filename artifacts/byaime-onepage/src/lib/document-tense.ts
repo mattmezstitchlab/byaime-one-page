@@ -82,13 +82,35 @@ export function groupMomentsByTense(
 }
 
 /**
- * Les paiements qui rapprochent un document : même prestataire. Un document
- * sans prestataire ne peut être rapproché de rien — il reste une échéance
- * jusqu'à ce qu'un humain le relie.
+ * Les paiements qui rapprochent un document, par ordre de précision :
+ *  1. rapprochement explicite — `payment.documentId` désigne ce document ;
+ *     dès qu'il en existe un, lui seul fait foi ;
+ *  2. sinon, rapprochement par prestataire commun, en ignorant les paiements
+ *     explicitement affectés à un AUTRE document.
+ * Un document sans prestataire ni paiement explicite ne peut être rapproché
+ * de rien — il reste une échéance jusqu'à ce qu'un humain le relie.
  */
 export function paymentsForDocument(document: Document, payments: ReadonlyArray<Payment>): Payment[] {
+  const explicit = payments.filter(payment => payment.documentId === document.id);
+  if (explicit.length > 0) return explicit;
   if (!document.providerId) return [];
-  return payments.filter(payment => payment.providerId === document.providerId);
+  return payments.filter(payment => payment.providerId === document.providerId && !payment.documentId);
+}
+
+/**
+ * Les factures qu'un paiement peut régler : celle qu'il désigne déjà, sinon
+ * celles de son prestataire, sinon toutes — c'est l'ordre dans lequel une
+ * vue propose le rapprochement, du plus sûr au plus large.
+ */
+export function invoicesForPayment(payment: Payment, documents: ReadonlyArray<Document>): Document[] {
+  const invoices = documents.filter(document => document.kind === "facture");
+  if (payment.documentId) {
+    const linked = invoices.find(document => document.id === payment.documentId);
+    if (linked) return [linked, ...invoices.filter(document => document.id !== linked.id)];
+  }
+  if (!payment.providerId) return invoices;
+  const same = invoices.filter(document => document.providerId === payment.providerId);
+  return [...same, ...invoices.filter(document => document.providerId !== payment.providerId)];
 }
 
 /**

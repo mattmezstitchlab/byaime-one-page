@@ -90,6 +90,12 @@ export type Payment = {
   providerId?: string;
   category?: string;
   dueDate?: number;
+  /**
+   * Rapprochement explicite : la facture que ce paiement règle. S'il est posé,
+   * il fait foi ; sinon le rapprochement retombe sur le prestataire commun
+   * (`document-tense.ts`). Jamais requis : l'existant reste valide.
+   */
+  documentId?: string;
 };
 
 export type Document = {

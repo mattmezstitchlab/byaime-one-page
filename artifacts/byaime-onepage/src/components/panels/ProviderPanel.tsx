@@ -6,6 +6,7 @@ import { CARD, EYEBROW, PILL_SMALL } from "@/lib/site-design";
 import { cn } from "@/lib/utils";
 import { formatCents, currencySymbol } from "@/lib/money";
 import { momentProviderIds } from "@/lib/moment-context";
+import { invoicesForPayment } from "@/lib/document-tense";
 
 const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 
@@ -217,6 +218,27 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                 <div className="flex-1">
                   <input value={p.label} onChange={e => updateEntity("payments", p.id, { label: e.target.value })} className="w-full bg-transparent text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-[var(--agency-ink)]" />
                   <p className="mt-1 text-xs text-[var(--agency-body)]">{new Date(p.at).toLocaleDateString("fr-FR")} · {p.state === "paye" ? "réglé" : "à régler"}</p>
+                  {/* Rapprochement explicite : la facture que ce paiement règle.
+                      Facultatif — sans choix, le prestataire commun fait foi. */}
+                  {(() => {
+                    const invoices = invoicesForPayment(p, project.documents);
+                    if (invoices.length === 0) return null;
+                    return (
+                      <select
+                        aria-label={`Facture réglée par ${p.label}`}
+                        data-testid={`payment-invoice-${p.id}`}
+                        disabled={!canEdit}
+                        value={p.documentId ?? ""}
+                        onChange={e => updateEntity("payments", p.id, { documentId: e.target.value || undefined })}
+                        className="mt-1.5 max-w-full rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-2.5 py-1 text-[11px] text-[var(--agency-body)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="">Facture : selon le prestataire</option>
+                        {invoices.map(invoice => (
+                          <option key={invoice.id} value={invoice.id}>{invoice.title}</option>
+                        ))}
+                      </select>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center gap-1">
                   <input

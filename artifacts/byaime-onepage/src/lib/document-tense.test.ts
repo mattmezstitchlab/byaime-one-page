@@ -4,7 +4,9 @@ import {
   documentTense,
   exportableDocuments,
   groupMomentsByTense,
+  invoicesForPayment,
   momentEnd,
+  paymentsForDocument,
   PRESENT_WINDOW_MS,
   readDocuments,
   tenseOf,
@@ -114,8 +116,56 @@ describe("documentStage — un document a un stade, pas un temps", () => {
     expect(documentStage(orphan, [payment({ id: "paid", state: "paye", providerId: "p1" })])).toBe("echeance");
   });
 
+  it("fait foi au rapprochement explicite, même si le prestataire diffère", () => {
+    const invoice = document({ id: "f", kind: "facture", providerId: "p1" });
+    const paid = payment({ id: "paid", state: "paye", providerId: "p2", documentId: "f" });
+    expect(paymentsForDocument(invoice, [paid])).toEqual([paid]);
+    expect(documentStage(invoice, [paid])).toBe("fait");
+  });
+
+  it("préfère le rapprochement explicite au prestataire commun", () => {
+    const invoice = document({ id: "f", kind: "facture", providerId: "p1" });
+    const explicitDue = payment({ id: "due", state: "du", providerId: "p1", documentId: "f" });
+    const implicitPaid = payment({ id: "paid", state: "paye", providerId: "p1" });
+    expect(paymentsForDocument(invoice, [explicitDue, implicitPaid])).toEqual([explicitDue]);
+    expect(documentStage(invoice, [explicitDue, implicitPaid])).toBe("echeance");
+  });
+
+  it("ne rapproche pas par prestataire un paiement déjà affecté à une autre facture", () => {
+    const first = document({ id: "f1", kind: "facture", providerId: "p1" });
+    const second = document({ id: "f2", kind: "facture", providerId: "p1" });
+    const paid = payment({ id: "paid", state: "paye", providerId: "p1", documentId: "f1" });
+    expect(documentStage(first, [paid])).toBe("fait");
+    expect(documentStage(second, [paid])).toBe("echeance");
+  });
+
+  it("rapproche explicitement une facture sans prestataire", () => {
+    const orphan = document({ id: "f", kind: "facture" });
+    expect(documentStage(orphan, [payment({ id: "paid", state: "paye", documentId: "f" })])).toBe("fait");
+  });
+
   it("garde hors cycle un document libre", () => {
     expect(documentStage(document({ id: "x", kind: "autre", providerId: "p1" }), [payment({ id: "paid", state: "paye", providerId: "p1" })])).toBe("libre");
+  });
+});
+
+describe("invoicesForPayment — proposer le rapprochement du plus sûr au plus large", () => {
+  const invoices = [
+    document({ id: "f-p1", kind: "facture", providerId: "p1" }),
+    document({ id: "f-p2", kind: "facture", providerId: "p2" }),
+    document({ id: "f-none", kind: "facture" }),
+    document({ id: "devis", kind: "devis", providerId: "p1" }),
+  ];
+
+  it("ne propose que des factures", () => {
+    const ids = invoicesForPayment(payment({ id: "p", state: "du" }), invoices).map(item => item.id);
+    expect(ids).not.toContain("devis");
+    expect(ids).toHaveLength(3);
+  });
+
+  it("met en tête la facture déjà désignée, puis celles du prestataire", () => {
+    expect(invoicesForPayment(payment({ id: "p", state: "du", providerId: "p1", documentId: "f-p2" }), invoices).map(item => item.id)).toEqual(["f-p2", "f-p1", "f-none"]);
+    expect(invoicesForPayment(payment({ id: "p", state: "du", providerId: "p2" }), invoices).map(item => item.id)).toEqual(["f-p2", "f-p1", "f-none"]);
   });
 });
 
