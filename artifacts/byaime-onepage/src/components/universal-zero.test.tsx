@@ -241,6 +241,51 @@ describe("nouvelle expérience d’accueil — très blanche et minimale", () =>
     expect(world.universal.nextQuestion).toContain("facturées");
   });
 
+  it("6b. le restaurateur obtient une branche contextualisée générique", async () => {
+    await mount();
+    await click(byTestId("zero-plus"));
+    await click(byTestId("actor-independent"));
+    await click(byTestId("actor-sub-restaurateur"));
+    await click(byTestId("actor-detail-restaurateur"));
+    await click(byTestId("zero-next"));
+    // I doit contenir choix restaurateur
+    expect(byTestId("intention-trouver-un-lieu")).not.toBeNull();
+    expect(byTestId("intention--laborer-une-carte")).not.toBeNull();
+    await click(byTestId("intention--laborer-une-carte"));
+    await click(byTestId("zero-next"));
+    expect(byTestId("situation-j-ai-un-lieu")).not.toBeNull();
+    await click(byTestId("situation-j-ai-un-lieu"));
+    await click(byTestId("zero-next"));
+    await click(byTestId("ecosystem-lieux"));
+    await click(byTestId("zero-next"));
+    const world = store.createProjectFromWorld.mock.calls[0][0];
+    expect(world.universal.actorDetail).toBe("restaurateur");
+    expect(world.trajectory).toBeDefined();
+    expect(world.trajectory.steps.length).toBe(8);
+    expect(world.universal.nextQuestion).toContain("lieu");
+  });
+
+  it("6c. le collectif / groupe obtient une branche générique", async () => {
+    await mount();
+    await click(byTestId("zero-plus"));
+    await click(byTestId("actor-group"));
+    await click(byTestId("actor-sub-groupe-musical"));
+    await click(byTestId("actor-detail-groupe"));
+    await click(byTestId("zero-next"));
+    expect(byTestId("intention-organiser-des-dates")).not.toBeNull();
+    await click(byTestId("intention-organiser-des-dates"));
+    await click(byTestId("zero-next"));
+    expect(byTestId("situation-nous-avons-un-r-pertoire")).not.toBeNull();
+    await click(byTestId("situation-nous-avons-un-r-pertoire"));
+    await click(byTestId("zero-next"));
+    await click(byTestId("ecosystem-lieux"));
+    await click(byTestId("zero-next"));
+    const world = store.createProjectFromWorld.mock.calls[0][0];
+    expect(world.universal.actorKind).toBe("group");
+    expect(world.trajectory).toBeDefined();
+    expect(world.trajectory.steps.length).toBe(8);
+  });
+
   it("9. la Timeline s’ouvre après E — le Monde est posé", async () => {
     await mount();
     await click(byTestId("zero-plus"));

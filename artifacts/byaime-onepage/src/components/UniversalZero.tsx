@@ -165,6 +165,11 @@ export function UniversalZero() {
   }, [situationFree]);
 
   const isSaxoPath = actorDetail === "saxophoniste";
+  const isRestoPath = actorDetail === "restaurateur" || actorDetail === "cuisinier";
+  const isGroupPath = actorKind === "group" || actorDetail === "groupe" || actorDetail === "collectif artistique" || actorDetail === "groupe musical";
+  const isAssoPath = actorKind === "organization" || actorDetail === "association";
+  const isEventPath = actorKind === "event" || actorDetail === "festival";
+
 
   return (
     <section
@@ -315,11 +320,17 @@ export function UniversalZero() {
                   <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                     <p className="text-sm font-medium">Précisez votre activité (optionnel)</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {["artiste / musicien", "activité indépendante", "je ne sais pas encore"].map(opt => (
+                      {["artiste / musicien", "restaurateur", "artisan", "activité indépendante", "je ne sais pas encore"].map(opt => (
                         <button
                           key={opt}
                           data-testid={`actor-sub-${opt.replace(/\W/g, "-")}`}
-                          onClick={() => setActorSub(opt)}
+                          onClick={() => {
+                            setActorSub(opt);
+                            if (opt === "restaurateur") setActorDetail("restaurateur");
+                            else if (opt === "artisan") setActorDetail("artisan");
+                            else if (opt !== "artiste / musicien" && opt !== "je ne sais pas encore") setActorDetail(opt);
+                            else if (opt === "je ne sais pas encore") setActorDetail(undefined);
+                          }}
                           aria-pressed={actorSub === opt}
                           className={cn(
                             "rounded-full border px-4 py-2 text-xs",
@@ -351,6 +362,16 @@ export function UniversalZero() {
                         </div>
                       </div>
                     )}
+                    {actorSub === "restaurateur" && (
+                      <div className="mt-4">
+                        <p className="text-xs font-medium text-zinc-600">Précisez</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {["restaurateur", "cuisinier", "autre restauration"].map(opt => (
+                            <button key={opt} data-testid={`actor-detail-${opt}`} onClick={() => setActorDetail(opt)} aria-pressed={actorDetail === opt} className={cn("rounded-full border px-4 py-2 text-xs", actorDetail === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}>{opt}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -358,11 +379,17 @@ export function UniversalZero() {
                   <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                     <p className="text-sm font-medium">Votre activité indépendante</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {["artiste / musicien", "restaurateur", "autre"].map(opt => (
+                      {["artiste / musicien", "restaurateur", "artisan", "services", "autre"].map(opt => (
                         <button
                           key={opt}
                           data-testid={`actor-sub-${opt.replace(/\W/g, "-")}`}
-                          onClick={() => setActorSub(opt)}
+                          onClick={() => {
+                            setActorSub(opt);
+                            if (opt === "restaurateur") setActorDetail("restaurateur");
+                            else if (opt === "artisan") setActorDetail("artisan");
+                            else if (opt !== "artiste / musicien") setActorDetail(opt === "autre" ? undefined : opt);
+                          }}
+                          aria-pressed={actorSub === opt}
                           className={cn("rounded-full border px-4 py-2 text-xs", actorSub === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}
                         >
                           {opt}
@@ -372,19 +399,93 @@ export function UniversalZero() {
                     {actorSub === "artiste / musicien" && (
                       <div className="mt-4 flex flex-wrap gap-2">
                         {["saxophoniste", "autre musicien"].map(opt => (
-                          <button key={opt} data-testid={`actor-detail-${opt}`} onClick={() => setActorDetail(opt)} className={cn("rounded-full border px-4 py-2 text-xs", actorDetail === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}>
+                          <button key={opt} data-testid={`actor-detail-${opt}`} onClick={() => setActorDetail(opt)} aria-pressed={actorDetail === opt} className={cn("rounded-full border px-4 py-2 text-xs", actorDetail === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}>
                             {opt}
                           </button>
+                        ))}
+                      </div>
+                    )}
+                    {actorSub === "restaurateur" && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {["restaurateur", "cuisinier"].map(opt => (
+                          <button key={opt} data-testid={`actor-detail-${opt}`} onClick={() => setActorDetail(opt)} aria-pressed={actorDetail === opt} className={cn("rounded-full border px-4 py-2 text-xs", actorDetail === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}>{opt}</button>
                         ))}
                       </div>
                     )}
                   </div>
                 )}
 
+                {actorKind === "group" && (
+                  <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="text-sm font-medium">Précisez le collectif (optionnel)</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {["groupe musical", "collectif artistique", "association", "autre collectif", "je ne sais pas encore"].map(opt => (
+                        <button key={opt} data-testid={`actor-sub-${opt.replace(/\W/g, "-")}`} onClick={() => { setActorSub(opt); if (opt === "groupe musical") setActorDetail("groupe"); else if (opt !== "je ne sais pas encore") setActorDetail(opt); else setActorDetail(undefined); }} aria-pressed={actorSub === opt} className={cn("rounded-full border px-4 py-2 text-xs", actorSub === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}>{opt}</button>
+                      ))}
+                    </div>
+                    {actorSub === "groupe musical" && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {["groupe", "saxophoniste", "autre musicien"].map(opt => (
+                          <button key={opt} data-testid={`actor-detail-${opt}`} onClick={() => setActorDetail(opt)} aria-pressed={actorDetail === opt} className={cn("rounded-full border px-4 py-2 text-xs", actorDetail === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}>{opt}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {actorKind === "organization" && (
+                  <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="text-sm font-medium">Votre organisation (optionnel)</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {["association", "collectif", "entreprise", "autre organisation", "je ne sais pas encore"].map(opt => (
+                        <button key={opt} data-testid={`actor-sub-${opt.replace(/\W/g, "-")}`} onClick={() => { setActorSub(opt); setActorDetail(opt === "je ne sais pas encore" ? undefined : opt); }} aria-pressed={actorSub === opt} className={cn("rounded-full border px-4 py-2 text-xs", actorSub === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}>{opt}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {actorKind === "event" && (
+                  <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="text-sm font-medium">Type d’événement (optionnel)</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {["festival", "événement privé", "rencontre", "autre événement", "je ne sais pas encore"].map(opt => (
+                        <button key={opt} data-testid={`actor-sub-${opt.replace(/\W/g, "-")}`} onClick={() => { setActorSub(opt); setActorDetail(opt === "je ne sais pas encore" ? undefined : opt); }} aria-pressed={actorSub === opt} className={cn("rounded-full border px-4 py-2 text-xs", actorSub === opt ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 bg-white")}>{opt}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {actorKind === "couple" && (
+                  <p className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-xs text-zinc-600">Monde pour un couple — le mariage reste le premier vertical, mais vous pouvez créer tout autre Monde à deux.</p>
+                )}
+                {actorKind === "join" && (
+                  <p className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-xs text-zinc-600">Vous rejoindrez un Monde existant — AIME vous guidera vers l’invitation.</p>
+                )}
+
                 {/* Cas saxo direct : afficher info */}
                 {isSaxoPath && (
                   <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
                     Branche contextualisée : <strong>saxophoniste auto-entrepreneur</strong> — trajectoire vers intermittence proposée, jamais appliquée sans validation.
+                  </p>
+                )}
+                {isRestoPath && (
+                  <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+                    Branche contextualisée : <strong>restaurateur</strong> — trajectoire d’ouverture de lieu et de carte, proposée à vérifier.
+                  </p>
+                )}
+                {isGroupPath && !isSaxoPath && (
+                  <p className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-xs leading-relaxed text-zinc-700">
+                    Branche contextualisée : <strong>collectif / groupe</strong> — organisation des dates et du répertoire, trajectoire générique proposée.
+                  </p>
+                )}
+                {isAssoPath && (
+                  <p className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-xs leading-relaxed text-zinc-700">
+                    Branche contextualisée : <strong>association</strong> — fédération des membres et événements, trajectoire générique proposée.
+                  </p>
+                )}
+                {isEventPath && (
+                  <p className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-xs leading-relaxed text-zinc-700">
+                    Branche contextualisée : <strong>événement</strong> — date, lieu et programme, trajectoire générique proposée.
                   </p>
                 )}
               </div>
@@ -397,7 +498,7 @@ export function UniversalZero() {
                 </h1>
                 <p className="mt-2 text-sm text-zinc-500">Choisissez une ou plusieurs intentions. Vous pourrez en ajouter plus tard.</p>
                 <div className="mt-6 grid gap-2">
-                  {intentionChoicesForActor(actorDetail).map(choice => (
+                  {intentionChoicesForActor(actorDetail, actorKind ?? undefined).map(choice => (
                     <button
                       key={choice}
                       data-testid={`intention-${choice.replace(/\W/g, "-")}`}
@@ -428,7 +529,7 @@ export function UniversalZero() {
                 </h1>
                 <p className="mt-2 text-sm text-zinc-500">Cochez ce qui est déjà là. Laissez vide ce qui est à vérifier.</p>
                 <div className="mt-6 grid gap-2">
-                  {situationChoicesForActor(actorDetail).map(choice => (
+                  {situationChoicesForActor(actorDetail, actorKind ?? undefined).map(choice => (
                     <button
                       key={choice}
                       data-testid={`situation-${choice.replace(/\W/g, "-")}`}

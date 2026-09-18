@@ -1,7 +1,7 @@
 import type { Confidence, UniversalActorKind, UniversalWorldProfile, WorldFact, WorldProject } from "./types";
 import { fact } from "./types";
 import { normalizeProject } from "./project-migration";
-import { buildSaxophonistTrajectory, proposedModulesForUniversal } from "./trajectory";
+import { buildTrajectoryForUniversal, proposedModulesForUniversal } from "./trajectory";
 
 /**
  * Doctrine produit : point zéro des vivants.
@@ -57,8 +57,52 @@ export const INTENTION_CHOICES_GENERIC: string[] = [
   "je ne sais pas encore",
 ];
 
-export function intentionChoicesForActor(actorDetail?: string): string[] {
+export const INTENTION_CHOICES_RESTAURATEUR: string[] = [
+  "trouver un lieu",
+  "élaborer une carte",
+  "trouver des fournisseurs",
+  "constituer une équipe",
+  "trouver sa clientèle",
+  "organiser le service",
+  "sécuriser l’activité",
+  "je ne sais pas encore",
+];
+
+export const INTENTION_CHOICES_GROUPE: string[] = [
+  "organiser des dates",
+  "trouver des lieux",
+  "enregistrer un répertoire",
+  "structurer le collectif",
+  "trouver un public",
+  "organiser une tournée",
+  "je ne sais pas encore",
+];
+
+export const INTENTION_CHOICES_ASSOCIATION: string[] = [
+  "fédérer des membres",
+  "organiser des événements",
+  "trouver un lieu",
+  "structurer l’association",
+  "trouver des partenaires",
+  "je ne sais pas encore",
+];
+
+export const INTENTION_CHOICES_EVENT: string[] = [
+  "réunir les bonnes personnes",
+  "trouver un lieu",
+  "organiser le programme",
+  "trouver des prestataires",
+  "donner une identité au Monde",
+  "je ne sais pas encore",
+];
+
+export function intentionChoicesForActor(actorDetail?: string, actorKind?: UniversalActorKind): string[] {
   if (actorDetail === "saxophoniste") return INTENTION_CHOICES_SAXO;
+  if (actorDetail === "restaurateur" || actorDetail === "cuisinier") return INTENTION_CHOICES_RESTAURATEUR;
+  if (actorDetail === "groupe" || actorDetail === "collectif artistique" || actorDetail === "groupe musical") return INTENTION_CHOICES_GROUPE;
+  if (actorKind === "group") return INTENTION_CHOICES_GROUPE;
+  if (actorDetail === "association" || actorKind === "organization") return INTENTION_CHOICES_ASSOCIATION;
+  if (actorKind === "event" || actorDetail === "festival" || actorDetail === "événement privé") return INTENTION_CHOICES_EVENT;
   return INTENTION_CHOICES_GENERIC;
 }
 
@@ -85,8 +129,52 @@ export const SITUATION_CHOICES_GENERIC: string[] = [
   "je ne sais pas encore",
 ];
 
-export function situationChoicesForActor(actorDetail?: string): string[] {
+export const SITUATION_CHOICES_RESTAURATEUR: string[] = [
+  "j’ai un lieu",
+  "j’ai une carte",
+  "j’ai des fournisseurs",
+  "j’ai une équipe",
+  "j’ai des clients",
+  "j’ai du matériel",
+  "j’ai des photos ou vidéos",
+  "je pars de zéro",
+];
+
+export const SITUATION_CHOICES_GROUPE: string[] = [
+  "nous avons un répertoire",
+  "nous avons des dates",
+  "nous avons un lieu de répétition",
+  "nous avons des membres",
+  "nous avons du matériel",
+  "nous avons des photos ou vidéos",
+  "je pars de zéro",
+];
+
+export const SITUATION_CHOICES_ASSOCIATION: string[] = [
+  "nous avons des membres",
+  "nous avons un lieu",
+  "nous avons des partenaires",
+  "nous avons des événements",
+  "nous avons des documents",
+  "je pars de zéro",
+];
+
+export const SITUATION_CHOICES_EVENT: string[] = [
+  "j’ai une date",
+  "j’ai un lieu",
+  "j’ai des prestataires",
+  "j’ai des invités / participants",
+  "j’ai un programme",
+  "je pars de zéro",
+];
+
+export function situationChoicesForActor(actorDetail?: string, actorKind?: UniversalActorKind): string[] {
   if (actorDetail === "saxophoniste") return SITUATION_CHOICES_SAXO;
+  if (actorDetail === "restaurateur" || actorDetail === "cuisinier") return SITUATION_CHOICES_RESTAURATEUR;
+  if (actorDetail === "groupe" || actorDetail === "collectif artistique" || actorDetail === "groupe musical") return SITUATION_CHOICES_GROUPE;
+  if (actorKind === "group") return SITUATION_CHOICES_GROUPE;
+  if (actorDetail === "association" || actorKind === "organization") return SITUATION_CHOICES_ASSOCIATION;
+  if (actorKind === "event" || actorDetail === "festival" || actorDetail === "événement privé") return SITUATION_CHOICES_EVENT;
   return SITUATION_CHOICES_GENERIC;
 }
 
@@ -124,6 +212,10 @@ export function parseFreePhraseToFacts(phrase: string): WorldFact[] {
     });
   };
   if (/saxophon/.test(lower)) add("fact-saxo", "Saxophoniste", true);
+  if (/restaurat|cuisin|carte|fournisseur/.test(lower)) add("fact-resto", "Restauration", true);
+  if (/groupe|collectif/.test(lower)) add("fact-group", "Groupe / collectif", true);
+  if (/association|adherent|benevole/.test(lower)) add("fact-asso", "Association", true);
+  if (/festival|evenement/.test(lower)) add("fact-event", "Événement", true);
   if (/auto.entrepreneur|auto entrepreneur/.test(lower)) add("fact-auto", "Auto-entrepreneur", true);
   if (/mariage/.test(lower)) add("fact-mariage", "Joue dans des mariages", true);
   if (/cours|donne des cours|enseigne/.test(lower)) add("fact-cours", "Donne des cours", true);
@@ -131,6 +223,7 @@ export function parseFreePhraseToFacts(phrase: string): WorldFact[] {
   if (/client/.test(lower)) add("fact-client", "A des clients", true);
   if (/contrat/.test(lower)) add("fact-contrat", "A des contrats", true);
   if (/repertoire/.test(lower)) add("fact-rep", "A un répertoire", true);
+  if (/lieu/.test(lower)) add("fact-lieu", "A un lieu", true);
   if (/materiel/.test(lower)) add("fact-materiel", "A du matériel", true);
   if (/photo|video/.test(lower)) add("fact-media", "A des photos/vidéos", true);
   if (/facture|document/.test(lower)) add("fact-doc", "A des factures/documents", true);
@@ -144,6 +237,10 @@ export function parseFreePhraseToFacts(phrase: string): WorldFact[] {
 export function factsToSituationTags(facts: WorldFact[]): string[] {
   const map: Record<string, string> = {
     "fact-saxo": "saxophoniste",
+    "fact-resto": "restaurateur",
+    "fact-group": "groupe",
+    "fact-asso": "association",
+    "fact-event": "festival",
     "fact-auto": "je suis auto-entrepreneur",
     "fact-mariage": "j’ai déjà des prestations",
     "fact-cours": "je donne des cours",
@@ -151,6 +248,7 @@ export function factsToSituationTags(facts: WorldFact[]): string[] {
     "fact-client": "j’ai des clients",
     "fact-contrat": "j’ai des contrats",
     "fact-rep": "j’ai un répertoire",
+    "fact-lieu": "j’ai un lieu",
     "fact-materiel": "j’ai du matériel",
     "fact-media": "j’ai des photos ou vidéos",
     "fact-doc": "j’ai des factures ou documents",
@@ -210,10 +308,19 @@ export function buildUniversalWorld(input: UniversalInput, now = Date.now()): Wo
   // Deduplicate facts by id
   const facts = Array.from(new Map(combinedFacts.map(f => [f.id, f])).values());
 
-  const isSaxo = input.actorDetail === "saxophoniste";
-  const nextQuestion = isSaxo
-    ? "Vos prestations musicales sont-elles aujourd’hui facturées, rémunérées par contrat salarié, ou les deux ?"
-    : "Que souhaitez-vous préciser ensuite ?";
+  const nextQuestionMap: Record<string, string> = {
+    saxophoniste: "Vos prestations musicales sont-elles aujourd’hui facturées, rémunérées par contrat salarié, ou les deux ?",
+    restaurateur: "Votre lieu est-il déjà identifié et comment s’organise le service aujourd’hui ?",
+    groupe: "Comment le collectif est-il organisé aujourd’hui et quelles sont vos prochaines dates ?",
+    association: "Comment l’association est-elle structurée et qui en fait partie ?",
+    festival: "Quelle est la date, le lieu et la forme de l’événement ?",
+  };
+  const nextQuestion =
+    (input.actorDetail && nextQuestionMap[input.actorDetail]) ||
+    (input.actorKind === "group" && nextQuestionMap["groupe"]) ||
+    (input.actorKind === "organization" && nextQuestionMap["association"]) ||
+    (input.actorKind === "event" && nextQuestionMap["festival"]) ||
+    "Que souhaitez-vous préciser ensuite ?";
 
   const universal: UniversalWorldProfile = {
     actorKind: input.actorKind,
@@ -229,7 +336,13 @@ export function buildUniversalWorld(input: UniversalInput, now = Date.now()): Wo
     nextQuestion,
   };
 
-  const trajectory = isSaxo ? buildSaxophonistTrajectory() : undefined;
+  const trajectory = buildTrajectoryForUniversal({
+    actorKind: input.actorKind,
+    actorDetail: input.actorDetail,
+    actorLabel,
+    worldId: undefined,
+    now,
+  });
 
   const modulesProposed = proposedModulesForUniversal({ actorDetail: input.actorDetail }).map(m => ({
     ...m,

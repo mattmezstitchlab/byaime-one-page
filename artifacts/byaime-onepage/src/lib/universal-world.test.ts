@@ -164,4 +164,81 @@ describe("point zéro universel — première tranche hors mariage", () => {
     expect(project.documents.length).toBe(0);
     expect(project.universal?.facts.some(f => f.label.includes("factures"))).toBe(true);
   });
+
+  it("vertical générique : restaurateur", () => {
+    const project = buildUniversalWorld({
+      actorKind: "independent",
+      actorDetail: "restaurateur",
+      intention: ["trouver un lieu", "élaborer une carte"],
+      situation: ["j’ai une carte", "j’ai des fournisseurs"],
+      ecosystem: ["lieux", "fournisseurs"],
+    });
+    expect(project.universe).toBe("Restaurateur");
+    expect(project.universal?.nextQuestion).toContain("lieu");
+    expect(project.trajectory).toBeDefined();
+    expect(project.trajectory?.steps.length).toBe(8);
+    expect(project.trajectory?.disclaimer).toContain("ne donne pas de conseil juridique");
+    expect(project.modulesProposed?.some(m => m.id === "trajectoire" && m.status === "proposed")).toBe(true);
+  });
+
+  it("vertical générique : groupe / collectif", () => {
+    const project = buildUniversalWorld({
+      actorKind: "group",
+      actorDetail: "groupe",
+      intention: ["organiser des dates", "enregistrer un répertoire"],
+      situation: ["nous avons un répertoire", "nous avons des membres"],
+      ecosystem: ["lieux", "festivals"],
+    });
+    expect(project.universe).toBe("Groupe");
+    expect(project.universal?.actorKind).toBe("group");
+    expect(project.trajectory).toBeDefined();
+    expect(project.trajectory?.steps[0].title).toContain("Cartographier");
+    expect(project.timeline.length).toBeGreaterThan(1);
+  });
+
+  it("vertical générique : association", () => {
+    const project = buildUniversalWorld({
+      actorKind: "organization",
+      actorDetail: "association",
+      intention: ["fédérer des membres"],
+      situation: ["nous avons des membres"],
+      ecosystem: ["lieux"],
+    });
+    expect(project.trajectory).toBeDefined();
+    expect(project.universal?.nextQuestion).toContain("association");
+  });
+
+  it("vertical générique : événement / festival", () => {
+    const project = buildUniversalWorld({
+      actorKind: "event",
+      actorDetail: "festival",
+      intention: ["réunir les bonnes personnes"],
+      situation: ["j’ai une date"],
+      ecosystem: ["lieux", "groupes"],
+    });
+    expect(project.trajectory).toBeDefined();
+    expect(project.universal?.nextQuestion).toContain("date");
+  });
+
+  it("vertical générique : personne sans détail reste générique mais avec trajectoire", () => {
+    const project = buildUniversalWorld({
+      actorKind: "person",
+      intention: ["présenter mon univers"],
+      situation: ["je pars de zéro"],
+      ecosystem: ["je continue seul pour l’instant"],
+    });
+    expect(project.trajectory).toBeDefined();
+    expect(project.trajectory?.steps.length).toBe(8);
+    expect(project.universal?.nextQuestion).toBeDefined();
+  });
+
+  it("parseFreePhrase reconnaît les nouveaux domaines génériques", () => {
+    const resto = parseFreePhraseToFacts("Je suis restaurateur, j’ai un lieu et une carte, je cherche des fournisseurs");
+    expect(resto.some(f => f.id === "fact-resto")).toBe(true);
+    expect(resto.some(f => f.id === "fact-lieu")).toBe(true);
+    const group = parseFreePhraseToFacts("Nous sommes un collectif artistique, nous avons un répertoire et cherchons des dates");
+    expect(group.some(f => f.id === "fact-group")).toBe(true);
+    const asso = parseFreePhraseToFacts("Association avec adhérents et événements");
+    expect(asso.some(f => f.id === "fact-asso")).toBe(true);
+  });
 });
