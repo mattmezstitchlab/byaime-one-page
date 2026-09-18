@@ -43,7 +43,10 @@ export function appendOnlyExportLog(currentValue: unknown, submittedValue: unkno
 export function mergeProtectedProjectData(currentValue: unknown, submittedValue: unknown, role: ProjectRole): Row {
   const current = currentValue && typeof currentValue === "object" ? currentValue as Row : {};
   const submitted = submittedValue && typeof submittedValue === "object" ? submittedValue as Row : {};
-  if (role === "owner") return { ...submitted, exportLog: appendOnlyExportLog(current.exportLog, submitted.exportLog) };
+  /* Les attestations sont les écritures de la contrepartie : personne dans le
+     Monde ne peut les écrire, les modifier ni les effacer par la sauvegarde.
+     Elles n'entrent que par la réponse à un lien de claim (route dédiée). */
+  if (role === "owner") return { ...submitted, exportLog: appendOnlyExportLog(current.exportLog, submitted.exportLog), attestations: rows(current.attestations) };
 
   const currentEvents = rows(current.timeline);
   const submittedVisibleEvents = rows(submitted.timeline).filter(event => canSeeEvent(event, role));
@@ -65,6 +68,7 @@ export function mergeProtectedProjectData(currentValue: unknown, submittedValue:
     payments: current.payments,
     documents: current.documents,
     exportLog: current.exportLog,
+    attestations: rows(current.attestations),
     publicProfile: current.publicProfile,
     providers,
     timeline: [...submittedVisibleEvents, ...hiddenEvents],

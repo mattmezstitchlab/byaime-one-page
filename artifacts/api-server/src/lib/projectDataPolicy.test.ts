@@ -39,6 +39,13 @@ describe("project data policy", () => {
     expect(mergeProtectedProjectData(data, { ...data, exportLog: rewritten }, "owner").exportLog).toEqual(data.exportLog);
   });
 
+  it("never lets anyone in the World write attestations through a save", () => {
+    const withAttestation = { ...data, attestations: [{ id: "a1", eventId: "e", providerId: "p", status: "atteste", hash: "h", respondedAt: 1, amountCents: 1, time: 1 }] };
+    expect(mergeProtectedProjectData(withAttestation, { ...withAttestation, attestations: [] }, "owner").attestations).toEqual(withAttestation.attestations);
+    expect(mergeProtectedProjectData(data, { ...data, attestations: withAttestation.attestations }, "owner").attestations).toEqual([]);
+    expect(mergeProtectedProjectData(withAttestation, { ...withAttestation, attestations: [] }, "planner").attestations).toEqual(withAttestation.attestations);
+  });
+
   it("restores fields a collaborator never received when saving", () => {
     const visible = projectDataForRole(data, "planner");
     const merged = mergeProtectedProjectData(data, { ...visible, title: "modifié" }, "planner");

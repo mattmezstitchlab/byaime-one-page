@@ -54,6 +54,7 @@ export function normalizeProject(value: WorldProject): WorldProject {
     providers: (Array.isArray(value.providers) ? value.providers : []).map(provider => ({ ...provider, status: provider.status || "recherche" })),
     payments: Array.isArray(value.payments) ? value.payments : [], documents: Array.isArray(value.documents) ? value.documents : [],
     exportLog: Array.isArray(value.exportLog) ? value.exportLog : [],
+    attestations: Array.isArray(value.attestations) ? value.attestations : [],
     media: Array.isArray(value.media) ? value.media : [], messages: Array.isArray(value.messages) ? value.messages : [],
     ceremony: { ...emptyCeremony, ...(value.ceremony || {}) },
     music: (Array.isArray(value.music) ? value.music : []).map(track => ({ ...track, provenance: track.provenance ?? "demo", timelineEventIds: track.timelineEventIds || [] })),

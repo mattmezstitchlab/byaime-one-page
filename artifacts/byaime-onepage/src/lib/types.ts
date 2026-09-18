@@ -546,8 +546,31 @@ export type WorldProject = {
    * Seul le propriétaire le voit et le prolonge (`export-journal.ts`).
    */
   exportLog?: ExportEntry[];
+  /**
+   * Écritures de la contrepartie (partie double). Une attestation est donnée
+   * par le prestataire relié à un Moment, via un lien de claim, jamais par le
+   * propriétaire : le serveur refuse toute attestation venue de la sauvegarde
+   * du projet et ne les prolonge qu'à partir de la réponse au lien
+   * (`attestation.ts`). Lecture seule côté Monde.
+   */
+  attestations?: Attestation[];
 
   missing: string[];
+};
+
+export type Attestation = {
+  id: string;
+  eventId: string;
+  providerId: string;
+  status: "atteste" | "conteste";
+  /** Empreinte du fait tel qu'il a été montré et signé (`factViewFingerprint`). */
+  hash: string;
+  respondedAt: number;
+  /** Ce que la contrepartie a vu : montant et date, pour relire sans recalculer. */
+  amountCents: number;
+  time: number;
+  /** Une contestation dit pourquoi, en une phrase ; jamais une note. */
+  note?: string;
 };
 
 export type ExportEntry = {
