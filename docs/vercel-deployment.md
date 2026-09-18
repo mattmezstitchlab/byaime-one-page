@@ -81,49 +81,36 @@ fails has a reachable application and a broken schema or connection.
 
 ## Database schema
 
-Schema changes ship as idempotent SQL in `lib/db/migrations/` and are **not**
-applied by the deployment: run them against the target Postgres before (or
-immediately after) the deploy that needs them.
+**Since 2026-09-18 the API applies its own schema.** On the first `/api/*`
+request of each process (everything except `/api/healthz`), `app.ts` runs
+`ensureSchema` from `lib/db`: every migration embedded in
+`lib/db/src/migrations.ts` is replayed, in order, under a Postgres advisory lock
+so concurrent serverless instances do not race. All migrations are idempotent
+(`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`), so this costs a few
+milliseconds and needs no operator step: **merge, deploy, done.** A migration
+that fails is logged (`schéma : <fichier> a échoué — …`) and the API keeps
+serving; the routes that need the missing objects answer their usual JSON error.
+
+The readable source stays `lib/db/migrations/*.sql`. After adding or editing a
+file there, run `corepack pnpm run db:sync-migrations` to regenerate the
+embedded copy (and add the file to `ORDER` in `scripts/sync-migrations.mjs`);
+`corepack pnpm run test:card-migrations` fails if the two diverge or if the
+sequence does not replay twice on a blank Postgres.
+
+Manual tools remain available for a database you want to inspect or prepare
+ahead of a deploy:
 
 ```bash
-psql "$DATABASE_URL" -f lib/db/migrations/20260916_universal_cards.sql
-psql "$DATABASE_URL" -f lib/db/migrations/20260916_professional_profiles.sql
-psql "$DATABASE_URL" -f lib/db/migrations/20260916_verified_rsvp_claims.sql
-psql "$DATABASE_URL" -f lib/db/migrations/20260918_attestations.sql
-psql "$DATABASE_URL" -f lib/db/migrations/20260918_attestation_claims.sql
+DATABASE_URL="postgres://…" corepack pnpm run check:db      # read-only diagnostic
+DATABASE_URL="postgres://…" corepack pnpm run db:migrate    # apply all files (Node only, no psql)
+psql "$DATABASE_URL" -f lib/db/migrations/20260918_attestations.sql   # or one file by hand
 ```
 
-No `psql` at hand? The same files can be applied from this repository with
-Node only (the `pg` driver ships with `lib/db`):
-
-```bash
-DATABASE_URL="postgres://…" corepack pnpm run db:migrate
-```
-
-`scripts/src/apply-migrations.ts` runs every file of `lib/db/migrations/` in
-name order, inside the transactions the files declare. Because every file is
-idempotent, re-running it is harmless; run `check:db` afterwards to confirm.
-
-To find out what a given database actually has, run the read-only diagnostic:
-
-```bash
-DATABASE_URL="postgres://…" corepack pnpm run check:db
-```
-
-`scripts/src/check-db-schema.ts` connects, lists every expected table and every
-column added by the 2026-09-16 and 2026-09-18 migrations as present or missing, prints the
-exact `psql` commands to apply, and exits 0 (complete), 1 (incomplete or
+`scripts/src/check-db-schema.ts` lists every expected table and every column
+added by the 2026-09-16 and 2026-09-18 migrations as present or missing, prints
+the exact commands to apply, and exits 0 (complete), 1 (incomplete or
 unreachable) or 2 (no `DATABASE_URL`). It never prints the password and changes
-nothing.
-
-`20260916_universal_cards.sql` creates `aime_universal_cards`, the table behind
-`/ma-carte`; without it `GET /api/me/card` raises
-`relation "aime_universal_cards" does not exist` and answers a 500. All three
-files are safe to re-run (`CREATE TABLE IF NOT EXISTS`,
-`ADD COLUMN IF NOT EXISTS`, guarded constraints). Their behaviour — uniqueness
-of a verified claim, closed tombstones, lossless profile extraction, ownership
-foreign keys — is checked against an in-memory Postgres by
-`pnpm run test:card-migrations`. `lib/db` also exposes `pnpm --filter @workspace/db run push`
+nothing. `lib/db` also exposes `pnpm --filter @workspace/db run push`
 (drizzle-kit) for a database you manage that way.
 
 ## API error contract
