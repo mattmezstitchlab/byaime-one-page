@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
  */
 export function EntityEditor({ node, onClose, project, updateProject, updateEntity, openUserProfile, currentRole, canEdit }: any) {
   const { t } = useI18n();
-  const inputClass = "w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm text-foreground focus-visible:outline-none focus:border-foreground/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
-  const selectClass = "w-full bg-background border border-foreground/10 rounded-xl px-4 py-3 text-sm text-foreground focus-visible:outline-none focus:border-foreground/30 transition-colors appearance-none disabled:opacity-50 disabled:cursor-not-allowed";
+  const inputClass = "w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-foreground/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  const selectClass = "w-full bg-background border border-foreground/10 rounded-xl px-4 py-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-foreground/30 transition-colors appearance-none disabled:opacity-50 disabled:cursor-not-allowed";
   const labelClass = "text-[10px] uppercase tracking-widest text-foreground/50 block mb-2";
 
   if (node.type === "identity") {

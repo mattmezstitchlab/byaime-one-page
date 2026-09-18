@@ -107,7 +107,7 @@ function TaskRow({ task, onToggle, onEdit, onDelete }: { task: Task; onToggle: (
           onChange={e => onEdit({ title: e.target.value })}
           className={cn("min-w-0 flex-1 bg-transparent text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-[var(--agency-ink)]", task.status === "termine" && "line-through")}
         />
-        <button onClick={onDelete} className="text-[var(--agency-eyebrow)] transition hover:text-[#B42318]">
+        <button type="button" onClick={onDelete} aria-label={`Supprimer ${task.title}`} className="rounded-full text-[var(--agency-eyebrow)] transition hover:text-[#B42318] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>

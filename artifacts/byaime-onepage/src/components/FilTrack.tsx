@@ -216,7 +216,7 @@ export function FilTrack({
               onClick={() => onOpenArrival(arrival)}
               aria-label={t("fil.openArrival", { name: arrival.guestName })}
               title={`${arrival.guestName} · ${status}`}
-              className="group absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 p-2 focus-visible:outline-none"
+              className="group absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/70"
             >
               <span className="relative grid h-3 w-3 place-items-center rounded-full bg-brand-accent shadow-[0_0_10px_hsl(var(--brand-accent)/0.55)] transition-transform group-hover:scale-125">
                 <span className="absolute inset-0 animate-ping rounded-full bg-brand-accent/35 motion-reduce:animate-none" />

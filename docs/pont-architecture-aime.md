@@ -243,3 +243,46 @@ l'extraction de classes, symétrique de l'exemption CSS existante
 Acceptance sur byaime : FOCUS tombe de 217 à **l'inventaire réel des
 paires non appariées** (attendu proche de zéro), comptes exacts, fixtures
 `focus-pairing` (paire valide / nu / pointeur / paire incomplète).
+
+**✅ Boucle fermée le 18/09 (matin)** — le juge a intégré §8 et §9 (PR
+AIME-COMPOSER #44 `1f9da76` : couche de tokens REFERENCE, h1 par branche,
+bootstrap ; PR #45 `f49461e` : pairing FOCUS « la substitution, pas le
+token », angle mort n°8 `font-display` compté `.t-display`). Re-mesure
+byaime (diagnostic V2 sur `artifacts/byaime-onepage`, juge `20fabad`) :
+
+| Famille | Avant (§8) | Après juge #44/#45 | Après convergence n°3 |
+|---|---|---|---|
+| HIERARCHY | 16 | **0 vrai** + 6 non-résolus nommés | 0 + 6 |
+| COLOR | 478 | **127** (`tokens_layer: true`, 2 fichiers reconnus) | 127 |
+| FOCUS | 217 | **6** (inventaire réel, chacun nommé) | **3** |
+
+## 10. Convergence n°3 — les 6 FOCUS réels (18/09)
+
+Les 6 écarts nommés par le juge se partagent en deux lots :
+
+- **3 dans le produit, corrigés** : `FilTrack` (point RSVP sur le fil,
+  `focus-visible:outline-none` sans anneau → `ring-2 ring-brand-accent/70`) ;
+  `card-blocks` (champ de recherche des rôles, fond sombre → `ring-inset
+  ring-white/60`) ; `PlanningPanel` (corbeille d'une étape sans nom
+  accessible → `aria-label="Supprimer {titre}"` + anneau clavier). Au
+  passage, `EntityEditor` : deux chaînes de classes (`inputClass`,
+  `selectClass`) portaient le motif « outline retiré au clavier, seule la
+  bordure change » — le même que les 53 corrigés en n°2 ; le juge ne les
+  voyait pas (constantes, pas attributs `className` littéraux) — corrigées
+  quand même, c'est l'accessibilité qui compte, pas la mesure.
+- **3 dans `reference/source-zip/`** (`HeroBar.tsx` ×3) : une archive de
+  référence commitée le 07/09, importée nulle part, hors `tsconfig`. Elle
+  n'est pas le produit ; on ne la « corrige » pas pour flatter un chiffre.
+  Elle reste comptée, nommée, et sera retirée du dépôt quand la décision
+  d'archivage sera prise — pas par cette convergence.
+
+**Angle mort #9, mineur, à remettre au juge** : les constantes de classes
+(`const inputClass = "…"`) réutilisées dans plusieurs `className={inputClass}`
+ne sont pas extraites — un défaut dans une constante est un défaut par
+usage, invisible. Résolution honnête : les compter en « constructions
+dynamiques » nommées, ou résoudre les identifiants locaux dont la valeur
+est un littéral de chaîne dans le même fichier (aucune devinette : la valeur
+est écrite en clair).
+
+Résultat après n°3 : FOCUS **3** (tous hors produit, `reference/`),
+563 tests verts, build ✓, `verify:vercel` ✓.
