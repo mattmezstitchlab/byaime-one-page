@@ -7,11 +7,12 @@ import { cn } from "@/lib/utils";
 import { formatCents, currencySymbol } from "@/lib/money";
 import { momentProviderIds } from "@/lib/moment-context";
 import { invoicesForPayment } from "@/lib/document-tense";
+import { attestedCachets, hoursProjection, legalDeadlines, pendingDeadlineMoments, deadlineMomentId } from "@/lib/intermittent";
 
 const euro = (cents: number, currency?: string) => formatCents(cents, currency);
 
 export function ProviderPanel({ momentId = null }: { momentId?: string | null } = {}) {
-  const { project, updateEntity, addEntity, removeEntity, canEdit } = useProject();
+  const { project, updateEntity, addEntity, removeEntity, updateProject, canEdit } = useProject();
   const [query, setQuery] = useState("");
   if (!project) return null;
   /* Ancrage Moment : les professionnels reliés à ce Moment passent en tête et
@@ -27,6 +28,19 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
   const paid = project.payments.filter(p => p.state === "paye").reduce((sum, p) => sum + p.amountCents, 0);
   const remaining = Math.max(0, (project.budget.value || estimated / 100) * 100 - paid);
   const addPayment = () => addEntity("payments", { label: "Nouveau paiement", amountCents: 0, at: Date.now(), state: "du", category: "À classer" });
+
+  /* Intermittents : échéances légales et heures, dérivées (intermittent.ts).
+     Les Moments proposés sont suggérés, à valider — on les adopte un par un. */
+  const now = Date.now();
+  const pendingDeadlines = pendingDeadlineMoments(project);
+  const deadlines = legalDeadlines(project);
+  const cachets = attestedCachets(project);
+  const projection = hoursProjection(cachets, now);
+  const adoptDeadline = (momentId: string) => {
+    const moment = pendingDeadlines.find(item => item.id === momentId);
+    if (!moment) return;
+    updateProject({ timeline: [...project.timeline, moment].sort((a, b) => a.time - b.time) });
+  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -125,6 +139,18 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                   placeholder="Montant €"
                   className="col-span-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)]"
                 />
+                <select
+                  disabled={!canEdit}
+                  aria-label={`Rémunération de ${provider.name || provider.role}`}
+                  data-testid={`provider-employment-${provider.id}`}
+                  value={provider.employment ?? "facture"}
+                  onChange={e => updateEntity("providers", provider.id, { employment: e.target.value === "facture" ? undefined : e.target.value })}
+                  className="col-span-2 rounded-full border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="facture">Rémunération : sur facture</option>
+                  <option value="guso">Rémunération : cachet déclaré au GUSO</option>
+                  <option value="structure">Rémunération : cachet via une structure employeuse</option>
+                </select>
               </div>
 
               <div className="mt-4 border-t border-[var(--agency-hairline)] pt-4">
@@ -143,11 +169,59 @@ export function ProviderPanel({ momentId = null }: { momentId?: string | null } 
                     <p className="text-xs text-[var(--agency-eyebrow)]">Aucun moment prévu avec ce professionnel.</p>
                   )}
                 </div>
+                {(provider.employment === "guso" || provider.employment === "structure") && (
+                  <div className="mt-3 rounded-2xl border border-[var(--agency-hairline)] p-3" data-testid={`provider-deadlines-${provider.id}`}>
+                    <p className={cn(EYEBROW, "text-[9px]")}>Échéances légales · déduites des prestations</p>
+                    {deadlines.filter(deadline => deadline.providerId === provider.id).length === 0 ? (
+                      <p className="mt-2 text-xs text-[var(--agency-eyebrow)]">Reliez ce professionnel à un Moment pour que ses échéances apparaissent.</p>
+                    ) : (
+                      <ul className="mt-2 space-y-1.5">
+                        {deadlines.filter(deadline => deadline.providerId === provider.id).map(deadline => {
+                          const id = deadlineMomentId(deadline);
+                          const pending = pendingDeadlines.find(item => item.id === id);
+                          const late = deadline.dueAt < now && !project.timeline.some(event => event.id === id && event.status === "execute");
+                          return (
+                            <li key={id} className="flex flex-wrap items-center justify-between gap-2 text-xs" data-deadline={deadline.kind} data-adopted={pending ? "false" : "true"}>
+                              <span className={cn("text-[var(--agency-body)]", late && "text-[#B42318]")}>
+                                {deadline.kind === "declaration_prealable" ? "Déclaration préalable" : "Déclaration unique + cotisations"} · avant le {new Date(deadline.dueAt).toLocaleDateString("fr-FR")}
+                              </span>
+                              {pending ? (
+                                canEdit && (
+                                  <button type="button" onClick={() => adoptDeadline(id)} className={cn(PILL_SMALL, "border border-[var(--agency-hairline)] hover:bg-[var(--agency-ink)] hover:text-[var(--agency-paper)]")}>
+                                    Ajouter à la Timeline
+                                  </button>
+                                )
+                              ) : (
+                                <span className="text-[10px] uppercase tracking-widest text-[var(--agency-eyebrow)]">Dans la Timeline</span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {cachets.length > 0 && (
+        <div className={cn(CARD, "p-6")} data-testid="intermittent-hours">
+          <p className={EYEBROW}>Heures attestées · {projection.cachets} cachet(s) sur 12 mois</p>
+          <h4 className="aime-apple-title mt-2 text-xl text-[var(--agency-ink)]">{projection.hours} h sur {projection.threshold} h</h4>
+          <div className="mt-3 h-1 rounded-full bg-foreground/10">
+            <div className="h-1 rounded-full bg-foreground/60" style={{ width: `${Math.min(100, Math.round((projection.hours / projection.threshold) * 100))}%` }} />
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--agency-body)]">
+            {projection.remainingHours > 0
+              ? `Il reste ${projection.remainingHours} h, soit ${projection.remainingCachets} cachet(s) attesté(s). Seules les factures rapprochées d'un paiement réglé comptent.`
+              : "Le seuil de la période est atteint d'après les cachets attestés."}
+          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-[var(--agency-eyebrow)]">{projection.disclaimer} Règles relues le {projection.rulesDate}.</p>
+        </div>
+      )}
 
       {/* Fusion P1: Budget intégré dans Prestataires */}
       <div className={cn(CARD, "p-6")}>

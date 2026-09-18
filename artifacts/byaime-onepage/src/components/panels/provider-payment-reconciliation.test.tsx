@@ -21,6 +21,7 @@ vi.mock("@/store/project-store", () => ({
     project: current,
     canEdit: true,
     currentRole: "owner",
+    updateProject: (patch: Partial<WorldProject>) => commit({ ...current, ...patch } as WorldProject),
     updateEntity: (collection: string, id: string, patch: Record<string, unknown>) => {
       const list = (current as unknown as Record<string, { id: string }[]>)[collection] ?? [];
       commit({ ...current, [collection]: list.map(item => (item.id === id ? { ...item, ...patch } : item)) } as unknown as WorldProject);
@@ -58,6 +59,53 @@ async function mount() {
   act(() => { root!.render(<Harness />); });
   return container!;
 }
+
+describe("intermittents : échéances légales et heures attestées", () => {
+  it("déduit les échéances d'un prestataire en cachet, les adopte une par une et compte ses heures", async () => {
+    const DAY = 86400000;
+    const gigAt = Date.now() + 120 * DAY;
+    const text = "Notre mariage le 5 août 2027 à Lyon, 80 invités.";
+    current = createInitialProject(parseIntention(text), text);
+    commit({
+      ...current,
+      providers: [{ id: "sax", category: "musique", role: "Saxophoniste", name: "Léo", status: "reserve" }],
+      timeline: [{ id: "bal", time: gigAt, durationMinutes: 180, kind: "evenement", title: "Bal", status: "prepare", confidence: "confirme", phase: "pendant", universe: "Mariage", provenance: "real", relations: [{ kind: "provider", id: "sax" }] }],
+      documents: [{ id: "f-sax", title: "Cachet répétition.pdf", kind: "facture", providerId: "sax", at: Date.now() - 30 * DAY }],
+      payments: [{ id: "pay-sax", label: "Cachet", amountCents: 15000, at: Date.now() - 29 * DAY, state: "paye", providerId: "sax", documentId: "f-sax" }],
+    });
+    const el = await mount();
+
+    /* Sur facture : ni échéances, ni compteur. */
+    expect(el.querySelector("[data-testid=provider-deadlines-sax]")).toBeNull();
+    expect(el.querySelector("[data-testid=intermittent-hours]")).toBeNull();
+
+    const employment = el.querySelector<HTMLSelectElement>("[data-testid=provider-employment-sax]")!;
+    act(() => {
+      employment.value = "guso";
+      employment.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(current.providers[0].employment).toBe("guso");
+
+    const box = el.querySelector("[data-testid=provider-deadlines-sax]");
+    expect(box, "bloc d'échéances absent").not.toBeNull();
+    const items = [...box!.querySelectorAll<HTMLElement>("[data-deadline]")];
+    expect(items.map(item => item.dataset.deadline)).toEqual(["declaration_prealable", "declaration_unique"]);
+    expect(items.every(item => item.dataset.adopted === "false")).toBe(true);
+
+    /* Adopter la première : un Moment suggéré entre dans la Timeline, l'autre reste proposé. */
+    const adopt = items[0].querySelector<HTMLButtonElement>("button")!;
+    act(() => adopt.click());
+    expect(current.timeline.filter(event => event.provenance === "suggested")).toHaveLength(1);
+    expect(current.timeline.find(event => event.provenance === "suggested")).toMatchObject({ status: "a_valider", phase: "avant", dependencyIds: ["bal"] });
+    const after = [...el.querySelectorAll<HTMLElement>("[data-testid=provider-deadlines-sax] [data-deadline]")];
+    expect(after.map(item => item.dataset.adopted)).toEqual(["true", "false"]);
+
+    /* Le compteur : un cachet attesté = douze heures. */
+    const hours = el.querySelector("[data-testid=intermittent-hours]");
+    expect(hours?.textContent).toContain("12 h sur 507 h");
+    expect(hours?.textContent).toContain("ne garantit aucune ouverture de droits");
+  });
+});
 
 describe("rapprochement paiement ↔ facture", () => {
   it("propose les factures du prestataire en tête et rend la facture désignée un fait", async () => {

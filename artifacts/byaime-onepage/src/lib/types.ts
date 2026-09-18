@@ -79,6 +79,13 @@ export type Provider = {
   depositCents?: number;
   paidCents?: number;
   nextAction?: string;
+  /**
+   * Mode de rémunération. `facture` : indépendant, une facture suffit.
+   * `guso` / `structure` : artiste ou technicien employé en cachet — le
+   * Monde propose alors les échéances légales et compte les heures
+   * (`intermittent.ts`). Absent = facture.
+   */
+  employment?: "facture" | "guso" | "structure";
 };
 
 export type Payment = {
