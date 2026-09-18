@@ -415,7 +415,7 @@ export function AimePanel() {
                   onChange={event => setFilter(event.target.value)}
                   placeholder={t("aime.panel.search")}
                   data-testid="aime-panel-search"
-                  className="w-full rounded-[10px] border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-[13px] outline-none transition focus:border-[var(--agency-ink)]/40"
+                  className="w-full rounded-[10px] border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition focus:border-[var(--agency-ink)]/40"
                 />
                 {filter && visibleItems.length === 0 && searchEvents.length === 0 && searchEntities.length === 0 && (
                   <p className="mt-2 px-2 text-[11px] text-[var(--agency-body)]">{t("aime.panel.search.empty")}</p>

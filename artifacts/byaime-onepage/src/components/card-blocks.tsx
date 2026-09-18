@@ -597,7 +597,7 @@ export function RolesPicker({
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("cb.roles.searchPlaceholder")}
               aria-label={t("cb.roles.searchAria")}
-              className="min-h-11 w-full bg-transparent pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
+              className="min-h-11 w-full bg-transparent pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus-visible:outline-none"
             />
           </div>
           <div className="max-h-72 overflow-y-auto p-2">

@@ -671,7 +671,7 @@ export function ProjectStage() {
             {!previewRole && <button
               type="button"
               onClick={() => setTasksOpen(true)}
-              className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="ml-auto grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               style={{ background: `conic-gradient(from -90deg, hsl(var(--brand-accent)) 0deg ${completion * 3.6}deg, rgba(255,255,255,.14) ${completion * 3.6}deg 360deg)` }}
               aria-label={t("world.hero.tasks.aria", { percent: completion })}
             >

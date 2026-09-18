@@ -207,3 +207,39 @@ visible dans le bon sens, jamais taxée.
 Critère d'acceptation de la prochaine tranche juge : byaime passe à
 **HIERARCHY 0 vrai écart + non-résolus nommés** (composé, coquille,
 branche, bootstrap) et **COLOR ≤ 328 avec la couche reconnue en adoption**.
+
+## 9. Troisième retour du terrain — FOCUS saturé de faux positifs (18/09, preuve par intervention)
+
+Convergence n°2 (famille FOCUS, 218 écarts annoncés). Triage terrain :
+
+- **133 faux positifs** : l'idiome canonique accessible
+  `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`
+  (133 occurrences, 135 rings présents) — l'idiome standard shadcn/Tailwind,
+  plus accessible que l'outline par défaut ;
+- **58 vrais défauts corrigés dans le produit** : 53 `outline-none` nus
+  (champs ne substituant qu'un changement de bordure au `focus:` — pointeur
+  inclus, indicateur faible) → idiome canonique ; 5 `focus:outline-none`
+  (suppression au pointeur ; 2 avaient déjà le ring, 3 substituaient par
+  bordure) → `focus-visible:` ; `.field` CSS → outline UA conservé au
+  clavier, supprimé au pointeur uniquement (motif exempté du juge).
+
+**Preuve par intervention** : après ces 58 corrections réelles, la mesure
+passe de **218 à 217** (le seul point gagné est le cas CSS). La famille ne
+mesure plus l'accessibilité : elle mesure la présence du token
+`outline-none`, quelle que soit sa substitution.
+
+**Angle mort #7 (le plus massif à ce jour)** — règle demandée pour
+l'extraction de classes, symétrique de l'exemption CSS existante
+(`:focus:not(:focus-visible)`) :
+
+1. `focus-visible:outline-none` **accompagné** de `focus-visible:ring-*`
+   (ou `focus-visible:shadow-*`) dans le même attribut de classes =
+   substitution valide → **pas un écart** ;
+2. `focus:outline-none` (suppression au pointeur) sans substitution =
+   écart ;
+3. `outline-none` nu sans ring adjacent = écart ;
+4. publier le compte des paires non appariées restantes, nommées.
+
+Acceptance sur byaime : FOCUS tombe de 217 à **l'inventaire réel des
+paires non appariées** (attendu proche de zéro), comptes exacts, fixtures
+`focus-pairing` (paire valide / nu / pointeur / paire incomplète).

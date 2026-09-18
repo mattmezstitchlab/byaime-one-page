@@ -121,7 +121,7 @@ function EventScene({
           type="button"
           onClick={onClick}
           aria-label={t("moment.open.aria", { title: event.title })}
-          className="w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-[20px]"
+          className="w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-[20px]"
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -346,8 +346,8 @@ function EventDrawer({ event, project, onClose, onEdit, onApplyRipple, onDelete,
     setSelectedDependents([]);
   }, [event.id, event.time]);
   const ripplePlan = useMemo(() => pendingTime === event.time ? undefined : planEventPropagation(project, event.id, { time: pendingTime }), [event.id, event.time, pendingTime, project]);
-  const input = "w-full rounded-none border-b border-foreground/20 bg-transparent py-2 text-sm text-foreground outline-none focus:border-border disabled:opacity-50 transition-colors placeholder:text-foreground/30";
-  const select = "w-full appearance-none rounded-none border-b border-foreground/20 bg-background py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground disabled:opacity-50";
+  const input = "w-full rounded-none border-b border-foreground/20 bg-transparent py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-border disabled:opacity-50 transition-colors placeholder:text-foreground/30";
+  const select = "w-full appearance-none rounded-none border-b border-foreground/20 bg-background py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors focus:border-foreground disabled:opacity-50";
 
   return (
     <ContextPanel eyebrow={t("tl.drawer.eyebrow")} title={t("tl.drawer.title")} onClose={onClose}>

@@ -484,7 +484,7 @@ export function WeddingModulesPanel({
           {project.memoryChecklist.map((item)=>(
             <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0">
               <button onClick={()=>updateProject({ memoryChecklist: project.memoryChecklist.map((x)=> x.id===item.id ? {...x, done:!x.done}:x) })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3"/>}</button>
-              <input value={item.label} onChange={(e)=>updateProject({ memoryChecklist: project.memoryChecklist.map((x)=> x.id===item.id ? {...x, label:e.target.value}:x) })} className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")} />
+              <input value={item.label} onChange={(e)=>updateProject({ memoryChecklist: project.memoryChecklist.map((x)=> x.id===item.id ? {...x, label:e.target.value}:x) })} className={cn("text-sm flex-1 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", item.done && "line-through text-foreground/40")} />
               {canManage && <button onClick={()=>updateProject({ memoryChecklist: project.memoryChecklist.filter((x)=>x.id!==item.id) })} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-3.5 h-3.5"/></button>}
             </div>
           ))}
@@ -650,7 +650,7 @@ export function WeddingModulesPanel({
                   if (event.key === "Enter") void runMusicSearch();
                 }}
                 placeholder={tScope("wm.music.searchPlaceholder")}
-                className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-sm outline-none focus:border-foreground/30"
+                className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-foreground/30"
               />
             </label>
             <button
@@ -678,7 +678,7 @@ export function WeddingModulesPanel({
                     <select
                       value={selectedTrack.id}
                       onChange={(event) => setSelectedMusicId(event.target.value)}
-                      className="rounded-lg bg-foreground/10 px-2 py-1 text-xs text-foreground outline-none"
+                      className="rounded-lg bg-foreground/10 px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {project.music.map((track) => (
                         <option key={track.id} value={track.id}>
@@ -764,7 +764,7 @@ export function WeddingModulesPanel({
               {c.structure.map((item, i) => (
                 <div key={`${item}-${i}`} className="flex gap-3 py-2 border-b border-foreground/5 last:border-0 text-sm">
                   <span className="text-foreground/30 font-mono">{String(i + 1).padStart(2, "0")}</span>
-                  <input value={item} onChange={(e)=>{ const next=[...c.structure]; next[i]=e.target.value; updateProject({ ceremony:{...c, structure:next } }); }} className="flex-1 bg-transparent outline-none text-sm" />
+                  <input value={item} onChange={(e)=>{ const next=[...c.structure]; next[i]=e.target.value; updateProject({ ceremony:{...c, structure:next } }); }} className="flex-1 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-sm" />
                 </div>
               ))}
               {canManage && <div className="pt-2"><AddBar label={tScope("wm.orga.addStep")} onAdd={()=>updateProject({ ceremony:{...c, structure:[...c.structure, tScope("wm.orga.newStep")] }})} /></div>}
@@ -774,10 +774,10 @@ export function WeddingModulesPanel({
               {c.readings.map((r) => (
                 <div key={r.id} className="mb-3 rounded-xl border border-foreground/5 p-3">
                   <div className="flex gap-2">
-                    <input value={r.title} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, title:e.target.value}:x) } })} className="text-sm bg-transparent outline-none flex-1" />
-                    <input value={r.reader} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, reader:e.target.value}:x) } })} className="text-xs bg-transparent outline-none text-foreground/50" />
+                    <input value={r.title} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, title:e.target.value}:x) } })} className="text-sm bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex-1" />
+                    <input value={r.reader} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, reader:e.target.value}:x) } })} className="text-xs bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-foreground/50" />
                   </div>
-                  <textarea value={r.text} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, text:e.target.value}:x) } })} className="mt-2 w-full bg-transparent outline-none text-xs text-foreground/70 min-h-[60px]" />
+                  <textarea value={r.text} onChange={(e)=>updateProject({ ceremony:{...c, readings:c.readings.map((x)=> x.id===r.id ? {...x, text:e.target.value}:x) } })} className="mt-2 w-full bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-xs text-foreground/70 min-h-[60px]" />
                 </div>
               ))}
               {c.vows.map((v) => (
@@ -800,7 +800,7 @@ export function WeddingModulesPanel({
               {l.packing.length === 0 ? <Empty>{tScope("wm.orga.emptyList")}</Empty> : l.packing.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 py-2 border-b border-foreground/5 last:border-0">
                   <button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, done: !x.done } : x)) } })} className={cn("w-5 h-5 rounded border flex items-center justify-center", item.done ? "bg-[var(--agency-ink)] text-[var(--agency-paper)]" : "border-foreground/25")}>{item.done && <Check className="w-3 h-3" />}</button>
-                  <input value={item.label} onChange={(e) => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, label: e.target.value } : x)) } })} className={cn("text-sm flex-1 bg-transparent outline-none", item.done && "line-through text-foreground/40")} />
+                  <input value={item.label} onChange={(e) => updateProject({ logistics: { ...l, packing: l.packing.map((x) => (x.id === item.id ? { ...x, label: e.target.value } : x)) } })} className={cn("text-sm flex-1 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", item.done && "line-through text-foreground/40")} />
                   <button onClick={() => updateProject({ logistics: { ...l, packing: l.packing.filter((x) => x.id !== item.id) } })} className="text-foreground/30 hover:text-brand-accent"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
@@ -812,9 +812,9 @@ export function WeddingModulesPanel({
               </div>
               {l.emergencyContacts.map((contact) => (
                 <div key={contact.id} className="grid grid-cols-3 gap-2 border-b border-foreground/5 py-2 last:border-0">
-                  <input value={contact.name} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, name: e.target.value } : x)) } })} className="bg-transparent text-sm outline-none" />
-                  <input value={contact.phone} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, phone: e.target.value } : x)) } })} placeholder={tScope("wm.orga.phonePlaceholder")} className="bg-transparent text-xs outline-none" />
-                  <input value={contact.role} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, role: e.target.value } : x)) } })} className="bg-transparent text-xs text-foreground/50 outline-none" />
+                  <input value={contact.name} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, name: e.target.value } : x)) } })} className="bg-transparent text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                  <input value={contact.phone} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, phone: e.target.value } : x)) } })} placeholder={tScope("wm.orga.phonePlaceholder")} className="bg-transparent text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                  <input value={contact.role} onChange={(e) => updateProject({ logistics: { ...l, emergencyContacts: l.emergencyContacts.map((x) => (x.id === contact.id ? { ...x, role: e.target.value } : x)) } })} className="bg-transparent text-xs text-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
                 </div>
               ))}
             </div>
@@ -834,12 +834,12 @@ export function WeddingModulesPanel({
                   </summary>
                   <div className="mt-3 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      <input value={member.role} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, role:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder={tScope("wm.orga.rolePlaceholder")} />
-                      <input value={member.person} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, person:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs outline-none" placeholder={tScope("wm.orga.personPlaceholder")} />
+                      <input value={member.role} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, role:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder={tScope("wm.orga.rolePlaceholder")} />
+                      <input value={member.person} onChange={(e)=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, person:e.target.value}:x) })} className="rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-3 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder={tScope("wm.orga.personPlaceholder")} />
                     </div>
                     {(member.tasks ?? []).map((t,i)=>(
                       <div key={`${member.id}-${i}`} className="flex items-center gap-2">
-                        <input value={t} onChange={(e)=>{ const next=[...(member.tasks ?? [])]; next[i]=e.target.value; updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:next}:x) }); }} className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-3 py-1 text-xs outline-none" />
+                        <input value={t} onChange={(e)=>{ const next=[...(member.tasks ?? [])]; next[i]=e.target.value; updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:next}:x) }); }} className="flex-1 rounded-full border border-foreground/10 bg-foreground/5 px-3 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
                         <button onClick={()=>updateProject({ team: project.team.map((x)=> x.id===member.id ? {...x, tasks:(x.tasks ?? []).filter((_,j)=>j!==i)}:x) })} className="text-foreground/30 hover:text-[#B42318]"><Trash2 className="w-3 h-3"/></button>
                       </div>
                     ))}
@@ -868,7 +868,7 @@ if (module === "messages") {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tScope("wm.messages.searchPlaceholder")}
-            className="flex-1 rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-4 py-2 text-sm outline-none focus:border-foreground/30"
+            className="flex-1 rounded-full border border-[var(--agency-hairline)] bg-foreground/5 px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-foreground/30"
           />
           {canManage && <AddBar label={tScope("wm.messages.free")} onAdd={() => setFreeOpen((v) => !v)} />}
           {canManage && <AddBar label={tScope("wm.messages.newTemplate")} onAdd={() => addEntity("messageTemplates", { title: tScope("wm.messages.newTemplate"), type: "pratique", body: "" })} />}
@@ -881,12 +881,12 @@ if (module === "messages") {
                 value={freeRecipients}
                 onChange={(event) => setFreeRecipients(event.target.value)}
                 placeholder={tScope("wm.messages.recipientsPlaceholder")}
-                className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30"
+                className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-foreground/30"
               />
             </label>
             <label className="block">
               <span className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.messages.subject")}</span>
-              <input value={freeSubject} onChange={(event) => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30" />
+              <input value={freeSubject} onChange={(event) => setFreeSubject(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-foreground/30" />
             </label>
             <label className="block">
               <span className="text-[10px] uppercase tracking-widest text-foreground/40">{tScope("wm.messages.message")}</span>
@@ -895,7 +895,7 @@ if (module === "messages") {
                 onChange={(event) => setFreeBody(event.target.value)}
                 rows={4}
                 placeholder={tScope("wm.messages.writePlaceholder")}
-                className="mt-1 w-full resize-none rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs leading-relaxed outline-none focus:border-foreground/30"
+                className="mt-1 w-full resize-none rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-foreground/30"
               />
             </label>
             <div className="flex gap-2">
@@ -922,7 +922,7 @@ if (module === "messages") {
                   disabled={!canManage}
                   value={template.title}
                   onChange={(event) => updateEntity("messageTemplates", template.id, { title: event.target.value })}
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none disabled:text-foreground/60"
+                  className="min-w-0 flex-1 bg-transparent text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:text-foreground/60"
                 />
                 {canManage && (
                   <button onClick={() => removeEntity("messageTemplates", template.id)} className="text-foreground/30 hover:text-brand-accent">
@@ -936,7 +936,7 @@ if (module === "messages") {
                 onChange={(event) => updateEntity("messageTemplates", template.id, { body: event.target.value })}
                 placeholder={tScope("wm.messages.writePlaceholder")}
                 rows={3}
-                className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 outline-none"
+                className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-foreground/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               {canManage && selectedTemplateId !== template.id && (
                 <button
@@ -956,7 +956,7 @@ if (module === "messages") {
                     value={recipients}
                     onChange={(event) => setRecipients(event.target.value)}
                     placeholder={tScope("wm.messages.recipientsPlaceholder")}
-                    className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs outline-none focus:border-foreground/30"
+                    className="w-full rounded-xl border border-[var(--agency-hairline)] bg-[var(--agency-paper)] px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-foreground/30"
                   />
                   <div className="flex gap-2">
                     <button disabled={busy} onClick={() => setSelectedTemplateId(null)} className="rounded-full border border-[var(--agency-hairline)] px-3 py-2 text-xs text-foreground/55">
@@ -1225,14 +1225,14 @@ function MusicTrackRow({
             {track.provenance === "demo" && <span className="text-[10px] text-foreground/35">{t("wm.music.initialExample")}</span>}
           </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <input value={track.moment} onChange={(event) => onUpdate({ moment: event.target.value })} placeholder={t("wm.music.momentPlaceholder")} className="bg-transparent text-xs text-foreground/55 outline-none" />
-            <input value={track.title} disabled={verified} onChange={(event) => onUpdate({ title: event.target.value })} className="bg-transparent text-sm outline-none disabled:text-foreground/80" />
+            <input value={track.moment} onChange={(event) => onUpdate({ moment: event.target.value })} placeholder={t("wm.music.momentPlaceholder")} className="bg-transparent text-xs text-foreground/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <input value={track.title} disabled={verified} onChange={(event) => onUpdate({ title: event.target.value })} className="bg-transparent text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:text-foreground/80" />
             <input
               value={track.artist}
               disabled={verified}
               onChange={(event) => onUpdate({ artist: event.target.value })}
               placeholder={t("wm.music.artistPlaceholder")}
-              className="bg-transparent text-sm text-foreground/60 outline-none placeholder:text-foreground/25 disabled:text-foreground/60"
+              className="bg-transparent text-sm text-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-foreground/25 disabled:text-foreground/60"
             />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
@@ -1290,7 +1290,7 @@ function EditableArea({ label, value, onChange }: { label: string; value: string
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
-        className="mt-3 w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-[var(--agency-eyebrow)] text-[var(--agency-ink)]"
+        className="mt-3 w-full resize-none bg-transparent text-[15px] leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-[var(--agency-eyebrow)] text-[var(--agency-ink)]"
         placeholder={t("wm.orga.toComplete")}
       />
     </label>

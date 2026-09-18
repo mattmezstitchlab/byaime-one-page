@@ -154,7 +154,7 @@ export function AssistantChat() {
             placeholder={t("assistant.chat.placeholder")}
             autoComplete="off"
             disabled={pending}
-            className="w-full bg-transparent py-2 text-sm text-foreground outline-none placeholder:text-foreground/40 disabled:opacity-60"
+            className="w-full bg-transparent py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-foreground/40 disabled:opacity-60"
           />
           <button
             type="submit"
