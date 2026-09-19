@@ -241,7 +241,14 @@
  * Sous 1024 px, le dock n'a plus de place à droite : il devient une feuille en
  * bas d'écran et le fil ne bouge pas (on est au doigt, pas à la souris).
  */
-:root { --aime-inspector: 27rem; }
+:root { --aime-inspector: 22rem; }
+/* 432 px sur un portable 1024 de large, c'était 42 % de l'écran : la largeur
+   ne passe à 27rem qu'à partir de 1280, là où le fil a encore de quoi respirer
+   à côté. (C'est aussi la largeur exacte de l'inspecteur tel qu'il est filmé
+   dans la visite : ce que la vidéo montre est bien ce que l'app rend.) */
+@media (min-width: 1280px) {
+  :root { --aime-inspector: 27rem; }
+}
 
 .aime-inspector {
   inset-inline-end: 0;
