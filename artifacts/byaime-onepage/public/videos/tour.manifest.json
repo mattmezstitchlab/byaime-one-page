@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-09-19",
+  "source": "scripts/record-tour.mjs",
+  "size": [
+    1280,
+    800
+  ],
+  "fps": 22,
+  "voice": "fr-FR",
+  "film": {
+    "file": "tour-complet.mp4",
+    "poster": "tour-complet.jpg",
+    "duration": "6:27",
+    "seconds": 386.8,
+    "bytes": 9196521
+  },
+  "chapters": [
+    {
+      "id": "concept",
+      "n": "01",
+      "label": "Le concept",
+      "duration": "0:43",
+      "seconds": 42.8,
+      "video": "tour-concept.mp4",
+      "poster": "tour-concept.jpg",
+      "bytes": 1090849,
+      "start": 0
+    },
+    {
+      "id": "inscription",
+      "n": "02",
+      "label": "Créer son espace",
+      "duration": "0:45",
+      "seconds": 45.4,
+      "video": "tour-inscription.mp4",
+      "poster": "tour-inscription.jpg",
+      "bytes": 832299,
+      "start": 42.8
+    },
+    {
+      "id": "monde",
+      "n": "03",
+      "label": "Ouvrir un Monde",
+      "duration": "0:52",
+      "seconds": 51.7,
+      "video": "tour-monde.mp4",
+      "poster": "tour-monde.jpg",
+      "bytes": 978621,
+      "start": 88.2
+    },
+    {
+      "id": "ouverture",
+      "n": "04",
+      "label": "Nommer le Monde",
+      "duration": "0:43",
+      "seconds": 43.3,
+      "video": "tour-ouverture.mp4",
+      "poster": "tour-ouverture.jpg",
+      "bytes": 1020323,
+      "start": 139.9
+    },
+    {
+      "id": "timeline",
+      "n": "05",
+      "label": "La Timeline",
+      "duration": "0:40",
+      "seconds": 39.9,
+      "video": "tour-timeline.mp4",
+      "poster": "tour-timeline.jpg",
+      "bytes": 1175492,
+      "start": 183.2
+    },
+    {
+      "id": "invites",
+      "n": "06",
+      "label": "Invités & RSVP",
+      "duration": "1:00",
+      "seconds": 59.7,
+      "video": "tour-invites.mp4",
+      "poster": "tour-invites.jpg",
+      "bytes": 1165699,
+      "start": 223.1
+    },
+    {
+      "id": "prestataires",
+      "n": "07",
+      "label": "Les modules du Monde",
+      "duration": "0:54",
+      "seconds": 53.9,
+      "video": "tour-prestataires.mp4",
+      "poster": "tour-prestataires.jpg",
+      "bytes": 1474460,
+      "start": 282.8
+    },
+    {
+      "id": "partage",
+      "n": "08",
+      "label": "Partager et garder",
+      "duration": "0:50",
+      "seconds": 50.2,
+      "video": "tour-partage.mp4",
+      "poster": "tour-partage.jpg",
+      "bytes": 1466102,
+      "start": 336.7
+    }
+  ]
+}
