@@ -701,7 +701,7 @@ export function AimePanel() {
                       </div>
                     )}
                   </div>
-                  <div className="min-h-0 flex-1 overflow-y-auto bg-[#fcfbfa] px-7 py-8 sm:px-10 sm:py-10">
+                  <div className="min-h-0 flex-1 overflow-y-auto bg-white px-7 py-8 sm:px-10 sm:py-10">
                     <div className="mx-auto max-w-4xl" data-testid="monde-panel" data-panel={presented.panel}>
                       <MondePanel panel={presented.panel} momentId={presented.momentId} />
                     </div>
@@ -716,12 +716,12 @@ export function AimePanel() {
                       <p className={cn(LEAD, "mt-3 max-w-2xl text-[15px] leading-relaxed")}>{selectedItem!.description}</p>
                     )}
                   </div>
-                  <div className="min-h-0 flex-1 overflow-y-auto bg-[#fcfbfa] px-7 py-8 sm:px-10 sm:py-10">
+                  <div className="min-h-0 flex-1 overflow-y-auto bg-white px-7 py-8 sm:px-10 sm:py-10">
                     {renderPanelContent(selectedItem!)}
                   </div>
                 </>
               ) : (
-                <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto bg-[#fcfbfa] px-7 py-10 sm:px-10" data-testid="aime-panel-intro">
+                <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto bg-white px-7 py-10 sm:px-10" data-testid="aime-panel-intro">
                   <div className="max-w-md text-center">
                     <AimeOrb size={56} label="+" className="mx-auto" />
                     <p className={cn(EYEBROW, "mt-5")}>{t("aime.panel.eyebrow")}</p>

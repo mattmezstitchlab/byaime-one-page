@@ -199,6 +199,17 @@ describe("le Monde Mariage s'ouvre sur des visuels", () => {
     }
     /* Les trois vidéos réelles servent vraiment : au moins une scène en joue une. */
     expect(el.querySelectorAll("video").length).toBeGreaterThan(0);
+    /* Densité (19/09) : le fil est une colonne de cartes, plus une suite de
+       scènes pleine hauteur. Le contrat est tordu exprès ici — sans lui, un
+       `min-h-[60vh]` de nostalgie cinématographique reviendrait par un commit
+       anodin et le fil redeviendrait un diaporama. */
+    for (const scene of scenes) {
+      const cls = scene.className || "";
+      expect(cls, `${scene.getAttribute("data-testid")} : la scène n'est plus une carte`).not.toContain("min-h-[60vh]");
+      const media = scene.querySelector('[class*="aspect-[16/9]"]');
+      expect(media, `${scene.getAttribute("data-testid")} : le média n'est plus bloc de la carte`).not.toBeNull();
+      expect(scene.querySelector('[class*="max-w-2xl"]'), `${scene.getAttribute("data-testid")} : hors colonne du fil`).not.toBeNull();
+    }
     // La zone logique est nommée, pour que le couple sache d'où vient le fond.
     const zones = [...el.querySelectorAll('[data-testid="timeline-zone"]')].map(zone => zone.textContent?.trim());
     expect(new Set(zones).size).toBeGreaterThan(1);

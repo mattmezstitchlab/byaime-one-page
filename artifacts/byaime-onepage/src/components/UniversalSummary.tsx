@@ -1,5 +1,5 @@
 import type { WorldProject } from "@/lib/types";
-import { cn } from "@/lib/utils";
+
 
 export function UniversalSummary({ project, onAcceptModule, onRejectModule }: {
   project: WorldProject;
@@ -64,9 +64,9 @@ export function UniversalSummary({ project, onAcceptModule, onRejectModule }: {
               <ul className="mt-2 space-y-1">
                 {toVerify.map(f => (
                   <li key={f.id} data-testid={`fact-${f.id}`} className="flex items-center gap-2 text-sm">
-                    <span className="h-2 w-2 rounded-full bg-amber-400" />
+                    <span className="h-2 w-2 rounded-full bg-zinc-400" />
                     {f.label}
-                    <span className={cn("rounded-full px-2 py-0.5 text-[10px]", f.status === "proposition_aime" ? "bg-amber-100 text-amber-900" : "bg-zinc-100 text-zinc-600")}>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">
                       {f.status === "proposition_aime" ? "proposition AIME" : "à vérifier"}
                     </span>
                   </li>
@@ -117,7 +117,7 @@ export function UniversalSummary({ project, onAcceptModule, onRejectModule }: {
             <h4 className="text-sm font-semibold">Trajectoire proposée</h4>
             <p className="mt-1 text-xs text-zinc-500">
               Situation actuelle → souhaitée → écart → étapes → preuves → décisions.
-              <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900">proposition AIME — jamais appliquée automatiquement</span>
+              <span className="ml-1 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-600">proposition AIME — jamais appliquée automatiquement</span>
             </p>
             <ul className="mt-4 space-y-2">
               {project.trajectory.steps.map(step => (

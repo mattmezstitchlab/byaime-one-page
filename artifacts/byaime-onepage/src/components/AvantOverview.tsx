@@ -80,7 +80,7 @@ export function AvantOverview() {
         });
 
   return (
-    <section data-testid="avant-overview" aria-label={t("avant.aria")} className="mx-auto w-full max-w-4xl px-4 pt-8 sm:px-6">
+    <section data-testid="avant-overview" aria-label={t("avant.aria")} className="mx-auto w-full max-w-2xl px-4 pt-6 sm:px-6">
       <p className="text-[10px] uppercase tracking-[.24em] text-[var(--agency-eyebrow)]">{t("avant.eyebrow")}</p>
       <h3 className="mt-2 font-display text-2xl font-semibold tracking-tight text-[var(--agency-ink)] sm:text-3xl">{t("avant.title")}</h3>
 

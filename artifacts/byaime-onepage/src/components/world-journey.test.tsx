@@ -151,6 +151,31 @@ describe("parcours complet du couple", () => {
     expect(count("apres")).toBeGreaterThan(0);
   });
 
+  it("une seule verticalité : le fil s'ouvre sur les trois périodes mêlées", async () => {
+    const project = newProject();
+    await mountWorld();
+
+    /* Ouvrir le Monde ne choisit plus une période : le scroll les contient
+       toutes, triées par temps. Les pastilles ne sont que des filtres. */
+    expect(document.querySelector('[data-testid="world-phase-tout"]')?.getAttribute("aria-current")).toBe("true");
+    expect(document.querySelectorAll('[data-testid^="timeline-scene-"]').length).toBe(project.timeline.length);
+    expect(document.querySelector('[data-testid="day-run"]')).toBeNull();
+
+    /* La tête de l'Avant vit dans le fil, comme un chapitre : plus comme un
+       écran qu'on quitte pour aller voir la suite. */
+    expect(document.querySelectorAll('[data-testid="avant-overview"]').length).toBe(1);
+
+    /* Filtrer serrre le fil sans le casser, et le Jour J garde sa régie. */
+    click('[data-testid="world-phase-avant"]');
+    expect(document.querySelectorAll('[data-testid^="timeline-scene-"]').length)
+      .toBe(project.timeline.filter(event => event.phase === "avant").length);
+    click('[data-testid="world-phase-pendant"]');
+    expect(document.querySelector('[data-testid="day-run"]')).not.toBeNull();
+    click('[data-testid="world-phase-tout"]');
+    expect(document.querySelectorAll('[data-testid^="timeline-scene-"]').length).toBe(project.timeline.length);
+    expect(document.querySelector('[data-testid="day-run"]')).toBeNull();
+  });
+
   it("Avant → Jour J → Après : chaque période a sa Timeline et aucune fenêtre fantôme", async () => {
     newProject();
     await mountWorld();

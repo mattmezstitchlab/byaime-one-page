@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { User, Folder, Network, MapPin, Globe, ImageIcon, Lock, Globe2, Users, Calendar } from "lucide-react";
-import { CenteredBlock } from "./CenteredBlock";
+/* L'inspecteur, pas une modale : régler un invité, un document ou un Moment se
+   fait dans le panneau de droite, le fil restant lisible à côté. */
+import { ContextPanel } from "./ContextPanel";
 import { VisualImportControl } from "./VisualImportControl";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -19,7 +21,7 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
 
   if (node.type === "identity") {
     return (
-      <CenteredBlock eyebrow={t("ed.edit")} title={t("ed.identity.title")} onClose={onClose} leading={<User className="mt-4 w-6 h-6 text-foreground/50" />}>
+      <ContextPanel eyebrow={t("ed.edit")} title={t("ed.identity.title")} onClose={onClose} leading={<User className="mt-4 w-6 h-6 text-foreground/50" />}>
          <div className="space-y-8 mt-4">
             <div className="p-6 rounded-2xl bg-foreground/[0.03] border border-foreground/10 flex items-center justify-between">
                <div>
@@ -55,13 +57,13 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                </div>
             </div> : <div className="border-t border-foreground/10 pt-6 text-sm font-light leading-relaxed text-foreground/42">{t("ed.identity.ownerControl")}</div>}
          </div>
-      </CenteredBlock>
+      </ContextPanel>
     );
   }
 
   if (node.id === "worlds" || node.collection === "project") {
     return (
-      <CenteredBlock eyebrow={t("ed.edit")} title={t("ed.world.title")} onClose={onClose} leading={<Globe className="mt-4 w-6 h-6 text-foreground/50" />}>
+      <ContextPanel eyebrow={t("ed.edit")} title={t("ed.world.title")} onClose={onClose} leading={<Globe className="mt-4 w-6 h-6 text-foreground/50" />}>
          <div className="space-y-6 mt-4">
             <div>
                <label className={labelClass}>{t("ed.world.titleField")}</label>
@@ -98,13 +100,13 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                />
             </div>
          </div>
-      </CenteredBlock>
+      </ContextPanel>
     );
   }
 
   if (node.id === "map") {
     return (
-      <CenteredBlock eyebrow={t("ed.edit")} title={t("ed.map.title")} onClose={onClose} leading={<MapPin className="mt-4 w-6 h-6 text-foreground/50" />}>
+      <ContextPanel eyebrow={t("ed.edit")} title={t("ed.map.title")} onClose={onClose} leading={<MapPin className="mt-4 w-6 h-6 text-foreground/50" />}>
          <div className="space-y-6 mt-4">
             <div>
                 <label className={labelClass}>{t("ed.map.city")}</label>
@@ -127,15 +129,15 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                />
             </div>
          </div>
-      </CenteredBlock>
+      </ContextPanel>
     );
   }
 
   if (node.type === "item" && node.collection === "timeline") {
      const event = node.sourceRef;
-     if (event.id.startsWith("card-presence:")) return <CenteredBlock eyebrow={t("ed.presence.eyebrow")} title={event.title} onClose={onClose}><p className="mt-4 text-sm">{event.detail}</p><p className="mt-3 text-sm">{t("ed.presence.text")}</p></CenteredBlock>;
+     if (event.id.startsWith("card-presence:")) return <ContextPanel eyebrow={t("ed.presence.eyebrow")} title={event.title} onClose={onClose}><p className="mt-4 text-sm">{event.detail}</p><p className="mt-3 text-sm">{t("ed.presence.text")}</p></ContextPanel>;
      return (
-       <CenteredBlock eyebrow={t("ed.moment.eyebrow")} title={event.title} onClose={onClose} leading={<Calendar className="mt-4 w-6 h-6 text-foreground/50" />}>
+       <ContextPanel eyebrow={t("ed.moment.eyebrow")} title={event.title} onClose={onClose} leading={<Calendar className="mt-4 w-6 h-6 text-foreground/50" />}>
          <div className="space-y-6 mt-4">
             <div>
                <label className={labelClass}>{t("ed.title")}</label>
@@ -215,14 +217,14 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                </div>
             )}
          </div>
-       </CenteredBlock>
+       </ContextPanel>
      );
   }
 
   if (node.type === "item" && node.collection === "documents") {
      const doc = node.sourceRef;
      return (
-        <CenteredBlock eyebrow={t("ed.doc.eyebrow")} title={doc.title} onClose={onClose} leading={<Folder className="mt-4 w-6 h-6 text-foreground/50" />}>
+        <ContextPanel eyebrow={t("ed.doc.eyebrow")} title={doc.title} onClose={onClose} leading={<Folder className="mt-4 w-6 h-6 text-foreground/50" />}>
            <div className="space-y-6 mt-4">
               <div>
                  <label className={labelClass}>{t("ed.title")}</label>
@@ -276,14 +278,14 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                  />
               </div>
            </div>
-        </CenteredBlock>
+        </ContextPanel>
      );
   }
 
   if (node.type === "item" && node.collection === "payments") {
      const payment = node.sourceRef;
      return (
-        <CenteredBlock eyebrow={t("ed.payment.eyebrow")} title={payment.label} onClose={onClose} leading={<Folder className="mt-4 w-6 h-6 text-foreground/50" />}>
+        <ContextPanel eyebrow={t("ed.payment.eyebrow")} title={payment.label} onClose={onClose} leading={<Folder className="mt-4 w-6 h-6 text-foreground/50" />}>
            <div className="space-y-6 mt-4">
               <div>
                  <label className={labelClass}>{t("ed.payment.name")}</label>
@@ -307,14 +309,14 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                  <input type="date" className={inputClass} defaultValue={payment.at ? format(payment.at, "yyyy-MM-dd") : ""} disabled={!canEdit} onChange={(e) => e.target.value && updateEntity("payments", payment.id, { at: new Date(e.target.value).getTime() })} />
               </div>
            </div>
-        </CenteredBlock>
+        </ContextPanel>
      );
   }
 
   if (node.type === "item" && node.collection === "guests") {
      const guest = node.sourceRef;
      return (
-        <CenteredBlock eyebrow={t("ed.guest.eyebrow")} title={guest.name} onClose={onClose} leading={<Network className="mt-4 w-6 h-6 text-foreground/50" />}>
+        <ContextPanel eyebrow={t("ed.guest.eyebrow")} title={guest.name} onClose={onClose} leading={<Network className="mt-4 w-6 h-6 text-foreground/50" />}>
            <div className="space-y-6 mt-4">
               <div>
                  <label className={labelClass}>{t("ed.name")}</label>
@@ -363,7 +365,7 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                  />
               </div>
            </div>
-        </CenteredBlock>
+        </ContextPanel>
      );
   }
 
@@ -379,7 +381,7 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
         return value.trim() !== "" && Number.isFinite(parsed) ? Math.round(parsed * 100) : undefined;
      };
      return (
-        <CenteredBlock eyebrow={t("ed.provider.eyebrow")} title={provider.name || provider.role} onClose={onClose} leading={<Users className="mt-4 w-6 h-6 text-foreground/50" />}>
+        <ContextPanel eyebrow={t("ed.provider.eyebrow")} title={provider.name || provider.role} onClose={onClose} leading={<Users className="mt-4 w-6 h-6 text-foreground/50" />}>
            <div className="space-y-6 mt-4">
               <div className="grid gap-4 sm:grid-cols-2">
                  <div>
@@ -442,13 +444,13 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                     onBlur={(e) => updateEntity("providers", provider.id, { nextAction: e.target.value })} />
               </div>
            </div>
-        </CenteredBlock>
+        </ContextPanel>
      );
   }
   if (node.type === "item" && node.collection === "memories") {
      const memory = node.sourceRef;
      return (
-        <CenteredBlock eyebrow={t("ed.memory.eyebrow")} title={memory.title} onClose={onClose} leading={<ImageIcon className="mt-4 w-6 h-6 text-foreground/50" />}>
+        <ContextPanel eyebrow={t("ed.memory.eyebrow")} title={memory.title} onClose={onClose} leading={<ImageIcon className="mt-4 w-6 h-6 text-foreground/50" />}>
            <div className="space-y-6 mt-4">
               <div>
                  <label className={labelClass}>{t("ed.title")}</label>
@@ -470,13 +472,13 @@ export function EntityEditor({ node, onClose, project, updateProject, updateEnti
                  />
               </div>
            </div>
-        </CenteredBlock>
+        </ContextPanel>
      );
   }
 
   return (
-    <CenteredBlock eyebrow={t("ed.details")} title={node.label || t("ed.item")} onClose={onClose}>
+    <ContextPanel eyebrow={t("ed.details")} title={node.label || t("ed.item")} onClose={onClose}>
       <p className="mt-4 text-sm text-foreground/60 font-light">{t("ed.notEditable")}</p>
-    </CenteredBlock>
+    </ContextPanel>
   );
 }

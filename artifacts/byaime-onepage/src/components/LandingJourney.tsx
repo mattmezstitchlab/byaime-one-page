@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import {
   Check,
   CreditCard,
@@ -10,6 +9,7 @@ import { AimeOrb } from "@/components/AimeOrb";
 import { Reveal } from "@/components/Reveal";
 import { getWorldPhases } from "@/lib/wedding-navigation";
 import { cn } from "@/lib/utils";
+import { LandingDeviceFrame } from "@/components/LandingDeviceFrame";
 
 /**
  * La visite du produit — une grande présentation VERTICALE, à l'image de la
@@ -152,16 +152,16 @@ export function LandingJourney() {
                     {/* La capture fidèle du produit, dans son appareil. */}
                     <div className={cn("flex justify-center", reversed ? "md:order-1" : "md:order-2")}>
                       {stop.device === "pad" ? (
-                        <IPadFrame label={t("journey.device.pad")}>
+                        <LandingDeviceFrame device="pad" label={t("journey.device.pad")} testId="journey-device-pad">
                           <PhasesScreen />
-                        </IPadFrame>
+                        </LandingDeviceFrame>
                       ) : (
-                        <IPhoneFrame label={t("journey.device.phone")}>
+                        <LandingDeviceFrame device="phone" label={t("journey.device.phone")} testId="journey-device-phone">
                           {stop.id === "concept" && <ComposerScreen />}
                           {stop.id === "timeline" && <TimelineScreen />}
                           {stop.id === "agent" && <AgentScreen />}
                           {stop.id === "card" && <CardScreen />}
-                        </IPhoneFrame>
+                        </LandingDeviceFrame>
                       )}
                     </div>
                   </div>
@@ -186,40 +186,7 @@ export function LandingJourney() {
 
 /* —————————————————————————————— Appareils —————————————————————————————— */
 
-function IPhoneFrame({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <figure
-      data-testid="journey-device-phone"
-      aria-label={label}
-      className="w-[250px] sm:w-[280px]"
-    >
-      <div className="rounded-[3rem] border border-[var(--agency-ink)]/15 bg-[var(--agency-ink)] p-[9px] shadow-[0_40px_90px_-45px_rgba(23,20,16,0.55)]">
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-[var(--agency-paper)]">
-          {/* L'îlot dynamique, sobre. */}
-          <div aria-hidden className="absolute left-1/2 top-2 z-10 h-[18px] w-20 -translate-x-1/2 rounded-full bg-[var(--agency-ink)]" />
-          <div className="aspect-[9/19] pt-9">{children}</div>
-        </div>
-      </div>
-    </figure>
-  );
-}
-
-function IPadFrame({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <figure
-      data-testid="journey-device-pad"
-      aria-label={label}
-      className="w-full max-w-[460px]"
-    >
-      <div className="rounded-[2rem] border border-[var(--agency-ink)]/15 bg-[var(--agency-ink)] p-[11px] shadow-[0_50px_110px_-50px_rgba(23,20,16,0.5)]">
-        <div className="relative overflow-hidden rounded-[1.4rem] bg-[var(--agency-paper)]">
-          <div aria-hidden className="absolute left-1/2 top-2 z-10 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[var(--agency-ink)]/30" />
-          <div className="aspect-[4/3] pt-5">{children}</div>
-        </div>
-      </div>
-    </figure>
-  );
-}
+/* Les cadres sont dans `LandingDeviceFrame` : la visite guidée filmée y puise les mêmes. */
 
 /* ————————————————————————— Écrans fidèles ————————————————————————— */
 

@@ -285,8 +285,8 @@ export function MusicPicker({
           {searching ? t("cb.music.searching") : t("cb.music.search")}
         </button>
         {musicError && (
-          <div className="mt-3 rounded-xl border border-amber-200/30 p-4">
-            <p role="alert" className="text-sm text-amber-100">
+          <div className="mt-3 rounded-xl border border-white/15 p-4">
+            <p role="alert" className="text-sm text-white/90">
               {musicError}{t("cb.music.errorSuffix")}
             </p>
             <div className="mt-3 flex flex-wrap gap-3">

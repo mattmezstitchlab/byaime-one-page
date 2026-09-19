@@ -230,6 +230,63 @@
   }
 }
 
+/*
+ * L'inspecteur ancré (ContextPanel) et le recalage du fil.
+ *
+ * Ces règles sont HORS couche, volontairement : la géométrie du dock ne doit
+ * pas dépendre de l'ordre de deux classes utilitaires dans le markup. Une
+ * seule largeur fait foi (`--aime-inspector`) — pour le dock et pour le
+ * retrait du fil — sinon les deux dérivent dès qu'on retouche l'un.
+ *
+ * Sous 1024 px, le dock n'a plus de place à droite : il devient une feuille en
+ * bas d'écran et le fil ne bouge pas (on est au doigt, pas à la souris).
+ */
+:root { --aime-inspector: 22rem; }
+/* 432 px sur un portable 1024 de large, c'était 42 % de l'écran : la largeur
+   ne passe à 27rem qu'à partir de 1280, là où le fil a encore de quoi respirer
+   à côté. (C'est aussi la largeur exacte de l'inspecteur tel qu'il est filmé
+   dans la visite : ce que la vidéo montre est bien ce que l'app rend.) */
+@media (min-width: 1280px) {
+  :root { --aime-inspector: 27rem; }
+}
+
+.aime-inspector {
+  inset-inline-end: 0;
+  inset-block: 0;
+  width: min(var(--aime-inspector), 100%);
+  border: 1px solid var(--agency-hairline);
+  border-block-width: 0;
+  border-inline-end-width: 0;
+  border-start-end-radius: 1.5rem;
+  border-end-end-radius: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .aime-inspector-open .aime-world-surface { padding-inline-end: var(--aime-inspector); }
+}
+
+.aime-world-surface {
+  transition: padding-inline-end 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aime-world-surface { transition: none; }
+}
+
+@media (max-width: 1023px) {
+  .aime-inspector {
+    inset-inline: 0;
+    inset-block-start: auto;
+    inset-block-end: 0;
+    width: auto;
+    max-height: 78dvh;
+    border-block-start-width: 1px;
+    border-inline-width: 0;
+    border-start-start-radius: 1.5rem;
+    border-start-end-radius: 1.5rem;
+  }
+}
+
 /* Media is source content, never a theme surface. */
 :is(img, video, canvas, picture, [data-preserve-color]) {
   filter: none !important;
@@ -363,11 +420,16 @@
  * Décision du 2026-09-13 : l'app est blanche. Les valeurs claires sont
  * la base de :root ; les blocs par attribut restent pour compatibilité, le sombre
  * n'est plus reachable depuis l'interface.
+ *
+ * Décision du 2026-09-19 : le jeton card était encore ivoire (`36 22% 93%`),
+ * donc chaque `bg-card` posait un bloc crème sur une page blanche — dans le
+ * Monde comme dans le panneau du +. Il passe à #FFFFFF, comme l'accueil : la
+ * séparation d'une surface se fait au filet (`--card-border`), plus à la teinte.
  */
 :root {
   --background: 0 0% 100%;
   --foreground: 30 12% 9%;
-  --card: 36 22% 93%;
+  --card: 0 0% 100%;
   --card-foreground: 30 12% 9%;
   --card-border: 30 12% 84%;
   --popover: 0 0% 100%;
@@ -410,7 +472,7 @@
 :root[data-aime-theme="light"] {
   --background: 0 0% 100%;
   --foreground: 30 12% 9%;
-  --card: 36 22% 93%;
+  --card: 0 0% 100%;
   --card-foreground: 30 12% 9%;
   --card-border: 30 12% 84%;
   --popover: 0 0% 100%;
