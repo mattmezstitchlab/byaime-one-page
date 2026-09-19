@@ -56,7 +56,7 @@ export const TOUR_CHAPTERS: ReadonlyArray<TourChapter> = [
 ];
 
 /** Le plan-séquence entier, chapitres recollés dans l'ordre. */
-export const TOUR_FILM = { duration: "6:27" } as const;
+export const TOUR_FILM = { duration: "6:26" } as const;
 
 export function tourVideoUrl(id: TourChapterId | "complet") {
   return getAssetUrl(`videos/tour-${id}.mp4`);

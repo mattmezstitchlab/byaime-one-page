@@ -10,9 +10,9 @@
   "film": {
     "file": "tour-complet.mp4",
     "poster": "tour-complet.jpg",
-    "duration": "6:27",
-    "seconds": 387,
-    "bytes": 9453422
+    "duration": "6:26",
+    "seconds": 386.4,
+    "bytes": 9350765
   },
   "chapters": [
     {
@@ -23,7 +23,7 @@
       "seconds": 42.8,
       "video": "tour-concept.mp4",
       "poster": "tour-concept.jpg",
-      "bytes": 1082960,
+      "bytes": 1073712,
       "start": 0
     },
     {
@@ -34,7 +34,7 @@
       "seconds": 45.3,
       "video": "tour-inscription.mp4",
       "poster": "tour-inscription.jpg",
-      "bytes": 825528,
+      "bytes": 830502,
       "start": 42.8
     },
     {
@@ -45,7 +45,7 @@
       "seconds": 51.5,
       "video": "tour-monde.mp4",
       "poster": "tour-monde.jpg",
-      "bytes": 1027002,
+      "bytes": 1004760,
       "start": 88.1
     },
     {
@@ -56,7 +56,7 @@
       "seconds": 43.2,
       "video": "tour-ouverture.mp4",
       "poster": "tour-ouverture.jpg",
-      "bytes": 1026118,
+      "bytes": 1044794,
       "start": 139.6
     },
     {
@@ -67,7 +67,7 @@
       "seconds": 39.9,
       "video": "tour-timeline.mp4",
       "poster": "tour-timeline.jpg",
-      "bytes": 1192200,
+      "bytes": 1185466,
       "start": 182.8
     },
     {
@@ -75,10 +75,10 @@
       "n": "06",
       "label": "Invités & RSVP",
       "duration": "1:00",
-      "seconds": 60.1,
+      "seconds": 59.6,
       "video": "tour-invites.mp4",
       "poster": "tour-invites.jpg",
-      "bytes": 1254048,
+      "bytes": 1243569,
       "start": 222.7
     },
     {
@@ -86,22 +86,22 @@
       "n": "07",
       "label": "Les modules du Monde",
       "duration": "0:54",
-      "seconds": 53.9,
+      "seconds": 53.8,
       "video": "tour-prestataires.mp4",
       "poster": "tour-prestataires.jpg",
-      "bytes": 1523085,
-      "start": 282.8
+      "bytes": 1539199,
+      "start": 282.3
     },
     {
       "id": "partage",
       "n": "08",
       "label": "Partager et garder",
       "duration": "0:50",
-      "seconds": 50.3,
+      "seconds": 50.4,
       "video": "tour-partage.mp4",
       "poster": "tour-partage.jpg",
-      "bytes": 1529721,
-      "start": 336.7
+      "bytes": 1435972,
+      "start": 336.1
     }
   ]
 }

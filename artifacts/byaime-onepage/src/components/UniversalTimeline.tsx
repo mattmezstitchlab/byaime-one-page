@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { Link2, MapPin, X, Clock3, CalendarDays, Undo2, Waves, ChevronRight, Waypoints, Pencil, Plus } from "lucide-react";
+import { Link2, MapPin, X, Undo2, Waves, ChevronRight, Waypoints, Pencil, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import type { TimelineEntityKind, TimelineEvent, WorldProject } from "@/lib/types";
@@ -68,26 +67,42 @@ function zoneLabel(zone: ReturnType<typeof momentVisualZone>, t: (key: I18nKey, 
 }
 
 /*
- * Le bandeau de chapitre : une respiration SANS visuel — une bande claire, le
- * titre du chapitre au centre, rien d'autre. Seules les grandes zones (les
- * scènes de Moment) portent un visuel : le chapitre ne duplique plus l'image
- * de la scène qui suit, et la lecture reste calme sur mobile.
+ * Le marqueur de chapitre : la date du moment de la vie où l'on entre.
+ *
+ * C'était un bandeau de respiration (filet, titre centré, 56 px de blanc) :
+ * superbe en cinéma, coûteux en scroll — trois chapitres consommaient un écran
+ * avant d'avoir montré un seul Moment. Il devient ce que les réseaux font d'un
+ * séparateur : une date, collante, une ligne, rien d'autre. Collante parce que
+ * dans un fil long, savoir OÙ l'on est tombé est la seule chose qu'on cherche.
  */
 function SubchapterTransition({ title }: { title: string }) {
   return (
     <div
       data-testid={`timeline-chapter-${title}`}
-      className="flex w-full flex-col items-center justify-center gap-3 bg-background px-6 py-12 sm:py-14"
+      className="sticky top-0 z-30 flex w-full items-center gap-3 border-y border-[var(--agency-hairline)] bg-white/85 px-6 py-2 backdrop-blur-md sm:px-10"
     >
-      <span aria-hidden className="h-px w-12 bg-foreground/20" />
-      <h2 className="text-center text-xs font-medium uppercase tracking-[0.35em] text-foreground/75 sm:text-sm">
+      <h2 className="shrink-0 text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--agency-eyebrow)]">
         {title}
       </h2>
-      <span aria-hidden className="h-px w-12 bg-foreground/20" />
+      <span aria-hidden className="h-px flex-1 bg-[var(--agency-hairline)]" />
     </div>
   );
 }
 
+/*
+ * Une carte du fil, pas une scène de cinéma.
+ *
+ * Le Moment garde tout ce qu'il portait déjà — son visuel RÉEL (image ou vidéo
+ * du manifeste, jamais un à-plat décoratif), sa zone, ses repères, ses actions —
+ * mais posé dans la colonne du fil, à la densité d'un post : qui le porte et
+ * quand en tête, le média, le titre, deux ou trois métadonnées, les actions.
+ *
+ * Ce choix est celui du scroll : l'ancienne scène pleine hauteur (60vh minimum,
+ * texte blanc sur photo) ne montrait qu'un Moment à la fois et forçait à
+ * défiler pour savoir ce qui restait. Ici on lit une dizaines de Moments par
+ * écran, et le visuel devient une information — ce qu'il a toujours été — plus
+ * un fond.
+ */
 function EventScene({
   event,
   project,
@@ -108,106 +123,110 @@ function EventScene({
   const visual = momentVisual(event, project);
   const zone = momentVisualZone(event, project);
   const isCustomVisual = Boolean(event.visual?.url);
+  /* L'en-tête « qui » et « quand » : le porteur du Moment, sinon le Monde ;
+     l'heure du Jour J, la date partout ailleurs. */
+  const carrier = event.responsible?.trim() || event.vendor?.trim() || project.title;
+  const when = format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: dateLocale });
+  const chip = "inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[.14em] text-[var(--agency-eyebrow)]";
+
   return (
-    <section
+    <article
       data-testid={`timeline-scene-${event.id}`}
       data-moment-intent={context.intent}
-      className="relative w-full min-h-[60vh] flex items-center justify-center overflow-hidden border-t border-[var(--agency-hairline)] px-6 py-24 text-center group"
-      style={{ backgroundColor: "#000" }}
+      className="w-full border-b border-[var(--agency-hairline)] bg-white px-4 py-5 sm:px-8"
     >
-      <AmbientBackground visual={visual} poster={momentAmbientAsset(event, project)} />
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-3.5">
+        <header className="flex items-center gap-3">
+          <span
+            aria-hidden
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--agency-hairline)] bg-white text-[9px] font-medium uppercase tracking-[.06em] text-[var(--agency-eyebrow)]"
+          >
+            {format(event.time, event.phase === "pendant" ? "HH" : "d MMM", { locale: dateLocale })}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-medium leading-tight text-[var(--agency-ink)]">{carrier}</p>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-tight text-[var(--agency-body)]">
+              <span className="tabular-nums">{when}</span>
+              {event.durationMinutes ? <span aria-hidden>·</span> : null}
+              {event.durationMinutes ? <span>{event.durationMinutes} min</span> : null}
+              {event.provenance && event.provenance !== "real" ? (
+                <span className="rounded-full border border-[var(--agency-hairline)] px-1.5 py-px text-[9px] uppercase tracking-[.12em] text-[var(--agency-eyebrow)]">
+                  {t("tl.proposedByAime")}
+                </span>
+              ) : null}
+            </p>
+          </div>
+          {canEdit && (
+            <button
+              type="button"
+              data-testid={`timeline-edit-${event.id}`}
+              onClick={onClick}
+              className={cn(
+                "ml-auto inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-[var(--agency-hairline)] bg-white px-3 text-[10px] uppercase tracking-[.14em] text-[var(--agency-body)] transition",
+                "hover:border-[var(--agency-ink)]/35 hover:text-[var(--agency-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/35",
+              )}
+            >
+              <Pencil aria-hidden className="h-3 w-3" />
+              {t("tl.editMoment")}
+            </button>
+          )}
+        </header>
 
-      <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center gap-8">
-        {/* Le Moment lui-même reste un grand plan cinéma, cliquable. */}
+        {/* Le Moment et son média : cliquer ici ouvre l'inspecteur de droite. */}
         <button
           type="button"
           onClick={onClick}
           aria-label={t("moment.open.aria", { title: event.title })}
-          className="w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-[20px]"
+          className="group/scene block w-full overflow-hidden rounded-[20px] border border-[var(--agency-hairline)] bg-black text-left transition hover:border-[var(--agency-ink)]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--agency-ink)]/40"
         >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="space-y-6 flex flex-col items-center rounded-[20px] p-8 md:p-12 bg-black/25 backdrop-blur-md border border-white/15 hover:bg-black/30 transition-colors"
-          >
-            <div className="flex items-center gap-3 text-xs tracking-widest uppercase text-white/70 font-medium">
-              <CalendarDays className="w-4 h-4" />
-              <span>{format(event.time, event.phase === "pendant" ? "HH:mm" : "d MMMM yyyy", { locale: dateLocale })}</span>
-              {event.durationMinutes && (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-current opacity-30" />
-                  <Clock3 className="w-4 h-4" />
-                  <span>{event.durationMinutes} min</span>
-                </>
-              )}
-            </div>
-
-            <h3 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-balance tracking-tight text-white group-hover:text-white/90 transition-colors">
+          <span className="relative block aspect-[16/9] w-full overflow-hidden">
+            <AmbientBackground visual={visual} poster={momentAmbientAsset(event, project)} />
+            {/* La zone qui a fourni le visuel : d'où vient le média, et qu'on
+                peut le remplacer. */}
+            <span data-testid="timeline-zone" className="absolute bottom-2 left-2 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[9px] uppercase tracking-[.16em] text-white/90 backdrop-blur-sm">
+              <Waves className="h-3 w-3" aria-hidden />
+              {isCustomVisual ? t("tl.customVisual") : zoneLabel(zone, t)}
+            </span>
+          </span>
+          <span className="block bg-white px-4 pb-4 pt-3.5">
+            <span className="block text-balance text-lg font-semibold leading-snug tracking-tight text-[var(--agency-ink)]">
               {event.title}
-            </h3>
-
-            {event.detail && (
-              <p className="text-lg md:text-xl text-white/80 font-light max-w-2xl text-balance leading-relaxed">
-                {event.detail}
-              </p>
-            )}
-
-            <div className="flex flex-wrap justify-center gap-x-7 gap-y-3 pt-8">
-              {/* La zone qui a fourni le visuel : le couple voit d'où vient le fond,
-                  et sait qu'il peut le remplacer. */}
-              <span data-testid="timeline-zone" className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/55">
-                <Waves className="w-3 h-3" />
-                {isCustomVisual ? t("tl.customVisual") : zoneLabel(zone, t)}
+            </span>
+            {event.detail ? (
+              <span className="mt-1.5 block text-[13px] leading-relaxed text-[var(--agency-body)]">{event.detail}</span>
+            ) : null}
+            {(event.location || (event.relations?.length ?? 0) > 0) && (
+              <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                {event.location ? (
+                  <span className={chip}>
+                    <MapPin className="h-3 w-3" aria-hidden />
+                    {event.location}
+                  </span>
+                ) : null}
+                {(event.relations?.length ?? 0) > 0 ? (
+                  <span className={chip}>
+                    <Link2 className="h-3 w-3" aria-hidden />
+                    {t("tl.links", { n: event.relations!.length })}
+                  </span>
+                ) : null}
               </span>
-              {event.location && (
-                <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
-                  <MapPin className="w-3 h-3" />
-                  {event.location}
-                </span>
-              )}
-              {(event.relations?.length || 0) > 0 && (
-                <span className="flex items-center gap-2 text-[10px] uppercase tracking-[.16em] text-white/60">
-                  <Link2 className="w-3 h-3" />
-                  {t("tl.links", { n: event.relations!.length })}
-                </span>
-              )}
-            </div>
-          </motion.div>
+            )}
+          </span>
         </button>
 
-        {canEdit && (
-          <button
-            type="button"
-            data-testid={`timeline-edit-${event.id}`}
-            onClick={onClick}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/30 bg-black/20 px-4 text-[11px] uppercase tracking-[.16em] text-white/80 backdrop-blur transition hover:border-white/70 hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-          >
-            <Pencil aria-hidden className="h-3.5 w-3.5" />
-            {t("tl.editMoment")}
-          </button>
-        )}
-
-        {/* UN MOMENT = UN CONTEXTE = SES ACTIONS.
-            Repères déjà connus, puis les actions pertinentes de cet instant —
-            dérivés du WorldProject, jamais dupliqués. */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
-          className="flex w-full flex-col items-center gap-4"
-        >
-          <MomentFacts facts={context.facts} />
+        {/* Repères et actions du Moment : la même source que l'inspecteur, en
+            plus court. En `light`, parce que la carte est blanche. */}
+        <div className="flex flex-col items-start gap-2.5">
+          <MomentFacts facts={context.facts} variant="light" />
           <MomentActions
             actions={context.actions}
             primaryCount={context.primaryCount}
+            variant="light"
             onAction={action => onAction(action, event)}
           />
-        </motion.div>
+        </div>
       </div>
-    </section>
+    </article>
   );
 }
 

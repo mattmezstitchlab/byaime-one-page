@@ -70,8 +70,10 @@ export function MomentFacts({ facts, variant = "dark" }: { facts: MomentFact[]; 
     <ul
       aria-label={t("moment.facts.aria")}
       className={cn(
-        "flex flex-wrap justify-center gap-x-5 gap-y-2",
-        variant === "dark" ? "text-white/70" : "text-foreground/60",
+        /* Une scène immersive se lit centrée ; une carte du fil se lit à gauche,
+           comme la suite du texte. */
+        "flex flex-wrap gap-x-5 gap-y-2",
+        variant === "dark" ? "justify-center text-white/70" : "justify-start text-[var(--agency-body)]",
       )}
     >
       {facts.map(fact => {
@@ -111,10 +113,13 @@ export function MomentActions({
 
   const pill = variant === "dark"
     ? "border-white/25 bg-white/10 text-white/85 backdrop-blur-md hover:bg-white hover:text-black"
-    : "border-foreground/15 bg-[var(--agency-paper)] text-foreground/70 hover:border-foreground/40 hover:text-foreground";
+    : "border-[var(--agency-hairline)] bg-white text-[var(--agency-body)] hover:border-[var(--agency-ink)]/35 hover:text-[var(--agency-ink)]";
 
   return (
-    <div aria-label={t("moment.actions.aria")} className="flex flex-wrap items-center justify-center gap-2">
+    <div
+      aria-label={t("moment.actions.aria")}
+      className={cn("flex flex-wrap items-center gap-2", variant === "dark" ? "justify-center" : "justify-start")}
+    >
       {visible.map(action => {
         const Icon = ICONS[action.icon];
         return (
