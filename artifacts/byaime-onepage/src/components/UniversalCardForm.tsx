@@ -490,12 +490,12 @@ export function UniversalCardForm({
       {loadError && (
         <div
           data-testid="card-load-error"
-          className="mt-5 rounded-2xl border border-amber-200/40 bg-amber-100/10 p-4"
+          className="mt-5 rounded-2xl border border-white/15 bg-white/[0.06] p-4"
         >
-          <p role="alert" className="text-sm text-amber-100">
+          <p role="alert" className="text-sm text-white/90">
             {loadError}
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-amber-100/70">
+          <p className="mt-2 text-xs leading-relaxed text-white/60">
             {t("ucf.loadError.hint")}
           </p>
           <button

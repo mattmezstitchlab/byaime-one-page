@@ -464,12 +464,12 @@ export function UniversalZero() {
 
                 {/* Cas saxo direct : afficher info */}
                 {isSaxoPath && (
-                  <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+                  <p className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-xs leading-relaxed text-zinc-700">
                     Branche contextualisée : <strong>saxophoniste auto-entrepreneur</strong> — trajectoire vers intermittence proposée, jamais appliquée sans validation.
                   </p>
                 )}
                 {isRestoPath && (
-                  <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+                  <p className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-xs leading-relaxed text-zinc-700">
                     Branche contextualisée : <strong>restaurateur</strong> — trajectoire d’ouverture de lieu et de carte, proposée à vérifier.
                   </p>
                 )}
@@ -510,12 +510,12 @@ export function UniversalZero() {
                       )}
                     >
                       {choice}
-                      {choice === "explorer le régime du spectacle" && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-900">trajectoire à explorer</span>}
+                      {choice === "explorer le régime du spectacle" && <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">trajectoire à explorer</span>}
                     </button>
                   ))}
                 </div>
                 {intention.includes("explorer le régime du spectacle") && (
-                  <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+                  <p className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs leading-relaxed text-zinc-700">
                     L’intermittence n’est pas un bouton de changement de statut — c’est une trajectoire à explorer, à vérifier auprès des organismes compétents. AIME la modélise comme objectif, pas comme bascule automatique.
                   </p>
                 )}
@@ -575,7 +575,7 @@ export function UniversalZero() {
                             {factsPreview.map(f => (
                               <li key={f.id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs">
                                 <span>{f.label}</span>
-                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-900">{f.status}</span>
+                                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600">{f.status}</span>
                               </li>
                             ))}
                           </ul>

@@ -363,11 +363,16 @@
  * Décision du 2026-09-13 : l'app est blanche. Les valeurs claires sont
  * la base de :root ; les blocs par attribut restent pour compatibilité, le sombre
  * n'est plus reachable depuis l'interface.
+ *
+ * Décision du 2026-09-19 : le jeton card était encore ivoire (`36 22% 93%`),
+ * donc chaque `bg-card` posait un bloc crème sur une page blanche — dans le
+ * Monde comme dans le panneau du +. Il passe à #FFFFFF, comme l'accueil : la
+ * séparation d'une surface se fait au filet (`--card-border`), plus à la teinte.
  */
 :root {
   --background: 0 0% 100%;
   --foreground: 30 12% 9%;
-  --card: 36 22% 93%;
+  --card: 0 0% 100%;
   --card-foreground: 30 12% 9%;
   --card-border: 30 12% 84%;
   --popover: 0 0% 100%;
@@ -410,7 +415,7 @@
 :root[data-aime-theme="light"] {
   --background: 0 0% 100%;
   --foreground: 30 12% 9%;
-  --card: 36 22% 93%;
+  --card: 0 0% 100%;
   --card-foreground: 30 12% 9%;
   --card-border: 30 12% 84%;
   --popover: 0 0% 100%;
