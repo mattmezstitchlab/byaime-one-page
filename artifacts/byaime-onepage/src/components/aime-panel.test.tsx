@@ -277,10 +277,13 @@ describe("le Panneau AIME, la seule porte d'entrée", () => {
     const heroLabel = () => document.querySelector('[data-testid="world-mode-label"]');
     const columnLabel = () => document.querySelector('[data-testid="aime-panel-mode-label"]');
 
-    expect(heroLabel(), "le héro nomme le mode").not.toBeNull();
-    expect(heroLabel()!.textContent).toContain("Avant");
-    expect(heroLabel()!.textContent).toContain("vous préparez");
+    /* Le héro nomme ce que le FIL montre — « Tout le fil » à l'ouverture, une
+       période dès qu'on la choisit ; la colonne, elle, nomme la période où on
+       EST (le mode), qui reste l'Avant tant qu'on n'a rien demandé. */
+    expect(heroLabel(), "le héro nomme le fil").not.toBeNull();
+    expect(heroLabel()!.textContent).toContain("Tout le fil");
     expect(columnLabel(), "la colonne nomme le mode").not.toBeNull();
+    expect(heroLabel()!.textContent).not.toContain("vous préparez");
     expect(columnLabel()!.textContent).toContain("vous préparez");
     expect(document.querySelector('[data-testid="aime-panel-mode-role"]')!.textContent).toContain("Prestataires");
 

@@ -87,7 +87,7 @@ describe("UniversalTimeline — une tête par période", () => {
     expect(markup).not.toContain('data-testid="day-run"');
   });
 
-  it("n'impose aucune tête sur une vue qui mélange les périodes", () => {
+  it("sur le fil qui mélange les périodes, chaque période a sa tête à son entrée", () => {
     const markup = renderToStaticMarkup(
       <UniversalTimeline
         events={[
@@ -100,11 +100,19 @@ describe("UniversalTimeline — une tête par période", () => {
       />,
     );
 
-    expect(markup).not.toContain('data-testid="avant-overview"');
+    /* Une seule verticalité (19/09) : les têtes ne sont plus des modes, ce sont
+       des chapitres. Chacune se pose UNE fois, à l'entrée de sa période. Le
+       Jour J n'a pas de tête ici — sa régie est un écran à part, appelé depuis
+       la barre de lecture, pas un habillage du déroulé. */
+    expect(markup.split('data-testid="avant-overview"').length - 1).toBe(1);
+    expect(markup.split('data-testid="apres-overview"').length - 1).toBe(1);
     expect(markup).not.toContain('data-testid="day-run"');
-    expect(markup).not.toContain('data-testid="apres-overview"');
-    // Les Moments restent listés.
+    // Les trois Moments restent listés, dans l'ordre du temps.
     expect(markup).toContain("Dégustation");
+    expect(markup).toContain("Cérémonie");
+    expect(markup).toContain("Album");
+    expect(markup.indexOf("Dégustation")).toBeLessThan(markup.indexOf("Cérémonie"));
+    expect(markup.indexOf("Cérémonie")).toBeLessThan(markup.indexOf("Album"));
   });
 
   it("ne propose aucune tête sur une vue vide", () => {

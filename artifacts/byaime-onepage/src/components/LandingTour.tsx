@@ -47,7 +47,7 @@ export type TourChapter = {
 export const TOUR_CHAPTERS: ReadonlyArray<TourChapter> = [
   { id: "concept", n: "01", label: "tour.concept.label", text: "tour.concept.text", duration: "0:43" },
   { id: "inscription", n: "02", label: "tour.inscription.label", text: "tour.inscription.text", duration: "0:45" },
-  { id: "monde", n: "03", label: "tour.monde.label", text: "tour.monde.text", duration: "0:52" },
+  { id: "monde", n: "03", label: "tour.monde.label", text: "tour.monde.text", duration: "0:51" },
   { id: "ouverture", n: "04", label: "tour.ouverture.label", text: "tour.ouverture.text", duration: "0:43" },
   { id: "timeline", n: "05", label: "tour.timeline.label", text: "tour.timeline.text", duration: "0:40" },
   { id: "invites", n: "06", label: "tour.invites.label", text: "tour.invites.text", duration: "1:00" },

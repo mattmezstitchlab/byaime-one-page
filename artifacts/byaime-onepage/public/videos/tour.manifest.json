@@ -11,8 +11,8 @@
     "file": "tour-complet.mp4",
     "poster": "tour-complet.jpg",
     "duration": "6:27",
-    "seconds": 386.8,
-    "bytes": 9196521
+    "seconds": 387,
+    "bytes": 9453422
   },
   "chapters": [
     {
@@ -23,7 +23,7 @@
       "seconds": 42.8,
       "video": "tour-concept.mp4",
       "poster": "tour-concept.jpg",
-      "bytes": 1090849,
+      "bytes": 1082960,
       "start": 0
     },
     {
@@ -31,33 +31,33 @@
       "n": "02",
       "label": "Créer son espace",
       "duration": "0:45",
-      "seconds": 45.4,
+      "seconds": 45.3,
       "video": "tour-inscription.mp4",
       "poster": "tour-inscription.jpg",
-      "bytes": 832299,
+      "bytes": 825528,
       "start": 42.8
     },
     {
       "id": "monde",
       "n": "03",
       "label": "Ouvrir un Monde",
-      "duration": "0:52",
-      "seconds": 51.7,
+      "duration": "0:51",
+      "seconds": 51.5,
       "video": "tour-monde.mp4",
       "poster": "tour-monde.jpg",
-      "bytes": 978621,
-      "start": 88.2
+      "bytes": 1027002,
+      "start": 88.1
     },
     {
       "id": "ouverture",
       "n": "04",
       "label": "Nommer le Monde",
       "duration": "0:43",
-      "seconds": 43.3,
+      "seconds": 43.2,
       "video": "tour-ouverture.mp4",
       "poster": "tour-ouverture.jpg",
-      "bytes": 1020323,
-      "start": 139.9
+      "bytes": 1026118,
+      "start": 139.6
     },
     {
       "id": "timeline",
@@ -67,19 +67,19 @@
       "seconds": 39.9,
       "video": "tour-timeline.mp4",
       "poster": "tour-timeline.jpg",
-      "bytes": 1175492,
-      "start": 183.2
+      "bytes": 1192200,
+      "start": 182.8
     },
     {
       "id": "invites",
       "n": "06",
       "label": "Invités & RSVP",
       "duration": "1:00",
-      "seconds": 59.7,
+      "seconds": 60.1,
       "video": "tour-invites.mp4",
       "poster": "tour-invites.jpg",
-      "bytes": 1165699,
-      "start": 223.1
+      "bytes": 1254048,
+      "start": 222.7
     },
     {
       "id": "prestataires",
@@ -89,7 +89,7 @@
       "seconds": 53.9,
       "video": "tour-prestataires.mp4",
       "poster": "tour-prestataires.jpg",
-      "bytes": 1474460,
+      "bytes": 1523085,
       "start": 282.8
     },
     {
@@ -97,10 +97,10 @@
       "n": "08",
       "label": "Partager et garder",
       "duration": "0:50",
-      "seconds": 50.2,
+      "seconds": 50.3,
       "video": "tour-partage.mp4",
       "poster": "tour-partage.jpg",
-      "bytes": 1466102,
+      "bytes": 1529721,
       "start": 336.7
     }
   ]

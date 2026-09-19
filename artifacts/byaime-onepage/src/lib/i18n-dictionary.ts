@@ -333,6 +333,12 @@ const fr = {
    * ce que chaque période SERT : on choisissait un mode sans savoir ce qui
    * changeait. Une phrase par mode, dans le héro ET dans la colonne du panneau.
    */
+  "world.mode.tout": "Tout le fil — les trois périodes d'un seul scroll",
+  "world.mode.tout.role": "Avant, Jour J, Après dans l'ordre du temps ; les pastilles filtrent, rien ne se ferme.",
+  "world.phase.all": "Tout le fil",
+  "world.hero.tout.eyebrow": "Le fil du Monde",
+  "world.hero.tout.desc": "Avant, le jour J, après : tout se lit ici, dans l'ordre du temps.",
+  "contextPanel.close": "Fermer le panneau",
   "world.mode.avant": "Mode Avant — vous préparez",
   "world.mode.avant.role": "Prestataires, invités, budget, rétroplanning : tout se prépare ici.",
   "world.mode.pendant": "Mode Jour J — vous exécutez",
@@ -1982,6 +1988,12 @@ const en: Record<I18nKey, string> = {
   "world.phase.short.apres": "After",
   "world.phase.short.moment": "Moment",
   "world.phase.group": "Wedding period",
+  "world.mode.tout": "The whole thread — three periods, one scroll",
+  "world.mode.tout.role": "Before, the big day, after — in time order. The chips filter; nothing closes.",
+  "world.phase.all": "Whole thread",
+  "world.hero.tout.eyebrow": "The world thread",
+  "world.hero.tout.desc": "Before, the big day, after — read it all here, in time order.",
+  "contextPanel.close": "Close panel",
   "world.mode.avant": "Before mode — you prepare",
   "world.mode.avant.role": "Vendors, guests, budget, timeline: everything is prepared here.",
   "world.mode.pendant": "Big day mode — you run it",

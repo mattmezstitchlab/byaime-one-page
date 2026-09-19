@@ -92,6 +92,19 @@ export function ProjectStage() {
   const dateLocale = locale === 'en' ? enUS : fr;
   const pivotDate = project?.pivot.value ?? Date.now();
   const [phase, setPhase] = useState<WorldPhase>(() => getInitialWorldPhase(pivotDate));
+  /*
+   * Le fil est UNIQUE (19/09) : « tout » est l'ouverture, les trois périodes ne
+   * sont plus des écrans différents mais des filtres posés sur le même scroll.
+   * `phase` reste le MODE — la case du visuel de héro, le rail du panneau, le
+   * tic-tac du Jour J — et les appels internes à `setPhase` (un panneau qui a
+   * besoin d'une autre période, un focus venu d'ailleurs) continuent de le
+   * déplacer sans jamais hacher le scroll de l'utilisateur.
+   */
+  const [threadFilter, setThreadFilter] = useState<WorldPhase | "tout">("tout");
+  const selectThreadFilter = (next: WorldPhase | "tout") => {
+    setThreadFilter(next);
+    setPhase(next === "tout" ? getInitialWorldPhase(pivotDate) : next);
+  };
   const [view, setView] = useState<TimelineView>("chronological");
   const [tasksOpen, setTasksOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -195,7 +208,10 @@ export function ProjectStage() {
     }
     const targetPhase = findPhaseForPanel(normalized, role, effectiveView);
     if (targetPhase) {
-      setPhase(targetPhase);
+      /* On ne déplace pas seulement le mode : aller chercher un panneau qui
+         vit dans une autre période, c'est aller à cette période — le fil se
+         serre dessus, et le héro le dit. */
+      selectThreadFilter(targetPhase);
       if (view === "public-info" && targetPhase === "avant") setView("chronological");
     }
     presentPanel(panel, momentId);
@@ -337,7 +353,13 @@ export function ProjectStage() {
     const applyFocus = (request?: WorldFocusRequest) => {
       if (!request) return;
       const explicitPhase = request.phase === "avant" || request.phase === "pendant" || request.phase === "apres";
-      if (explicitPhase) setPhase(request.phase as WorldPhase);
+      if (explicitPhase) {
+        setPhase(request.phase as WorldPhase);
+        /* Une période DEMANDÉE depuis un miroir (le panneau de l'orbe, une
+           notification, l'agent) vaut aussi comme filtre : on ne déplace pas
+           seulement le mode, on resserre le fil sur ce qu'on est venu voir. */
+        setThreadFilter(request.phase as WorldPhase);
+      }
       if (request.view) setView(request.view as TimelineView);
       if (request.panel) {
         if (explicitPhase) {
@@ -379,15 +401,10 @@ export function ProjectStage() {
 
   const visibleEvents = useMemo(() => {
     if (!project) return [];
-    return filterTimeline(project, view).filter(e => {
-      // Phase filtering
-      if (phase === 'avant' && e.phase !== 'avant') return false;
-      if (phase === 'pendant' && e.phase !== 'pendant') return false;
-      if (phase === 'apres' && e.phase !== 'apres') return false;
-
-      return true;
-    });
-  }, [project, phase, view]);
+    /* Une seule verticalité : le store est déjà un fil chronologique, on ne le
+       découpe que si une période est demandée. */
+    return filterTimeline(project, view).filter(e => threadFilter === "tout" || e.phase === threadFilter);
+  }, [project, threadFilter, phase, view]);
 
   const countdownTargets = useMemo(() => {
     if (!project) return [];
@@ -424,7 +441,13 @@ export function ProjectStage() {
   const featuredDayEvent = liveEvent || nextDayEvent;
   const memoryCount = project.memories.length + project.media.length;
   const isPublicInfo = view === "public-info";
+  /* Ce que le héro raconte : la période choisie, ou le fil entier. */
+  const heroKey: WorldPhase | "tout" = threadFilter === "tout" ? "tout" : threadFilter;
   const phaseHeroCopy = {
+    tout: {
+      eyebrow: t("world.hero.tout.eyebrow"),
+      title: project.title,
+      description: t("world.hero.tout.desc") },
     avant: {
       eyebrow: t("world.hero.avant.eyebrow"),
       title: project.title,
@@ -440,7 +463,7 @@ export function ProjectStage() {
       title: project.title,
       description: memoryCount
         ? t("world.hero.apres.desc", { count: memoryCount })
-        : t("world.hero.apres.empty") } }[phase];
+        : t("world.hero.apres.empty") } }[heroKey];
   const heroCopy = isPublicInfo
     ? {
         eyebrow: t("world.hero.publicInfo.eyebrow"),
@@ -546,10 +569,10 @@ export function ProjectStage() {
                   pastilles restent l'unique sélecteur, mais on sait ce qu'on
                   choisit (17/09). */}
               <p data-testid="world-mode-label" className="text-xs uppercase tracking-[.14em] text-white/80">
-                {t(`world.mode.${phase}` as never)}
+                {t(`world.mode.${heroKey}` as never)}
               </p>
               <p data-testid="world-mode-role" className="mt-1 text-xs text-white/55">
-                {t(`world.mode.${phase}.role` as never)}
+                {t(`world.mode.${heroKey}.role` as never)}
               </p>
               <motion.div
                 role="group"
@@ -560,14 +583,16 @@ export function ProjectStage() {
                 transition={{ delay: 0.05 }}
                 className="mt-2 flex w-fit items-center gap-1 rounded-full border border-white/25 bg-white/10 p-1 backdrop-blur-md"
               >
-                {getWorldPhases(locale).map(entry => {
-                  const active = entry.id === phase;
+                {/* « Tout le fil » d'abord : c'est la lecture par défaut, pas une
+                    option parmi d'autres. Les trois périodes ne font que la serrer. */}
+                {[{ id: "tout" as const, label: t("world.phase.all") }, ...getWorldPhases(locale)].map(entry => {
+                  const active = entry.id === threadFilter;
                   return (
                     <button
                       key={entry.id}
                       type="button"
                       data-testid={`world-phase-${entry.id}`}
-                      onClick={() => setPhase(entry.id)}
+                      onClick={() => selectThreadFilter(entry.id)}
                       aria-current={active ? "true" : undefined}
                       title={entry.label}
                       className={cn(
@@ -575,7 +600,7 @@ export function ProjectStage() {
                         active ? "bg-white text-black" : "text-white/80 hover:bg-white/15 hover:text-white",
                       )}
                     >
-                      {getWorldPhaseShortLabel(entry.id, locale)}
+                      {entry.id === "tout" ? entry.label : getWorldPhaseShortLabel(entry.id, locale)}
                     </button>
                   );
                 })}

@@ -260,6 +260,22 @@ export function UniversalTimeline({
 
   let currentSubchapter = "";
   const pivotTime = project.pivot.value;
+  /*
+   * Le fil unique : une tête de période n'est plus un écran, c'est un chapitre.
+   * Quand le scroll mélange les périodes, on pose la tête d'Avant à son entrée
+   * et celle d'Après à la sienne, une fois chacune. Le Jour J n'a pas de tête
+   * ici : sa régie est un écran à part (PlayMode, appelé depuis la barre de
+   * lecture), pas un habillage du déroulé.
+   */
+  const mixedPhases = new Set(events.map(item => item.phase)).size > 1;
+  const headsPlaced = new Set<TimelineEvent["phase"]>();
+  const phaseHead = (item: TimelineEvent) => {
+    if (!mixedPhases || headsPlaced.has(item.phase)) return null;
+    headsPlaced.add(item.phase);
+    if (item.phase === "avant") return <AvantOverview />;
+    if (item.phase === "apres") return <ApresOverview />;
+    return null;
+  };
   // Le Jour J ne se lit pas comme un film : dès que la vue ne montre que des
   // Moments « pendant », on bascule sur la timeline verticale de régie
   // (compte à rebours, horaires agrandis, retards). Le tiroir de détail reste
@@ -326,6 +342,7 @@ export function UniversalTimeline({
 
         return (
           <Fragment key={item.id}>
+            {phaseHead(item)}
             {isNewSubchapter && <SubchapterTransition title={subchapter} />}
             <EventScene
               event={item}
